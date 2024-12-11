@@ -1,3 +1,10 @@
+# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
+# Initialization code that may require console input (password prompts, [y/n]
+# confirmations, etc.) must go above this block; everything else may go below.
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
 # >>> Powerlevel10k instant prompt setup >>>
 if [[ -r ~/.p10k.zsh ]]; then
   source ~/.p10k.zsh
@@ -52,3 +59,6 @@ alias ls='colorls -a'
 alias nvimconfig="nvim ~/.config/nvim/init.lua"
 alias zshconfig="nvim ~/.zshrc"
 export PATH=$PATH:/opt/mssql-tools/bin
+
+# Created by `pipx` on 2024-12-11 21:23:53
+export PATH="$PATH:/Users/juanbenjumea/.local/bin"
