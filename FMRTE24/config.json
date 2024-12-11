@@ -1,0 +1,1267 @@
+{
+  "DebugMode": false,
+  "ExperimentalFeatures": false,
+  "Theme": "OrangeDark",
+  "AdvancedFeatures": false,
+  "AlwaysReloadScreens": false,
+  "DontChangeTitleBarColors": true,
+  "ApplyPresetsToHighlightedAttributesOnly": true,
+  "HighlightBestRoleDutyAutomatically": true,
+  "InterfaceScale": 1.0,
+  "MiniFmrteInterfaceScale": 1.0,
+  "RatingsPath": "",
+  "FmrteVersion": "24.3.0.29",
+  "Distance": "Meters",
+  "Wages": "Weekly",
+  "AttributesRange": 20,
+  "Language": "english.xml",
+  "SelectedCurrencyName": "United Kingdom Pound",
+  "Freezer": {
+    "Player": {
+      "AttributesToIgnore": [
+        "Age",
+        "IntCaps",
+        "IntGoals",
+        "U21Caps",
+        "U21Goals",
+        "Positions",
+        "Positions.WingBackRight",
+        "Positions.WingBackLeft",
+        "Positions.Striker",
+        "Positions.MidfielderRight",
+        "Positions.MidfielderLeft",
+        "Positions.MidfielderCentral",
+        "Positions.Goalkeeper",
+        "Positions.DefensiveMidfielder",
+        "Positions.DefenderRight",
+        "Positions.DefenderLeft",
+        "Positions.DefenderCentral",
+        "Positions.AttackingMidRight",
+        "Positions.AttackingMidLeft",
+        "Positions.AttackingMidCentral"
+      ],
+      "AttributesThatCanIncrease": []
+    },
+    "Staff": {
+      "AttributesToIgnore": [
+        "Age",
+        "IntCaps",
+        "IntGoals",
+        "U21Caps",
+        "U21Goals"
+      ],
+      "AttributesThatCanIncrease": []
+    }
+  },
+  "Exporters": {
+    "Player": {
+      "AttributesToIgnore": [
+        "Age",
+        "IntCaps",
+        "IntGoals",
+        "U21Caps",
+        "U21Goals"
+      ]
+    },
+    "Staff": {
+      "AttributesToIgnore": [
+        "Age",
+        "IntCaps",
+        "IntGoals",
+        "U21Caps",
+        "U21Goals"
+      ]
+    }
+  },
+  "ColorPickerCustomColors": [],
+  "ColumnsSettings": {
+    "Items": [
+      {
+        "SettingsKey": "WonderKidsNotificationColumns",
+        "Columns": [
+          {
+            "Name": null,
+            "Path": "DisplayedName",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Positions.PositionsDesc",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "CA",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "PA",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Age",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "AskingPrice",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "InterestedClubsString",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "PlayerRating.ActualRating",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "PlayerRating.PotentialRating",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          }
+        ],
+        "Sort": null
+      },
+      {
+        "SettingsKey": "TeamPlayersColumns",
+        "Columns": [
+          {
+            "Name": null,
+            "Path": "Number",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "PlayerStatusInformation",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "DisplayedName",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Positions.PositionsDesc",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Nationalities",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "CA",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "PA",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Age",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Condition",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "AskingPrice",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          }
+        ],
+        "Sort": null
+      },
+      {
+        "SettingsKey": "TeamStaffColumns",
+        "Columns": [
+          {
+            "Name": null,
+            "Path": "ContractJob",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "DisplayedName",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Age",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "CA",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "PA",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          }
+        ],
+        "Sort": null
+      },
+      {
+        "SettingsKey": "NationStaffColumns",
+        "Columns": [
+          {
+            "Name": null,
+            "Path": "NationalTeamJob",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Age",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "DisplayedName",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "NationalTeam",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Nation",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "CA",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "PA",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          }
+        ],
+        "Sort": null
+      },
+      {
+        "SettingsKey": "SearchPlayersColumns",
+        "Columns": [
+          {
+            "Name": null,
+            "Path": "PlayerStatusInformation",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "DisplayedName",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Age",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "CA",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "PA",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Nationalities",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "AskingPrice",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Positions.PositionsDesc",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "PlayerRating.ActualRating",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "PlayerRating.PotentialRating",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          }
+        ],
+        "Sort": null
+      },
+      {
+        "SettingsKey": "SearchStaffColumns",
+        "Columns": [
+          {
+            "Name": null,
+            "Path": "DisplayedName",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Age",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "CA",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "PA",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          }
+        ],
+        "Sort": [
+          {
+            "ColumnName": "DisplayedName",
+            "Ascending": true
+          }
+        ]
+      },
+      {
+        "SettingsKey": "SearchClubsColumns",
+        "Columns": [
+          {
+            "Name": null,
+            "Path": "Name",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Reputation",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "FirstTeamManager",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Nation.Name",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Finances.Balance",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          }
+        ],
+        "Sort": [
+          {
+            "ColumnName": "Name",
+            "Ascending": true
+          }
+        ]
+      },
+      {
+        "SettingsKey": "SearchNationsColumns",
+        "Columns": [
+          {
+            "Name": null,
+            "Path": "Name",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Reputation",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "EuroMember",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "FIFAPosition",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          }
+        ],
+        "Sort": null
+      },
+      {
+        "SettingsKey": "SearchCompetition",
+        "Columns": [
+          {
+            "Name": null,
+            "Path": "Name",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Reputation",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Nation.Name",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          }
+        ],
+        "Sort": null
+      },
+      {
+        "SettingsKey": "SearchAgent",
+        "Columns": [
+          {
+            "Name": null,
+            "Path": "DisplayedName",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Nation.Name",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "NumberOfClients",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          }
+        ],
+        "Sort": null
+      },
+      {
+        "SettingsKey": "SearchStadiums",
+        "Columns": [
+          {
+            "Name": null,
+            "Path": "Name",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Capacity",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "SeatingCapacity",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "UsedCapacity",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "ExpansionCapacity",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "IsCovered",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "UsedByNationalTeam",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "UsedByNationalU21Team",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          }
+        ],
+        "Sort": null
+      },
+      {
+        "SettingsKey": "SearchInjury",
+        "Columns": [
+          {
+            "Name": null,
+            "Path": "Name",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          }
+        ],
+        "Sort": null
+      },
+      {
+        "SettingsKey": "SearchWeather",
+        "Columns": [
+          {
+            "Name": null,
+            "Path": "Name",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          }
+        ],
+        "Sort": null
+      },
+      {
+        "SettingsKey": "SearchMediaSource",
+        "Columns": [
+          {
+            "Name": null,
+            "Path": "Name",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          }
+        ],
+        "Sort": null
+      },
+      {
+        "SettingsKey": "SearchAward",
+        "Columns": [
+          {
+            "Name": null,
+            "Path": "Name",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          }
+        ],
+        "Sort": null
+      },
+      {
+        "SettingsKey": "SearchOfficial",
+        "Columns": [
+          {
+            "Name": null,
+            "Path": "Name",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          }
+        ],
+        "Sort": null
+      },
+      {
+        "SettingsKey": "SearchCity",
+        "Columns": [
+          {
+            "Name": null,
+            "Path": "Name",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          }
+        ],
+        "Sort": null
+      },
+      {
+        "SettingsKey": "FrozenWindowPlayers",
+        "Columns": [
+          {
+            "Name": null,
+            "Path": "IsFrozen",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "PlayerStatusInformation",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "DisplayedName",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Age",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "CA",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "PA",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Nationalities",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Contract.Club",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "AskingPrice",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Positions.PositionsDesc",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          }
+        ],
+        "Sort": null
+      },
+      {
+        "SettingsKey": "FrozenWindowStaff",
+        "Columns": [
+          {
+            "Name": null,
+            "Path": "IsFrozen",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "DisplayedName",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Age",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "CA",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "PA",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Contract.Club",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          }
+        ],
+        "Sort": null
+      },
+      {
+        "SettingsKey": "Retirements",
+        "Columns": [
+          {
+            "Name": null,
+            "Path": "Person.DisplayedName",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Person.Age",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Person.Nation",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Person.Contract.Club",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Date",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          }
+        ],
+        "Sort": null
+      },
+      {
+        "SettingsKey": "FutureTransfers",
+        "Columns": [
+          {
+            "Name": null,
+            "Path": "DisplayedName",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "SellerTeam",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "BuyerTeam",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Value",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "TransferDate",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "TransferType",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          }
+        ],
+        "Sort": null
+      },
+      {
+        "SettingsKey": "ClubTransferProposals",
+        "Columns": [
+          {
+            "Name": null,
+            "Path": "Type",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "PersonName",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "SellerClub",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "BuyerClub",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Value",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Status",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          }
+        ],
+        "Sort": null
+      },
+      {
+        "SettingsKey": "CompetitionStandings",
+        "Columns": [
+          {
+            "Name": null,
+            "Path": "Position",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "TeamName",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "GamesPlayed",
+            "IsWritable": true,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Wins",
+            "IsWritable": true,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Draws",
+            "IsWritable": true,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Loses",
+            "IsWritable": true,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "GoalsScored",
+            "IsWritable": true,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "GoalsAllowed",
+            "IsWritable": true,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Points",
+            "IsWritable": true,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          }
+        ],
+        "Sort": null
+      },
+      {
+        "SettingsKey": "CompetitionGroupStandings",
+        "Columns": [
+          {
+            "Name": null,
+            "Path": "Position",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "TeamName",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "GamesPlayed",
+            "IsWritable": true,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Wins",
+            "IsWritable": true,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Draws",
+            "IsWritable": true,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Loses",
+            "IsWritable": true,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "GoalsScored",
+            "IsWritable": true,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "GoalsAllowed",
+            "IsWritable": true,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Points",
+            "IsWritable": true,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          }
+        ],
+        "Sort": [
+          {
+            "ColumnName": "Group",
+            "Ascending": true
+          },
+          {
+            "ColumnName": "Position",
+            "Ascending": true
+          }
+        ]
+      },
+      {
+        "SettingsKey": "CompetitionPrizeMoney",
+        "Columns": [
+          {
+            "Name": null,
+            "Path": "Position",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Prize",
+            "IsWritable": true,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          }
+        ],
+        "Sort": null
+      },
+      {
+        "SettingsKey": "ClubPlayersClauses",
+        "Columns": [
+          {
+            "Name": null,
+            "Path": "PlayerName",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          },
+          {
+            "Name": null,
+            "Path": "Type",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "Auto"
+          }
+        ],
+        "Sort": null
+      },
+      {
+        "SettingsKey": "PlayerRelations",
+        "Columns": [
+          {
+            "Name": "Type",
+            "Path": "SelectedType",
+            "IsWritable": false,
+            "Converter": "Enum",
+            "StringFormat": "None"
+          },
+          {
+            "Name": "Name",
+            "Path": "Data.ObjectName",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "None"
+          },
+          {
+            "Name": "Period",
+            "Path": "Data.SelectedFormedAtPeriod",
+            "IsWritable": false,
+            "Converter": "Enum",
+            "StringFormat": "None"
+          },
+          {
+            "Name": "Registration",
+            "Path": "Data.SelectedCompetitionRegistrationType",
+            "IsWritable": false,
+            "Converter": "Enum",
+            "StringFormat": "None"
+          },
+          {
+            "Name": "Value",
+            "Path": "Data.Value",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "None"
+          }
+        ],
+        "Sort": [
+          {
+            "ColumnName": "SelectedType",
+            "Ascending": false
+          }
+        ]
+      },
+      {
+        "SettingsKey": "BasicRelations",
+        "Columns": [
+          {
+            "Name": "Type",
+            "Path": "SelectedType",
+            "IsWritable": false,
+            "Converter": "Enum",
+            "StringFormat": "None"
+          },
+          {
+            "Name": "Name",
+            "Path": "Data.ObjectName",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "None"
+          },
+          {
+            "Name": "Value",
+            "Path": "Data.Value",
+            "IsWritable": false,
+            "Converter": "None",
+            "StringFormat": "None"
+          }
+        ],
+        "Sort": [
+          {
+            "ColumnName": "SelectedType",
+            "Ascending": false
+          }
+        ]
+      }
+    ]
+  },
+  "Shortlists": null,
+  "LastShortlist": "",
+  "StaffShortlists": null,
+  "DeletedSystemPresets": null,
+  "LastStaffShortlist": null,
+  "HidePlayerAttributeReplacementMessage": false,
+  "ShowConfirmDeleteWarning": true,
+  "ShowUpdateWarning": false,
+  "HideCompetitionStagesExperimentalMessage": false,
+  "ShowPurchaseLicenseMessage": true,
+  "NewVersionAvailable": false,
+  "LatestVersionAvailable": "24.3.0.29",
+  "LastTimeCheckedVersion": "2024-03-20T11:05:39.870142Z",
+  "SearchForPlayers": true,
+  "SearchForStaff": true,
+  "SearchForNations": true,
+  "SearchForTeams": true,
+  "SearchForCompetitions": true,
+  "SearchForOfficials": true,
+  "SearchForStadiums": true,
+  "SearchForInjuries": true,
+  "SearchForWeather": true,
+  "SearchForCities": true,
+  "SearchForAgents": true,
+  "SearchForAwards": true,
+  "SearchForMediaSources": true,
+  "WindowPosition": null,
+  "TeamListsApplyToAll": true,
+  "ReloadTransfersWhenOpeningFutureTransfers": false,
+  "LastFacepackSettings": null
+}

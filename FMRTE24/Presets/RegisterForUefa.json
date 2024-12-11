@@ -1,0 +1,15 @@
+{
+  "Actions": [
+    {
+      "Type": "CustomPresetAction",
+      "TargetType": "Player",
+      "TargetIds": [],
+      "CustomType": "UefaRegistration",
+      "ExtraParameter": null
+    }
+  ],
+  "Name": "RegisterForUefa",
+  "Category": "Players",
+  "IsActive": true,
+  "Order": 5
+}

@@ -1,0 +1,15 @@
+{
+  "Actions": [
+    {
+      "Type": "CustomPresetAction",
+      "TargetType": "Player",
+      "TargetIds": [],
+      "CustomType": "RemoveInternationalWithdrawal",
+      "ExtraParameter": null
+    }
+  ],
+  "Name": "RemoveIntWithdrawal",
+  "Category": "Players",
+  "IsActive": true,
+  "Order": 6
+}

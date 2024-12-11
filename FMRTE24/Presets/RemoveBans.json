@@ -1,0 +1,19 @@
+{
+  "Actions": [
+    {
+      "Type": "PropertyPresetAction",
+      "TargetProperty": "IsBanned",
+      "Value": false,
+      "ValueSetType": "Replace",
+      "TargetType": "Player",
+      "TargetIds": [],
+      "ExtraParameter": null,
+      "MaximumValue": null,
+      "MinimumValue": null
+    }
+  ],
+  "Name": "RemoveBans",
+  "Category": "Players",
+  "IsActive": true,
+  "Order": 4
+}

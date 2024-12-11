@@ -1,0 +1,52 @@
+{
+  "Actions": [
+    {
+      "Type": "PropertyPresetAction",
+      "TargetProperty": "Condition",
+      "Value": 10000,
+      "ValueSetType": "Replace",
+      "TargetType": "Player",
+      "TargetIds": [],
+      "ExtraParameter": null,
+      "MaximumValue": null,
+      "MinimumValue": null
+    },
+    {
+      "Type": "PropertyPresetAction",
+      "TargetProperty": "MatchSharpness",
+      "Value": 10000,
+      "ValueSetType": "Replace",
+      "TargetType": "Player",
+      "TargetIds": [],
+      "ExtraParameter": null,
+      "MaximumValue": null,
+      "MinimumValue": null
+    },
+    {
+      "Type": "PropertyPresetAction",
+      "TargetProperty": "Jadedness",
+      "Value": 0,
+      "ValueSetType": "Replace",
+      "TargetType": "Player",
+      "TargetIds": [],
+      "ExtraParameter": null,
+      "MaximumValue": null,
+      "MinimumValue": null
+    },
+    {
+      "Type": "PropertyPresetAction",
+      "TargetProperty": "IsInjured",
+      "Value": false,
+      "ValueSetType": "Replace",
+      "TargetType": "Player",
+      "TargetIds": [],
+      "ExtraParameter": null,
+      "MaximumValue": null,
+      "MinimumValue": null
+    }
+  ],
+  "Name": "Heal",
+  "Category": "Players",
+  "IsActive": true,
+  "Order": 1
+}
