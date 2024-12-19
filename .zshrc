@@ -1,6 +1,5 @@
-# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
-# Initialization code that may require console input (password prompts, [y/n]
-# confirmations, etc.) must go above this block; everything else may go below.
+zmodload zsh/zprof
+# Enable Powerlevel10k instant prompt
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
@@ -14,21 +13,19 @@ fi
 # Environment Setup
 # -------------------------------
 export ZSH="$HOME/.oh-my-zsh"
-# Preferred editor for local and remote sessions
+export PATH="/opt/homebrew/bin:$PATH"
+export PATH="$PATH:$(go env GOPATH)/bin"
+
 if [[ -n $SSH_CONNECTION ]]; then
    export EDITOR='vim'
- else
+else
    export EDITOR='nvim'
- fi
+fi
 
-# Set name of the theme to load --- if set to "random", it will
 ZSH_THEME="powerlevel10k/powerlevel10k"
 
-# OMZ options
-zstyle ':omz:update' mode auto      # update automatically without asking
+zstyle ':omz:update' mode auto
 zstyle ':omz:update' frequency 13
-
-# Uncomment the following line to enable command auto-correction.
 ENABLE_CORRECTION="true"
 
 # -------------------------------
@@ -45,20 +42,23 @@ plugins=(
   colored-man-pages
   command-not-found
   fzf
+  zoxide
 )
+
 source /opt/homebrew/share/powerlevel10k/powerlevel10k.zsh-theme
 source $ZSH/oh-my-zsh.sh
-##--ruby correct version
+
+# Ruby
 export PATH="$HOME/.rbenv/bin:$PATH"
 eval "$(rbenv init -)"
+
 # -------------------------------
 # Aliases (Custom Commands)
 # -------------------------------
-alias ls='colorls -a'
-# Custom alias for Neovim config
-alias nvimconfig="nvim ~/.config/nvim/init.lua"
-alias zshconfig="nvim ~/.zshrc"
-export PATH=$PATH:/opt/mssql-tools/bin
+alias ls="eza --icons=always"
+alias cd='z'
+alias conda-init='source /opt/homebrew/Caskroom/miniconda/base/etc/profile.d/conda.sh'
 
-# Created by `pipx` on 2024-12-11 21:23:53
+# Python Paths
 export PATH="$PATH:/Users/juanbenjumea/.local/bin"
+export PATH="/opt/homebrew/Caskroom/miniconda/base/envs/juanpython/bin:$PATH"
