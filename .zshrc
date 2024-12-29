@@ -56,9 +56,18 @@ eval "$(rbenv init -)"
 # Aliases (Custom Commands)
 # -------------------------------
 alias ls="eza --icons=always"
-alias cd='z'
-alias conda-init='source /opt/homebrew/Caskroom/miniconda/base/etc/profile.d/conda.sh'
+alias cd="z"
+alias conda-init="source /opt/homebrew/Caskroom/miniconda/base/etc/profile.d/conda.sh"
+alias brewup="brew update && brew upgrade && brew cleanup && brew doctor"
 
 # Python Paths
 export PATH="$PATH:/Users/juanbenjumea/.local/bin"
 export PATH="/opt/homebrew/Caskroom/miniconda/base/envs/juanpython/bin:$PATH"
+function y() {
+	local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
+	yazi "$@" --cwd-file="$tmp"
+	if cwd="$(command cat -- "$tmp")" && [ -n "$cwd" ] && [ "$cwd" != "$PWD" ]; then
+		builtin cd -- "$cwd"
+	fi
+	rm -f -- "$tmp"
+}
