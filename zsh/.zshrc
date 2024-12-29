@@ -4,15 +4,11 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
-# >>> Powerlevel10k instant prompt setup >>>
-if [[ -r ~/.p10k.zsh ]]; then
-  source ~/.p10k.zsh
-fi
-
 # -------------------------------
 # Environment Setup
 # -------------------------------
-export ZSH="$HOME/.oh-my-zsh"
+export ZSH="$HOME/.config/oh-my-zsh"
+source $ZSH/oh-my-zsh.sh
 export PATH="/opt/homebrew/bin:$PATH"
 export PATH="$PATH:$(go env GOPATH)/bin"
 
@@ -27,7 +23,7 @@ ZSH_THEME="powerlevel10k/powerlevel10k"
 zstyle ':omz:update' mode auto
 zstyle ':omz:update' frequency 13
 ENABLE_CORRECTION="true"
-
+source ~/.config/.p10k.zsh
 # -------------------------------
 # Oh My Zsh and Plugins
 # -------------------------------
@@ -55,10 +51,11 @@ eval "$(rbenv init -)"
 # -------------------------------
 # Aliases (Custom Commands)
 # -------------------------------
-alias ls="eza --icons=always"
+alias ls='eza --icons=always -a'
 alias cd="z"
 alias conda-init="source /opt/homebrew/Caskroom/miniconda/base/etc/profile.d/conda.sh"
 alias brewup="brew update && brew upgrade && brew cleanup && brew doctor"
+alias tmux='tmux -f ~/.config/tmux/.tmux.conf'
 
 # Python Paths
 export PATH="$PATH:/Users/juanbenjumea/.local/bin"
