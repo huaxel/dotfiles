@@ -1,0 +1,505 @@
+{
+	"name": "vscode-quarkus",
+	"displayName": "Quarkus",
+	"description": "Quarkus Tools for Visual Studio Code",
+	"version": "1.20.0",
+	"icon": "icons/logo.png",
+	"author": "Red Hat",
+	"publisher": "redhat",
+	"preview": true,
+	"license": "Apache-2.0",
+	"bugs": "https://github.com/redhat-developer/vscode-quarkus/issues",
+	"engines": {
+		"vscode": "^1.82.0"
+	},
+	"galleryBanner": {
+		"color": "#d8ebff",
+		"theme": "light"
+	},
+	"categories": [
+		"Programming Languages",
+		"Other"
+	],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/redhat-developer/vscode-quarkus"
+	},
+	"keywords": [
+		"java",
+		"quarkus",
+		"maven",
+		"starter"
+	],
+	"opencv4nodejs": {
+		"disableAutoBuild": 1
+	},
+	"activationEvents": [
+		"workspaceContains:**/src/main/resources/application.properties",
+		"workspaceContains:**/src/main/resources/application-?*.properties",
+		"workspaceContains:**src/main/resources/META-INF/microprofile-config.properties",
+		"workspaceContains:**/src/main/resources/application.yaml",
+		"workspaceContains:**/src/main/resources/application.yml",
+		"workspaceContains:**/src/main/resources/templates",
+		"onLanguage:microprofile-properties",
+		"onLanguage:java"
+	],
+	"main": "./dist/extension",
+	"extensionDependencies": [
+		"redhat.vscode-microprofile",
+		"redhat.java",
+		"vscjava.vscode-java-debug",
+		"vscode.html-language-features"
+	],
+	"contributes": {
+		"javaExtensions": [
+			"./jars/com.redhat.microprofile.jdt.quarkus.jar",
+			"./jars/com.redhat.qute.jdt.jar"
+		],
+		"microprofile": {
+			"jarExtensions": [
+				"./server/com.redhat.quarkus.ls.jar"
+			],
+			"documentSelector": [
+				{
+					"scheme": "file",
+					"language": "quarkus-properties"
+				}
+			]
+		},
+		"languages": [
+			{
+				"id": "quarkus-properties",
+				"filenamePatterns": [
+					"application.properties",
+					"application-?*.properties"
+				],
+				"aliases": [
+					"Quarkus properties"
+				],
+				"configuration": "./language-support/properties-support/language-configuration.json"
+			},
+			{
+				"id": "qute-html",
+				"aliases": [
+					"Qute HTML"
+				],
+				"extensions": [
+					"qute.html"
+				],
+				"configuration": "./language-support/qute/language-configuration.json"
+			},
+			{
+				"id": "qute-json",
+				"aliases": [
+					"Qute JSON"
+				],
+				"extensions": [
+					"qute.json"
+				],
+				"configuration": "./language-support/qute/language-configuration.json"
+			},
+			{
+				"id": "qute-yaml",
+				"aliases": [
+					"Qute YAML"
+				],
+				"extensions": [
+					"qute.yaml"
+				],
+				"configuration": "./language-support/qute/language-configuration.json"
+			},
+			{
+				"id": "qute-txt",
+				"aliases": [
+					"Qute Text"
+				],
+				"extensions": [
+					"qute.txt"
+				],
+				"configuration": "./language-support/qute/language-configuration.json"
+			}
+		],
+		"htmlLanguageParticipants": [
+			{
+				"languageId": "qute-html",
+				"autoInsert": true
+			}
+		],
+		"commands": [
+			{
+				"command": "quarkusTools.createProject",
+				"title": "Generate a Quarkus project",
+				"category": "Quarkus"
+			},
+			{
+				"command": "quarkusTools.addExtension",
+				"title": "Add extensions to current project",
+				"category": "Quarkus"
+			},
+			{
+				"command": "quarkusTools.debugQuarkusProject",
+				"title": "Debug current Quarkus project",
+				"category": "Quarkus"
+			},
+			{
+				"command": "quarkusTools.debugQuarkusProject.short",
+				"title": "Debug Quarkus",
+				"icon": "$(debug-alt-small)",
+				"category": "Quarkus"
+			},
+			{
+				"command": "quarkusTools.buildBinary",
+				"title": "Build executable",
+				"category": "Quarkus"
+			},
+			{
+				"command": "quarkusTools.welcome",
+				"title": "Welcome",
+				"category": "Quarkus"
+			},
+			{
+				"command": "qute.validation.enabled.toggle.off",
+				"title": "Disable Qute Validation",
+				"icon": "$(eye-watch)",
+				"category": "Qute"
+			},
+			{
+				"command": "qute.validation.enabled.toggle.on",
+				"title": "Enable Qute Validation",
+				"icon": "$(eye-closed)",
+				"category": "Qute"
+			},
+			{
+				"command": "qute.refactor.surround.with.comments",
+				"title": "Surround with Comments",
+				"category": "Qute"
+			},
+			{
+				"command": "qute.refactor.surround.with.cdata",
+				"title": "Surround with Unparsed Character Data",
+				"category": "Qute"
+			},
+			{
+				"command": "qute.refactor.surround.with.section",
+				"title": "Surround with Section",
+				"category": "Qute"
+			}
+		],
+		"configuration": {
+			"title": "Quarkus Tools",
+			"properties": {
+				"quarkus.tools.debug.terminateProcessOnExit": {
+					"type": "string",
+					"enum": [
+						"Always terminate",
+						"Never terminate",
+						"Ask"
+					],
+					"default": "Ask",
+					"description": "Determines whether to terminate the quarkus:dev task after closing the debug session.",
+					"scope": "window"
+				},
+				"quarkus.tools.alwaysShowWelcomePage": {
+					"type": "boolean",
+					"default": true,
+					"description": "Determines whether to show the welcome page on extension startup."
+				},
+				"quarkus.tools.starter.api": {
+					"type": "string",
+					"default": "https://code.quarkus.io/api",
+					"pattern": "https?://.+",
+					"description": "Quarkus API base URL",
+					"scope": "window"
+				},
+				"quarkus.tools.starter.showExtensionDescriptions": {
+					"type": "boolean",
+					"default": true,
+					"description": "Determines whether to show the Quarkus extension descriptions when selecting Quarkus extensions.",
+					"scope": "window"
+				},
+				"quarkus.tools.propertiesLanguageMismatch": {
+					"type": "string",
+					"enum": [
+						"ignore",
+						"force",
+						"prompt"
+					],
+					"enumDescriptions": [
+						"Ignore language mismatch for Quarkus properties",
+						"Automatically correct the language for mismatched Quarkus properties",
+						"Prompt correcting the language for mismatched Quarkus properties"
+					],
+					"default": "force",
+					"description": "Action performed when detected Quarkus properties have an incorrect language.",
+					"scope": "window"
+				},
+				"qute.server.vmargs": {
+					"type": "string",
+					"scope": "application",
+					"markdownDescription": "The vmargs to use when launching the Qute language server",
+					"default": "-Xmx100M -XX:+UseG1GC -XX:+UseStringDeduplication -Xlog:disable"
+				},
+				"qute.templates.languageMismatch": {
+					"type": "string",
+					"enum": [
+						"ignore",
+						"force",
+						"prompt"
+					],
+					"enumDescriptions": [
+						"Ignore language mismatch for Qute templates",
+						"Automatically correct the language for mismatched Qute templates",
+						"Prompt correcting the language for mismatched Qute templates"
+					],
+					"default": "force",
+					"description": "Action performed when detected Qute templates have an incorrect language.",
+					"scope": "window"
+				},
+				"qute.trace.server": {
+					"type": "string",
+					"enum": [
+						"off",
+						"messages",
+						"verbose"
+					],
+					"default": "off",
+					"markdownDescription": "Traces the communication between VS Code and the Qute language server in the Output view. Default is `off`.",
+					"scope": "window"
+				},
+				"qute.codeLens.enabled": {
+					"type": "boolean",
+					"default": true,
+					"markdownDescription": "Enable/disable Qute CodeLens. Default is `true`."
+				},
+				"qute.inlayHint.enabled": {
+					"type": "boolean",
+					"default": true,
+					"markdownDescription": "Enable/disable Qute Inlay Hint. Default is `true`."
+				},
+				"qute.inlayHint.showSectionParameterType": {
+					"type": "boolean",
+					"default": true,
+					"markdownDescription": "Show section parameter type. Default is `true`."
+				},
+				"qute.inlayHint.showSectionParameterDefaultValue": {
+					"type": "boolean",
+					"default": true,
+					"markdownDescription": "Show section parameter default value. Default is `true`."
+				},
+				"qute.native.enabled": {
+					"type": "boolean",
+					"default": false,
+					"markdownDescription": "Enable/disable Qute validation/completion for native image mode. Default is `false`.",
+					"scope": "resource"
+				},
+				"qute.validation.enabled": {
+					"type": "boolean",
+					"default": false,
+					"markdownDescription": "Enable/disable all Qute validation. Default is `false`.",
+					"scope": "resource"
+				},
+				"qute.validation.excluded": {
+					"type": "array",
+					"default": [],
+					"items": {
+						"type": "string"
+					},
+					"markdownDescription": "Disable Qute validation for the given file name patterns.\n\nExample:\n```\n[\n \"**/*items.qute.*\"\n]```.",
+					"scope": "resource"
+				},
+				"qute.validation.undefinedObject.severity": {
+					"type": "string",
+					"enum": [
+						"ignore",
+						"warning",
+						"error"
+					],
+					"default": "warning",
+					"markdownDescription": "Validation severity for undefined object in Qute template files.",
+					"scope": "resource"
+				},
+				"qute.validation.undefinedNamespace.severity": {
+					"type": "string",
+					"enum": [
+						"ignore",
+						"warning",
+						"error"
+					],
+					"default": "warning",
+					"markdownDescription": "Validation severity for undefined namespace in Qute template files.",
+					"scope": "resource"
+				}
+			}
+		},
+		"menus": {
+			"commandPalette": [
+				{
+					"command": "quarkusTools.addExtension",
+					"when": "quarkusProjectExistsOrLightWeight"
+				},
+				{
+					"command": "quarkusTools.debugQuarkusProject",
+					"when": "quarkusProjectExistsOrLightWeight"
+				},
+				{
+					"command": "quarkusTools.debugQuarkusProject.short",
+					"when": "false"
+				},
+				{
+					"command": "qute.validation.enabled.toggle.off",
+					"when": "false"
+				},
+				{
+					"command": "qute.validation.enabled.toggle.on",
+					"when": "false"
+				},
+				{
+					"command": "qute.refactor.surround.with.comments",
+					"when": "quarkusProjectExistsOrLightWeight && editorLangIdSupportsQute && QuteLSReady"
+				},
+				{
+					"command": "qute.refactor.surround.with.cdata",
+					"when": "quarkusProjectExistsOrLightWeight && editorLangIdSupportsQute && QuteLSReady"
+				},
+				{
+					"command": "qute.refactor.surround.with.section",
+					"when": "quarkusProjectExistsOrLightWeight && editorLangIdSupportsQute && QuteLSReady"
+				}
+			],
+			"editor/title": [
+				{
+					"command": "qute.validation.enabled.toggle.off",
+					"when": "quarkusProjectExistsOrLightWeight && editorLangIdSupportsQute && editorQuteValidationEnabled",
+					"group": "navigation@9"
+				},
+				{
+					"command": "qute.validation.enabled.toggle.on",
+					"when": "quarkusProjectExistsOrLightWeight && editorLangIdSupportsQute && !editorQuteValidationEnabled",
+					"group": "navigation@9"
+				}
+			],
+			"editor/title/run": [
+				{
+					"command": "quarkusTools.debugQuarkusProject.short",
+					"when": "quarkusProjectExistsOrLightWeight && resourceExtname == .java",
+					"group": "quarkus@1"
+				}
+			]
+		},
+		"grammars": [
+			{
+				"language": "quarkus-properties",
+				"scopeName": "source.quarkus-properties",
+				"path": "./language-support/properties-support/quarkus-properties.tmLanguage.json"
+			},
+			{
+				"injectTo": [
+					"source.quarkus-properties"
+				],
+				"scopeName": "quarkus-value.injection",
+				"path": "./language-support/properties-support/quarkus-properties-injection.tmLanguage.json"
+			},
+			{
+				"language": "qute-html",
+				"scopeName": "text.html.qute",
+				"path": "./language-support/qute/qute-html.tmLanguage.json"
+			},
+			{
+				"language": "qute-json",
+				"scopeName": "source.json.qute",
+				"path": "./language-support/qute/qute-json.tmLanguage.json"
+			},
+			{
+				"language": "qute-yaml",
+				"scopeName": "source.yaml.qute",
+				"path": "./language-support/qute/qute-yaml.tmLanguage.json"
+			},
+			{
+				"language": "qute-txt",
+				"scopeName": "text.qute",
+				"path": "./language-support/qute/qute-txt.tmLanguage.json"
+			},
+			{
+				"scopeName": "grammar.qute",
+				"path": "./language-support/qute/qute.tmLanguage.json"
+			}
+		]
+	},
+	"scripts": {
+		"vscode:prepublish": "webpack --mode production",
+		"compile": "webpack --mode none",
+		"watch": "webpack --mode development --watch",
+		"test-compile": "tsc -p ./",
+		"pretest": "npm run test-compile",
+		"test": "node ./out/test/vscodeTest/runTest.js",
+		"lint": "npx eslint src",
+		"build": "./node_modules/.bin/gulp build",
+		"build-server": "./node_modules/.bin/gulp buildServer",
+		"build-ext": "./node_modules/.bin/gulp buildExtension",
+		"build-qute-server": "./node_modules/.bin/gulp buildQuteServer",
+		"build-qute-ext": "./node_modules/.bin/gulp buildQuteExtension",
+		"test-ui": "rm -rf out && npm run test-compile && npm run test-ui-run",
+		"test-ui-run": "extest setup-and-run 'out/test/vscodeUiTest/suite/*.js' -u -e 'out/test/vscodeUiTest/extensions' -o src/test/vscodeUiTest/settings.json -c max",
+		"test-all": "npm test && npm run test-ui-run"
+	},
+	"devDependencies": {
+		"@eslint/js": "^9.15.0",
+		"@types/chai": "^4.3.20",
+		"@types/chai-fs": "^2.0.5",
+		"@types/ejs": "^3.1.5",
+		"@types/fs-extra": "^11.0.4",
+		"@types/js-yaml": "^4.0.9",
+		"@types/lodash": "^4.17.13",
+		"@types/mocha": "^10.0.10",
+		"@types/node": "18.19",
+		"@types/vscode": "^1.82.0",
+		"@types/which": "^3.0.4",
+		"@types/yauzl": "^2.10.3",
+		"chai": "^4.5.0",
+		"chai-fs": "^2.0.0",
+		"eslint": "^9.15.0",
+		"eslint-webpack-plugin": "^4.2.0",
+		"fast-xml-parser": "^4.5.0",
+		"gradle-to-js": "^2.0.1",
+		"gulp": "^5.0.0",
+		"gulp-rename": "^2.0.0",
+		"mocha": "^11.0.1",
+		"ts-loader": "^9.5.1",
+		"typescript": "^5.7.2",
+		"typescript-eslint": "^8.16.0",
+		"vscode-extension-tester": "^8.10.0",
+		"vscode-test": "^1.2.3",
+		"webpack": "^5.96.1",
+		"webpack-cli": "^5.1.4"
+	},
+	"dependencies": {
+		"@redhat-developer/vscode-extension-proposals": "^0.0.23",
+		"@redhat-developer/vscode-redhat-telemetry": "^0.9.1",
+		"ejs": "^3.1.10",
+		"expand-home-dir": "0.0.3",
+		"find-up": "^7.0.0",
+		"fs-extra": "^11.2.0",
+		"glob": "^10.3.15",
+		"jdk-utils": "^0.5.1",
+		"js-yaml": "^4.1.0",
+		"lodash": "^4.17.21",
+		"vscode-languageclient": "^9.0.1",
+		"vscode-languageserver-protocol": "^3.17.2",
+		"which": "^5.0.0",
+		"yauzl": "^3.2.0"
+	},
+	"__metadata": {
+		"id": "62c9f526-503d-4361-aefd-82dc50a69146",
+		"publisherId": "eed56242-9699-4317-8bc7-e9f4b9bdd3ff",
+		"publisherDisplayName": "Red Hat",
+		"targetPlatform": "undefined",
+		"isApplicationScoped": false,
+		"isPreReleaseVersion": false,
+		"hasPreReleaseVersion": false,
+		"installedTimestamp": 1737678269157,
+		"pinned": false,
+		"preRelease": false,
+		"source": "gallery",
+		"size": 18906831
+	}
+}

@@ -1,0 +1,94 @@
+/**
+ * Copyright 2019 Red Hat, Inc. and others.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+const gulp = require('gulp');
+const rename = require('gulp-rename');
+const cp = require('child_process');
+const fse = require('fs-extra');
+
+const quarkusServerExtDir = '../quarkus-ls/quarkus.ls.ext/com.redhat.quarkus.ls'
+const quarkusServerExt = 'com.redhat.quarkus.ls';
+
+const quarkusExtensionDir = '../quarkus-ls/quarkus.jdt.ext';
+const quarkusExtension = 'com.redhat.microprofile.jdt.quarkus';
+
+const quteServerDir = '../quarkus-ls/qute.ls/com.redhat.qute.ls'
+const quteServer = 'com.redhat.qute.ls-uber.jar';
+
+const quteExtensionDir = '../quarkus-ls/qute.jdt';
+const quteExtension = 'com.redhat.qute.jdt';
+
+gulp.task('buildServer', (done) => {
+  cp.execSync(mvnw() + ' clean verify -B -DskipTests', { cwd: quarkusServerExtDir , stdio: 'inherit' });
+  gulp.src(quarkusServerExtDir + '/target/' + quarkusServerExt + '-!(*sources).jar', { encoding: false })
+    .pipe(rename(quarkusServerExt + '.jar'))
+    .pipe(gulp.dest('./server'));
+  done();
+});
+
+gulp.task('buildExtension', (done) => {
+  cp.execSync(mvnw() + ' -pl "' + quarkusExtension + '" clean verify -B -DskipTests', { cwd: quarkusExtensionDir, stdio: 'inherit' });
+  gulp.src(quarkusExtensionDir + '/' + quarkusExtension + '/target/' + quarkusExtension + '-!(*sources).jar', { encoding: false })
+    .pipe(rename(quarkusExtension + '.jar'))
+    .pipe(gulp.dest('./jars'));
+  done();
+});
+
+gulp.task('buildQuteServer', (done) => {
+  cp.execSync(mvnw() + ' clean verify -B -DskipTests', { cwd: quteServerDir , stdio: 'inherit' });
+  gulp.src(quteServerDir + '/target/' + quteServer, { encoding: false })
+    .pipe(gulp.dest('./server'));
+  done();
+});
+
+gulp.task('buildQuteExtension', (done) => {
+  cp.execSync(mvnw() + ' -pl "' + quteExtension + '" clean verify -B -DskipTests', { cwd: quteExtensionDir, stdio: 'inherit' });
+  gulp.src(quteExtensionDir + '/' + quteExtension + '/target/' + quteExtension + '-!(*sources).jar', { encoding: false })
+    .pipe(rename(quteExtension + '.jar'))
+    .pipe(gulp.dest('./jars'));
+  done();
+});
+
+gulp.task('prepare_pre_release', function (done) {
+  const json = JSON.parse(fse.readFileSync("./package.json").toString());
+  const stableVersion = json.version.match(/(\d+)\.(\d+)\.(\d+)/);
+  const major = stableVersion[1];
+  const minor = stableVersion[2];
+  const date = new Date();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const hours = date.getHours();
+  const patch = `${date.getFullYear()}${prependZero(month)}${prependZero(day)}${prependZero(hours)}`;
+  const insiderPackageJson = Object.assign(json, {
+    version: `${major}.${minor}.${patch}`,
+  });
+  fse.writeFileSync("./package.json", JSON.stringify(insiderPackageJson, null, 2));
+  done();
+});
+
+gulp.task('build', gulp.series('buildServer', 'buildExtension','buildQuteServer', 'buildQuteExtension'));
+
+function mvnw() {
+	return isWin() ? 'mvnw.cmd' : './mvnw';
+}
+
+function isWin() {
+	return /^win/.test(process.platform);
+}
+
+function prependZero(number) {
+  if (number > 99) {
+    throw "Unexpected value to prepend with zero";
+  }
+  return `${number < 10 ? "0" : ""}${number}`;
+}

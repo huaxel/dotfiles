@@ -1,0 +1,118 @@
+{
+	"name": "vscode-microprofile-pack",
+	"displayName": "Extension Pack for MicroProfile",
+	"description": "A collection of extensions to develop Java microservices with MicroProfile",
+	"version": "0.1.3",
+	"publisher": "MicroProfile-Community",
+	"preview": true,
+	"license": "Apache-2.0",
+	"engines": {
+		"vscode": "^1.56.0"
+	},
+	"icon": "images/microprofile-logo.png",
+	"galleryBanner": {
+		"color": "#1d2f42",
+		"theme": "dark"
+	},
+	"keywords": [
+		"Eclipse",
+		"Java",
+		"MicroProfile",
+		"Cloud Native",
+		"Microservices"
+	],
+	"categories": [
+		"Programming Languages",
+		"Extension Packs"
+	],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/MicroShed/vscode-microprofile-pack/"
+	},
+	"homepage": "https://github.com/MicroShed/vscode-microprofile-pack/",
+	"bugs": {
+		"url": "https://github.com/MicroShed/vscode-microprofile-pack/issues"
+	},
+	"main": "./out/extension.js",
+	"activationEvents": [
+		"onLanguage:java",
+		"workspaceContains:pom.xml",
+		"workspaceContains:build.gradle",
+		"workspaceContains:mnvw",
+		"onCommand:microprofile.overview",
+		"onWebviewPanel:microprofile.overview"
+	],
+	"contributes": {
+		"commands": [
+			{
+				"command": "microprofile.overview",
+				"category": "MicroProfile",
+				"title": "Overview"
+			}
+		],
+		"configuration": [
+			{
+				"title": "Extension Pack for MicroProfile",
+				"properties": {
+					"microprofile.alwaysShowOverview": {
+						"type": "boolean",
+						"default": true,
+						"description": "Determines whether to show the overview page on startup."
+					}
+				}
+			}
+		]
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run build",
+		"compile": "webpack --config webpack.config.js",
+		"watch": "webpack --config webpack.config.js --watch --info-verbosity verbose",
+		"build": "webpack --config webpack.config.js --mode=\"production\""
+	},
+	"devDependencies": {
+		"@types/jquery": "^3.5.5",
+		"@types/node": "^15.12.2",
+		"@types/vscode": "1.56.0",
+		"@typescript-eslint/eslint-plugin": "^4.26.1",
+		"@typescript-eslint/parser": "^4.26.1",
+		"autoprefixer": "^10.2.6",
+		"css-loader": "^5.2.6",
+		"eslint": "^7.28.0",
+		"eslint-config-prettier": "^8.3.0",
+		"eslint-plugin-prettier": "^3.4.0",
+		"jquery": "^3.6.0",
+		"node-sass": "^7.0.1",
+		"nth-check": ">=2.0.1",
+		"popper.js": "^1.16.1",
+		"postcss-loader": "^6.2.0",
+		"prettier": "^2.3.1",
+		"sass-loader": "^12.0.0",
+		"style-loader": "^2.0.0",
+		"ts-loader": "^9.2.3",
+		"typescript": "^4.3.2",
+		"webpack": "^5.38.1",
+		"webpack-cli": "^4.7.2"
+	},
+	"extensionPack": [
+		"MicroProfile-Community.mp-starter-vscode-ext",
+		"MicroProfile-Community.mp-rest-client-generator-vscode-ext",
+		"redhat.vscode-microprofile"
+	],
+	"dependencies": {
+		"bootstrap": "^4.5.2"
+	},
+	"__metadata": {
+		"id": "e99180be-3ecf-423b-b6c5-75b20b6b88af",
+		"publisherId": "1caaf417-d96a-4a72-b8fc-366c46ac1778",
+		"publisherDisplayName": "MicroProfile Community",
+		"targetPlatform": "undefined",
+		"isApplicationScoped": false,
+		"isPreReleaseVersion": false,
+		"hasPreReleaseVersion": false,
+		"installedTimestamp": 1737678268153,
+		"pinned": false,
+		"preRelease": false,
+		"source": "gallery",
+		"size": 10125332
+	}
+}

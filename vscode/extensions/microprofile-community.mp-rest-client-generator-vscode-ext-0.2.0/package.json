@@ -1,0 +1,103 @@
+{
+	"name": "mp-rest-client-generator-vscode-ext",
+	"displayName": "Generator for MicroProfile Rest Client",
+	"description": "Generate a Java MicroProfile REST Client using the OpenAPI Generator",
+	"version": "0.2.0",
+	"publisher": "MicroProfile-Community",
+	"license": "EPL-2.0",
+	"preview": true,
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/MicroShed/mp-rest-client-generator-vscode-ext"
+	},
+	"engines": {
+		"vscode": "^1.88.0"
+	},
+	"categories": [
+		"Programming Languages"
+	],
+	"keywords": [
+		"Eclipse",
+		"Java",
+		"MicroProfile",
+		"Cloud Native",
+		"Microservices"
+	],
+	"icon": "images/microprofile-logo.png",
+	"galleryBanner": {
+		"color": "#1d2f42",
+		"theme": "dark"
+	},
+	"homepage": "https://github.com/MicroShed/mp-rest-client-generator-vscode-ext/README.md",
+	"bugs": {
+		"url": "https://github.com/MicroShed/mp-rest-client-generator-vscode-ext/issues"
+	},
+	"activationEvents": [
+		"onCommand:microprofile.restclient.generate"
+	],
+	"main": "./out/extension.js",
+	"contributes": {
+		"commands": [
+			{
+				"command": "microprofile.restclient.generate",
+				"title": "Generate a MicroProfile REST Client",
+				"category": "MicroProfile"
+			}
+		],
+		"menus": {
+			"explorer/context": [
+				{
+					"command": "microprofile.restclient.generate",
+					"group": "microprofile"
+				}
+			]
+		}
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run compile",
+		"compile": "tsc -p ./",
+		"watch": "tsc -watch -p ./",
+		"pretest": "npm run compile",
+		"test": "node ./out/test/runTest.js",
+		"lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+		"lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix"
+	},
+	"devDependencies": {
+		"@types/fs-extra": "^11.0.4",
+		"@types/mocha": "^10.0.6",
+		"@types/node": "18.11.9",
+		"@types/node-fetch": "^2.6.11",
+		"@types/vscode": "^1.88.0",
+		"@typescript-eslint/eslint-plugin": "^7.7.1",
+		"@typescript-eslint/parser": "^7.7.1",
+		"@vscode/test-cli": "^0.0.8",
+		"@vscode/test-electron": "^2.3.9",
+		"eslint": "^8.57.0",
+		"typescript": "^5.4.5",
+		"@types/chai": "^4.3.15",
+		"chai": "^4.4.1",
+		"mocha": "^10.4.0",
+		"@types/glob": "^7.2.0",
+		"glob": "^7.2.0",
+		"minimatch": "5.1.6"
+	},
+	"dependencies": {
+		"@openapitools/openapi-generator-cli": "^2.13.4",
+		"fs-extra": "^11.2.0",
+		"node-fetch": "2.7.0"
+	},
+	"__metadata": {
+		"id": "ffd0b221-df44-4f69-801b-d4d38796d632",
+		"publisherId": "1caaf417-d96a-4a72-b8fc-366c46ac1778",
+		"publisherDisplayName": "MicroProfile Community",
+		"targetPlatform": "undefined",
+		"isApplicationScoped": false,
+		"isPreReleaseVersion": false,
+		"hasPreReleaseVersion": false,
+		"installedTimestamp": 1737678269982,
+		"pinned": false,
+		"preRelease": false,
+		"source": "gallery",
+		"size": 46386073
+	}
+}
