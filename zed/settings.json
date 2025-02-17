@@ -7,6 +7,9 @@
 // custom settings, run `zed: open default settings` from the
 // command palette (cmd-shift-p / ctrl-shift-p)
 {
+  "features": {
+    "inline_completion_provider": "zed"
+  },
   "base_keymap": "VSCode",
   "telemetry": {
     "diagnostics": true
