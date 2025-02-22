@@ -1,0 +1,5 @@
+Host rockyvm
+    HostName srvos-2425s2-1277-juanbenjumeamoreno.westeurope.cloudapp.azure.com
+    User student
+    Port 20022
+    IdentityFile ~/.ssh/id_rsa_azure
