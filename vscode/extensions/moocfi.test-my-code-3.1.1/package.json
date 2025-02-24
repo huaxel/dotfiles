@@ -1,7 +1,7 @@
 {
 	"name": "test-my-code",
 	"displayName": "TestMyCode",
-	"version": "3.1.0",
+	"version": "3.1.1",
 	"description": "TestMyCode extension for Visual Studio Code",
 	"categories": [
 		"Education",
@@ -519,10 +519,7 @@
 		}
 	},
 	"__metadata": {
-		"isApplicationScoped": false,
-		"installedTimestamp": 1737678058775,
-		"pinned": true,
-		"source": "vsix",
-		"size": 1374672
+		"installedTimestamp": 1740386915132,
+		"size": 1352624
 	}
 }
