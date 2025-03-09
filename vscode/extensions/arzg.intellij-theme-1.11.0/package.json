@@ -1,0 +1,60 @@
+{
+	"name": "intellij-theme",
+	"displayName": "IntelliJ Theme",
+	"description": "A faithful recreation of IntelliJ’s themes for VS Code",
+	"publisher": "arzg",
+	"license": "MIT",
+	"repository": {
+		"url": "https://github.com/arzg/intellij-theme"
+	},
+	"version": "1.11.0",
+	"engines": {
+		"vscode": "^1.41.0"
+	},
+	"categories": [
+		"Themes"
+	],
+	"scripts": {
+		"package": "vsce package"
+	},
+	"contributes": {
+		"themes": [
+			{
+				"label": "Darcula IntelliJ",
+				"uiTheme": "vs-dark",
+				"path": "./themes/Darcula IntelliJ-color-theme.json"
+			},
+			{
+				"label": "Darcula GoLand",
+				"uiTheme": "vs-dark",
+				"path": "./themes/Darcula GoLand-color-theme.json"
+			},
+			{
+				"label": "Darcula CLion",
+				"uiTheme": "vs-dark",
+				"path": "./themes/Darcula CLion-color-theme.json"
+			},
+			{
+				"label": "Darcula AppCode",
+				"uiTheme": "vs-dark",
+				"path": "./themes/Darcula AppCode-color-theme.json"
+			},
+			{
+				"label": "Rider",
+				"uiTheme": "vs-dark",
+				"path": "./themes/Rider-color-theme.json"
+			}
+		],
+		"productIconThemes": [
+			{
+				"id": "IntelliJ",
+				"label": "IntelliJ",
+				"path": "./producticons/IntelliJ-product-icon-theme.json"
+			}
+		]
+	},
+	"__metadata": {
+		"installedTimestamp": 1740497586941,
+		"size": 74036
+	}
+}

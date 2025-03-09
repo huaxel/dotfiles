@@ -1,1 +1,0 @@
-[[[0,"/opt/anaconda3/lib/python3.10/site-packages/bitarray/__init__.pyi","","",null,0],[false,[["CodeDict",1,13,null],["BytesLike",1,13,null],["decodetree",1,5,null],["bitarray",1,5,null],["frozenbitarray",1,5,null],["__version__",1,13,null],["bits2bytes",1,12,null],["get_default_endian",1,12,null],["test",1,12,null],["_set_default_endian",1,12,null],["_sysinfo",1,12,null]]]]]
