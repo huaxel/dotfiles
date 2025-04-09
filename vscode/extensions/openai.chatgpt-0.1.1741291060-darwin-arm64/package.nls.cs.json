@@ -1,0 +1,13 @@
+{
+    "extension.commands.askChatGPTTitle": "Zeptat se služby ChatGPT",
+    "extension.walkthrough.started.title": "Pracuj s ChatGPT",
+    "extension.walkthrough.started.description": "Toto rozšíření umožňuje aplikaci ChatGPT pro stolní počítače číst a upravovat soubory otevřené v aplikaci Visual Studio Code.\n\nPro své fungování vyžaduje aplikaci ChatGPT pro stolní počítače.",
+    "extension.walkthrough.started.install.title": "Získat aplikaci ChatGPT pro stolní počítače pro macOS",
+    "extension.walkthrough.started.install.description": "Pro toto rozšíření je vyžadována aplikace pro stolní počítače.\n[Stáhnout ChatGPT pro macOS](https:\/\/persistent.oaistatic.com\/sidekick\/public\/ChatGPT.dmg)",
+    "extension.walkthrough.started.launch.title": "Spustit aplikaci ChatGPT",
+    "extension.walkthrough.started.launch.description": "Otevři ChatGPT z libovolné obrazovky na ploše pomocí klávesové zkratky Option+mezerník.\n[Otevřít ChatGPT pro macOS](příkaz:openai.chatgpt.openChatGPTApp)",
+    "extension.walkthrough.started.pair.title": "Propojení služby ChatGPT s aplikací Visual Studio Code",
+    "extension.walkthrough.started.pair.description": "ChatGPT můžeš s aplikací Visual Studio Code propojit kliknutím na ikonu „Pracuj s aplikacemi“ na panelu chatu ChatGPT nebo stisknutím klávesy Option+mezerník v aplikaci Visual Studio Code.\n[Spárovat s aplikací Visual Studio Code](příkaz:openai.chatgpt.walkthrough.pairChatGPT)\nTip: Stiskni klávesu Option+mezerník, když je VS Code na popředí",
+    "extension.walkthrough.started.ask.title": "Zeptej se na svůj kód",
+    "extension.walkthrough.started.ask.description": "Po propojení služby ChatGPT s aplikací Visual Studio Code můžeš službu ChatGPT požádat o pomoc s kódem.\n\nChatGPT bude mít přístup ke kódu v aktivních panelech editoru. Když vybereš text, ChatGPT se může zaměřit na konkrétní části kódu.\n[Zeptat se ChatGPT](příkaz:openai.chatgpt.walkthrough.askChatGPT)"
+}

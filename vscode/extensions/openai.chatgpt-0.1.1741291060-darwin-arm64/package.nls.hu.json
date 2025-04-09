@@ -1,0 +1,13 @@
+{
+    "extension.commands.askChatGPTTitle": "A ChatGPT megkérdezése",
+    "extension.walkthrough.started.title": "Munka a ChatGPT-vel",
+    "extension.walkthrough.started.description": "Ez a kiterjesztés lehetővé teszi, hogy a ChatGPT asztali alkalmazás olvassa és szerkessze a Visual Studio Code-ban megnyitott fájlokat.\n\nA működéséhez a ChatGPT asztali alkalmazás szükséges.",
+    "extension.walkthrough.started.install.title": "Szerezd meg a ChatGPT asztali alkalmazást macOS-re",
+    "extension.walkthrough.started.install.description": "Ehhez a bővítményhez az asztali alkalmazás szükséges.\n[ChatGPT letöltése macOS-hez](https:\/\/persistent.oaistatic.com\/sidekick\/public\/ChatGPT.dmg)",
+    "extension.walkthrough.started.launch.title": "Indítsd el a ChatGPT alkalmazást",
+    "extension.walkthrough.started.launch.description": "Nyisd meg a ChatGPT-t az asztal bármely képernyőjéről az Option+Space billentyűkombinációval.\n[ChatGPT megnyitása a macOS-hez](command:openai.chatgpt.openChatGPTApp)",
+    "extension.walkthrough.started.pair.title": "A ChatGPT és a Visual Studio Code összekapcsolása",
+    "extension.walkthrough.started.pair.description": "Csatlakoztasd a ChatGPT-t a Visual Studio Code-hoz a ChatGPT csevegősávjában található „Alkalmazásokkal való munka” ikonra kattintva, vagy a Visual Studio Code-ban az Option + Space billentyűvel.\n[Párosítás a Visual Studio Code-dal](command:openai.chatgpt.walkthrough.pairChatGPT)\nTipp: A VS Code előtérbe helyezésével nyomd meg az Option + Space billentyűt.",
+    "extension.walkthrough.started.ask.title": "Kérdés a kóddal kapcsolatban",
+    "extension.walkthrough.started.ask.description": "Ha a ChatGPT csatlakozik a Visual Studio Code-hoz, kérj segítséget a ChatGPT-től a kódjával kapcsolatban.\n\nA ChatGPT képes lesz hozzáférni a kódhoz az aktív szerkesztőablakokban. A szöveg kiválasztásával a ChatGPT a kód bizonyos részeire fókuszálhat.\n[Kérdezd a ChatGPT-t](command:openai.chatgpt.walkthrough.askChatGPT)"
+}

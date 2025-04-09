@@ -1,0 +1,12 @@
+{
+  "The ChatGPT extension is only supported on macOS.": "A ChatGPT bővítményt csak a macOS támogatja.",
+  "An older ChatGPT extension is still installed. Please uninstall it to avoid conflicts.": "Egy régebbi ChatGPT bővítmény még mindig telepítve van. Kérjük, távolítsd el a konfliktusok elkerülése érdekében.",
+  "Uninstall": "Eltávolítás",
+  "Failed to launch ChatGPT": "Nem sikerült elindítani a ChatGPT-t",
+  "Finish setting up ChatGPT Extension!": "Fejezd be a ChatGPT kiterjesztés beállítását!",
+  "Show Setup Guide": "Beállítási útmutató megjelenítése",
+  "Work with ChatGPT—Press Option+Space or select  \"Ask ChatGPT\" from the Command Palette.": "Munka a ChatGPT-vel - Nyomd meg az Option+Space billentyűkombinációt, vagy válaszd a „Kérdezd a ChatGPT-t” a parancspalettáról.",
+  "Try it now": "Kipróbálom",
+  "Work with ChatGPT—Install the desktop app to get started.": "Munka a ChatGPT-vel - A kezdéshez telepítsd az asztali alkalmazást.",
+  "Install": "Telepítés"
+}

@@ -1,0 +1,12 @@
+{
+  "The ChatGPT extension is only supported on macOS.": "只有 macOS 支援 ChatGPT 延伸模組。",
+  "An older ChatGPT extension is still installed. Please uninstall it to avoid conflicts.": "仍安裝著舊版 ChatGPT 的延伸模組。請解除安裝以避免發生衝突。",
+  "Uninstall": "解除安裝",
+  "Failed to launch ChatGPT": "無法啟動 ChatGPT",
+  "Finish setting up ChatGPT Extension!": "結束設定 ChatGPT 延伸模組！",
+  "Show Setup Guide": "顯示設定指南",
+  "Work with ChatGPT—Press Option+Space or select  \"Ask ChatGPT\" from the Command Palette.": "使用 ChatGPT - 按 Option+Space 鍵或從 Command Palette 選取「詢問 ChatGPT」。",
+  "Try it now": "立即試用",
+  "Work with ChatGPT—Install the desktop app to get started.": "使用 ChatGPT - 安裝桌面應用程式以開始使用。",
+  "Install": "安裝"
+}

@@ -1,0 +1,12 @@
+{
+  "The ChatGPT extension is only supported on macOS.": "ChatGPT の拡張機能は、macOS でのみサポートされます。",
+  "An older ChatGPT extension is still installed. Please uninstall it to avoid conflicts.": "ChatGPT の古い拡張機能がまだインストールされています。競合を避けるため、アンインストールしてください。",
+  "Uninstall": "アンインストールする",
+  "Failed to launch ChatGPT": "ChatGPT の起動に失敗しました",
+  "Finish setting up ChatGPT Extension!": "ChatGPT の拡張機能のセットアップが完了しました。",
+  "Show Setup Guide": "セットアップ ガイドを表示する",
+  "Work with ChatGPT—Press Option+Space or select  \"Ask ChatGPT\" from the Command Palette.": "ChatGPT を操作する - Option+Space キーを押すか、コマンド パレットから [Ask ChatGPT] (ChatGPT に質問する) を選択します。",
+  "Try it now": "今すぐお試しください",
+  "Work with ChatGPT—Install the desktop app to get started.": "ChatGPT を操作する - まずデスクトップ アプリをインストールします。",
+  "Install": "インストールする"
+}

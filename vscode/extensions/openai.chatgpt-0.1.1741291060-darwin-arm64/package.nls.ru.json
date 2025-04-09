@@ -1,0 +1,13 @@
+{
+    "extension.commands.askChatGPTTitle": "Спросить ChatGPT",
+    "extension.walkthrough.started.title": "Работайте с ChatGPT",
+    "extension.walkthrough.started.description": "Это расширение позволяет настольному приложению ChatGPT читать и редактировать файлы, открытые в Visual Studio Code.\n\nДля работы требуется настольное приложение ChatGPT.",
+    "extension.walkthrough.started.install.title": "Загрузите настольное приложение ChatGPT для macOS",
+    "extension.walkthrough.started.install.description": "Для этого расширения требуется настольное приложение.\n[Загрузить ChatGPT для macOS](https:\/\/persistent.oaistatic.com\/sidekick\/public\/ChatGPT.dmg)",
+    "extension.walkthrough.started.launch.title": "Запустить приложение ChatGPT",
+    "extension.walkthrough.started.launch.description": "Запустите ChatGPT на любом экране рабочего стола с помощью сочетания клавиш Option+пробел.\n[Открыть ChatGPT для macOS](command:openai.chatgpt.openChatGPTApp)",
+    "extension.walkthrough.started.pair.title": "Подключить ChatGPT к Visual Studio Code",
+    "extension.walkthrough.started.pair.description": "Подключите ChatGPT к Visual Studio Code, нажав на значок «Работа с приложениями» на панели чата ChatGPT или нажав Option + пробел в Visual Studio Code.\n[Свяжите с Visual Studio Code](command:openai.chatgpt.walkthrough.pairChatGPT)\nСовет: выбрав VS Code на переднем плане, нажмите Option + пробел",
+    "extension.walkthrough.started.ask.title": "Задайте вопрос о своем коде",
+    "extension.walkthrough.started.ask.description": "Подключив ChatGPT к Visual Studio Code, обратитесь к ChatGPT за помощью относительно вашего кода.\n\nChatGPT сможет получить доступ к коду в активных панелях редактора. Выделите текст, чтобы сосредоточить внимание ChatGPT на определенных частях вашего кода.\n[Спросить ChatGPT](command:openai.chatgpt.walkthrough.askChatGPT)"
+}

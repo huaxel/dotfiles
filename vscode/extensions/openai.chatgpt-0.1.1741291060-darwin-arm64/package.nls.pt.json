@@ -1,0 +1,13 @@
+{
+    "extension.commands.askChatGPTTitle": "Ask ChatGPT",
+    "extension.walkthrough.started.title": "Work with ChatGPT",
+    "extension.walkthrough.started.description": "Available to ChatGPT Pro, Plus, Team, or Enterprise users.\n\nEnable ChatGPT to read contents in your editor and help answer questions.",
+    "extension.walkthrough.started.install.title": "Get the ChatGPT Desktop App for macOS",
+    "extension.walkthrough.started.install.description": "The desktop app is required for this extension.\n[Download ChatGPT for macOS](https:\/\/persistent.oaistatic.com\/sidekick\/public\/ChatGPT.dmg)",
+    "extension.walkthrough.started.launch.title": "Launch the ChatGPT app",
+    "extension.walkthrough.started.launch.description": "Open ChatGPT from any screen on your desktop with the keyboard shortcut Option+Space.\n[Open ChatGPT for macOS](command:openai.chatgpt.openChatGPTApp)",
+    "extension.walkthrough.started.pair.title": "Connect ChatGPT with Visual Studio Code",
+    "extension.walkthrough.started.pair.description": "Connect ChatGPT to Visual Studio Code by clicking the \"Work with Apps\" icon in the ChatGPT chat bar or by pressing Option + Space while in Visual Studio Code.\n[Pair with Visual Studio Code](command:openai.chatgpt.walkthrough.pairChatGPT)\nTip: With VS Code foregrounded, press Option + Space",
+    "extension.walkthrough.started.ask.title": "Ask a question about your code",
+    "extension.walkthrough.started.ask.description": "With ChatGPT connected to Visual Studio Code, ask ChatGPT for help with your code.\n\nChatGPT will be able to access code in active editor panes. Select text to focus ChatGPT on specific parts of your code.\n[Ask ChatGPT](command:openai.chatgpt.walkthrough.askChatGPT)"
+}

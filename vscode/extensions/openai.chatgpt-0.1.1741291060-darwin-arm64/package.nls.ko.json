@@ -1,0 +1,13 @@
+{
+    "extension.commands.askChatGPTTitle": "ChatGPT에게 묻기",
+    "extension.walkthrough.started.title": "ChatGPT로 작업",
+    "extension.walkthrough.started.description": "이 확장 프로그램으로 ChatGPT 데스크톱 애플리케이션이 Visual Studio Code에서 파일을 읽고 편집할 수 있습니다.\n\nChatGPT 데스크톱 앱이 필요합니다.",
+    "extension.walkthrough.started.install.title": "macOS용 ChatGPT 데스크톱 앱 받기",
+    "extension.walkthrough.started.install.description": "데스크톱 앱에 이 확장 프로그램이 필요합니다.\n[macOS용 ChatGPT 다운로드](https:\/\/persistent.oaistatic.com\/sidekick\/public\/ChatGPT.dmg)",
+    "extension.walkthrough.started.launch.title": "ChatGPT 앱 실행하기",
+    "extension.walkthrough.started.launch.description": "키보드 단축키 Option+스페이스 바로 데스크톱의 어떤 화면에서든 ChatGPT를 여세요.\n[macOS용 ChatGPT 열기](command:openai.chatgpt.openChatGPTApp)",
+    "extension.walkthrough.started.pair.title": "Visual Studio Code로 ChatGPT 연결하기",
+    "extension.walkthrough.started.pair.description": "ChatGPT 채팅 바 내 \"다른 앱과 공동 작업\" 아이콘을 클릭하거나, Visual Studio Code 내에서 Option+스페이스 바를 눌러 ChatGPT를 Visual Studio Code에 연결하세요.\n[Visual Studio Code와 페어링](command:openai.chatgpt.walkthrough.pairChatGPT)\n팁: VS Code가 전면에 있을 때는 Option+스페이스 바를 이용하세요",
+    "extension.walkthrough.started.ask.title": "내 코드에 대해 물어보세요",
+    "extension.walkthrough.started.ask.description": "ChatGPT를 Visual Studio Code에 연결하고, 내 코드에 대해 ChatGPT에게 도움을 요청해 보세요.\n\nChatGPT가 활성화된 편집기에 뜬 코드에 액세스할 수 있습니다. 텍스트를 선택하면 코드의 특정한 부분에 ChatGPT가 초점을 맞출 수 있습니다.\n[ChatGPT에게 묻기](command:openai.chatgpt.walkthrough.askChatGPT)"
+}

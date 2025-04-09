@@ -1,0 +1,13 @@
+{
+    "extension.commands.askChatGPTTitle": "ChatGPT に質問する",
+    "extension.walkthrough.started.title": "ChatGPT を操作する",
+    "extension.walkthrough.started.description": "この拡張機能により、Visual Studio Code で開いたファイルを ChatGPT デスクトップ アプリケーションで読み取ったり、編集したりすることが可能になります。\n\nChatGPT デスクトップ アプリが機能している必要があります。",
+    "extension.walkthrough.started.install.title": "macOS 向けの ChatGPT デスクトップ アプリを入手する",
+    "extension.walkthrough.started.install.description": "この拡張機能にはデスクトップ アプリが必要です。\n[macOS 向けの ChatGPT をダウンロードする](https:\/\/persistent.oaistatic.com\/sidekick\/public\/ChatGPT.dmg)",
+    "extension.walkthrough.started.launch.title": "ChatGPT アプリを起動する",
+    "extension.walkthrough.started.launch.description": "キーボード ショートカット Option+Space を使用すると、デスクトップのどの画面でも ChatGPT が開きます。\n[macOS 向けの ChatGPT を開く](command:openai.chatgpt.openChatGPTApp)",
+    "extension.walkthrough.started.pair.title": "ChatGPT を Visual Studio Code に接続する",
+    "extension.walkthrough.started.pair.description": "Visual Studio Code での作業中に、ChatGPT のチャットバーにある [Work with Apps] (アプリとの連携) アイコンをクリックすることで、ChatGPT を Visual Studio Code に接続します。\n[Visual Studio Code と連携する](command:openai.chatgpt.walkthrough.pairChatGPT)\nヒント: VS Code が前面にある状態で、Option + Space キーを押します",
+    "extension.walkthrough.started.ask.title": "コードに関する質問をする",
+    "extension.walkthrough.started.ask.description": "ChatGPT が Visual Studio Code に接続された状態で、ChatGPT にコードに関する質問をします。\n\nChatGPT が、アクティブなエディター ペインのコードにアクセスできるようになります。コードの特定の部分に ChatGPT が集中するように、テキストを選択してください。\n[ChatGPT に質問する](command:openai.chatgpt.walkthrough.askChatGPT)"
+}

@@ -1,0 +1,4 @@
+- With the ChatGPT desktop app running, connect ChatGPT to Visual Studio Code by pressing Option + Space while in Visual Studio Code or select "Ask ChatGPT" from the Command Palette.
+- Ask ChatGPT to answer questions or directly make changes to your code.
+- ChatGPT will only access code in active editor panes. To work with multiple files at the same time, open them in split editors.
+- Select text to focus ChatGPT on specific parts of your code.

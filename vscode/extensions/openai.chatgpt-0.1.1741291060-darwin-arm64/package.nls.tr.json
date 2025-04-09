@@ -1,0 +1,12 @@
+{
+  "extension.commands.askChatGPTTitle" : "ChatGPT’ye sor",
+  "extension.walkthrough.started.title" : "ChatGPT ile çalış",
+  "extension.walkthrough.started.install.title" : "macOS için ChatGPT Masaüstü Uygulamasını edin",
+  "extension.walkthrough.started.install.description" : "Bu uzantı için masaüstü uygulaması gereklidir.\n[macOS için ChatGPT'yi indir](https://persistent.oaistatic.com/sidekick/public/ChatGPT.dmg)",
+  "extension.walkthrough.started.launch.title" : "ChatGPT uygulamasını başlat",
+  "extension.walkthrough.started.launch.description" : "Masaüstündeki herhangi bir ekrandan Option+Space klavye kısayolunu kullanarak ChatGPT'yi aç.\n[macOS için ChatGPT'yi Aç](command:openai.chatgpt.openChatGPTApp)",
+  "extension.walkthrough.started.pair.title" : "ChatGPT'yi Visual Studio Code ile bağla",
+  "extension.walkthrough.started.pair.description" : "ChatGPT sohbet çubuğundaki “Uygulamalarla Çalış” simgesine tıklayarak veya Visual Studio Code'dayken Option + Space tuşlarına basarak ChatGPT'yi Visual Studio Code'a bağla.\n[Visual Studio Code ile eşleştir](command:openai.chatgpt.walkthrough.pairChatGPT)\nİpucu: VS Code ön plandayken Option + Space tuşlarına bas",
+  "extension.walkthrough.started.ask.title" : "Kodunla ilgili soru sor",
+  "extension.walkthrough.started.ask.description" : "ChatGPT Visual Studio Code'a bağlı olduğunda, ChatGPT'den kodunla ilgili yardım iste.\n\nChatGPT, etkin düzenleyici bölmelerindeki koda erişebilir. ChatGPT'yi kodunun belirli bölümlerine odaklamak için metni seç.\n[ChatGPT'ye Sor](command:openai.chatgpt.walkthrough.askChatGPT)"
+}

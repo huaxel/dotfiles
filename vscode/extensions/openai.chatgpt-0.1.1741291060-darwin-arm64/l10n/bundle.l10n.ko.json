@@ -1,0 +1,12 @@
+{
+  "The ChatGPT extension is only supported on macOS.": "ChatGPT 확장 프로그램은 macOS에서만 지원됩니다.",
+  "An older ChatGPT extension is still installed. Please uninstall it to avoid conflicts.": "ChatGPT 확장 프로그램의 이전 버전이 설치되어 있습니다. 충돌하지 않도록 설치를 제거해 주세요.",
+  "Uninstall": "설치 제거하기",
+  "Failed to launch ChatGPT": "ChatGPT 실행 실패",
+  "Finish setting up ChatGPT Extension!": "ChatGPT 확장 프로그램 설정을 마치세요!",
+  "Show Setup Guide": "설정 가이드 표시",
+  "Work with ChatGPT—Press Option+Space or select  \"Ask ChatGPT\" from the Command Palette.": "ChatGPT로 작업하세요—Option+스페이스 바를 누르거나 명령 팔레트에서 \"ChatGPT에게 묻기\"를 선택하세요.",
+  "Try it now": "지금 사용해보기",
+  "Work with ChatGPT—Install the desktop app to get started.": "ChatGPT로 작업하세요—데스크톱 앱을 설치해 시작하세요.",
+  "Install": "설치하기"
+}

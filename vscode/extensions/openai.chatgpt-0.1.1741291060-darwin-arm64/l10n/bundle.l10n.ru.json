@@ -1,0 +1,12 @@
+{
+  "The ChatGPT extension is only supported on macOS.": "Расширение ChatGPT поддерживается только в macOS.",
+  "An older ChatGPT extension is still installed. Please uninstall it to avoid conflicts.": "Старое расширение ChatGPT все еще установлено. Удалите его, чтобы избежать конфликтов.",
+  "Uninstall": "Удалить",
+  "Failed to launch ChatGPT": "Не удалось запустить ChatGPT",
+  "Finish setting up ChatGPT Extension!": "Завершите настройку расширения ChatGPT!",
+  "Show Setup Guide": "Показать руководство по настройке",
+  "Work with ChatGPT—Press Option+Space or select  \"Ask ChatGPT\" from the Command Palette.": "Работайте с ChatGPT—Нажмите Option+пробел или выберите «Спросить ChatGPT» на палитре команд.",
+  "Try it now": "Попробуйте сейчас",
+  "Work with ChatGPT—Install the desktop app to get started.": "Работайте с ChatGPT—Чтобы начать работу, установите настольное приложение.",
+  "Install": "Установить"
+}

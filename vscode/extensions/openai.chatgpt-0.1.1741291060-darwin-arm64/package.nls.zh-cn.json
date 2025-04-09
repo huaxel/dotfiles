@@ -1,0 +1,13 @@
+{
+    "extension.commands.askChatGPTTitle": "询问 ChatGPT",
+    "extension.walkthrough.started.title": "使用 ChatGPT",
+    "extension.walkthrough.started.description": "此扩展程序支持 ChatGPT 桌面应用读取和编辑您在 Visual Studio Code 中打开的文件。\n\n如需使用该功能，ChatGPT 桌面应用须处于运行状态。",
+    "extension.walkthrough.started.install.title": "获取 macOS 版 ChatGPT 桌面应用",
+    "extension.walkthrough.started.install.description": "您需要安装桌面应用才能使用此扩展程序。\n[下载 macOS 版 ChatGPT](https:\/\/persistent.oaistatic.com\/sidekick\/public\/ChatGPT.dmg)",
+    "extension.walkthrough.started.launch.title": "启动 ChatGPT 应用",
+    "extension.walkthrough.started.launch.description": "无论您正在浏览哪个电脑页面，只需使用键盘快捷方式 Option+Space 即可直接打开 ChatGPT。\n[打开 macOS 版 ChatGPT](command:openai.chatgpt.openChatGPTApp)",
+    "extension.walkthrough.started.pair.title": "将 ChatGPT 与 Visual Studio Code 相关联",
+    "extension.walkthrough.started.pair.description": "点击 ChatGPT 聊天栏中的“使用应用”图标，或在使用 Visual Studio Code 时按 Option + Space，即可将 ChatGPT 与 Visual Studio Code 相关联。\n[与 Visual Studio Code 配对](command:openai.chatgpt.walkthrough.pairChatGPT)\n提示：当 VS Code 在前台运行时，请按 Option + Space",
+    "extension.walkthrough.started.ask.title": "询问关于代码的问题",
+    "extension.walkthrough.started.ask.description": "将 ChatGPT 与 Visual Studio Code 相关联后，您可以就代码问题向 ChatGPT 寻求帮助。\n\nChatGPT 能够访问活动编辑器窗格中的代码。选择文本即可使 ChatGPT 聚焦于代码的特定部分。\n[询问 ChatGPT](command:openai.chatgpt.walkthrough.askChatGPT)"
+}

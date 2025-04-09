@@ -1,0 +1,142 @@
+{
+	"name": "chatgpt",
+	"displayName": "ChatGPT – Work with Code on macOS",
+	"description": "Allows the ChatGPT desktop application to read and edit files open in Visual Studio Code. It requires the ChatGPT desktop app to function.",
+	"publisher": "openai",
+	"author": {
+		"name": "OpenAI",
+		"url": "https://openai.com"
+	},
+	"version": "0.1.1741291060",
+	"icon": "images/oai_icon.png",
+	"engines": {
+		"vscode": "^1.92.0"
+	},
+	"categories": [
+		"Other"
+	],
+	"activationEvents": [
+		"onStartupFinished"
+	],
+	"main": "./out/src/extension.js",
+	"l10n": "./l10n",
+	"contributes": {
+		"commands": [
+			{
+				"command": "openai.chatgpt.askChatGPT",
+				"title": "%extension.commands.askChatGPTTitle%"
+			}
+		],
+		"menus": {
+			"commandPalette": [
+				{
+					"command": "openai.chatgpt.askChatGPT",
+					"when": "openai.chatgpt.ctx.app.supportsPairing"
+				}
+			]
+		},
+		"walkthroughs": [
+			{
+				"id": "chatgptGettingStarted",
+				"title": "%extension.walkthrough.started.title%",
+				"description": "%extension.walkthrough.started.description%",
+				"steps": [
+					{
+						"id": "installChatGPTMacApp",
+						"title": "%extension.walkthrough.started.install.title%",
+						"description": "%extension.walkthrough.started.install.description%",
+						"completionEvents": [
+							"onContext:openai.chatgpt.ctx.walkthrough.installed==true"
+						],
+						"media": {
+							"image": "images/walkthrough_install.png",
+							"altText": "macOS Dock with ChatGPT icon showing"
+						}
+					},
+					{
+						"id": "launchChatGPTMacApp",
+						"title": "%extension.walkthrough.started.launch.title%",
+						"description": "%extension.walkthrough.started.launch.description%",
+						"completionEvents": [
+							"onContext:openai.chatgpt.ctx.walkthrough.launched==true"
+						],
+						"media": {
+							"image": "images/walkthrough_launch.png",
+							"altText": "Option+Space key combo"
+						}
+					},
+					{
+						"id": "pairChatGPTAppWithExtension",
+						"title": "%extension.walkthrough.started.pair.title%",
+						"description": "%extension.walkthrough.started.pair.description%",
+						"completionEvents": [
+							"onContext:openai.chatgpt.ctx.walkthrough.paired==true"
+						],
+						"media": {
+							"image": "images/walkthrough_pair.png",
+							"altText": "Work With Apps application chooser within ChatGPT application"
+						}
+					},
+					{
+						"id": "askChatGPTApp",
+						"title": "%extension.walkthrough.started.ask.title%",
+						"description": "%extension.walkthrough.started.ask.description%",
+						"completionEvents": [
+							"onCommand:openai.chatgpt.walkthrough.askChatGPT"
+						],
+						"media": {
+							"image": "images/walkthrough_ask.png",
+							"altText": "Asking ChatGPT application to implement a function"
+						}
+					}
+				],
+				"when": "isMac"
+			}
+		]
+	},
+	"capabilities": {
+		"untrustedWorkspaces": {
+			"supported": "limited",
+			"description": "The workspace must be trusted for ChatGPT to interact with content in your Visual Studio Code workspace."
+		}
+	},
+	"extensionKind": [
+		"ui"
+	],
+	"scripts": {
+		"vscode:prepublish": "npm run compile && if [ \"$OBFUSCATE_EXTENSION\" = \"true\" ]; then javascript-obfuscator out --output out; fi && npm run pre-package",
+		"compile": "npx tsc -p ./",
+		"watch": "npx tsc -watch -p ./",
+		"pretest": "npm run compile && npm run lint",
+		"lint": "npx eslint src",
+		"lint:fix": "npx eslint src --fix",
+		"test": "npx vscode-test",
+		"pre-package": "node --loader ts-node/esm scripts/prepare-l10n-package.mts",
+		"package": "npm run pre-package && npx vsce package --allow-missing-repository",
+		"publish": "OBFUSCATE_EXTENSION=true npx vsce publish --allow-missing-repository --target darwin-arm64",
+		"extract-l10n": "npx @vscode/l10n-dev export -o ./l10n ./src && node --loader ts-node/esm scripts/prepare-mojito-push.mts"
+	},
+	"devDependencies": {
+		"@types/mocha": "^10.0.7",
+		"@types/node": "20.x",
+		"@types/semver": "^7.5.8",
+		"@types/vscode": "^1.92.0",
+		"@typescript-eslint/eslint-plugin": "^8.3.0",
+		"@typescript-eslint/parser": "^8.3.0",
+		"@vscode/l10n-dev": "^0.0.35",
+		"@vscode/test-cli": "^0.0.10",
+		"@vscode/test-electron": "^2.4.1",
+		"@vscode/vsce": "^3.1.0",
+		"eslint": "^9.9.1",
+		"javascript-obfuscator": "^4.1.1",
+		"ts-node": "^10.9.2",
+		"typescript": "^5.5.4"
+	},
+	"dependencies": {
+		"semver": "^7.7.1"
+	},
+	"__metadata": {
+		"installedTimestamp": 1743072224934,
+		"size": 2315697
+	}
+}

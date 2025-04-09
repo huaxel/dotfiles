@@ -1,0 +1,13 @@
+{
+    "extension.commands.askChatGPTTitle": "Preguntar a ChatGPT",
+    "extension.walkthrough.started.title": "Trabaja con ChatGPT",
+    "extension.walkthrough.started.description": "Esta extensión permite que la aplicación de escritorio ChatGPT lea y edite archivos abiertos en Visual Studio Code.\n\nRequiere la aplicación de escritorio de ChatGPT para funcionar.",
+    "extension.walkthrough.started.install.title": "Consigue la aplicación de escritorio de ChatGPT para macOS",
+    "extension.walkthrough.started.install.description": "Se necesita la aplicación de escritorio para esta extensión. [Descargar ChatGPT para macOS](https:\/\/persistent.oaistatic.com\/sidekick\/public\/ChatGPT.dmg)",
+    "extension.walkthrough.started.launch.title": "Ejecutar la aplicación de ChatGPT",
+    "extension.walkthrough.started.launch.description": "Abre ChatGPT desde cualquier pantalla de tu escritorio con el acceso directo del teclado «option» + «espacio».\n[Abrir ChatGPT para macOS](command:openai.chatgpt.openChatGPTApp)",
+    "extension.walkthrough.started.pair.title": "Conectar ChatGPT con Visual Studio Code",
+    "extension.walkthrough.started.pair.description": "Conecta ChatGPT a Visual Studio Code pulsando el icono «Trabajar con aplicaciones» en la barra de chat de ChatGPT o pulsando «option» + «espacio» mientras estás en Visual Studio Code.\n[Emparejar con Visual Studio Code](command:openai.chatgpt.walkthrough.pairChatGPT)\nConsejo: Con VS Code en primer plano, pulsa «option» + «espacio»",
+    "extension.walkthrough.started.ask.title": "Haz una pregunta sobre tu código",
+    "extension.walkthrough.started.ask.description": "Con ChatGPT conectado a Visual Studio Code, pídele ayuda con tu código.\n\nChatGPT podrá acceder al código en los paneles del editor activo. Selecciona el texto para que ChatGPT se centre en partes específicas de tu código.\n[Preguntar a ChatGPT](command:openai.chatgpt.walkthrough.askChatGPT)"
+}

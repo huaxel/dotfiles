@@ -1,0 +1,12 @@
+{
+  "The ChatGPT extension is only supported on macOS.": "Rozšíření ChatGPT je podporováno pouze v systému macOS.",
+  "An older ChatGPT extension is still installed. Please uninstall it to avoid conflicts.": "Je stále nainstalováno starší rozšíření ChatGPT. Odinstaluj je, aby nedocházelo ke konfliktům.",
+  "Uninstall": "Odinstalovat",
+  "Failed to launch ChatGPT": "Nepodařilo se spustit ChatGPT",
+  "Finish setting up ChatGPT Extension!": "Dokonči nastavování rozšíření ChatGPT.",
+  "Show Setup Guide": "Zobrazit průvodce nastavením",
+  "Work with ChatGPT—Press Option+Space or select  \"Ask ChatGPT\" from the Command Palette.": "Pracuj s ChatGPT – stiskni klávesu Option+mezerník nebo na paletě příkazů vyber možnost „Zeptat se služby ChatGPT“.",
+  "Try it now": "Vyzkoušet teď",
+  "Work with ChatGPT—Install the desktop app to get started.": "Pracuj s ChatGPT – začni tím, že si nainstaluješ aplikaci pro stolní počítače.",
+  "Install": "Instalovat"
+}

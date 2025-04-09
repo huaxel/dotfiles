@@ -1,0 +1,13 @@
+{
+    "extension.commands.askChatGPTTitle": "Demander à ChatGPT",
+    "extension.walkthrough.started.title": "Travailler avec ChatGPT",
+    "extension.walkthrough.started.description": "Cette extension permet à l'application de bureau ChatGPT de lire et de modifier les fichiers ouverts dans Visual Studio Code.\n\nElle nécessite le bon fonctionnement de cette application.",
+    "extension.walkthrough.started.install.title": "Obtenir l'application de bureau ChatGPT pour macOS",
+    "extension.walkthrough.started.install.description": "L'application de bureau est requise pour cette extension.\n[Télécharger ChatGPT pour macOS](https:\/\/persistent.oaistatic.com\/sidekick\/public\/ChatGPT.dmg)",
+    "extension.walkthrough.started.launch.title": "Lancer l'application ChatGPT",
+    "extension.walkthrough.started.launch.description": "Ouvrez ChatGPT à partir de n'importe quel écran de votre bureau à l'aide du raccourci clavier Option+Espace.\n[Ouvrir ChatGPT pour macOS](commande : openai.chatgpt.openChatGPTApp)",
+    "extension.walkthrough.started.pair.title": "Connecter ChatGPT à Visual Studio Code",
+    "extension.walkthrough.started.pair.description": "Connectez ChatGPT à Visual Studio Code en cliquant sur l'icône « Travailler avec les applis » dans la barre de chat de ChatGPT ou en appuyant sur Option + Espace à partir de Visual Studio Code.\n[Appairer avec Visual Studio Code](commande : openai.chatgpt.walkthrough.pairChatGPT)\nConseil : appuyez sur Option + Espace avec VS Code au premier plan",
+    "extension.walkthrough.started.ask.title": "Poser une question sur votre code",
+    "extension.walkthrough.started.ask.description": "Une fois la connexion de ChatGPT à Visual Studio Code établie, demandez à ChatGPT de vous aider à travailler sur votre code.\n\nChatGPT pourra accéder au code dans les volets actifs de l'éditeur. Sélectionnez du texte pour indiquer à ChatGPT sur quelles parties spécifiques de votre code se concentrer.\n[Demander à ChatGPT](commande : openai.chatgpt.walkthrough.askChatGPT)"
+}

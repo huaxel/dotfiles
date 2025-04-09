@@ -1,0 +1,12 @@
+{
+  "The ChatGPT extension is only supported on macOS.": "ChatGPT eklentisi yalnızca macOS'de desteklenmektedir.",
+  "An older ChatGPT extension is still installed. Please uninstall it to avoid conflicts.": "Eski bir ChatGPT eklentisi hâlâ yüklü. Çakışmaları önlemek için lütfen onu kaldır.",
+  "Uninstall": "Kaldır",
+  "Failed to launch ChatGPT": "ChatGPT başlatılamadı",
+  "Finish setting up ChatGPT Extension!": "ChatGPT Uzantısı kurulumunu tamamla!",
+  "Show Setup Guide": "Kurulum Kılavuzunu Göster",
+  "Work with ChatGPT—Press Option+Space or select  \"Ask ChatGPT\" from the Command Palette.": "ChatGPT ile çalış - Option+Space tuşlarına bas veya Komut Paletinden “ChatGPT'ye Sor”u seç.",
+  "Try it now": "Şimdi dene",
+  "Work with ChatGPT—Install the desktop app to get started.": "ChatGPT ile çalış - Başlamak için masaüstü uygulamasını yükle.",
+  "Install": "Yükle"
+}
