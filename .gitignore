@@ -4,4 +4,4 @@ github-copilot/apps.json
 .DS_Store
 :emacs/
 ssh
-vscode/vscode/extensions/codeium.codeium-*/dist/*/language_server_macos_arm
+vscode/extensions/
