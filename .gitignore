@@ -2,6 +2,6 @@ github-copilot/hosts.json
 exercism
 github-copilot/apps.json
 .DS_Store
-emacs/
-/ssh
-/vscode
+:emacs/
+ssh
+vscode/
