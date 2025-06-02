@@ -1,0 +1,36 @@
+# Ignore chezmoi's own config directory to avoid recursion
+.config/chezmoi
+.local/share/chezmoi
+
+# Ignore git metadata
+.git
+.gitignore
+
+# ssh keys 
+.ssh/id_*
+.ssh/known_hosts*
+
+# oh-my-zsh
+.config/oh-my-zsh/*
+!.config/oh-my-zsh
+!.config/oh-my-zsh/custom
+!.config/oh-my-zsh/custom/**
+
+# vscode
+.config/vscode/**/.vscode
+.config/vscode/extensions/
+
+# macos 
+.DS_Store
+.local/share/.DS_Store
+
+# Ignore other potentially problematic or large dirs you don't want tracked
+.local/share/applications/
+.local/share/desktop-directories/
+.local/share/GameAnalytics/
+.local/share/man/
+
+#trash and cache 
+.local/share/Trash
+.cache
+.Trash*

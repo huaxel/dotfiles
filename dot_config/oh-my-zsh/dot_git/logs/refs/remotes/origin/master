@@ -1,0 +1,9 @@
+0000000000000000000000000000000000000000 7d32e7fc3fb56032252548a690744a26c3ac3059 Juan Benjumea <benjumeamoreno@gmail.com> 1739456163 +0100	fetch --depth=1 origin: storing head
+7d32e7fc3fb56032252548a690744a26c3ac3059 6e7ac0544e71c7b777746cb50f70de68c6495b86 Juan Benjumea <benjumeamoreno@gmail.com> 1740556719 +0100	pull --quiet --rebase origin master: fast-forward
+6e7ac0544e71c7b777746cb50f70de68c6495b86 f97e871c33da57d20e1b0411da6b1674126192a9 Juan Benjumea <benjumeamoreno@gmail.com> 1741687660 +0100	pull --quiet --rebase origin master: fast-forward
+f97e871c33da57d20e1b0411da6b1674126192a9 899af6328b395f1db2e74d09880a1af435a188ca Juan Benjumea <benjumeamoreno@gmail.com> 1742828939 +0100	pull --quiet --rebase origin master: fast-forward
+899af6328b395f1db2e74d09880a1af435a188ca 750d3ac4b493dca13ef0ced55fa6a2cd02dc7ee8 Juan Benjumea <benjumeamoreno@gmail.com> 1744006055 +0200	pull --quiet --rebase origin master: fast-forward
+750d3ac4b493dca13ef0ced55fa6a2cd02dc7ee8 de1ca65dcaebd19f5ca6626616bb79b529362458 Juan Benjumea <benjumeamoreno@gmail.com> 1745322525 +0200	pull --quiet --rebase origin master: fast-forward
+de1ca65dcaebd19f5ca6626616bb79b529362458 8648cd640b428bdd7dea65886c2671ef1e8ffe32 Juan Benjumea <benjumeamoreno@gmail.com> 1746428394 +0200	pull --quiet --rebase origin master: fast-forward
+8648cd640b428bdd7dea65886c2671ef1e8ffe32 881c8b78d3e3ade9bccfddb3e616842807d07a59 Juan Benjumea <benjumeamoreno@gmail.com> 1747594233 +0200	pull --quiet --rebase origin master: fast-forward
+881c8b78d3e3ade9bccfddb3e616842807d07a59 95ef2516697aa764d1d4bb93ad3490584cc118ec Juan Benjumea <benjumeamoreno@gmail.com> 1748689154 +0200	pull --quiet --rebase origin master: fast-forward
