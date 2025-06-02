@@ -34,3 +34,4 @@
 .local/share/Trash
 .cache
 .Trash*
+.config/oh-my-zsh/custom/plugins/zsh-syntax-highlighting/.git
