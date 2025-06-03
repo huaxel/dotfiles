@@ -3,8 +3,6 @@
 	filemode = true
 	bare = false
 	logallrefupdates = true
-	ignorecase = true
-	precomposeunicode = true
 [remote "origin"]
 	url = https://github.com/romkatv/powerlevel10k.git
 	fetch = +refs/heads/master:refs/remotes/origin/master
