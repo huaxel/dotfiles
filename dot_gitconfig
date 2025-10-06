@@ -1,0 +1,17 @@
+[user]
+	name = Juan Benjumea
+	email = benjumeamoreno@gmail.com
+[credential]
+	helper = osxkeychain
+[fetch]
+	fsckObjects = false
+[transfer]
+	fsckObjects = false
+[pack]
+	threads = 1
+[http]
+	postBuffer = 524288000
+[init]
+	defaultBranch = main
+[core]
+	excludesfile = /Users/juanbenjumea/.gitignore_global

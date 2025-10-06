@@ -1,0 +1,83 @@
+# -------------------------------
+# Environment Setup
+# -------------------------------
+
+# Path to your Oh My Zsh installation.
+export ZSH="$HOME/.config/oh-my-zsh"
+source $ZSH/oh-my-zsh.sh
+ZSH_THEME="agnoster"
+
+export PATH="/opt/homebrew/bin:$PATH"
+export PATH="$PATH:$(go env GOPATH)/bin"
+export PATH="$HOME/.rbenv/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
+export PATH="/opt/homebrew/sbin:$PATH"
+export PATH="$HOME/.emacs.d/bin:$PATH"
+
+
+if [[ -n $SSH_CONNECTION ]]; then
+   export EDITOR='vim'
+else
+   export EDITOR='nvim'
+fi
+
+# -------------------------------
+# Oh My Zsh and Plugins
+# -------------------------------
+plugins=(
+  git
+  asdf
+  npm
+  zsh-autosuggestions
+  zsh-syntax-highlighting
+  brew
+  python
+  colored-man-pages
+  command-not-found
+  fzf
+  zoxide
+)
+
+# ----- Bat (better cat) -----
+export BAT_THEME=tokyonight_night
+alias cat=bat
+
+
+# -------------------------------
+# Aliases (Custom Commands)
+# -------------------------------
+alias ls="eza --color=always --long --git --icons=always --no-time --no-user --no-permissions"
+
+eval "$(zoxide init zsh)"
+alias cd="z"
+
+alias brewup="brew update && brew upgrade && brew cleanup && brew doctor"
+
+# azure
+alias vmstart="az vm start --resource-group rg-srvos-2425S2-1277-juan.benjumea.moreno --name srvos-2425S2-1277-juan.benjumea.moreno"
+alias vmstop="az vm deallocate --resource-group rg-srvos-2425S2-1277-juan.benjumea.moreno --name srvos-2425S2-1277-juan.benjumea.moreno"
+alias vmlist="az vm list --show-details --output table"
+alias vmstatus="az vm get-instance-view --resource-group rg-srvos-2425S2-1277-juan.benjumea.moreno --name srvos-2425S2-1277-juan.benjumea.moreno" --query "instanceView.statuses"
+
+export TERM=xterm-256color
+export TERM=xterm-256color
+eval "$(uv generate-shell-completion zsh)"
+eval "$(starship init zsh)"
+
+source /Users/juanbenjumea/.config/broot/launcher/bash/br
+export PATH="/opt/homebrew/opt/openjdk/bin:$PATH"
+export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
+
+
+# Herd injected PHP 8.4 configuration.
+export HERD_PHP_84_INI_SCAN_DIR="/Users/juanbenjumea/Library/Application Support/Herd/config/php/84/"
+
+
+# Herd injected NVM configuration
+export NVM_DIR="/Users/juanbenjumea/Library/Application Support/Herd/config/nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+
+[[ -f "/Applications/Herd.app/Contents/Resources/config/shell/zshrc.zsh" ]] && builtin source "/Applications/Herd.app/Contents/Resources/config/shell/zshrc.zsh"
+
+# Herd injected PHP binary.
+export PATH="/Users/juanbenjumea/Library/Application Support/Herd/bin/":$PATH

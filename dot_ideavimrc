@@ -1,0 +1,82 @@
+" --- Basic Vim behavior ---
+set nocompatible
+set number
+set relativenumber
+set ignorecase
+set smartcase
+set hlsearch
+set incsearch
+set scrolloff=5
+set visualbell
+set showmode
+set showcmd
+
+" --- Tab and indent ---
+set tabstop=4
+set shiftwidth=4
+set expandtab
+set autoindent
+set smartindent
+
+" Save, close, etc.
+map <leader>w :action SaveAll<CR>
+map <leader>q :action CloseContent<CR>
+
+" File navigation
+map <leader>f :action SearchEverywhere<CR>
+map <leader>p :action GotoFile<CR>
+map <leader>b :action Back<CR>
+map <leader>n :action Forward<CR>
+
+" Code tools
+map <leader>r :action RenameElement<CR>
+map <leader>d :action GotoDeclaration<CR>
+map <leader>t :action GotoTest<CR>
+map <leader>g :action FindUsages<CR>
+map <leader>e :action ShowErrorDescription<CR>
+
+" Enable IdeaVim plugins
+set clipboard=unnamedplus
+set keymodel=startsel,stopsel
+
+" If you use the IdeaVimExtension plugin:
+set ideajoin          " Better 'J' join behavior
+set ideastatusline    " Display IDE mode in status bar
+set idearefactormode  " Allow Vim motions in refactor mode
+
+" Easier split navigation
+nnoremap <C-h> <C-w>h
+nnoremap <C-l> <C-w>l
+nnoremap <C-j> <C-w>j
+nnoremap <C-k> <C-w>k
+
+" Quick escape from insert mode
+inoremap jk <Esc>
+
+" Use space as leader key
+let mapleader = " "
+
+" Use * and # to search visually selected text
+vnoremap * y/<C-R>"<CR>
+vnoremap # y?<C-R>"<CR>
+
+" Keep cursor centered when searching
+nnoremap n nzzzv
+nnoremap N Nzzzv
+
+set surround
+set multiple-cursors
+set highlightedyank
+
+" Save automatically on focus loss
+au FocusLost * :wa
+
+" Format code
+map <leader>= :action ReformatCode<CR>
+map <leader>i :action OptimizeImports<CR>
+
+" Toggle terminal or project tool windows
+map <leader>t :action ActivateTerminalToolWindow<CR>
+map <leader>s :action ActivateStructureToolWindow<CR>
+map <leader>m :action ActivateProblemsView<CR>
+map <leader>o :action ShowFilePath<CR>

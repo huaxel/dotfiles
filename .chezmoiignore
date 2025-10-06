@@ -1,0 +1,29 @@
+# Ignore caches, node_modules, build, dist
+**/node_modules/
+**/dist/
+**/build/
+
+# System files
+**/.DS_Store
+**/*.log
+**/.cache/
+**/.local/share/Trash/
+**/.Trash/
+
+# Secrets
+**/.env*
+**/secrets/
+**/private_*
+**/.gnupg/
+**/.ssh/id_*
+
+# Ignore dev folders
+**/oh-my-zsh/cache
+**/oh-my-zsh/log
+**/oh-my-zsh/lib
+
+# IDE and editors
+**/.vscode/
+**/.idea/
+**/.nvim/
+**/.sublime-*
