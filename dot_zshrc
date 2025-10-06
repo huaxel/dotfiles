@@ -81,3 +81,4 @@ export NVM_DIR="/Users/juanbenjumea/Library/Application Support/Herd/config/nvm"
 
 # Herd injected PHP binary.
 export PATH="/Users/juanbenjumea/Library/Application Support/Herd/bin/":$PATH
+export PATH="/opt/homebrew/bin:$PATH"
