@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="nl"></html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ticket Masala</title>
+    <style>
+        .tab-container {
+            margin: 20px;
+        }
+        .tab-buttons button {
+            padding: 10px 20px;
+            margin-right: 5px;
+            cursor: pointer;
+        }
+        .tab-content {
+            padding: 20px;
+            border: 1px solid #ccc;
+            display: none;
+        }
+        .active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Ticket Masala</h1>
+    </header>
+
+    <div class="tab-container">
+        <div class="tab-buttons">
+            <button onclick="showTab('tickets')">Tickets</button>
+            <button onclick="showTab('projects')">Projecten</button>
+            <button onclick="showTab('cases')">Cases</button>
+        </div>
+
+        <div id="tickets" class="tab-content active">
+            <h2>Tickets</h2>
+            <p>Ticketbeheer inhoud komt hier</p>
+        </div>
+
+        <div id="projects" class="tab-content">
+            <h2>Projecten</h2>
+            <p>Projectbeheer inhoud komt hier</p>
+        </div>
+
+        <div id="cases" class="tab-content">
+            <h2>Cases</h2>
+            <p>Casebeheer inhoud komt hier</p>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabId) {
+            const tabs = document.getElementsByClassName('tab-content');
+            for (let tab of tabs) {
+                tab.classList.remove('active');
+            }
+            document.getElementById(tabId).classList.add('active');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+alles in basis map
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# On branch main
+# Your branch is up to date with 'origin/main'.
+#
+# Changes to be committed:
+#	renamed:    frontend-dummy/index.html -> IT-Project2526/Views/frontend-dummy/index.html
+#	renamed:    frontend-dummy/tuinbouw-dummy/index.html -> IT-Project2526/Views/frontend-dummy/tuinbouw-dummy/index.html
+#	renamed:    docs/architecture/Frontend IT.docx -> IT-Project2526/docs/architecture/Frontend IT.docx
+#	renamed:    docs/architecture/erd-dark.drawio.png -> IT-Project2526/docs/architecture/erd-dark.drawio.png
+#	renamed:    docs/architecture/erd-light.drawio.png -> IT-Project2526/docs/architecture/erd-light.drawio.png
+#	renamed:    docs/architecture/erd.drawio -> IT-Project2526/docs/architecture/erd.drawio
+#	renamed:    docs/architecture/planning.md -> IT-Project2526/docs/architecture/planning.md
+#	renamed:    docs/visual/Picture1.png -> IT-Project2526/docs/visual/Picture1.png
+#	renamed:    docs/visual/Picture2.png -> IT-Project2526/docs/visual/Picture2.png
+#	renamed:    docs/visual/basic-UI.png -> IT-Project2526/docs/visual/basic-UI.png
+#	renamed:    docs/visual/logo-green-square.png -> IT-Project2526/docs/visual/logo-green-square.png
+#	renamed:    docs/visual/logo-green-square.psd -> IT-Project2526/docs/visual/logo-green-square.psd
+#	renamed:    docs/visual/logo-green.jpg -> IT-Project2526/docs/visual/logo-green.jpg
+#	renamed:    docs/visual/logo-green.png -> IT-Project2526/docs/visual/logo-green.png
+#	renamed:    docs/visual/logo-green.psd -> IT-Project2526/docs/visual/logo-green.psd
+#	renamed:    docs/visual/logo.png -> IT-Project2526/docs/visual/logo.png
+#

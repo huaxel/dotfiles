@@ -1,0 +1,14 @@
+reorganize docs folder 
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# On branch main
+# Your branch is up to date with 'origin/main'.
+#
+# Changes to be committed:
+#	renamed:    docs/Frontend IT.docx -> docs/architecture/Frontend IT.docx
+#	renamed:    docs/IT-Project 1.drawio -> docs/architecture/IT-Project 1.drawio
+#	renamed:    docs/IT-Project 1.drawio(2).png -> docs/architecture/IT-Project 1.drawio(2).png
+#	renamed:    docs/IT-Project 1.drawio(3).png -> docs/architecture/IT-Project 1.drawio(3).png
+#	renamed:    docs/planning.md -> docs/architecture/planning.md
+#

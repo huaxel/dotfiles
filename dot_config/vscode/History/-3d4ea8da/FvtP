@@ -1,0 +1,13 @@
+rename repo structure
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# On branch main
+# Your branch is up to date with 'origin/main'.
+#
+# Changes to be committed:
+#	renamed:    project-documentatie/Frontend IT.docx -> docs/Frontend IT.docx
+#	renamed:    project-documentatie/IT-Project 1.drawio -> docs/IT-Project 1.drawio
+#	renamed:    project-documentatie/project-info.md -> docs/project-info.md
+#	new file:   docs/~$ontend IT.docx
+#

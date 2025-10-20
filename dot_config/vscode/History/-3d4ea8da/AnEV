@@ -1,0 +1,12 @@
+rename and relink
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# On branch main
+# Your branch is up to date with 'origin/main'.
+#
+# Changes to be committed:
+#	renamed:    docs/architecture/IT-Project 1.drawio(2).png -> docs/architecture/erd-dark.drawio.png
+#	renamed:    docs/architecture/IT-Project 1.drawio(3).png -> docs/architecture/erd-light.drawio.png
+#	renamed:    docs/architecture/IT-Project 1.drawio -> docs/architecture/erd.drawio
+#

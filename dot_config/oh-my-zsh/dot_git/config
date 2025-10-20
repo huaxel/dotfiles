@@ -16,7 +16,7 @@
 	vscode-merge-base = origin/master
 [oh-my-zsh]
 	remote = origin
-	lastVersion = 9e23925b8581d22033f07f1983587412d3761494
+	lastVersion = d57775d89e15687b87eef990b864492d6c973238
 [fsck]
 	zeroPaddedFilemode = ignore
 [fetch "fsck"]

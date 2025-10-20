@@ -1,0 +1,7 @@
+{
+    "github.copilot.nextEditSuggestions.enabled": true,
+    "git.enableSmartCommit": true,
+    "git.confirmSync": false,
+    "workbench.colorTheme": "Tokyo Night",
+    "workbench.iconTheme": "vscode-icons"
+}

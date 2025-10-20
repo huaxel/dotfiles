@@ -1,0 +1,19 @@
+visuals
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# On branch main
+# Your branch is up to date with 'origin/main'.
+#
+# Changes to be committed:
+#	deleted:    docs/logo-green.psd
+#	renamed:    docs/Picture1.png -> docs/visual/Picture1.png
+#	renamed:    docs/Picture2.png -> docs/visual/Picture2.png
+#	new file:   docs/visual/basic-UI.png
+#	new file:   docs/visual/logo-green-square.png
+#	new file:   docs/visual/logo-green-square.psd
+#	renamed:    docs/logo-green.jpg -> docs/visual/logo-green.jpg
+#	new file:   docs/visual/logo-green.png
+#	new file:   docs/visual/logo-green.psd
+#	renamed:    docs/logo.png -> docs/visual/logo.png
+#
