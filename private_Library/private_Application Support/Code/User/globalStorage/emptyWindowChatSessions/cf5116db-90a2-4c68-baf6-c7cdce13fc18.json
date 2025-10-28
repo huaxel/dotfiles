@@ -1,0 +1,516 @@
+{
+  "version": 3,
+  "requesterUsername": "huaxel",
+  "requesterAvatarIconUri": {
+    "$mid": 1,
+    "path": "/u/17797992",
+    "scheme": "https",
+    "authority": "avatars.githubusercontent.com",
+    "query": "v=4"
+  },
+  "responderUsername": "GitHub Copilot",
+  "responderAvatarIconUri": {
+    "id": "copilot"
+  },
+  "initialLocation": "panel",
+  "requests": [
+    {
+      "requestId": "request_116e1be6-f610-4753-b0ec-63aecc91faa5",
+      "message": {
+        "text": "hwo do you copy your ssh key into a machine",
+        "parts": [
+          {
+            "range": {
+              "start": 0,
+              "endExclusive": 43
+            },
+            "editorRange": {
+              "startLineNumber": 1,
+              "startColumn": 1,
+              "endLineNumber": 1,
+              "endColumn": 44
+            },
+            "text": "hwo do you copy your ssh key into a machine",
+            "kind": "text"
+          }
+        ]
+      },
+      "variableData": {
+        "variables": [
+          {
+            "kind": "file",
+            "id": "vscode.implicit.file",
+            "name": "file:config",
+            "value": {
+              "$mid": 1,
+              "fsPath": "/Users/juanbenjumea/.ssh/config",
+              "external": "file:///Users/juanbenjumea/.ssh/config",
+              "path": "/Users/juanbenjumea/.ssh/config",
+              "scheme": "file"
+            },
+            "modelDescription": "User's active file"
+          }
+        ]
+      },
+      "response": [
+        {
+          "kind": "thinking",
+          "value": [],
+          "id": "5uRAmSRpXX0Xac9B9ApabVj/RTsj9ILRDqkXQuMSFrUFfkKglQcaqKmK49lx68vKSXTaCqj1vGA6g6P4LOYUfOMD3OHRS944mRKzGGQU+077WAhkuy3/yUOhl1HxuUdeEJITyQMJjfQsAz1+ThhInL4Xh6EiQx6OijYq/+pkOWqLnfLy8LctPko6SK29P4h9Guj7XYY1Serv1+CyKrLF/vajCrQxqlL2eEs7qGMVhuCddGgxu0QNbrtraLLl1OnAdpQ5sY2L1O51BPJzVsEFnXlY2H4a4/a1wQvTQJdSE8SJrhE0bRf68hpcnuF0YRHh69xKhfIQJPZk+C5WM00HQisdm29sKjVL8IsfK/SR/+8YMikFvmhbVd56DbQfmj8esSxhvjsFJPxgGzIRkL2bP0QL5g=="
+        },
+        {
+          "value": "- Make sure you have a public key:\n```bash\nls -l ~/.ssh/id_rsa.pub || ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519\n```\n\n- Easiest (uses your ",
+          "supportThemeIcons": false,
+          "supportHtml": false
+        },
+        {
+          "kind": "inlineReference",
+          "inlineReference": {
+            "$mid": 1,
+            "fsPath": "/Users/juanbenjumea/.ssh/config",
+            "external": "file:///Users/juanbenjumea/.ssh/config",
+            "path": "/Users/juanbenjumea/.ssh/config",
+            "scheme": "file"
+          }
+        },
+        {
+          "value": " aliases):  \n```bash\n# uses Host entry from ~/.ssh/config (e.g. \"rockyvm\")\nssh-copy-id rockyvm\n# or explicit user/host+port (if needed)\nssh-copy-id -p 20022 student@desktopos-2526s1-1008-ubu-juanbenjumeamoreno.westeurope.cloudapp.azure.com\n```\n\n- If ssh-copy-id is not available (mac: install with Homebrew: `brew install ssh-copy-id`) or you prefer manual:\n```bash\ncat ~/.ssh/id_rsa.pub | ssh -p 20022 student@desktopos-2526s1-1008-ubu-juanbenjumeamoreno.westeurope.cloudapp.azure.com \\\n  'mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys'\n```\n\n- Verify by connecting:\n```bash\nssh rockyvm\n```\n\nThat’s it.",
+          "supportThemeIcons": false,
+          "supportHtml": false
+        }
+      ],
+      "responseId": "response_873735c8-8d4a-4ea2-ab14-4a888a8f1cdd",
+      "result": {
+        "timings": {
+          "firstProgress": 25856,
+          "totalElapsed": 29355
+        },
+        "metadata": {
+          "codeBlocks": [
+            {
+              "code": "ls -l ~/.ssh/id_rsa.pub || ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519\n",
+              "language": "bash",
+              "markdownBeforeBlock": "- Make sure you have a public key:\n"
+            },
+            {
+              "code": "# uses Host entry from ~/.ssh/config (e.g. \"rockyvm\")\nssh-copy-id rockyvm\n# or explicit user/host+port (if needed)\nssh-copy-id -p 20022 student@desktopos-2526s1-1008-ubu-juanbenjumeamoreno.westeurope.cloudapp.azure.com\n",
+              "language": "bash",
+              "markdownBeforeBlock": "\n- Easiest (uses your  aliases):  \n"
+            },
+            {
+              "code": "cat ~/.ssh/id_rsa.pub | ssh -p 20022 student@desktopos-2526s1-1008-ubu-juanbenjumeamoreno.westeurope.cloudapp.azure.com \\\n  'mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys'\n",
+              "language": "bash",
+              "markdownBeforeBlock": "\n- If ssh-copy-id is not available (mac: install with Homebrew: `brew install ssh-copy-id`) or you prefer manual:\n"
+            },
+            {
+              "code": "ssh rockyvm\n",
+              "language": "bash",
+              "markdownBeforeBlock": "\n- Verify by connecting:\n"
+            }
+          ],
+          "toolCallRounds": [
+            {
+              "response": "- Make sure you have a public key:\n```bash\nls -l ~/.ssh/id_rsa.pub || ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519\n```\n\n- Easiest (uses your ~/.ssh/config aliases):  \n```bash\n# uses Host entry from ~/.ssh/config (e.g. \"rockyvm\")\nssh-copy-id rockyvm\n# or explicit user/host+port (if needed)\nssh-copy-id -p 20022 student@desktopos-2526s1-1008-ubu-juanbenjumeamoreno.westeurope.cloudapp.azure.com\n```\n\n- If ssh-copy-id is not available (mac: install with Homebrew: `brew install ssh-copy-id`) or you prefer manual:\n```bash\ncat ~/.ssh/id_rsa.pub | ssh -p 20022 student@desktopos-2526s1-1008-ubu-juanbenjumeamoreno.westeurope.cloudapp.azure.com \\\n  'mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys'\n```\n\n- Verify by connecting:\n```bash\nssh rockyvm\n```\n\nThat’s it.",
+              "toolCalls": [],
+              "toolInputRetry": 0,
+              "id": "a7ade5f8-18f8-4791-99db-8814fd855cf8",
+              "statefulMarker": "mDbvJCGtKyfDnXgUruwQH3iZ+TNhVhLoKzCaq9gIL3aBh4kI2VfNF11X+4wTJ7Ev/yJmOwECRT0OyOeieCWAEnQJLWkANz2LtCaqvLEHO/DgSYTo9Cjg3QAvmSw1KFxZBgC8Lp7gYK7QWmKKS5F9MqqSSXTVwg3notpkdlQKEPqYg3b/aeVc28+9QRZ6+CF/f/Jj0EZXjWCB96uaX5DZKNmgCvkK/dssuvm9HQWz0/peNqP5OO/Dzm+z3jIyXfFJPD/0Hd0fF9rQw2T9+Iqw6OwYgnOdR04xCZHyZQnxZqslk81nhdDqApQE20fp7QjQ1GqL2KVUtplMA8eS5qSG7upNTJqy/HzGWzdCYQApvLv6V71cCAuYk/eFoPtPsurievWcBrbnEWZmWOpzJwPPDFfd80+M",
+              "thinking": {
+                "id": "5uRAmSRpXX0Xac9B9ApabVj/RTsj9ILRDqkXQuMSFrUFfkKglQcaqKmK49lx68vKSXTaCqj1vGA6g6P4LOYUfOMD3OHRS944mRKzGGQU+077WAhkuy3/yUOhl1HxuUdeEJITyQMJjfQsAz1+ThhInL4Xh6EiQx6OijYq/+pkOWqLnfLy8LctPko6SK29P4h9Guj7XYY1Serv1+CyKrLF/vajCrQxqlL2eEs7qGMVhuCddGgxu0QNbrtraLLl1OnAdpQ5sY2L1O51BPJzVsEFnXlY2H4a4/a1wQvTQJdSE8SJrhE0bRf68hpcnuF0YRHh69xKhfIQJPZk+C5WM00HQisdm29sKjVL8IsfK/SR/+8YMikFvmhbVd56DbQfmj8esSxhvjsFJPxgGzIRkL2bP0QL5g==",
+                "text": [],
+                "encrypted": "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",
+                "tokens": 768
+              }
+            }
+          ],
+          "modelMessageId": "9053be31-34bc-410d-8370-e2bfe5cab2d1",
+          "responseId": "0face9cd-9a45-48d4-bbb1-c559ff1c1ae8",
+          "sessionId": "483fa4c2-fc89-4776-b5e2-0ef530e6cdf7",
+          "agentId": "github.copilot.default"
+        },
+        "details": "GPT-5 mini • 0x"
+      },
+      "responseMarkdownInfo": [
+        {
+          "suggestionId": "sgt-1ed6f35b-d344-42c3-9d74-ffa885b17eca"
+        },
+        {
+          "suggestionId": "sgt-e9f40a11-2f26-49f0-9ec4-4bde80da265a"
+        },
+        {
+          "suggestionId": "sgt-035567d3-c3c9-419f-ac19-9eb4d4550444"
+        },
+        {
+          "suggestionId": "sgt-9c5b4dd0-81bf-41c8-b500-480e560003fd"
+        }
+      ],
+      "followups": [],
+      "isCanceled": false,
+      "agent": {
+        "extensionId": {
+          "value": "GitHub.copilot-chat",
+          "_lower": "github.copilot-chat"
+        },
+        "extensionVersion": "0.32.3",
+        "publisherDisplayName": "GitHub",
+        "extensionPublisherId": "GitHub",
+        "extensionDisplayName": "GitHub Copilot Chat",
+        "id": "github.copilot.default",
+        "description": "Ask or edit in context",
+        "metadata": {
+          "themeIcon": {
+            "id": "copilot"
+          },
+          "hasFollowups": false,
+          "helpTextPrefix": "You can ask me general programming questions, or chat with the following participants which have specialized expertise and can perform actions:",
+          "helpTextPostfix": {
+            "value": "To have a great conversation, ask me questions as if I was a real programmer:\n\n* **Show me the code** you want to talk about by having the files open and selecting the most important lines.\n* **Make refinements** by asking me follow-up questions, adding clarifications, providing errors, etc.\n* **Review my suggested code** and tell me about issues or improvements, so I can iterate on it.\n\nYou can also ask me questions about your editor selection by [starting an inline chat session](command:inlineChat.start).\n\nLearn more about [GitHub Copilot](https://docs.github.com/copilot/using-github-copilot/getting-started-with-github-copilot?tool=vscode&utm_source=editor&utm_medium=chat-panel&utm_campaign=2024q3-em-MSFT-getstarted) in [Visual Studio Code](https://code.visualstudio.com/docs/copilot/overview). Or explore the [Copilot walkthrough](command:github.copilot.open.walkthrough).",
+            "isTrusted": {
+              "enabledCommands": [
+                "inlineChat.start",
+                "github.copilot.open.walkthrough"
+              ]
+            },
+            "supportThemeIcons": false,
+            "supportHtml": false,
+            "uris": {
+              "command:inlineChat.start": {
+                "$mid": 1,
+                "path": "inlineChat.start",
+                "scheme": "command"
+              },
+              "https://docs.github.com/copilot/using-github-copilot/getting-started-with-github-copilot?tool=vscode&utm_source=editor&utm_medium=chat-panel&utm_campaign=2024q3-em-MSFT-getstarted": {
+                "$mid": 1,
+                "path": "/copilot/using-github-copilot/getting-started-with-github-copilot",
+                "scheme": "https",
+                "authority": "docs.github.com",
+                "query": "tool=vscode&utm_source=editor&utm_medium=chat-panel&utm_campaign=2024q3-em-MSFT-getstarted"
+              },
+              "https://code.visualstudio.com/docs/copilot/overview": {
+                "$mid": 1,
+                "path": "/docs/copilot/overview",
+                "scheme": "https",
+                "authority": "code.visualstudio.com"
+              },
+              "command:github.copilot.open.walkthrough": {
+                "$mid": 1,
+                "path": "github.copilot.open.walkthrough",
+                "scheme": "command"
+              }
+            }
+          },
+          "supportIssueReporting": false,
+          "requester": {
+            "name": "huaxel",
+            "icon": {
+              "$mid": 1,
+              "path": "/u/17797992",
+              "scheme": "https",
+              "authority": "avatars.githubusercontent.com",
+              "query": "v=4"
+            }
+          }
+        },
+        "name": "GitHubCopilot",
+        "fullName": "GitHub Copilot",
+        "isDefault": true,
+        "locations": [
+          "panel"
+        ],
+        "modes": [
+          "ask"
+        ],
+        "slashCommands": [],
+        "disambiguation": [
+          {
+            "category": "generate_code_sample",
+            "description": "The user wants to generate code snippets without referencing the contents of the current workspace. This category does not include generating entire projects.",
+            "examples": [
+              "Write an example of computing a SHA256 hash."
+            ]
+          },
+          {
+            "category": "add_feature_to_file",
+            "description": "The user wants to change code in a file that is provided in their request, without referencing the contents of the current workspace. This category does not include generating entire projects.",
+            "examples": [
+              "Add a refresh button to the table widget."
+            ]
+          },
+          {
+            "category": "question_about_specific_files",
+            "description": "The user has a question about a specific file or code snippet that they have provided as part of their query, and the question does not require additional workspace context to answer.",
+            "examples": [
+              "What does this file do?"
+            ]
+          }
+        ]
+      },
+      "contentReferences": [
+        {
+          "kind": "reference",
+          "reference": {
+            "$mid": 1,
+            "fsPath": "/Users/juanbenjumea/.ssh/config",
+            "external": "file:///Users/juanbenjumea/.ssh/config",
+            "path": "/Users/juanbenjumea/.ssh/config",
+            "scheme": "file"
+          }
+        }
+      ],
+      "codeCitations": [],
+      "timestamp": 1761319487161,
+      "modelId": "copilot/gpt-5-mini"
+    },
+    {
+      "requestId": "request_168c2668-89c6-4d2c-be14-b0f471ef8ce5",
+      "message": {
+        "text": "how to copy a file into my remote linxubox with scp",
+        "parts": [
+          {
+            "range": {
+              "start": 0,
+              "endExclusive": 51
+            },
+            "editorRange": {
+              "startLineNumber": 1,
+              "startColumn": 1,
+              "endLineNumber": 1,
+              "endColumn": 52
+            },
+            "text": "how to copy a file into my remote linxubox with scp",
+            "kind": "text"
+          }
+        ]
+      },
+      "variableData": {
+        "variables": [
+          {
+            "kind": "file",
+            "id": "vscode.implicit.viewport",
+            "name": "file:Getting Started with .NET.dib",
+            "value": {
+              "uri": {
+                "$mid": 1,
+                "fsPath": "/Users/juanbenjumea/.vscode/extensions/ms-dotnettools.vscode-dotnet-pack-1.0.13/misc/Getting Started with .NET.dib",
+                "external": "vscode-notebook-cell:/Users/juanbenjumea/.vscode/extensions/ms-dotnettools.vscode-dotnet-pack-1.0.13/misc/Getting%20Started%20with%20.NET.dib#X36sZmlsZQ%3D%3D",
+                "path": "/Users/juanbenjumea/.vscode/extensions/ms-dotnettools.vscode-dotnet-pack-1.0.13/misc/Getting Started with .NET.dib",
+                "scheme": "vscode-notebook-cell",
+                "fragment": "X36sZmlsZQ=="
+              },
+              "range": {
+                "startLineNumber": 1,
+                "startColumn": 1,
+                "endLineNumber": 5,
+                "endColumn": 3
+              }
+            },
+            "modelDescription": "User's current visible code"
+          }
+        ]
+      },
+      "response": [
+        {
+          "kind": "thinking",
+          "value": "**Crafting code suggestions**\n\nI need to remember a developer rule: when I'm suggesting code changes, I should use four backticks and code blocks. To start a code block, I should use those four backticks followed by the programming language name. Alright, keeping it concise is key, so I’ll try to keep my suggestions short and clear. Let’s get to crafting!",
+          "id": "rz0Fu6mmbpDvC3v/+XnscaXBVksyNjJeJhTLElcgyWlSxbjrIf8EW1fQ22gR+Kw+OYthSjhRmtZcAJZBQ0fBHLAU3fVo5HXsKiZ/xVJjPVoydaEPh18XuzX2TURde3pkS0gPrx/xwdEK1t0L1PWL4A4rGOcsI2veQwcS5DU6GBJPJLPWdTS50GgU0G5uvqcmzP+dKz+sqCVWvxvMnyu3d6WoH5G7Lj+/qMa+iH3g1hApue1a44G+RDxKXrfIL8/z5cGpZBIE0JjjTqpUIV+gakYwEm5Ft8U+VUQ+vgFNwDK1duxNhP21lURFcd/VlZMdk3cOnGOnOP2mxxo55U6WGE1MFmVqWFDmmbHZpwFd1TRQMM4A+vbRICNK6KDt9ycGog=="
+        },
+        {
+          "kind": "thinking",
+          "value": "",
+          "id": "nQanPwuanV4bGeYa40k2SRHsBVQvc59XVx8xuiCC383Gw6d4kBBnUEhUFKAP/tGcYVIepVs8sYcpzNC+EGlYnQaEyzY32hotJ3IVtyp9fqa4VUwOu1B50fPDE+vgroqblNO4MmXdpuzagp9n5nUPRidbHFhal1rwrMDf5YJq05NxM5Pn0AT/UJfocd/Wf5Oe7Iryi2NkChn8wWwzrAasQs9Ffv1B8k+vEzeTJVbG9Yy25fY9gtvovT9kPvU6mxEyHS5K99162eyF/d3UUxCvPhhpB0GAbQiUJX9rEVLhxiuI5oxqfwu09iNRHOoOewWqTjgxB5Y+f2ohyRabl9POymVkDl71I9x1cqncErutKbfjajSPlg50rYvbSNFD6qZjVQ=="
+        },
+        {
+          "value": "GitHub Copilot\n\nUse scp (or rsync) — examples below use your SSH config aliases and explicit host forms.\n\n- Using your ~/.ssh/config alias (ssh config handles user/port/key):\n````bash\n# copy local file to remote home\nscp /path/to/localfile ubuntu-desktopos:~/remote-file\n\n# copy a directory recursively\nscp -r /path/to/localdir ubuntu-desktopos:~/remote-dir\n````\n- Explicit user/host/port/key (if not using the alias):\n````bash\n# note: scp uses -P for port\nscp -P 60022 -i ~/.ssh/id_rsa /path/to/localfile ehbstudent@desktopos-2526s1-1008-ubu-juanbenjumeamoreno.westeurope.cloudapp.azure.com:~/remote-file\n````\n- Copy from remote to local:\n````bash\nscp ubuntu-desktopos:/path/on/remote/file /local/destination/\n````\n- Prefer rsync for large or repeated transfers (resume, delta, preserve perms):\n````bash\nrsync -avz -e \"ssh -p 60022 -i ~/.ssh/id_rsa\" /path/to/localdir/ ehbstudent@desktopos-2526s1-1008-ubu-juanbenjumeamoreno.westeurope.cloudapp.azure.com:~/remote-dir/\n````\n\nTips:\n- Use the host aliases you have: ubuntu-desktopos, liedelpi, mac-judith, framework-juan.\n- Ensure remote destination directory exists or use ~/ to place in your home.\n- If you get \"Permission denied\", check the IdentityFile and permissions (private key should be 600).",
+          "supportThemeIcons": false,
+          "supportHtml": false
+        }
+      ],
+      "responseId": "response_e3d56335-0b04-4875-95ce-f8bed013c7d6",
+      "result": {
+        "timings": {
+          "firstProgress": 15441,
+          "totalElapsed": 18291
+        },
+        "metadata": {
+          "codeBlocks": [
+            {
+              "code": "# copy local file to remote home\nscp /path/to/localfile ubuntu-desktopos:~/remote-file\n\n# copy a directory recursively\nscp -r /path/to/localdir ubuntu-desktopos:~/remote-dir\n",
+              "language": "bash",
+              "markdownBeforeBlock": "GitHub Copilot\n\nUse scp (or rsync) — examples below use your SSH config aliases and explicit host forms.\n\n- Using your ~/.ssh/config alias (ssh config handles user/port/key):\n"
+            },
+            {
+              "code": "# note: scp uses -P for port\nscp -P 60022 -i ~/.ssh/id_rsa /path/to/localfile ehbstudent@desktopos-2526s1-1008-ubu-juanbenjumeamoreno.westeurope.cloudapp.azure.com:~/remote-file\n",
+              "language": "bash",
+              "markdownBeforeBlock": "- Explicit user/host/port/key (if not using the alias):\n"
+            },
+            {
+              "code": "scp ubuntu-desktopos:/path/on/remote/file /local/destination/\n",
+              "language": "bash",
+              "markdownBeforeBlock": "- Copy from remote to local:\n"
+            },
+            {
+              "code": "rsync -avz -e \"ssh -p 60022 -i ~/.ssh/id_rsa\" /path/to/localdir/ ehbstudent@desktopos-2526s1-1008-ubu-juanbenjumeamoreno.westeurope.cloudapp.azure.com:~/remote-dir/\n",
+              "language": "bash",
+              "markdownBeforeBlock": "- Prefer rsync for large or repeated transfers (resume, delta, preserve perms):\n"
+            }
+          ],
+          "toolCallRounds": [
+            {
+              "response": "GitHub Copilot\n\nUse scp (or rsync) — examples below use your SSH config aliases and explicit host forms.\n\n- Using your ~/.ssh/config alias (ssh config handles user/port/key):\n````bash\n# copy local file to remote home\nscp /path/to/localfile ubuntu-desktopos:~/remote-file\n\n# copy a directory recursively\nscp -r /path/to/localdir ubuntu-desktopos:~/remote-dir\n````\n- Explicit user/host/port/key (if not using the alias):\n````bash\n# note: scp uses -P for port\nscp -P 60022 -i ~/.ssh/id_rsa /path/to/localfile ehbstudent@desktopos-2526s1-1008-ubu-juanbenjumeamoreno.westeurope.cloudapp.azure.com:~/remote-file\n````\n- Copy from remote to local:\n````bash\nscp ubuntu-desktopos:/path/on/remote/file /local/destination/\n````\n- Prefer rsync for large or repeated transfers (resume, delta, preserve perms):\n````bash\nrsync -avz -e \"ssh -p 60022 -i ~/.ssh/id_rsa\" /path/to/localdir/ ehbstudent@desktopos-2526s1-1008-ubu-juanbenjumeamoreno.westeurope.cloudapp.azure.com:~/remote-dir/\n````\n\nTips:\n- Use the host aliases you have: ubuntu-desktopos, liedelpi, mac-judith, framework-juan.\n- Ensure remote destination directory exists or use ~/ to place in your home.\n- If you get \"Permission denied\", check the IdentityFile and permissions (private key should be 600).",
+              "toolCalls": [],
+              "toolInputRetry": 0,
+              "id": "e594ae8a-6155-437d-b15b-32b085c6405d",
+              "statefulMarker": "OIc88gkixi8cbFAa/elDCjJBT3rk1KOmWdp2iOxC52Fuv7GUNJ7XF1SHBKacGcsXHOZf1MiZIToerbRfDV/vGFn7fh01R0IK9IBwLY+dzoZpPr2J3EgbjW91EYCx+uCBtVkcYsTavcSB7P3RBwBsr8Bn+gqlNUp9wO9uLwuhEgsYYG9Ebk2hZL32RW3h5Z6twmL8nJI0Hji8bz0s1C2FtwOT/QMrsC1Jgt3YDM6IXNJZSfPcs1vRdOVPM1BB9uMkP1+9cQpyIaQfoaQFneIxHvTM5Wq30ZBNkesVEYl7y9gQr7jbjZnSHsgYb3BQHUXp9MEZ7BcuESzxKAta6SBN4UZVdrkYoWJCgAfCurgfXKAISz307IiIpqKGZSyheF4bxpM1",
+              "thinking": {
+                "id": "12WWmTg5Bqe712lii6FZEUNiGG1fncR/wFyoWUQM+Kh47J87wjOgAPGSxe4/BYUQ1MlhVu/uoyzHolqKER1ILJ93Ektvbf61OyyrB4YU15glYWLCV3YfCPNQdCmFKZHIGaAf2hxaym5myZpoiMV/lnmC4RHTzpLXvLlunB9qYSAzE1KHt7La16jJEBTdj6fbO2ROBREPV7tDKfuuzp7djk34FUiYcjkGuFv2fcrMb3ai2tTUn4R3uF53dEbVwZdzGkBFAiJsRvSC53zPhX04Juj08J4IyihfBKKRJmyjRv0jtKXE0n2zpGOVMXiXreWNoJswKjb80IcqqvAWFS7IcrXnyuUI1+1ZiIxCsTvZH8kjhz1ag+6II42UiizhzkafiQ==",
+                "text": "**Crafting code suggestions**\n\nI need to remember a developer rule: when I'm suggesting code changes, I should use four backticks and code blocks. To start a code block, I should use those four backticks followed by the programming language name. Alright, keeping it concise is key, so I’ll try to keep my suggestions short and clear. Let’s get to crafting!",
+                "encrypted": "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",
+                "tokens": 512
+              }
+            }
+          ],
+          "modelMessageId": "e153c587-8e09-435a-b734-1d0e5d11309d",
+          "responseId": "129213e6-1c4b-4d9f-bdc5-c786a9273edf",
+          "sessionId": "483fa4c2-fc89-4776-b5e2-0ef530e6cdf7",
+          "agentId": "github.copilot.default"
+        },
+        "details": "GPT-5 mini • 0x"
+      },
+      "responseMarkdownInfo": [
+        {
+          "suggestionId": "sgt-d980caa2-1a11-4a6c-8669-674980e8ac22"
+        },
+        {
+          "suggestionId": "sgt-25bfbf58-3e5f-493c-a81a-f6a10ee6ef6e"
+        },
+        {
+          "suggestionId": "sgt-dea9f30b-e6dd-452e-8d19-538c9cc1337e"
+        },
+        {
+          "suggestionId": "sgt-804f53eb-9ac8-41d7-a4d8-7487f6db2f94"
+        }
+      ],
+      "followups": [],
+      "isCanceled": false,
+      "agent": {
+        "extensionId": {
+          "value": "GitHub.copilot-chat",
+          "_lower": "github.copilot-chat"
+        },
+        "extensionVersion": "0.32.3",
+        "publisherDisplayName": "GitHub",
+        "extensionPublisherId": "GitHub",
+        "extensionDisplayName": "GitHub Copilot Chat",
+        "id": "github.copilot.default",
+        "description": "Ask or edit in context",
+        "metadata": {
+          "themeIcon": {
+            "id": "copilot"
+          },
+          "hasFollowups": false,
+          "helpTextPrefix": "You can ask me general programming questions, or chat with the following participants which have specialized expertise and can perform actions:",
+          "helpTextPostfix": {
+            "value": "To have a great conversation, ask me questions as if I was a real programmer:\n\n* **Show me the code** you want to talk about by having the files open and selecting the most important lines.\n* **Make refinements** by asking me follow-up questions, adding clarifications, providing errors, etc.\n* **Review my suggested code** and tell me about issues or improvements, so I can iterate on it.\n\nYou can also ask me questions about your editor selection by [starting an inline chat session](command:inlineChat.start).\n\nLearn more about [GitHub Copilot](https://docs.github.com/copilot/using-github-copilot/getting-started-with-github-copilot?tool=vscode&utm_source=editor&utm_medium=chat-panel&utm_campaign=2024q3-em-MSFT-getstarted) in [Visual Studio Code](https://code.visualstudio.com/docs/copilot/overview). Or explore the [Copilot walkthrough](command:github.copilot.open.walkthrough).",
+            "isTrusted": {
+              "enabledCommands": [
+                "inlineChat.start",
+                "github.copilot.open.walkthrough"
+              ]
+            },
+            "supportThemeIcons": false,
+            "supportHtml": false,
+            "uris": {
+              "command:inlineChat.start": {
+                "$mid": 1,
+                "path": "inlineChat.start",
+                "scheme": "command"
+              },
+              "https://docs.github.com/copilot/using-github-copilot/getting-started-with-github-copilot?tool=vscode&utm_source=editor&utm_medium=chat-panel&utm_campaign=2024q3-em-MSFT-getstarted": {
+                "$mid": 1,
+                "path": "/copilot/using-github-copilot/getting-started-with-github-copilot",
+                "scheme": "https",
+                "authority": "docs.github.com",
+                "query": "tool=vscode&utm_source=editor&utm_medium=chat-panel&utm_campaign=2024q3-em-MSFT-getstarted"
+              },
+              "https://code.visualstudio.com/docs/copilot/overview": {
+                "$mid": 1,
+                "path": "/docs/copilot/overview",
+                "scheme": "https",
+                "authority": "code.visualstudio.com"
+              },
+              "command:github.copilot.open.walkthrough": {
+                "$mid": 1,
+                "path": "github.copilot.open.walkthrough",
+                "scheme": "command"
+              }
+            }
+          },
+          "supportIssueReporting": false,
+          "requester": {
+            "name": "huaxel",
+            "icon": {
+              "$mid": 1,
+              "path": "/u/17797992",
+              "scheme": "https",
+              "authority": "avatars.githubusercontent.com",
+              "query": "v=4"
+            }
+          }
+        },
+        "name": "GitHubCopilot",
+        "fullName": "GitHub Copilot",
+        "isDefault": true,
+        "locations": [
+          "panel"
+        ],
+        "modes": [
+          "ask"
+        ],
+        "slashCommands": [],
+        "disambiguation": [
+          {
+            "category": "generate_code_sample",
+            "description": "The user wants to generate code snippets without referencing the contents of the current workspace. This category does not include generating entire projects.",
+            "examples": [
+              "Write an example of computing a SHA256 hash."
+            ]
+          },
+          {
+            "category": "add_feature_to_file",
+            "description": "The user wants to change code in a file that is provided in their request, without referencing the contents of the current workspace. This category does not include generating entire projects.",
+            "examples": [
+              "Add a refresh button to the table widget."
+            ]
+          },
+          {
+            "category": "question_about_specific_files",
+            "description": "The user has a question about a specific file or code snippet that they have provided as part of their query, and the question does not require additional workspace context to answer.",
+            "examples": [
+              "What does this file do?"
+            ]
+          }
+        ]
+      },
+      "contentReferences": [
+        {
+          "kind": "reference",
+          "reference": {
+            "$mid": 1,
+            "fsPath": "/Users/juanbenjumea/.vscode/extensions/ms-dotnettools.vscode-dotnet-pack-1.0.13/misc/Getting Started with .NET.dib",
+            "external": "file:///Users/juanbenjumea/.vscode/extensions/ms-dotnettools.vscode-dotnet-pack-1.0.13/misc/Getting%20Started%20with%20.NET.dib",
+            "path": "/Users/juanbenjumea/.vscode/extensions/ms-dotnettools.vscode-dotnet-pack-1.0.13/misc/Getting Started with .NET.dib",
+            "scheme": "file"
+          }
+        }
+      ],
+      "codeCitations": [],
+      "timestamp": 1761320388006,
+      "modelId": "copilot/gpt-5-mini"
+    }
+  ],
+  "sessionId": "cf5116db-90a2-4c68-baf6-c7cdce13fc18",
+  "creationDate": 1761319031427,
+  "isImported": false,
+  "lastMessageDate": 1761320388006,
+  "customTitle": "Copying SSH key to a remote machine"
+}

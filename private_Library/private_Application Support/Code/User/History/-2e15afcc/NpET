@@ -1,0 +1,20 @@
+Host ubuntu-desktopos 
+    HostName desktopos-2526s1-1008-ubu-juanbenjumeamoreno.westeurope.cloudapp.azure.com 
+    User ehbstudent
+      Port 60022
+      IdentityFile ~/.ssh/id_rsa
+
+Host liedelpi
+    HostName liedelpi.bonobo-fort.ts.net
+    User juan
+    IdentityFile ~/.ssh/id_rsa
+
+Host mac-judith
+    HostName macbook-air-van-judith.bonobo-fort.ts.net
+    User juan
+    IdentityFile ~/.ssh/id_rsa
+
+Host framework-juan
+    HostName framework-juan.bonobo-fort.ts.net
+    User juan
+    IdentityFile ~/.ssh/id_rsa

@@ -1,0 +1,122 @@
+import initSqlJs from 'sql.js';
+import fs from 'fs';
+import { dirname, resolve } from 'path';
+import { fileURLToPath } from 'url';
+
+async function main() {
+  const scriptDir = dirname(fileURLToPath(import.meta.url));
+  const repoRoot = resolve(scriptDir, '..', '..');
+  // try a few likely locations for sql-wasm.wasm so the script works whether sql.js is installed at repo root or backend/
+  const candidates = [
+    resolve(repoRoot, 'backend', 'node_modules', 'sql.js', 'dist', 'sql-wasm.wasm'),
+    resolve(repoRoot, 'node_modules', 'sql.js', 'dist', 'sql-wasm.wasm')
+  ];
+
+  let wasmPath = candidates.find(p => fs.existsSync(p));
+  if (!wasmPath) {
+    try {
+      // try require.resolve to find sql.js package and locate wasm next to it
+      const pkg = require.resolve('sql.js');
+      const pkgDir = resolve(pkg, '..', '..');
+      const p = resolve(pkgDir, 'dist', 'sql-wasm.wasm');
+      if (fs.existsSync(p)) wasmPath = p;
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  if (!wasmPath) {
+    console.error('Could not locate sql-wasm.wasm; tried:', candidates.join(', '));
+    process.exit(1);
+  }
+
+  const SQL = await initSqlJs({ locateFile: () => wasmPath });
+
+  const sqlDir = resolve(repoRoot, 'backend', 'src', 'sql');
+  const migrationsDir = resolve(sqlDir, 'migrations');
+  if (!fs.existsSync(sqlDir)) {
+    console.error('SQL directory not found:', sqlDir);
+    process.exit(1);
+  }
+
+  // Plan: apply create-tables.sql first (base schema), then migrations, then other sql files
+  const baseSchema = resolve(sqlDir, 'create-tables.sql');
+  const migrationFiles = fs.existsSync(migrationsDir)
+    ? fs.readdirSync(migrationsDir).filter(f => f.endsWith('.sql')).sort()
+    : [];
+
+  // other sql files (data / post-schema) excluding create-tables and migrations folder
+  const otherFiles = fs.readdirSync(sqlDir)
+    .filter(f => f.endsWith('.sql') && f !== 'create-tables.sql')
+    // exclude legacy/duplicate insertPlayer.sql if it exists; use insertUsers.sql instead
+    .filter(f => f !== 'migrations' && f !== 'insertPlayer.sql')
+    .sort();
+
+  const targetDbPath = resolve(repoRoot, 'backend', 'dev.sqlite');
+
+  let db;
+  if (fs.existsSync(targetDbPath)) {
+    const buf = fs.readFileSync(targetDbPath);
+    db = new SQL.Database(new Uint8Array(buf));
+    console.log('Loaded existing DB from', targetDbPath);
+  } else {
+    db = new SQL.Database();
+    console.log('Created new in-memory DB; will write to', targetDbPath);
+  }
+
+  // Ensure foreign keys are enforced
+  try {
+    db.exec('PRAGMA foreign_keys = ON;');
+  } catch (err) {
+    console.warn('Could not set PRAGMA foreign_keys (continuing):', err.message);
+  }
+
+  // apply base schema
+  if (fs.existsSync(baseSchema)) {
+    console.log('Applying base schema:', baseSchema);
+    try {
+      db.exec(fs.readFileSync(baseSchema, 'utf8'));
+      console.log('  OK');
+    } catch (err) {
+      console.error('  FAILED applying base schema:', err.message);
+      process.exit(2);
+    }
+  } else {
+    console.warn('Base schema file not found, skipping:', baseSchema);
+  }
+
+  // apply migrations
+  for (const file of migrationFiles) {
+    const full = resolve(migrationsDir, file);
+    console.log('Applying migration:', file);
+    const sql = fs.readFileSync(full, 'utf8');
+    try {
+      db.exec(sql);
+      console.log('  OK');
+    } catch (err) {
+      console.error('  FAILED:', err.message);
+      process.exit(2);
+    }
+  }
+
+  // apply other SQL files
+  for (const file of otherFiles) {
+    const full = resolve(sqlDir, file);
+    console.log('Applying file:', file);
+    const sql = fs.readFileSync(full, 'utf8');
+    try {
+      db.exec(sql);
+      console.log('  OK');
+    } catch (err) {
+      console.error('  FAILED:', err.message);
+      process.exit(2);
+    }
+  }
+
+  // write database to disk
+  const data = db.export();
+  fs.writeFileSync(targetDbPath, Buffer.from(data));
+  console.log('Wrote DB to', targetDbPath);
+}
+
+main().catch(err => { console.error(err); process.exit(1); });

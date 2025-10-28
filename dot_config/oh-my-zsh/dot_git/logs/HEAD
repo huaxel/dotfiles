@@ -25,3 +25,6 @@ d57775d89e15687b87eef990b864492d6c973238 d57775d89e15687b87eef990b864492d6c97323
 d57775d89e15687b87eef990b864492d6c973238 d57775d89e15687b87eef990b864492d6c973238 Juan Benjumea <benjumeamoreno@gmail.com> 1760253499 +0200	checkout: moving from master to master
 d57775d89e15687b87eef990b864492d6c973238 853680fd621a8907338e0eee080dc6cf754408bf Juan Benjumea <benjumeamoreno@gmail.com> 1760253500 +0200	pull --quiet --rebase origin master: Fast-forward
 853680fd621a8907338e0eee080dc6cf754408bf 853680fd621a8907338e0eee080dc6cf754408bf Juan Benjumea <benjumeamoreno@gmail.com> 1760253500 +0200	checkout: moving from master to master
+853680fd621a8907338e0eee080dc6cf754408bf 853680fd621a8907338e0eee080dc6cf754408bf Juan Benjumea <benjumeamoreno@gmail.com> 1761402645 +0200	checkout: moving from master to master
+853680fd621a8907338e0eee080dc6cf754408bf 99017b8eac3d7d0e5ba01c7bf0cf9c6d38985536 Juan Benjumea <benjumeamoreno@gmail.com> 1761402646 +0200	pull --quiet --rebase origin master: Fast-forward
+99017b8eac3d7d0e5ba01c7bf0cf9c6d38985536 99017b8eac3d7d0e5ba01c7bf0cf9c6d38985536 Juan Benjumea <benjumeamoreno@gmail.com> 1761402646 +0200	checkout: moving from master to master

@@ -1,0 +1,21 @@
+{
+  "version": 3,
+  "requesterUsername": "huaxel",
+  "requesterAvatarIconUri": {
+    "$mid": 1,
+    "path": "/u/17797992",
+    "scheme": "https",
+    "authority": "avatars.githubusercontent.com",
+    "query": "v=4"
+  },
+  "responderUsername": "",
+  "responderAvatarIconUri": {
+    "id": "copilot"
+  },
+  "initialLocation": "panel",
+  "requests": [],
+  "sessionId": "5d136ad5-aa4e-49c9-883d-13c915a39eb9",
+  "creationDate": 1761026373261,
+  "isImported": false,
+  "lastMessageDate": 1761026373261
+}
