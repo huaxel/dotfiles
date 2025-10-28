@@ -1,8 +1,0 @@
-{
-    "workbench.colorTheme": "Tokyo Night",
-    "yaml.schemas": {
-        "file:///Users/juanbenjumea/.vscode/extensions/atlassian.atlascode-4.0.4/resources/schemas/pipelines-schema.json": "bitbucket-pipelines.yml"
-    },
-    "redhat.telemetry.enabled": true,
-    "git.autofetch": true
-}
