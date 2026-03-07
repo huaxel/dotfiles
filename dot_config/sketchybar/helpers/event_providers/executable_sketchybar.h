@@ -1,19 +1,27 @@
 #pragma once
 
+#ifndef TESTING
 #include <mach/arm/kern_return.h>
 #include <mach/mach.h>
 #include <mach/mach_port.h>
 #include <mach/message.h>
 #include <bootstrap.h>
+#else
+#include <stdint.h>
+#include <stdbool.h>
+#endif
+
 #include <stdlib.h>
 #include <pthread.h>
 #include <stdio.h>
+#include <string.h>
 
 typedef char* env;
 
 #define MACH_HANDLER(name) void name(env env)
 typedef MACH_HANDLER(mach_handler);
 
+#ifndef TESTING
 struct mach_message {
   mach_msg_header_t header;
   mach_msg_size_t msgh_descriptor_count;
@@ -81,12 +89,12 @@ static inline bool mach_send_message(mach_port_t port, char* message, uint32_t l
 
   return err == KERN_SUCCESS;
 }
+#endif
 
 static inline uint32_t format_message(char* message, char* formatted_message) {
-  // This is not actually robust, switch to stack based messaging.
   char outer_quote = 0;
   uint32_t caret = 0;
-  uint32_t message_length = strlen(message) + 1;
+  uint32_t message_length = strlen(message);
   for (int i = 0; i < message_length; ++i) {
     if (message[i] == '"' || message[i] == '\'') {
       if (outer_quote && outer_quote == message[i]) outer_quote = 0;
@@ -98,14 +106,15 @@ static inline uint32_t format_message(char* message, char* formatted_message) {
     caret++;
   }
 
-  if (caret > 0 && formatted_message[caret] == '\0'
-      && formatted_message[caret - 1] == '\0') {
+  if (caret > 0 && formatted_message[caret - 1] == '\0') {
     caret--;
   }
   formatted_message[caret] = '\0';
-  return caret + 1;
+  formatted_message[caret + 1] = '\0';
+  return caret + 2;
 }
 
+#ifndef TESTING
 static inline void sketchybar(char* message) {
   char formatted_message[strlen(message) + 2];
   uint32_t length = format_message(message, formatted_message);
@@ -120,3 +129,4 @@ static inline void sketchybar(char* message) {
     }
   }
 }
+#endif
