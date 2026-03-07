@@ -1,18 +1,3 @@
-function dump(o)
-    if type(o) == 'table' then
-        local s = '{ '
-        for k, v in pairs(o) do
-            if type(k) ~= 'number' then
-                k = '"' .. k .. '"'
-            end
-            s = s .. '[' .. k .. '] = ' .. dump(v) .. ','
-        end
-        return s .. '} '
-    else
-        return tostring(o)
-    end
-end
-
 function explode(div, str)
     if (div == '') then
         return false
@@ -78,7 +63,6 @@ end
 
 function is_workspace_selected(workspace)
     local available_monitors = get_monitors()
-    -- print("Checking: " .. workspace .. " Available monitors: " .. dump(available_monitors))
     for _, monitor in ipairs(available_monitors) do
         local visible_workspace = get_visible_workspace_on_monitor(monitor)
         -- print('types' .. type(visible_workspace) .. ' - ' .. type(workspace))
