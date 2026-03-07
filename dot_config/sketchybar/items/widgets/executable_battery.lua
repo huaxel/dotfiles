@@ -87,16 +87,16 @@ local device_list = sbar.add("item", {
     }
 })
 
+local device_item_count = 0
 battery:subscribe("mouse.clicked", function(env)
     local drawing = battery:query().popup.drawing
     local new_state = drawing == "on" and "off" or "on"
-    
+
     if new_state == "off" then
         -- Remove device items when closing popup
-        for i = 1, 10 do
-            pcall(function()
-                sbar.remove("device_" .. i)
-            end)
+        while device_item_count > 0 do
+            sbar.remove("device_" .. device_item_count)
+            device_item_count = device_item_count - 1
         end
     end
 
@@ -141,10 +141,9 @@ battery:subscribe("mouse.clicked", function(env)
             end
 
             -- Remove any existing device items
-            for i = 1, 10 do -- Assume max 10 devices
-                pcall(function()
-                    sbar.remove("device_" .. i)
-                end)
+            while device_item_count > 0 do
+                sbar.remove("device_" .. device_item_count)
+                device_item_count = device_item_count - 1
             end
 
             -- Check if we found any devices
@@ -205,6 +204,7 @@ battery:subscribe("mouse.clicked", function(env)
                     }
                 })
             end
+            device_item_count = #devices
         end)
     end
 end)
