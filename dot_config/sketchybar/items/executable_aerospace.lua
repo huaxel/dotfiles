@@ -65,8 +65,6 @@ function is_workspace_selected(workspace)
     local available_monitors = get_monitors()
     for _, monitor in ipairs(available_monitors) do
         local visible_workspace = get_visible_workspace_on_monitor(monitor)
-        -- print('types' .. type(visible_workspace) .. ' - ' .. type(workspace))
-        -- print("Checking: " .. workspace .. " On Monitor: " .. monitor .. " Result: " .. visible_workspace .. ' - ', (visible_workspace == workspace))
         if visible_workspace == workspace then
             return true
         end
