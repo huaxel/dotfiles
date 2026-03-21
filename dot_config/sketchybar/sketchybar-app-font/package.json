@@ -6,7 +6,8 @@
   "scripts": {
     "build": "node ./build.js",
     "build:install": "node ./install.js",
-    "build:dev": "node ./watch.js"
+    "build:dev": "node ./watch.js",
+    "test": "node --test"
   },
   "keywords": [],
   "author": "Kevin Dreßler",
