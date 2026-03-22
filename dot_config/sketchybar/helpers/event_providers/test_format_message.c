@@ -1,5 +1,5 @@
 #define TESTING
-#include "executable_sketchybar.h"
+#include "sketchybar.h"
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>
