@@ -44,9 +44,12 @@
 **/.nvim/
 **/.sublime-*
 
+# Fish (machine-specific state)
+**/fish_variables
+
 # OS-specific: Linux-only (ignore on non-Linux)
 {{ if ne .chezmoi.os "linux" }}
-.config/fish
+.config/private_fish
 .config/sway
 .config/waybar
 .config/wofi

@@ -5,6 +5,8 @@ starship init fish | source
 fish_add_path $HOME/.local/bin
 fish_add_path $HOME/.cargo/bin
 fish_add_path $HOME/.local/share/go/bin
+fish_add_path $HOME/.lmstudio/bin
+fish_add_path $HOME/.dotnet/tools
 
 # OS-specific PATH
 if test (uname) = "Darwin"
@@ -62,4 +64,9 @@ alias gst='git status'
 if test -f /proc/version && grep -q Microsoft /proc/version
     alias explorer='explorer.exe'
     alias code='code.exe'
+end
+
+# Machine-specific local config (not managed by chezmoi)
+if test -f ~/.config/fish/local.fish
+    source ~/.config/fish/local.fish
 end
