@@ -1,0 +1,25 @@
+# Minimal zsh for bash compatibility
+# Fish is primary shell - this is for scripts/tools that need bash/zsh
+
+export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$HOME/.rbenv/bin:$HOME/.local/bin:$PATH"
+export EDITOR="${EDITOR:-nvim}"
+export TERM=xterm-256color
+
+# Herd (PHP/Node) - keep for work compatibility
+export HERD_PHP_84_INI_SCAN_DIR="$HOME/Library/Application Support/Herd/config/php/84/"
+export NVM_DIR="$HOME/Library/Application Support/Herd/config/nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+[[ -f "/Applications/Herd.app/Contents/Resources/config/shell/zshrc.zsh" ]] && builtin source "/Applications/Herd.app/Contents/Resources/config/shell/zshrc.zsh"
+export PATH="$HOME/Library/Application Support/Herd/bin/:$PATH"
+
+# Kiro editor integration (if needed)
+[[ "$TERM_PROGRAM" == "kiro" ]] && . "$(kiro --locate-shell-integration-path zsh)"
+
+# Starship prompt
+eval "$(starship init zsh)"
+
+# OpenRouter API key (set in shell profile or use env var)
+# export OPENROUTER_API_KEY="your-key-here"
+
+# Added by LM Studio CLI tool (lms)
+export PATH="$PATH:$HOME/.lmstudio/bin"
