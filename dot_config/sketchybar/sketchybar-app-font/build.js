@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import child_process from "node:child_process";
 import fs from "node:fs";
 import { pathToFileURL } from "node:url";
 
@@ -6,7 +6,7 @@ export const startMarker = "### START-OF-ICON-MAP";
 export const endMarker = "### END-OF-ICON-MAP";
 
 export function build() {
-  execSync("./node_modules/.bin/svgtofont -s svgs/ -o dist/", {
+  child_process.execSync("./node_modules/.bin/svgtofont -s svgs/ -o dist/", {
     stdio: "inherit",
   });
 
