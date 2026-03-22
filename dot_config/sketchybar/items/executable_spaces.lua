@@ -7,14 +7,6 @@ local spaces = {}
 
 local workspaces = get_workspaces()
 local current_workspace = get_current_workspace()
-local function split(str, sep)
-    local result = {}
-    local regex = ("([^%s]+)"):format(sep)
-    for each in str:gmatch(regex) do
-        table.insert(result, each)
-    end
-    return result
-end
 
 for i, workspace in ipairs(workspaces) do
     local selected = workspace == current_workspace
@@ -116,7 +108,7 @@ for i, workspace in ipairs(workspaces) do
     end)
 
     space:subscribe("mouse.clicked", function(env)
-        local SID = split(env.NAME, ".")[2]
+        local SID = env.NAME:match("%.([^.]+)$")
         if env.BUTTON == "other" then
             space_popup:set({
                 background = {
