@@ -61,12 +61,19 @@ function get_visible_workspace_on_monitor(monitor)
     return parse_string_to_table(result)[1]
 end
 
+function get_visible_workspaces()
+    local file = io.popen("aerospace list-workspaces --visible")
+    local result = file:read("*a")
+    file:close()
+
+    return parse_string_to_table(result)
+end
+
 function is_workspace_selected(workspace)
-    local available_monitors = get_monitors()
-    for _, monitor in ipairs(available_monitors) do
-        local visible_workspace = get_visible_workspace_on_monitor(monitor)
+    local visible_workspaces = get_visible_workspaces()
+    for _, visible_workspace in ipairs(visible_workspaces) do
         -- print('types' .. type(visible_workspace) .. ' - ' .. type(workspace))
-        -- print("Checking: " .. workspace .. " On Monitor: " .. monitor .. " Result: " .. visible_workspace .. ' - ', (visible_workspace == workspace))
+        -- print("Checking: " .. workspace .. " Result: " .. visible_workspace .. ' - ', (visible_workspace == workspace))
         if visible_workspace == workspace then
             return true
         end
