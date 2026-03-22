@@ -1,0 +1,26 @@
+{
+	"workbench.colorTheme": "Tokyo Night",
+	"yaml.schemas": {
+		"file:///Users/juanbenjumea/.vscode/extensions/atlassian.atlascode-4.0.8/resources/schemas/pipelines-schema.json": "bitbucket-pipelines.yml"
+	},
+	"git.autofetch": true,
+	"database-client.autoSync": true,
+	"[javascript]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"explorer.confirmDelete": false,
+	"python.analysis.typeCheckingMode": "standard",
+	"explorer.confirmDragAndDrop": false,
+	"diffEditor.codeLens": true,
+	"git.confirmSync": false,
+	"remote.SSH.connectTimeout": 60,
+	"remote.SSH.useLocalServer": false,
+	"git.enableSmartCommit": true,
+	"amp.url": "https://ampcode.com/",
+	"editor.wordBasedSuggestions": "off",
+	"vsicons.dontShowNewVersionMessage": true,
+	"roo-cline.debug": false,
+	"kilo-code.debug": false,
+	"kilo-code.allowedCommands": ["git log", "git diff", "git show"],
+	"kilo-code.deniedCommands": []
+}
