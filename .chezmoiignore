@@ -2,6 +2,22 @@
 **/node_modules/
 **/dist/
 **/build/
+**/target/
+**/*.class
+
+# PHP/Composer
+**/vendor/
+**/composer.lock
+
+# Maven
+**/apache-maven-*/lib/*.jar
+**/.m2/
+
+# Python
+**/__pycache__/
+**/*.pyc
+**/.venv/
+**/venv/
 
 # System files
 **/.DS_Store
