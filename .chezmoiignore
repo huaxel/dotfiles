@@ -43,3 +43,16 @@
 **/.idea/
 **/.nvim/
 **/.sublime-*
+
+# OS-specific: Linux-only (ignore on non-Linux)
+{{ if ne .chezmoi.os "linux" }}
+.config/fish
+.config/sway
+.config/waybar
+.config/wofi
+{{ end }}
+
+# OS-specific: macOS-only (ignore on non-macOS)
+{{ if ne .chezmoi.os "darwin" }}
+.config/sketchybar
+{{ end }}

@@ -1,0 +1,28 @@
+# Ghostty Configuration
+
+# Theme
+theme = "TokyoNight"
+background =         #1a1b26
+foreground =         #c0caf5
+
+# Font
+font-family = "JetBrainsMono Nerd Font"
+font-size = 13
+font-feature = "calt"
+font-feature = "liga"
+font-feature = "dlig"
+
+# Cursor
+cursor-style = block
+cursor-style-blink = false
+
+# Shell integration
+{{ if eq .chezmoi.os "darwin" -}}
+shell-integration = zsh
+{{- else -}}
+shell-integration = fish
+{{- end }}
+
+# Keybindings
+keybind = ctrl+shift+c=copy_to_clipboard
+keybind = ctrl+shift+v=paste_from_clipboard

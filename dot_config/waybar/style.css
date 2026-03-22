@@ -1,0 +1,161 @@
+* {
+  border: none;
+  border-radius: 0;
+  font-family: "JetBrainsMono Nerd Font";
+  font-size: 13px;
+  min-height: 0;
+}
+
+window#waybar {
+  background: rgba(44, 46, 52, 0.5); /* #2c2e34 with alpha */
+  color: #e2e2e3; /* white */
+  transition-property: background-color;
+  transition-duration: 0.5s;
+  border-radius: 10px;
+  margin: 5px;
+  padding: 4px 0;
+}
+
+window#waybar.hidden {
+  opacity: 0.2;
+}
+
+#workspaces button {
+  padding: 0 5px;
+  background-color: transparent;
+  color: #e2e2e3;
+}
+
+#workspaces button:hover {
+  background: rgba(0, 0, 0, 0.2);
+  box-shadow: inherit;
+  text-shadow: inherit;
+}
+
+#workspaces button.focused {
+  background-color: #363944;
+  color: #76cce0; /* blue */
+  border-radius: 10px;
+}
+
+#workspaces button.urgent {
+  background-color: #eb4d4b;
+}
+
+#clock,
+#battery,
+#cpu,
+#memory,
+#disk,
+#temperature,
+#backlight,
+#network,
+#pulseaudio,
+#custom-media,
+#tray,
+#mode,
+#idle_inhibitor,
+#scratcher,
+#mpd,
+#keyboard {
+  padding: 0 10px;
+  color: #181819; /* black text on colored pills */
+  border-radius: 15px;
+  margin: 5px 2px;
+}
+
+#window,
+#workspaces {
+  margin: 0 4px;
+}
+
+/* Modules Right - Sketchybar Style Pills */
+
+#clock {
+  background-color: #b39df3; /* magenta */
+}
+
+#pulseaudio {
+  background-color: #76cce0; /* blue */
+}
+
+#network {
+  background-color: #9ed072; /* green */
+}
+
+#cpu {
+  background-color: #f39660; /* orange */
+}
+
+#memory {
+  background-color: #fc5d7c; /* red */
+  color: #e2e2e3;
+}
+
+#mpris {
+  color: #e2e2e3;
+  background-color: #363944;
+  border-radius: 15px;
+  margin: 5px 2px;
+  padding: 0 10px;
+}
+
+#tray {
+  background-color: #2980b9;
+}
+
+#tray > .passive {
+  -gtk-icon-effect: dim;
+}
+
+#trace > .needs-attention {
+  -gtk-icon-effect: highlight;
+}
+
+#idle_inhibitor {
+  background-color: #2d3436;
+}
+
+#idle_inhibitor.activated {
+  background-color: #ecf0f1;
+  color: #2d3436;
+}
+
+#custom-launcher {
+  font-size: 16px;
+  color: #76cce0; /* blue */
+  padding: 0 10px;
+  margin-right: 5px;
+}
+
+/* Hardware Group Styling */
+#hardware {
+    background-color: #363944;
+    margin: 5px 2px;
+    padding: 0 5px;
+    border-radius: 15px;
+}
+
+#cpu {
+    background-color: transparent;
+    color: #f39660; /* orange */
+    margin: 0;
+    padding: 0 5px;
+}
+
+#memory {
+    background-color: transparent;
+    color: #fc5d7c; /* red */
+    margin: 0;
+    padding: 0 5px;
+}
+
+/* Weather Module */
+#custom-weather {
+    background-color: #8be9fd; /* cyan/light blue */
+    color: #181819;
+    padding: 0 10px;
+    border-radius: 15px;
+    margin: 5px 2px;
+}
+
