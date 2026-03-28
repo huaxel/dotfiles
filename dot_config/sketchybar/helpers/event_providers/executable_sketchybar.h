@@ -92,6 +92,7 @@ static inline bool mach_send_message(mach_port_t port, char* message, uint32_t l
 #endif
 
 static inline uint32_t format_message(char* message, char* formatted_message) {
+  if (!message) return 0;
   char outer_quote = 0;
   uint32_t caret = 0;
   uint32_t message_length = strlen(message);
