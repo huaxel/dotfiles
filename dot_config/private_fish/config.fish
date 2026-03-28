@@ -33,10 +33,9 @@ set -x PAGER less
 set -x XDG_CONFIG_HOME $HOME/.config
 
 # Cross-platform aliases
-if test (uname) = "Darwin"
-    alias ls='eza -la --icons'
-else
-    alias ls='eza -la --icons'
+alias ls='eza -la --icons'
+
+if test (uname) != "Darwin"
     alias open='xdg-open' 2>/dev/null || true
 end
 
