@@ -127,6 +127,15 @@ void test_single_space() {
   printf("test_single_space passed\n");
 }
 
+void test_null() {
+  char formatted[256];
+  memset(formatted, 0xAA, sizeof(formatted));
+  uint32_t len = format_message(NULL, formatted);
+
+  assert(len == 0);
+  printf("test_null passed\n");
+}
+
 int main() {
   test_basic();
   test_quotes();
@@ -136,6 +145,7 @@ int main() {
   test_trailing_space();
   test_empty();
   test_single_space();
+  test_null();
   printf("All tests finished\n");
   return 0;
 }
