@@ -1,0 +1,19 @@
+# Chezmoi configuration - auto-generated on init
+# Run `chezmoi init` to regenerate
+
+[git]
+    autoCommit = false
+    autoPush = false
+
+[edit]
+    command = "nvim"
+
+[diff]
+    pager = "delta"
+
+[merge]
+    command = "nvim"
+    args = ["-d", "{{ .Destination }}", "{{ .Source }}", "{{ .Target }}"]
+
+[script]
+    stopOnError = false

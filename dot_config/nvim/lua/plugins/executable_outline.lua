@@ -1,12 +1,38 @@
+-- outline.nvim configuration (replaces symbols-outline.nvim)
 return {
-  -- add symbols-outline
+  -- Disable trouble's <leader>cs keymap
   {
-    "simrat39/symbols-outline.nvim",
-    cmd = "SymbolsOutline",
-    keys = { { "<leader>so", "<cmd>SymbolsOutline<cr>", desc = "Symbols Outline" } },
-    opts = {
-      -- add your options that should be passed to the setup() function here
-      position = "right",
+    "folke/trouble.nvim",
+    optional = true,
+    keys = {
+      { "<leader>cs", false },
     },
+  },
+  -- outline.nvim
+  {
+    "hedyhli/outline.nvim",
+    cmd = "Outline",
+    keys = { { "<leader>cs", "<cmd>Outline<cr>", desc = "Toggle Outline" } },
+    opts = function()
+      local defaults = require("outline.config").defaults
+      local opts = {
+        symbols = {
+          icons = {},
+          filter = vim.deepcopy(LazyVim.config.kind_filter),
+        },
+        keymaps = {
+          up_and_jump = "<up>",
+          down_and_jump = "<down>",
+        },
+      }
+
+      for kind, symbol in pairs(defaults.symbols.icons) do
+        opts.symbols.icons[kind] = {
+          icon = LazyVim.config.icons.kinds[kind] or symbol.icon,
+          hl = symbol.hl,
+        }
+      end
+      return opts
+    end,
   },
 }

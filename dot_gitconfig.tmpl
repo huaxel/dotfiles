@@ -2,7 +2,11 @@
 	name = Juan Benjumea
 	email = benjumeamoreno@gmail.com
 [credential]
+{{ if eq .chezmoi.os "darwin" }}
 	helper = osxkeychain
+{{ else }}
+	helper = cache
+{{ end }}
 [fetch]
 	fsckObjects = false
 [transfer]
@@ -14,4 +18,4 @@
 [init]
 	defaultBranch = main
 [core]
-	excludesfile = /Users/juanbenjumea/.gitignore_global
+	excludesfile = ~/.gitignore_global

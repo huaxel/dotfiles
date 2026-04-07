@@ -16,7 +16,7 @@ return {
     -- load keymaps
     keys = {
       { "<C-a>", "<cmd>CodeCompanionActions<cr>", desc = "CodeCompanion Actions" },
-      { "<LocalLeader>a", "<cmd>CodeCompanionChat Toggle<cr>", desc = "Toggle Chat" },
+      { "<leader>aa", "<cmd>CodeCompanionChat Toggle<cr>", desc = "Toggle AI Chat" },
       { "ga", "<cmd>CodeCompanionChat Add<cr>", mode = "v", desc = "Add selection to chat" },
     },
   },

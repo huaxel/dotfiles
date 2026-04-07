@@ -70,3 +70,6 @@ end
 if test -f ~/.config/fish/local.fish
     source ~/.config/fish/local.fish
 end
+
+# Dotfiles helper
+alias dots="$HOME/.config/admin-scripts/dots.sh"

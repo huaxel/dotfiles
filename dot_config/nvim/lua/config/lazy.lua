@@ -19,7 +19,7 @@ require("lazy").setup({
     -- add LazyVim and import its plugins
     { "LazyVim/LazyVim", import = "lazyvim.plugins" },
     -- import/override with your plugins
-    { "ThePrimeagen/vim-be-good" },
+    { import = "plugins" },
   },
   defaults = {
     -- By default, only LazyVim plugins will be lazy-loaded. Your custom plugins will load during startup.

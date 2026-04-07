@@ -1,11 +1,22 @@
+-- Copilot configuration with blink.cmp integration
 return {
-  -- Github Copilot Settings
+  -- Copilot LSP engine
   {
     "zbirenbaum/copilot.lua",
     cmd = "Copilot",
     build = ":Copilot auth",
+    event = "BufReadPost",
     opts = {
-      suggestion = { enabled = false, auto_trigger = false, hide_during_completion = true },
+      suggestion = {
+        enabled = true,
+        auto_trigger = true,
+        hide_during_completion = true,
+        keymap = {
+          accept = false, -- handled by blink.cmp
+          next = "<M-]>",
+          prev = "<M-[>",
+        },
+      },
       panel = { enabled = false },
       filetypes = {
         markdown = true,
@@ -13,85 +24,58 @@ return {
       },
     },
   },
-  -- CMP for ghost text
+
+  -- blink.cmp integration
   {
-    "nvim-cmp",
-    dependencies = {
-      {
-        "zbirenbaum/copilot-cmp",
-        dependencies = "copilot.lua",
-        opts = {},
-        config = function(_, opts)
-          local copilot_cmp = require("copilot_cmp")
-          copilot_cmp.setup(opts)
-          -- attach cmp source whenever copilot attaches
-          -- fixes lazy-loading issues with the copilot cmp source
-          LazyVim.lsp.on_attach(function(client)
-            copilot_cmp._on_insert_enter({})
-          end, "copilot")
-        end,
+    "saghen/blink.cmp",
+    optional = true,
+    dependencies = { "fang2hou/blink-copilot" },
+    opts = {
+      sources = {
+        default = { "copilot" },
+        providers = {
+          copilot = {
+            name = "copilot",
+            module = "blink-copilot",
+            score_offset = 100,
+            async = true,
+          },
+        },
       },
     },
-    ---@param opts cmp.ConfigSchema
-    opts = function(_, opts)
-      table.insert(opts.sources, 1, {
-        name = "copilot",
-        group_index = 1,
-        priority = 100,
-      })
-    end,
   },
-  -- Copilot CMP
+
+  -- ai_accept action for <Tab> key
   {
-    "zbirenbaum/copilot-cmp",
-    dependencies = "copilot.lua",
-    opts = {},
-    config = function(_, opts)
-      local copilot_cmp = require("copilot_cmp")
-      copilot_cmp.setup(opts)
-      -- attach cmp source whenever copilot attaches
-      -- fixes lazy-loading issues with the copilot cmp source
-      LazyVim.lsp.on_attach(function(client)
-        copilot_cmp._on_insert_enter({})
-      end, "copilot")
+    "zbirenbaum/copilot.lua",
+    opts = function()
+      LazyVim.cmp.actions.ai_accept = function()
+        if require("copilot.suggestion").is_visible() then
+          LazyVim.create_undo()
+          require("copilot.suggestion").accept()
+          return true
+        end
+      end
     end,
   },
-  -- Lua line
+
+  -- lualine copilot status indicator
   {
     "nvim-lualine/lualine.nvim",
     optional = true,
     event = "VeryLazy",
     opts = function(_, opts)
-      local colors = {
-        [""] = LazyVim.ui.fg("Special"),
-        ["Normal"] = LazyVim.ui.fg("Special"),
-        ["Warning"] = LazyVim.ui.fg("DiagnosticError"),
-        ["InProgress"] = LazyVim.ui.fg("DiagnosticWarn"),
-      }
-      table.insert(opts.sections.lualine_x, 2, {
-        function()
-          local icon = LazyVim.config.icons.kinds.Copilot
-          local status = require("copilot.api").status.data
-          return icon .. (status.message or "")
-        end,
-        cond = function()
-          if not package.loaded["copilot"] then
-            return
+      table.insert(
+        opts.sections.lualine_x,
+        2,
+        LazyVim.lualine.status(LazyVim.config.icons.kinds.Copilot, function()
+          local clients = package.loaded["copilot"] and vim.lsp.get_clients({ name = "copilot", bufnr = 0 }) or {}
+          if #clients > 0 then
+            local status = require("copilot.status").data.status
+            return (status == "InProgress" and "pending") or (status == "Warning" and "error") or "ok"
           end
-          local ok, clients = pcall(LazyVim.lsp.get_clients, { name = "copilot", bufnr = 0 })
-          if not ok then
-            return false
-          end
-          return ok and #clients > 0
-        end,
-        color = function()
-          if not package.loaded["copilot"] then
-            return
-          end
-          local status = require("copilot.api").status.data
-          return colors[status.status] or colors[""]
-        end,
-      })
+        end)
+      )
     end,
   },
 }
