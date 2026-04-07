@@ -1,0 +1,7 @@
+# Patterns to allow (one per line)
+# These patterns are whitelisted in the pre-commit hook
+# Use exact regex patterns
+
+# Example:
+# fake-secret-key=xxxxxxxxxxxxxxxx
+# test-api-key=1234567890abcdef

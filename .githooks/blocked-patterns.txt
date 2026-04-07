@@ -1,0 +1,18 @@
+# API Keys and Secrets
+[A-Za-z0-9_]{40,}
+# AWS Access Keys
+AKIA[0-9A-Z]{16}
+# Private Keys
+-----BEGIN PRIVATE KEY-----
+-----BEGIN RSA PRIVATE KEY-----
+-----BEGIN OPENSSH PRIVATE KEY-----
+# Passwords in config files
+password[[:space:]]*=[[:space:]]*["'][^"']+["']
+# Tokens
+token[[:space:]]*=[[:space:]]*["'][^"']{20,}["']
+# GitHub tokens
+ghp_[A-Za-z0-9_]{36}
+gho_[A-Za-z0-9_]{36}
+ghu_[A-Za-z0-9_]{36}
+ghs_[A-Za-z0-9_]{36}
+ghr_[A-Za-z0-9_]{36}

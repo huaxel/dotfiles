@@ -44,6 +44,9 @@
 **/.nvim/
 **/.sublime-*
 
+# Machine-specific local config (not managed by chezmoi)
+**/.config/local/
+
 # Fish (machine-specific state)
 **/fish_variables
 

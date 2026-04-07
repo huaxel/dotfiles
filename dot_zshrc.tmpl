@@ -90,4 +90,9 @@ export PATH="$HOME/Library/Application Support/Herd/bin/:$PATH"
 
 # Dotfiles helper alias
 alias dots="$HOME/.config/admin-scripts/dots.sh"
+
+# Machine-specific local config (not tracked by chezmoi)
+if [[ -f ~/.config/local/zshrc ]]; then
+  source ~/.config/local/zshrc
+fi
 {{ end }}

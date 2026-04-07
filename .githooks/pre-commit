@@ -1,0 +1,71 @@
+#!/bin/bash
+# Pre-commit hook to prevent secrets from being committed
+
+set -e
+
+FILES=$(git diff --cached --name-only --diff-filter=ACM)
+
+if [ -z "$FILES" ]; then
+  exit 0
+fi
+
+PATTERNS_FILE=".githooks/blocked-patterns.txt"
+ALLOWED_FILE=".githooks/allowed-patterns.txt"
+
+if [ ! -f "$PATTERNS_FILE" ]; then
+  exit 0
+fi
+
+FOUND_SECRETS=0
+
+for file in $FILES; do
+  # Skip binary files
+  case "$file" in
+    *.png|*.jpg|*.jpeg|*.gif|*.ico|*.pdf|*.zip|*.tar|*.gz|*.mp4|*.mp3)
+      continue
+      ;;
+    *package-lock.json|*yarn.lock|*Cargo.lock|*lazy-lock.json)
+      continue
+      ;;
+    README.md)
+      continue
+      ;;
+  esac
+  
+  if [ ! -f "$file" ]; then
+    continue
+  fi
+  
+  while IFS= read -r pattern; do
+    # Skip comments and empty lines
+    case "$pattern" in
+      \#*)
+        continue
+        ;;
+    esac
+    
+    [ -z "$pattern" ] && continue
+    
+    if git diff --cached "$file" | grep -E "$pattern" > /dev/null 2>&1; then
+      # Check if pattern is in allowed list
+      if [ -f "$ALLOWED_FILE" ] && grep -F "$pattern" "$ALLOWED_FILE" > /dev/null 2>&1; then
+        continue
+      fi
+      
+      echo "ERROR: Potential secret detected in $file"
+      echo "Pattern: $pattern"
+      echo ""
+      echo "If this is a false positive, add pattern to .githooks/allowed-patterns.txt"
+      echo "Or use: git commit --no-verify (not recommended)"
+      FOUND_SECRETS=1
+    fi
+  done < "$PATTERNS_FILE"
+done
+
+if [ $FOUND_SECRETS -eq 1 ]; then
+  echo ""
+  echo "Commit aborted due to potential secrets."
+  exit 1
+fi
+
+exit 0
