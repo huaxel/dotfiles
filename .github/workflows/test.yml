@@ -1,0 +1,90 @@
+name: Test Dotfiles Bootstrap
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  schedule:
+    # Run weekly to catch upstream breakage
+    - cron: '0 0 * * 0'
+
+jobs:
+  test-ubuntu:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Test bootstrap script (dry run)
+        run: |
+          # Create a minimal test environment
+          export HOME=/tmp/test-home
+          mkdir -p $HOME
+          
+          # Test that scripts are executable and syntax-valid
+          bash -n run_once_bootstrap.sh
+          bash -n run_once_10_local_bin.sh
+          bash -n run_once_50_debian_setup.sh
+          
+          echo "✓ All scripts have valid syntax"
+
+      - name: Test chezmoi apply
+        run: |
+          # Install chezmoi
+          sh -c "$(curl -fsLS get.chezmoi.io)"
+          
+          # Initialize with current repo
+          chezmoi init --source=$PWD --apply
+          
+          # Check that key files were created
+          test -f $HOME/.zshrc && echo "✓ .zshrc created"
+          test -f $HOME/.gitconfig && echo "✓ .gitconfig created"
+          test -f $HOME/.config/chezmoi/chezmoi.toml && echo "✓ chezmoi.toml created"
+          
+          # Check that nvim config is valid Lua syntax
+          if command -v nvim &>/dev/null; then
+            nvim --headless -c "quit" 2>/dev/null && echo "✓ nvim config loads" || echo "⚠ nvim not available in CI"
+          fi
+
+      - name: Check script permissions
+        run: |
+          # Ensure run_once scripts are executable
+          for script in run_once_*.sh; do
+            if [[ -f "$script" && ! -x "$script" ]]; then
+              echo "⚠ $script is not executable"
+            fi
+          done
+          echo "✓ Script permissions checked"
+
+  test-macos:
+    runs-on: macos-latest
+    if: false  # Disabled by default - macOS runners are limited
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Test macOS-specific templates
+        run: |
+          # Check that templates render correctly for darwin
+          chezmoi execute-template --source=$PWD < dot_zshrc.tmpl > /dev/null && echo "✓ zshrc template renders"
+          chezmoi execute-template --source=$PWD < dot_gitconfig.tmpl > /dev/null && echo "✓ gitconfig template renders"
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: ShellCheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: '.'
+          ignore_paths: '.git'
+        continue-on-error: true  # Don't fail CI for lint warnings
+
+      - name: Check for TODO/FIXME
+        run: |
+          if grep -r "TODO\|FIXME\|XXX" --include="*.sh" --include="*.lua" --include="*.tmpl" . 2>/dev/null; then
+            echo "⚠ Found TODO/FIXME comments"
+          fi

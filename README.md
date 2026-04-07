@@ -2,6 +2,8 @@
 
 > Cross-platform dotfiles managed with [chezmoi](https://www.chezmoi.io/)
 
+[![Test Dotfiles Bootstrap](https://github.com/huaxel/dotfiles/actions/workflows/test.yml/badge.svg)](https://github.com/huaxel/dotfiles/actions/workflows/test.yml)
+
 ## 🚀 Quick Start
 
 ### Install on a New Machine
@@ -86,6 +88,8 @@ Sensitive files are excluded via `.chezmoiignore`:
 For secrets, use:
 - **macOS**: 1Password CLI (`op`)
 - **Linux**: Native keyring or encrypted files
+
+See [docs/secrets-management.md](docs/secrets-management.md) for detailed iCloud-friendly options.
 
 ## 📝 Machine-Specific Config
 
