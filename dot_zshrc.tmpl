@@ -72,6 +72,14 @@ eval "$(starship init zsh)"
 # Kiro editor integration
 [[ "$TERM_PROGRAM" == "kiro" ]] && . "$(kiro --locate-shell-integration-path zsh)"
 
+# Dotfiles helper alias
+alias dots="$HOME/.config/admin-scripts/dots.sh"
+
+# Machine-specific local config (not tracked by chezmoi)
+if [[ -f ~/.config/local/zshrc ]]; then
+  source ~/.config/local/zshrc
+fi
+
 {{ if eq .chezmoi.os "darwin" }}
 # broot launcher
 source "$HOME/.config/broot/launcher/bash/br"
@@ -87,12 +95,4 @@ export NVM_DIR="$HOME/Library/Application Support/Herd/config/nvm"
 
 # Herd injected PHP binary.
 export PATH="$HOME/Library/Application Support/Herd/bin/:$PATH"
-
-# Dotfiles helper alias
-alias dots="$HOME/.config/admin-scripts/dots.sh"
-
-# Machine-specific local config (not tracked by chezmoi)
-if [[ -f ~/.config/local/zshrc ]]; then
-  source ~/.config/local/zshrc
-fi
 {{ end }}
