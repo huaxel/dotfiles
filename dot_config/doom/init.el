@@ -90,7 +90,7 @@
        ;;ansible
        ;;biblio            ; Writes a PhD for you (citation needed)
        ;;collab            ; buffers with friends
-       ;;debugger          ; FIXME stepping through code, to help you add bugs
+       debugger          ; stepping through code
        ;;direnv
        ;;docker
        ;;editorconfig      ; let someone else argue about tabs vs spaces
