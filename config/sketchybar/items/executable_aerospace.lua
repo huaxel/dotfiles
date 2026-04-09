@@ -1,0 +1,83 @@
+function explode(div, str)
+    if (div == '') then
+        return false
+    end
+    local pos, arr = 0, {}
+    for st, sp in function()
+        return string.find(str, div, pos, true)
+    end do
+        table.insert(arr, string.sub(str, pos, st - 1))
+        pos = sp + 1
+    end
+    table.insert(arr, string.sub(str, pos))
+    return arr
+end
+
+function parse_string_to_table(s)
+    local result = {}
+    for line in s:gmatch("([^\n]+)") do
+        table.insert(result, line)
+    end
+    return result
+end
+
+function get_workspaces()
+    local file = io.popen("aerospace list-workspaces --all")
+    local result = file:read("*a")
+    file:close()
+
+    return parse_string_to_table(result)
+end
+
+function get_current_workspace()
+    local file = io.popen("aerospace list-workspaces --focused")
+    local result = file:read("*a")
+    file:close()
+
+    return parse_string_to_table(result)[1]
+end
+
+function get_monitors()
+    local file = io.popen("aerospace list-monitors | awk '{print $1}'")
+    local result = file:read("*a")
+    file:close()
+
+    return parse_string_to_table(result)
+end
+
+function get_workspaces_on_monitor(monitor)
+    local file = io.popen("aerospace list-workspaces --monitor " .. monitor)
+    local result = file:read("*a")
+    file:close()
+
+    return parse_string_to_table(result, "\n")
+end
+
+function get_visible_workspace_on_monitor(monitor)
+    local file = io.popen("aerospace list-workspaces --monitor " .. monitor .. " --visible")
+    local result = file:read("*a")
+    file:close()
+
+    return parse_string_to_table(result)[1]
+end
+
+function get_visible_workspaces()
+    local file = io.popen("aerospace list-workspaces --visible")
+    local result = file:read("*a")
+    file:close()
+
+    return parse_string_to_table(result)
+end
+
+function is_workspace_selected(workspace)
+    local visible_workspaces = get_visible_workspaces()
+    for _, visible_workspace in ipairs(visible_workspaces) do
+        -- print('types' .. type(visible_workspace) .. ' - ' .. type(workspace))
+        -- print("Checking: " .. workspace .. " Result: " .. visible_workspace .. ' - ', (visible_workspace == workspace))
+        if visible_workspace == workspace then
+            return true
+        end
+    end
+
+    return false
+end

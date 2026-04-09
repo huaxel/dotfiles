@@ -1,0 +1,17 @@
+# Dotter local cache
+.dotter/
+.dotter_cache/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Local machine config (not shared)
+local/

@@ -1,0 +1,14 @@
+# Config for wofi
+
+width=400
+lines=10
+location=center
+move_window_on_focus=true
+allow_images=true
+image_size=24
+prompt=Search...
+term=ghostty
+layer=top
+hide_scroll=true
+insensitive=true
+mode=drun

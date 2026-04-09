@@ -1,0 +1,21 @@
+[user]
+	name = {{name}}
+	email = {{email}}
+[credential]
+{{#if (eq dotter.os "macos")}}
+	helper = osxkeychain
+{{else}}
+	helper = cache
+{{/if}}
+[fetch]
+	fsckObjects = false
+[transfer]
+	fsckObjects = false
+[pack]
+	threads = 1
+[http]
+	postBuffer = 524288000
+[init]
+	defaultBranch = main
+[core]
+	excludesfile = ~/.gitignore_global

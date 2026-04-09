@@ -1,0 +1,161 @@
+{
+    "layer": "top",
+    "position": "top",
+    "modules-left": [
+        "custom/launcher",
+        "sway/workspaces"
+    ],
+    "modules-center": [
+        "sway/window"
+    ],
+    "modules-right": [
+        "custom/clipboard",
+        "mpris",
+        "group/hardware",
+        "network",
+        "bluetooth",
+        "pulseaudio",
+        "sway/keyboard-layout",
+        "clock",
+        "custom/weather",
+        "tray"
+    ],
+    "sway/workspaces": {
+        "disable-scroll": true,
+        "all-outputs": true,
+        "format": "{icon}",
+        "format-icons": {
+            "1": "1",
+            "2": "2",
+            "3": "3",
+            "4": "4",
+            "5": "5",
+            "6": "6",
+            "7": "7",
+            "8": "8",
+            "urgent": "!",
+            "focused": "",
+            "default": ""
+        }
+    },
+    "group/hardware": {
+        "orientation": "horizontal",
+        "modules": [
+            "cpu",
+            "memory"
+        ]
+    },
+    "custom/launcher": {
+        "format": "",
+        "on-click": "wofi --show drun",
+        "tooltip": false
+    },
+    "custom/clipboard": {
+        "format": "📋 {}",
+        "exec": "echo '...'",
+        "tooltip": false,
+        "on-click": "cliphist list | wofi --dmenu | cliphist decode | wl-copy",
+        "on-click-right": "cliphist list | wofi --dmenu --show dmenu | cliphist delete | cliphist list | wofi --show dmenu -p 'Clear clipboard' --action='cliphist decode | wl-copy'"
+    },
+    "custom/weather": {
+        "format": "{}",
+        "return-type": "json",
+        "exec": "/home/juan/.config/waybar/scripts/weather.sh",
+        "interval": 1800,
+        "on-click": "xdg-open https://wttr.in"
+    },
+    "clock": {
+        "format": "{:%H:%M}  ",
+        "format-alt": "{:%A, %B %d, %Y (%R)}  ",
+        "tooltip-format": "<tt><small>{calendar}</small></tt>",
+        "calendar": {
+            "mode": "year",
+            "mode-mon-col": 3,
+            "weeks-pos": "right",
+            "on-scroll": 1,
+            "on-click-right": "mode",
+            "format": {
+                "months": "<span color='#ffead3'><b>{}</b></span>",
+                "days": "<span color='#ecc6d9'><b>{}</b></span>",
+                "weeks": "<span color='#99ffdd'><b>W{}</b></span>",
+                "today": "<span color='#ff6699'><b><u>{}</u></b></span>"
+            }
+        },
+        "actions": {
+            "on-click-right": "mode",
+            "on-click-forward": "tz_up",
+            "on-click-backward": "tz_down",
+            "on-scroll-up": "shift_up",
+            "on-scroll-down": "shift_down"
+        }
+    },
+    "pulseaudio": {
+        "format": "{volume}% {icon} {format_source}",
+        "format-bluetooth": "{volume}% {icon} {format_source}",
+        "format-bluetooth-muted": " {icon} {format_source}",
+        "format-muted": " {format_source}",
+        "format-source": "{volume}% ",
+        "format-source-muted": "",
+        "format-icons": {
+            "headphone": "",
+            "hands-free": "",
+            "headset": "",
+            "phone": "",
+            "portable": "",
+            "car": "",
+            "default": [
+                "",
+                "",
+                ""
+            ]
+        },
+        "on-click": "pavucontrol"
+    },
+    "bluetooth": {
+        "format": " {status}",
+        "format-connected": " {num_connections}",
+        "format-connected-battery": " {device_alias} {device_battery_percentage}%",
+        "tooltip-format": "{controller_alias}\t{controller_address}\n\n{device_enumerate}",
+        "tooltip-format-enumerate-connected": "{device_alias}\t{device_address}",
+        "tooltip-format-enumerate-connected-battery": "{device_alias}\t{device_address}\t{device_battery_percentage}%",
+        "on-click": "~/.config/sway/scripts/wofi-bluetooth.sh"
+    },
+    "network": {
+        "format-wifi": "{essid} ({signalStrength}%) ",
+        "format-ethernet": "{ipaddr}/{cidr} ",
+        "tooltip-format": "{ifname} via {gwaddr} ",
+        "format-linked": "{ifname} (No IP) ",
+        "format-disconnected": "Disconnected ⚠",
+        "format-alt": "{ifname}: {ipaddr}/{cidr}",
+        "on-click": "wofi --show drun"
+    },
+    "cpu": {
+        "format": "{usage}% ",
+        "tooltip": false,
+        "on-click": "ghostty -e btop"
+    },
+    "memory": {
+        "format": "{}% ",
+        "on-click": "ghostty -e btop"
+    },
+    "mpris": {
+        "format": "{player_icon} {dynamic}",
+        "format-paused": "{status_icon} <i>{dynamic}</i>",
+        "player-icons": {
+            "default": "▶",
+            "mpv": "🎵"
+        },
+        "status-icons": {
+            "paused": "⏸"
+        }
+    },
+    "sway/keyboard-layout": {
+        "format": "{}  ⌨",
+        "format-click": "{}  ⌨",
+        "on-click": "~/.config/sway/scripts/switch-kb-layout.sh",
+        "xkb-layout-names": ["COLEMAK", "UK"]
+    },
+    "tray": {
+        "spacing": 10
+    }
+}
