@@ -157,7 +157,7 @@ style = "fg:#89b4fa"
 
 [hostname]
 disabled = false
-ssh_only = true
+ssh_only = false
 format = " in [$ssh_symbol$hostname]($style)"
 style = "fg:#f7768e"
 ssh_symbol = " "
