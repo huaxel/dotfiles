@@ -1,0 +1,52 @@
+# git-secrets allowed patterns — false positives from code/docs
+
+# CSS/design token variables
+const tokens = 
+tokens\.find\(
+tokens\.push\(
+tokens\.length
+token === 
+token !== 
+token \|\| 
+!token \|\|
+token => 
+
+# CSS token parsing
+splitCssTokens
+token.*width = token
+backgroundClipText
+
+# Local dev server auth
+token.*localhost
+localhost.*token
+state\.token
+TOKEN
+msg\.token = TOKEN
+status\?token=
+poll\?token=
+
+# UI password input fields
+type="password"
+autocomplete="current-password"
+autocomplete="new-password"
+
+# Interview server session tokens
+url\.searchParams\.get
+const token = 
+sessionToken
+expectedToken
+__SESSION_TOKEN__
+
+# API placeholder
+apiKey: "local"
+tokenAccountId
+decodeJwtAccountId
+
+# Documentation examples
+sk-ant-oat01
+wofi --dmenu --password
+
+# GitHub Copilot / VS Code token references
+languageModel
+tokenCount
+accessTimes
