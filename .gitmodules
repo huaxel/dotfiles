@@ -1,3 +1,0 @@
-[submodule "pi_extensions/subagent"]
-	path = pi_extensions/subagent
-	url = https://github.com/nicobailon/pi-subagents.git
