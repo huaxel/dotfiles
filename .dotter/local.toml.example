@@ -1,0 +1,8 @@
+# Machine-specific dotter configuration
+# Copy this to .dotter/local.toml and set your OS
+
+packages = ["default"]
+
+[variables]
+# Set to "macos" for macOS, "linux" for Linux/WSL
+os = "macos"
