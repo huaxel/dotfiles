@@ -12,3 +12,9 @@ Host liedelpi
     HostName liedelpi.bonobo-fort.ts.net
     User juan
     IdentityFile ~/.ssh/id_rsa
+
+Host integration-vm
+    HostName integrationproject-2526s2-wt02.westeurope.cloudapp.azure.com 
+    User ehbstudent
+    Port 60022
+    IdentityFile ~/.ssh/id_ed25519

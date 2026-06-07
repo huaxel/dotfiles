@@ -1,12 +1,37 @@
 # Initialize starship prompt
 starship init fish | source
 
+# Suppress mise rate-limit / version-check spam
+set -x MISE_LOG_LEVEL error
+
+# Activate mise (version manager)
+if command -sq mise
+    mise activate fish | source
+end
+
+# Atuin — shell history with sync
+if command -sq atuin
+    atuin init fish | source
+end
+
+# FZF — fuzzy finder keybindings
+if command -sq fzf
+    fzf --fish | source
+end
+
+# Broot — br function for cd on quit
+if command -sq broot
+    broot --print-shell-function fish | source
+end
+
+# Zoxide — smart cd
+if command -sq zoxide
+    zoxide init fish | source
+end
+
 # Cross-platform PATH additions
 fish_add_path $HOME/.local/bin
 fish_add_path $HOME/.cargo/bin
-fish_add_path $HOME/.local/share/go/bin
-fish_add_path $HOME/.lmstudio/bin
-fish_add_path $HOME/.dotnet/tools
 
 # OS-specific PATH
 if test (uname) = "Darwin"
@@ -18,9 +43,7 @@ else
     fish_add_path /usr/bin
 end
 
-# Common directories
-fish_add_path ~/Projects
-fish_add_path ~/Developer
+# Note: ~/Projects and ~/Developer are workspace directories, not binary paths
 
 # Enable vi mode
 fish_vi_key_bindings
@@ -31,6 +54,16 @@ set -x EDITOR nvim
 set -x VISUAL nvim
 set -x PAGER less
 set -x XDG_CONFIG_HOME $HOME/.config
+set -x EZA_CONFIG_DIR $HOME/.config/eza
+
+# FZF defaults
+set -x FZF_DEFAULT_OPTS "--height 40% --layout=reverse --border --preview 'bat --color=always --style=numbers --line-range=:500 {}' --preview-window=right:60%"
+set -x FZF_CTRL_T_OPTS "--preview 'bat --color=always --style=numbers --line-range=:500 {}' --preview-window=right:60%"
+set -x FZF_CTRL_R_OPTS "--preview 'echo {}' --preview-window=up:3:hidden:wrap --bind 'ctrl-/:toggle-preview'"
+set -x FZF_ALT_C_OPTS "--preview 'eza --tree --color=always --icons {} | head -200' --preview-window=right:60%"
+
+# Bat as man pager
+set -x MANPAGER "sh -c 'col -bx | bat -l man -p --theme=tokyonight_night'"
 
 # Cross-platform aliases
 if test (uname) = "Darwin"
@@ -43,7 +76,7 @@ end
 alias ll='eza -la --icons'
 alias la='eza -a --icons'
 alias lt='eza --tree --icons'
-alias cat='bat --style=numbers,changes --theme=Dracula'
+alias cat='bat --style=numbers,changes --theme=tokyonight_night'
 alias grep='rg'
 alias watch='eza --onelines'
 
@@ -52,13 +85,64 @@ alias v='nvim'
 alias vi='nvim'
 alias vim='nvim'
 
+# SSH tunnel helper
+alias tunnel='~/.config/autossh/tunnels.sh'
+
+# Mise aliases
+alias m='mise'
+alias mr='mise run'
+alias ml='mise list'
+
+# Bun aliases
+alias b='bun'
+alias bi='bun install'
+alias br='bun run'
+alias bx='bunx'
+
+# Zellij aliases
+alias z='zellij'
+alias za='zellij attach'
+alias zr='zellij --layout remote-dev attach -c remote-dev'
+
+# Remote dev shortcuts
+alias ssh-mosh='mosh'
+alias ssh-tunnel='autossh -M 0 -N'
+
+# Git with delta
+alias gd='git diff'
+alias gds='git diff --staged'
+alias glg='git log --oneline --graph --decorate'
+
+# Modern replacements (only alias if the tool is installed)
+if command -sq bat
+    alias cat='bat --style=numbers,changes --theme=tokyonight_night'
+end
+if command -sq fd
+    alias find='fd'
+end
+if command -sq procs
+    alias ps='procs'
+end
+if command -sq dust
+    alias du='dust'
+end
+if command -sq duf
+    alias df='duf'
+end
+if command -sq btop
+    alias top='btop'
+end
+
+# Global justfile
+alias j='just --justfile ~/.config/just/justfile'
+set -gx JUST_GLOBAL_JUSTFILE ~/.config/just/justfile
+
 # Git shortcuts
 alias g='git'
 alias gs='git status'
 alias gc='git commit'
 alias gp='git push'
 alias gl='git log --oneline --graph --decorate'
-alias gst='git status'
 
 # WSL-specific
 if test -f /proc/version && grep -q Microsoft /proc/version
@@ -66,10 +150,41 @@ if test -f /proc/version && grep -q Microsoft /proc/version
     alias code='code.exe'
 end
 
-# Machine-specific local config (not managed by chezmoi)
-if test -f ~/.config/fish/local.fish
-    source ~/.config/fish/local.fish
+# opencode
+fish_add_path /Users/juanbenjumea/.opencode/bin
+
+# bun
+set --export BUN_INSTALL "$HOME/.bun"
+set --export PATH $BUN_INSTALL/bin $PATH
+
+# Bang-bang: !! and !$ history expansion
+function bind_bang
+    switch (commandline -t)
+    case "!"
+        commandline -t $history[1]
+        commandline -f repaint
+    case "*"
+        commandline -i !
+    end
 end
 
-# Dotfiles helper
-alias dots="$HOME/.config/admin-scripts/dots.sh"
+function bind_dollar
+    switch (commandline -t)
+    case "!"
+        commandline -t ""
+        set -l last_token (string split " " $history[1])[-1]
+        commandline -i $last_token
+        commandline -f repaint
+    case "*"
+        commandline -i '$'
+    end
+end
+
+function fish_user_key_bindings
+    bind -M insert ! bind_bang
+    bind -M insert '$' bind_dollar
+    bind -M insert alt-up history-token-search-backward
+    bind -M insert alt-. history-token-search-backward
+end
+
+# fish_user_key_bindings is auto-called by fish; no need to invoke manually

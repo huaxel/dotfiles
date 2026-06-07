@@ -22,5 +22,9 @@
 	"roo-cline.debug": false,
 	"kilo-code.debug": false,
 	"kilo-code.allowedCommands": ["git log", "git diff", "git show"],
-	"kilo-code.deniedCommands": []
+	"kilo-code.deniedCommands": [],
+	"terminal.integrated.commandsToSkipShell": [
+		"kilo-code.new.agentManagerOpen",
+		"kilo-code.new.agentManager.showTerminal"
+	]
 }

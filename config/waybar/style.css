@@ -159,3 +159,22 @@ window#waybar.hidden {
     margin: 5px 2px;
 }
 
+/* Sketchybar-style App Icon (center) */
+#custom-app-icon {
+    background-color: #363944;
+    color: #e2e2e3;
+    padding: 0 15px;
+    border-radius: 15px;
+    margin: 5px 0;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+/* Sketchybar-style Workspaces */
+#custom-workspaces {
+    background-color: transparent;
+    padding: 0 5px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
