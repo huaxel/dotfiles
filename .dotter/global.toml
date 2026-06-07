@@ -29,8 +29,6 @@ skills = "~/.agents/skills"
 "skills/impeccable/scripts/live-insert.mjs" = { target = "~/.agents/skills/impeccable/scripts/live-insert.mjs", type = "symbolic" }
 "skills/impeccable/scripts/live-insert-ui.mjs" = { target = "~/.agents/skills/impeccable/scripts/live-insert-ui.mjs", type = "symbolic" }
 "skills/impeccable/reference/live.md" = { target = "~/.agents/skills/impeccable/reference/live.md", type = "symbolic" }
-"pi_extensions/subagent/.github/workflows/test.yml" = { target = "~/.pi/agent/extensions/subagent/.github/workflows/test.yml", type = "symbolic" }
-"pi_extensions/subagent/.github/workflows/release.yml" = { target = "~/.pi/agent/extensions/subagent/.github/workflows/release.yml", type = "symbolic" }
 
 [default.variables]
 name = "Juan Benjumea"
