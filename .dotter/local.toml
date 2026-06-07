@@ -1,0 +1,2 @@
+# Local configuration - select which packages to deploy
+packages = ["default"]

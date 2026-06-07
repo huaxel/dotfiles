@@ -1,0 +1,17 @@
+# Dotter configuration - migrated from chezmoi
+[default]
+
+[default.files]
+# Core dotfiles
+zshrc = "~/.zshrc"           # Keep for zsh compatibility (if needed)
+gitconfig = "~/.gitconfig"   # Template for user info
+ideavimrc = "~/.ideavimrc"
+gitignore_global = "~/.gitignore_global"
+ssh_config = "~/.ssh/config"
+config = "~/.config"         # Includes fish/, nvim/, etc.
+aerospace = "~/.aerospace.toml"
+
+[default.variables]
+name = "Juan Benjumea"
+email = "benjumeamoreno@gmail.com"
+github_username = "huaxel"
