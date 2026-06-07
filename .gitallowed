@@ -50,3 +50,8 @@ wofi --dmenu --password
 languageModel
 tokenCount
 accessTimes
+
+# Security skill documentation examples
+passwordHash
+resetToken
+publicFields

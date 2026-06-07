@@ -1,6 +1,6 @@
 ---
 name: software-design-principles
-description: Apply YAGNI, DRY, KISS, SOLID, GRASP, and GoF design principles to evaluate and improve code architecture. Use when reviewing code structure, refactoring, or designing new features to ensure maintainable, testable, and clean code.
+description: Apply YAGNI, DRY, KISS, SOLID, GRASP, and GoF principles to evaluate and improve code architecture.
 ---
 
 # Software Design Principles

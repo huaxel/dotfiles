@@ -1,0 +1,40 @@
+{
+  "lastChangelogVersion": "0.78.1",
+  "defaults": {
+    "model": "accounts/fireworks/routers/kimi-k2p6-turbo"
+  },
+  "defaultProvider": "firepass",
+  "defaultModel": "accounts/fireworks/routers/kimi-k2p6-turbo",
+  "defaultThinkingLevel": "high",
+  "theme": "dark",
+  "hideThinkingBlock": false,
+  "packages": [
+    {
+      "source": "git:github.com/tmustier/pi-extensions",
+      "extensions": [
+        "-arcade/picman.ts",
+        "-arcade/ping.ts",
+        "-arcade/spice-invaders.ts",
+        "-arcade/tetris.ts"
+      ]
+    },
+    "https://github.com/ttttmr/pi-context",
+    "npm:context-mode",
+    "npm:pi-autoresearch",
+    "npm:@juicesharp/rpiv-ask-user-question",
+    "npm:@juicesharp/rpiv-todo",
+    "npm:pi-dynamic-workflows",
+    "npm:pi-observability",
+    "npm:pi-review-loop",
+    "npm:pi-simplify",
+    "npm:pi-speedometer",
+    "npm:pi-web-access",
+    "npm:pi-lsp-extension",
+    "npm:@narumitw/pi-goal",
+    "npm:pi-context-prune",
+    "npm:elt7613/pi-git-assistant",
+    "git:github.com/samfoy/pi-lesson-extractor"
+  ],
+  "enableSkillCommands": true,
+  "steeringMode": "all"
+}

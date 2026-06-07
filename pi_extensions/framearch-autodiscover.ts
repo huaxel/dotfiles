@@ -23,7 +23,7 @@ export default async function (pi: ExtensionAPI) {
 		}));
 
 		pi.registerProvider("framearch", {
-			baseUrl: "http://framearch-juan:8000/v1",
+			baseUrl: "http://framearch-juan:55268/v1",
 			apiKey: "local",
 			api: "openai-completions",
 			models,

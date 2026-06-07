@@ -1,41 +1,114 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
-export default function (pi: ExtensionAPI) {
-  const BRIDGE = pi.config.get("llama-stats.bridge") ?? "http://localhost:9091";
-  const POLL_INTERVAL = pi.config.get("llama-stats.pollInterval") ?? 1000;
-  const IDLE_HIDE_MS = pi.config.get("llama-stats.idleHideMs") ?? 60000;
-  const SHOW_SPARKLINE = pi.config.get("llama-stats.sparkline") ?? true;
+// ── Type definitions ───────────────────────────────────────────────────────
 
-  let pollTimer: ReturnType<typeof setInterval> | null = null;
-  let lastStats: Record<string, unknown> | null = null;
+interface LlamaSlot {
+  pp_speed?: number;
+  pp_progress?: number;
+  prompt_tokens?: number;
+  tg_speed?: number;
+  n_decoded?: number;
+  is_processing?: boolean;
+  state?: string;
+  last_active?: number;
+}
+
+interface LlamaMemory {
+  ram_used_mb?: number;
+  vram_used_mb?: number;
+  total_layers?: number;
+  offloaded_layers?: number;
+}
+
+interface LlamaContext {
+  n_ctx?: number;
+  max_tokens?: number;
+}
+
+interface LlamaStats {
+  model?: string | null;
+  slots: Record<string, LlamaSlot>;
+  memory: LlamaMemory;
+  context: LlamaContext;
+  history: Array<[number, number, number]>;
+  is_processing?: boolean;
+  last_update?: string | null;
+  version?: string;
+  unmatched_lines?: number;
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+function parseInterval(val: string | undefined, def: number): number {
+  const parsed = parseInt(val ?? String(def), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : def;
+}
+
+function envBool(val: string | undefined, def: boolean): boolean {
+  if (!val) return def;
+  const lowered = val.toLowerCase().trim();
+  return !["false", "0", "no", "off", ""].includes(lowered);
+}
+
+function isValidStats(val: unknown): val is LlamaStats {
+  if (!val || typeof val !== "object") return false;
+  const s = val as Record<string, unknown>;
+  return (
+    typeof s.slots === "object" &&
+    s.slots !== null &&
+    Array.isArray(s.history)
+  );
+}
+
+// ── Extension ──────────────────────────────────────────────────────────────
+
+export default function (pi: ExtensionAPI) {
+  // Configuration: pi.config takes priority, then env vars, then defaults
+  const BRIDGE =
+    (pi.config?.get("llama-stats.bridge") as string | undefined) ??
+    process.env.LLAMA_STATS_BRIDGE ??
+    "http://framearch-juan:55268";
+
+  const POLL_INTERVAL =
+    (pi.config?.get("llama-stats.pollInterval") as number | undefined) ??
+    parseInterval(process.env.LLAMA_STATS_POLL_INTERVAL, 1000);
+
+  const IDLE_HIDE_MS =
+    (pi.config?.get("llama-stats.idleHideMs") as number | undefined) ??
+    parseInterval(process.env.LLAMA_STATS_IDLE_HIDE_MS, 60000);
+
+  const SHOW_SPARKLINE =
+    (pi.config?.get("llama-stats.sparkline") as boolean | undefined) ??
+    envBool(process.env.LLAMA_STATS_SPARKLINE, true);
+
+  let pollTimer: ReturnType<typeof setTimeout> | null = null;
+  let lastStats: LlamaStats | null = null;
   let lastHistory: Array<[number, number, number]> = [];
   let isActive = false;
+  let lastSuccess = 0;
   let lastSeen = 0;
   let sseSource: EventSource | null = null;
+  let bgAbortController: AbortController | null = null;
+  let isPolling = false;
+  let currentPollPromise: Promise<void> | null = null;
 
-  // ── Fetch helpers ──────────────────────────────────────────────────────────
+  // ── Fetch helpers ────────────────────────────────────────────────────────
 
-  async function fetchStats(signal?: AbortSignal): Promise<Record<string, unknown> | null> {
+  async function fetchStats(
+    signal?: AbortSignal
+  ): Promise<LlamaStats | null> {
     try {
       const res = await fetch(`${BRIDGE}/stats`, { signal });
       if (!res.ok) return null;
-      return (await res.json()) as Record<string, unknown>;
+      const data = await res.json();
+      if (!isValidStats(data)) return null;
+      return data as LlamaStats;
     } catch {
       return null;
     }
   }
 
-  async function fetchHistory(signal?: AbortSignal): Promise<Array<[number, number, number]>> {
-    try {
-      const res = await fetch(`${BRIDGE}/history`, { signal });
-      if (!res.ok) return [];
-      return (await res.json()) as Array<[number, number, number]>;
-    } catch {
-      return [];
-    }
-  }
-
-  // ── Sparkline renderer ───────────────────────────────────────────────────
+  // ── Sparkline renderer ─────────────────────────────────────────────────
 
   const BLOCKS = ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"];
 
@@ -53,7 +126,7 @@ export default function (pi: ExtensionAPI) {
       .join("");
   }
 
-  // ── Speed classification ─────────────────────────────────────────────────
+  // ── Speed classification ───────────────────────────────────────────────
 
   function speedEmoji(speed: number): string {
     if (speed >= 50) return "🟢";
@@ -62,14 +135,17 @@ export default function (pi: ExtensionAPI) {
     return "⚪";
   }
 
-  // ── Widget formatting ────────────────────────────────────────────────────
+  // ── Widget formatting ──────────────────────────────────────────────────
 
-  function formatWidget(stats: Record<string, unknown>): string[] {
-    const model = (stats.model as string) ?? "unknown";
-    const slots = (stats.slots as Record<string, Record<string, unknown>>) ?? {};
-    const processing = (stats.is_processing as boolean) ?? false;
-    const memory = (stats.memory as Record<string, number>) ?? {};
-    const context = (stats.context as Record<string, number>) ?? {};
+  function formatWidget(
+    stats: LlamaStats,
+    history: Array<[number, number, number]>
+  ): string[] {
+    const model = stats.model ?? "unknown";
+    const slots = stats.slots ?? {};
+    const processing = stats.is_processing ?? false;
+    const memory = stats.memory ?? {};
+    const context = stats.context ?? {};
 
     const slotList = Object.values(slots);
     const activeSlots = slotList.filter((s) => s.is_processing);
@@ -86,8 +162,12 @@ export default function (pi: ExtensionAPI) {
     }
 
     // Aggregate speeds
-    const ppSpeeds = activeSlots.map((s) => (s.pp_speed as number) ?? 0).filter((x) => x > 0);
-    const tgSpeeds = activeSlots.map((s) => (s.tg_speed as number) ?? 0).filter((x) => x > 0);
+    const ppSpeeds = activeSlots
+      .map((s) => s.pp_speed ?? 0)
+      .filter((x) => x > 0);
+    const tgSpeeds = activeSlots
+      .map((s) => s.tg_speed ?? 0)
+      .filter((x) => x > 0);
     const totalPP = ppSpeeds.reduce((a, b) => a + b, 0);
     const totalTG = tgSpeeds.reduce((a, b) => a + b, 0);
 
@@ -96,7 +176,7 @@ export default function (pi: ExtensionAPI) {
     // Header line
     if (activeSlots.length === 1) {
       const slot = activeSlots[0];
-      const state = (slot.state as string) ?? "processing";
+      const state = slot.state ?? "processing";
       const speed = totalTG > 0 ? totalTG : totalPP;
       const emoji = speedEmoji(speed);
       lines.push(`${emoji} ${model} — ${state}`);
@@ -106,12 +186,23 @@ export default function (pi: ExtensionAPI) {
     }
 
     // Prompt progress
-    const promptSlots = activeSlots.filter((s) => (s.state as string) === "prompt");
+    const promptSlots = activeSlots.filter((s) => s.state === "prompt");
     if (promptSlots.length > 0) {
-      const avgProgress = promptSlots.reduce((a, s) => a + ((s.pp_progress as number) ?? 0), 0) / promptSlots.length;
-      const totalPromptTokens = promptSlots.reduce((a, s) => a + ((s.prompt_tokens as number) ?? 0), 0);
-      const bar = "█".repeat(Math.round(avgProgress * 10)).padEnd(10, "░");
-      lines.push(`   PP ${bar} ${(avgProgress * 100).toFixed(0)}%  ${totalPP.toFixed(1)} tok/s`);
+      const avgProgress =
+        promptSlots.reduce((a, s) => a + (s.pp_progress ?? 0), 0) /
+        promptSlots.length;
+      const totalPromptTokens = promptSlots.reduce(
+        (a, s) => a + (s.prompt_tokens ?? 0),
+        0
+      );
+      const bar = "█"
+        .repeat(Math.round(avgProgress * 10))
+        .padEnd(10, "░");
+      lines.push(
+        `   PP ${bar} ${(avgProgress * 100).toFixed(0)}%  ${totalPP.toFixed(
+          1
+        )} tok/s`
+      );
       if (totalPromptTokens > 0) {
         lines.push(`      ${totalPromptTokens} prompt tokens`);
       }
@@ -119,13 +210,16 @@ export default function (pi: ExtensionAPI) {
 
     // Generation speed
     if (totalTG > 0) {
-      const totalDecoded = activeSlots.reduce((a, s) => a + ((s.n_decoded as number) ?? 0), 0);
+      const totalDecoded = activeSlots.reduce(
+        (a, s) => a + (s.n_decoded ?? 0),
+        0
+      );
       lines.push(`   TG ${totalTG.toFixed(1)} tok/s  ${totalDecoded} decoded`);
     }
 
     // Sparkline
-    if (SHOW_SPARKLINE && lastHistory.length > 0) {
-      const speeds = lastHistory.map(([, pp, tg]) => pp + tg);
+    if (SHOW_SPARKLINE && history.length > 0) {
+      const speeds = history.map(([, pp, tg]) => pp + tg);
       const spark = renderSparkline(speeds);
       if (spark) {
         const avg = speeds.reduce((a, b) => a + b, 0) / speeds.length;
@@ -135,80 +229,113 @@ export default function (pi: ExtensionAPI) {
 
     // Memory
     if (memory.vram_used_mb) {
-      const layers = memory.offloaded_layers && memory.total_layers
-        ? `  ${memory.offloaded_layers}/${memory.total_layers} layers`
-        : "";
+      const layers =
+        memory.offloaded_layers && memory.total_layers
+          ? `  ${memory.offloaded_layers}/${memory.total_layers} layers`
+          : "";
       lines.push(`   VRAM: ${memory.vram_used_mb} MB${layers}`);
     }
 
     return lines;
   }
 
-  // ── UI update ──────────────────────────────────────────────────────────────
+  // ── UI update ────────────────────────────────────────────────────────────
 
   function updateUI(ctx: any) {
-    if (!lastStats) {
-      ctx.ui.setWidget("llama-stats", null);
+    if (!ctx?.ui?.setWidget) {
+      return;
+    }
+    if (!isActive || !lastStats) {
+      ctx.ui.setWidget("llama-stats", undefined);
       return;
     }
 
     const now = Date.now();
-    const processing = (lastStats.is_processing as boolean) ?? false;
+    const processing = lastStats.is_processing ?? false;
 
     // Auto-hide after idle timeout
     if (!processing && now - lastSeen > IDLE_HIDE_MS) {
-      ctx.ui.setWidget("llama-stats", null);
+      ctx.ui.setWidget("llama-stats", undefined);
       return;
     }
 
-    const lines = formatWidget(lastStats);
+    const lines = formatWidget(lastStats, lastHistory);
     ctx.ui.setWidget("llama-stats", lines);
   }
 
-  // ── Polling mode ───────────────────────────────────────────────────────────
+  // ── Polling mode ─────────────────────────────────────────────────────────
 
-  async function refresh(ctx: any) {
-    const stats = await fetchStats(ctx.signal);
+  async function refresh(ctx: any, signal?: AbortSignal) {
+    const stats = await fetchStats(signal);
+    // Guard: if polling was stopped while we were in-flight, skip updates
+    if (!isPolling) return;
     if (stats) {
       lastStats = stats;
+      lastSuccess = Date.now();
       isActive = true;
-      if ((stats.is_processing as boolean) ?? false) {
+      if (stats.is_processing) {
         lastSeen = Date.now();
       }
-    }
-    if (SHOW_SPARKLINE) {
-      const hist = await fetchHistory(ctx.signal);
-      if (hist.length) lastHistory = hist;
+      if (SHOW_SPARKLINE && stats.history?.length) {
+        lastHistory = stats.history;
+      }
+    } else if (Date.now() - lastSuccess > 5000) {
+      isActive = false;
+      lastStats = null;
     }
     updateUI(ctx);
   }
 
-  function startPolling(ctx: any) {
-    if (pollTimer) clearInterval(pollTimer);
-    pollTimer = setInterval(() => refresh(ctx), POLL_INTERVAL);
-    refresh(ctx);
+  async function startPolling(ctx: any) {
+    await stopPolling();
+    isPolling = true;
+    bgAbortController = new AbortController();
+    async function tick() {
+      if (!isPolling) return;
+      currentPollPromise = refresh(ctx, bgAbortController?.signal);
+      await currentPollPromise;
+      currentPollPromise = null;
+      if (isPolling) {
+        pollTimer = setTimeout(tick, POLL_INTERVAL);
+      }
+    }
+    tick();
   }
 
-  function stopPolling() {
+  async function stopPolling() {
+    isPolling = false;
+    bgAbortController?.abort();
+    bgAbortController = null;
     if (pollTimer) {
-      clearInterval(pollTimer);
+      clearTimeout(pollTimer);
       pollTimer = null;
     }
     isActive = false;
+    if (currentPollPromise) {
+      await currentPollPromise;
+      currentPollPromise = null;
+    }
   }
 
-  // ── SSE mode ─────────────────────────────────────────────────────────────
+  // ── SSE mode ───────────────────────────────────────────────────────────
 
-  function startSSE(ctx: any) {
+  async function startSSE(ctx: any) {
+    isActive = true;
     try {
       sseSource = new EventSource(`${BRIDGE}/stream`);
       sseSource.onmessage = (e) => {
         try {
-          const stats = JSON.parse(e.data) as Record<string, unknown>;
+          const data = JSON.parse(e.data);
+          if (!isValidStats(data)) return;
+          const stats = data as LlamaStats;
           lastStats = stats;
+          lastSuccess = Date.now();
           isActive = true;
-          if ((stats.is_processing as boolean) ?? false) {
+          if (stats.is_processing) {
             lastSeen = Date.now();
+          }
+          if (SHOW_SPARKLINE && stats.history?.length) {
+            lastHistory = stats.history;
           }
           updateUI(ctx);
         } catch {
@@ -216,14 +343,12 @@ export default function (pi: ExtensionAPI) {
         }
       };
       sseSource.onerror = () => {
-        // Fall back to polling on SSE error
         sseSource?.close();
         sseSource = null;
-        startPolling(ctx);
+        startPolling(ctx).catch(() => {});
       };
     } catch {
-      // EventSource not available or bridge down — fall back to polling
-      startPolling(ctx);
+      startPolling(ctx).catch(() => {});
     }
   }
 
@@ -232,17 +357,20 @@ export default function (pi: ExtensionAPI) {
       sseSource.close();
       sseSource = null;
     }
+    isActive = false;
   }
 
   // ── Lifecycle ────────────────────────────────────────────────────────────
 
   pi.on("session_start", async (_event, ctx) => {
+    await stopSSE();
+    await stopPolling();
     startSSE(ctx);
   });
 
   pi.on("session_shutdown", async () => {
     stopSSE();
-    stopPolling();
+    await stopPolling();
   });
 
   // ── Commands ─────────────────────────────────────────────────────────────
@@ -256,11 +384,11 @@ export default function (pi: ExtensionAPI) {
         return;
       }
 
-      const model = (stats.model as string) ?? "unknown";
-      const slots = (stats.slots as Record<string, Record<string, unknown>>) ?? {};
-      const memory = (stats.memory as Record<string, number>) ?? {};
-      const context = (stats.context as Record<string, number>) ?? {};
-      const processing = (stats.is_processing as boolean) ?? false;
+      const model = stats.model ?? "unknown";
+      const slots = stats.slots ?? {};
+      const memory = stats.memory ?? {};
+      const context = stats.context ?? {};
+      const processing = stats.is_processing ?? false;
 
       const lines = [
         `Model: ${model}`,
@@ -269,20 +397,26 @@ export default function (pi: ExtensionAPI) {
       ];
 
       for (const [id, slot] of Object.entries(slots)) {
-        const state = (slot.state as string) ?? "?";
-        const pp = ((slot.pp_speed as number) ?? 0).toFixed(1);
-        const tg = ((slot.tg_speed as number) ?? 0).toFixed(1);
-        const decoded = (slot.n_decoded as number) ?? 0;
-        const progress = ((slot.pp_progress as number) ?? 0) * 100;
+        const state = slot.state ?? "?";
+        const pp = (slot.pp_speed ?? 0).toFixed(1);
+        const tg = (slot.tg_speed ?? 0).toFixed(1);
+        const decoded = slot.n_decoded ?? 0;
+        const progress = (slot.pp_progress ?? 0) * 100;
         lines.push(
-          `  Slot ${id}: ${state}  PP ${pp}  TG ${tg}  ${decoded} decoded  ${progress.toFixed(0)}% prompt`
+          `  Slot ${id}: ${state}  PP ${pp}  TG ${tg}  ${decoded} decoded  ${progress.toFixed(
+            0
+          )}% prompt`
         );
       }
 
       lines.push("");
       lines.push(`Memory: ${memory.ram_used_mb ?? 0} MB RAM`);
       if (memory.vram_used_mb) {
-        lines.push(`VRAM: ${memory.vram_used_mb} MB  ${memory.offloaded_layers ?? 0}/${memory.total_layers ?? 0} layers`);
+        lines.push(
+          `VRAM: ${memory.vram_used_mb} MB  ${memory.offloaded_layers ?? 0}/${
+            memory.total_layers ?? 0
+          } layers`
+        );
       }
       if (context.n_ctx) {
         lines.push(`Context: ${context.n_ctx} tokens`);
@@ -295,7 +429,9 @@ export default function (pi: ExtensionAPI) {
   pi.registerCommand("llama-stats-off", {
     description: "Hide llama-stats widget",
     handler: async (_args, ctx) => {
-      ctx.ui.setWidget("llama-stats", null);
+      await stopSSE();
+      await stopPolling();
+      ctx.ui.setWidget("llama-stats", undefined);
       ctx.ui.notify("llama-stats widget hidden", "info");
     },
   });
@@ -311,9 +447,9 @@ export default function (pi: ExtensionAPI) {
   pi.registerCommand("llama-stats-poll", {
     description: "Force switch to polling mode (disable SSE)",
     handler: async (_args, ctx) => {
-      stopSSE();
-      stopPolling();
-      startPolling(ctx);
+      await stopSSE();
+      await stopPolling();
+      await startPolling(ctx);
       ctx.ui.notify("llama-stats: switched to polling mode", "info");
     },
   });
@@ -321,9 +457,9 @@ export default function (pi: ExtensionAPI) {
   pi.registerCommand("llama-stats-sse", {
     description: "Force switch to SSE streaming mode",
     handler: async (_args, ctx) => {
-      stopPolling();
-      stopSSE();
-      startSSE(ctx);
+      await stopPolling();
+      await stopSSE();
+      await startSSE(ctx);
       ctx.ui.notify("llama-stats: switched to SSE mode", "info");
     },
   });

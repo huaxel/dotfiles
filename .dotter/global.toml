@@ -11,6 +11,12 @@ ssh_config = "~/.ssh/config"
 config = "~/.config"         # Includes fish/, nvim/, etc.
 aerospace = "~/.aerospace.toml"
 
+# Pi agent configuration
+pi_settings = "~/.pi/agent/settings.json"
+pi_append_system = "~/.pi/agent/APPEND_SYSTEM.md"
+pi_extensions = "~/.pi/agent/extensions"
+skills = "~/.agents/skills"
+
 [default.variables]
 name = "Juan Benjumea"
 email = "benjumeamoreno@gmail.com"

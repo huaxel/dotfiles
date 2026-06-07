@@ -5,18 +5,25 @@
  * Useful for preventing accidental modifications to sensitive files.
  */
 
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import { isToolCallEventType, type ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 export default function (pi: ExtensionAPI) {
-	const protectedPaths = [".env", ".git/", "node_modules/"];
+	const protectedPaths = [".env", ".envrc", ".git/", "node_modules/"];
 
 	pi.on("tool_call", async (event, ctx) => {
-		if (event.toolName !== "write" && event.toolName !== "edit") {
+		if (!isToolCallEventType("write", event) && !isToolCallEventType("edit", event)) {
 			return undefined;
 		}
 
-		const path = event.input.path as string;
-		const isProtected = protectedPaths.some((p) => path.includes(p));
+		const path = event.input.path;
+		const isProtected = protectedPaths.some((p) => {
+			if (p.endsWith("/")) {
+				// Directory match: exact start or preceded by /
+				return path === p.slice(0, -1) || path.startsWith(p) || path.includes("/" + p);
+			}
+			// File match: exact or at path end
+			return path === p || path.endsWith("/" + p);
+		});
 
 		if (isProtected) {
 			if (ctx.hasUI) {

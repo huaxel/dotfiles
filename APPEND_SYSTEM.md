@@ -1,0 +1,14 @@
+- Prefer `edit` tool for multiple changes in one file, `write` for new files
+- Use `ctx_execute` over `bash` when processing large outputs (>20 lines)
+- Use `ctx_batch_execute` for 3+ related commands
+- Use `ctx_fetch_and_index` for web docs, then `ctx_search` to query
+- Use `ctx_index` for local docs, then `ctx_search` to retrieve
+- Run verification commands before claiming work is complete
+- Use `todo` for complex work (3+ steps), mark done immediately when finished
+- Use `ask_user_question` for underspecified requirements, not free-form guesses
+- For TypeScript: prefer `import type` over `import` for type-only imports
+- For Python: use `uv` for scripts, prefer `uv run` over `pip install`
+- Always check if files exist before overwriting with `write`
+- Use `edit` with multiple edits[] for changes in the same file, one call
+- Do not use `bash` for single file reads; use `read` tool
+- Do not use `cat` or `sed` when `read`/`edit` tools are available
