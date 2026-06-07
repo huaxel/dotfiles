@@ -3,7 +3,9 @@
 # Usage: ./pi-extensions.sh
 
 PACKAGES=(
-  # GitHub packages
+  # GitHub packages (with exclusions configured manually in settings.json)
+  # NOTE: tmustier/pi-extensions has arcade games excluded:
+  #   -arcade/picman.ts, -arcade/ping.ts, -arcade/spice-invaders.ts, -arcade/tetris.ts
   "git:github.com/tmustier/pi-extensions"
   "https://github.com/ttttmr/pi-context"
 
@@ -29,4 +31,10 @@ for pkg in "${PACKAGES[@]}"; do
   pi install "$pkg" || echo "FAILED: $pkg"
 done
 
+echo ""
 echo "Done. Installed ${#PACKAGES[@]} packages."
+echo ""
+echo "IMPORTANT: After installing, manually configure the tmustier extension"
+echo "exclusions in ~/.pi/agent/settings.json to exclude arcade games:"
+echo '  "extensions": ["-arcade/picman.ts", "-arcade/ping.ts", "-arcade/spice-invaders.ts", "-arcade/tetris.ts"]'
+
