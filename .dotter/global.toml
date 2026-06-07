@@ -11,6 +11,7 @@ ssh_config = "~/.ssh/config"
 config = "~/.config"         # Includes fish/, nvim/, etc.
 aerospace = "~/.aerospace.toml"
 tmux = "~/.tmux.conf"
+npmrc = "~/.npmrc"
 
 # Pi agent configuration
 pi_settings = "~/.pi/agent/settings.json"
