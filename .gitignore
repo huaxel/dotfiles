@@ -1,17 +1,55 @@
-# Dotter local cache
+# ─────────────────────────────────────────────────────────────
+# Dotter
+# ─────────────────────────────────────────────────────────────
 .dotter/
 .dotter_cache/
 
+# ─────────────────────────────────────────────────────────────
+# Private / sensitive configs
+# ─────────────────────────────────────────────────────────────
+config/gh/private_*
+config/zed/private_*
+config/zed/conversations/
+config/zed/embeddings/
+config/zed/prompts/
+config/qBittorrent/
+config/vscode/globalStorage/
+config/vscode/workspaceStorage/
+config/vscode/History/
+config/vscode/sync/
+
+# ─────────────────────────────────────────────────────────────
+# Cache / state / binary files
+# ─────────────────────────────────────────────────────────────
+config/eza/eza-themes/imgs/
+config/eza/eza-themes/test_dir/
+config/eza/eza-themes/dot_git/
+config/wallpapers/
+config/vscode/globalStorage/**/*.vscdb
+config/vscode/globalStorage/**/*.vscdb.backup
+config/vscode/globalStorage/**/*.json
+config/vscode/**/*.vscdb
+config/vscode/**/*.vscdb.backup
+config/composer/*.lock
+config/composer/keys.*
+config/tmc/
+
+# ─────────────────────────────────────────────────────────────
 # OS files
+# ─────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
 
+# ─────────────────────────────────────────────────────────────
 # Editor files
+# ─────────────────────────────────────────────────────────────
 *.swp
 *.swo
 *~
 .vscode/
 .idea/
 
+# ─────────────────────────────────────────────────────────────
 # Local machine config (not shared)
+# ─────────────────────────────────────────────────────────────
 local/
