@@ -242,25 +242,33 @@ export default function (pi: ExtensionAPI) {
   // ── UI update ────────────────────────────────────────────────────────────
 
   function updateUI(ctx: any) {
-    if (!ctx?.ui?.setWidget) {
-      return;
-    }
-    if (!isActive || !lastStats) {
-      ctx.ui.setWidget("llama-stats", undefined);
-      return;
-    }
+    try {
+      if (!ctx?.ui?.setWidget) {
+        return;
+      }
+      if (!isActive || !lastStats) {
+        ctx.ui.setWidget("llama-stats", undefined);
+        return;
+      }
 
-    const now = Date.now();
-    const processing = lastStats.is_processing ?? false;
+      const now = Date.now();
+      const processing = lastStats.is_processing ?? false;
 
-    // Auto-hide after idle timeout
-    if (!processing && now - lastSeen > IDLE_HIDE_MS) {
-      ctx.ui.setWidget("llama-stats", undefined);
-      return;
+      // Auto-hide after idle timeout
+      if (!processing && now - lastSeen > IDLE_HIDE_MS) {
+        ctx.ui.setWidget("llama-stats", undefined);
+        return;
+      }
+
+      const lines = formatWidget(lastStats, lastHistory);
+      ctx.ui.setWidget("llama-stats", lines);
+    } catch (err: any) {
+      // Stale context after session reload — ignore
+      if (err?.message?.includes("stale")) {
+        return;
+      }
+      throw err;
     }
-
-    const lines = formatWidget(lastStats, lastHistory);
-    ctx.ui.setWidget("llama-stats", lines);
   }
 
   // ── Polling mode ─────────────────────────────────────────────────────────
@@ -283,7 +291,11 @@ export default function (pi: ExtensionAPI) {
       isActive = false;
       lastStats = null;
     }
-    updateUI(ctx);
+    try {
+      updateUI(ctx);
+    } catch {
+      // ignore stale context
+    }
   }
 
   async function startPolling(ctx: any) {
