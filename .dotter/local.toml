@@ -1,4 +1,0 @@
-packages = ["default"]
-
-[variables]
-os = "macos"
