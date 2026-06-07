@@ -1,2 +1,4 @@
-# Local configuration - select which packages to deploy
 packages = ["default"]
+
+[variables]
+os = "macos"

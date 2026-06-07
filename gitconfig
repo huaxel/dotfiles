@@ -2,7 +2,7 @@
 	name = {{name}}
 	email = {{email}}
 [credential]
-{{#if (eq dotter.os "macos")}}
+{{#if (eq os "macos")}}
 	helper = osxkeychain
 {{else}}
 	helper = cache

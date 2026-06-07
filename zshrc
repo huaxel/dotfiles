@@ -1,7 +1,7 @@
 # Minimal zsh for bash compatibility
 # Fish is primary shell - this is for scripts/tools that need bash/zsh
 
-{{#if (eq dotter.os "macos")}}
+{{#if (eq os "macos")}}
 export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$HOME/.local/bin:$PATH"
 {{else}}
 export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:$PATH"
