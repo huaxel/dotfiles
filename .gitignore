@@ -56,3 +56,8 @@ Thumbs.db
 local/
 \n# Dotter local config (machine-specific)
 .dotter/local.toml
+
+# Nested git repos (pi extensions cloned separately)
+pi_extensions/*/.git/
+pi_extensions/subagent/
+
