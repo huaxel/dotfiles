@@ -8,6 +8,17 @@
   "defaultThinkingLevel": "high",
   "theme": "dark",
   "hideThinkingBlock": false,
+  "extensions": [
+    {
+      "source": "git:github.com/tmustier/pi-extensions",
+      "extensions": [
+        "-arcade/picman.ts",
+        "-arcade/ping.ts",
+        "-arcade/spice-invaders.ts",
+        "-arcade/tetris.ts"
+      ]
+    }
+  ],
   "packages": [
     "https://github.com/ttttmr/pi-context",
     "npm:context-mode",
@@ -23,8 +34,9 @@
     "npm:pi-lsp-extension",
     "npm:@narumitw/pi-goal",
     "npm:pi-context-prune",
-    "npm:elt7613/pi-git-assistant",
+    "npm:pi-git-assistant",
     "npm:@feniix/pi-statusline",
+    "npm:@samfp/pi-memory",
     "git:github.com/samfoy/pi-lesson-extractor"
   ],
   "enableSkillCommands": true,
