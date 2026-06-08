@@ -17,8 +17,6 @@ npmrc = "~/.npmrc"
 pi_settings = "~/.pi/agent/settings.json"
 pi_append_system = "~/.pi/agent/APPEND_SYSTEM.md"
 pi_extensions = "~/.pi/agent/extensions"
-"pi_extensions/subagent/.github/workflows/release.yml" = { target = "~/.pi/agent/extensions/subagent/.github/workflows/release.yml", type = "symbolic" }
-"pi_extensions/subagent/.github/workflows/test.yml" = { target = "~/.pi/agent/extensions/subagent/.github/workflows/test.yml", type = "symbolic" }
 skills = "~/.agents/skills"
 "skills/performance/SKILL.md" = { target = "~/.agents/skills/performance/SKILL.md", type = "symbolic" }
 "skills/impeccable/scripts/context-signals.mjs" = { target = "~/.agents/skills/impeccable/scripts/context-signals.mjs", type = "symbolic" }
