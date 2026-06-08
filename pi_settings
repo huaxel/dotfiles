@@ -3,20 +3,18 @@
   "defaults": {
     "model": "accounts/fireworks/routers/kimi-k2p6-turbo"
   },
-  "defaultProvider": "firepass",
-  "defaultModel": "accounts/fireworks/routers/kimi-k2p6-turbo",
+  "defaultProvider": "opencode-go",
+  "defaultModel": "deepseek-v4-flash",
   "defaultThinkingLevel": "high",
   "theme": "dark",
   "hideThinkingBlock": false,
   "packages": [
-
     "https://github.com/ttttmr/pi-context",
     "npm:context-mode",
     "npm:pi-autoresearch",
     "npm:@juicesharp/rpiv-ask-user-question",
     "npm:@juicesharp/rpiv-todo",
     "npm:pi-dynamic-workflows",
-    "npm:pi-observability",
     "npm:pi-review-loop",
     "npm:pi-simplify",
     "npm:pi-speedometer",
@@ -26,6 +24,7 @@
     "npm:@narumitw/pi-goal",
     "npm:pi-context-prune",
     "npm:elt7613/pi-git-assistant",
+    "npm:@feniix/pi-statusline",
     "git:github.com/samfoy/pi-lesson-extractor"
   ],
   "enableSkillCommands": true,
