@@ -9,15 +9,7 @@
   "theme": "dark",
   "hideThinkingBlock": false,
   "packages": [
-    {
-      "source": "git:github.com/tmustier/pi-extensions",
-      "extensions": [
-        "-arcade/picman.ts",
-        "-arcade/ping.ts",
-        "-arcade/spice-invaders.ts",
-        "-arcade/tetris.ts"
-      ]
-    },
+
     "https://github.com/ttttmr/pi-context",
     "npm:context-mode",
     "npm:pi-autoresearch",
@@ -28,6 +20,7 @@
     "npm:pi-review-loop",
     "npm:pi-simplify",
     "npm:pi-speedometer",
+    "npm:@mjfuertesf/pi-quota-status",
     "npm:pi-web-access",
     "npm:pi-lsp-extension",
     "npm:@narumitw/pi-goal",
