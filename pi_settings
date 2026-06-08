@@ -8,17 +8,7 @@
   "defaultThinkingLevel": "high",
   "theme": "dark",
   "hideThinkingBlock": false,
-  "extensions": [
-    {
-      "source": "git:github.com/tmustier/pi-extensions",
-      "extensions": [
-        "-arcade/picman.ts",
-        "-arcade/ping.ts",
-        "-arcade/spice-invaders.ts",
-        "-arcade/tetris.ts"
-      ]
-    }
-  ],
+  "extensions": [],
   "packages": [
     "https://github.com/ttttmr/pi-context",
     "npm:context-mode",
