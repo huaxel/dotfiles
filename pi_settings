@@ -24,8 +24,7 @@
     "npm:pi-lsp-extension",
     "npm:@narumitw/pi-goal",
     "npm:pi-context-prune",
-    "npm:pi-git-assistant",
-    "npm:@feniix/pi-statusline",
+    "npm:pi-git-assistant"
   ],
   "enableSkillCommands": true,
   "steeringMode": "all"
