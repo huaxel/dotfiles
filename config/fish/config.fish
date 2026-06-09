@@ -34,7 +34,7 @@ fish_add_path $HOME/.local/bin
 fish_add_path $HOME/.cargo/bin
 
 # OS-specific PATH
-if test (uname) = "Darwin"
+if test (uname) = Darwin
     fish_add_path /opt/homebrew/bin
     fish_add_path /opt/local/bin
     fish_add_path $HOME/.antigravity/antigravity/bin
@@ -67,7 +67,7 @@ set -x FZF_ALT_C_OPTS "--preview 'eza --tree --color=always --icons {} | head -2
 set -x MANPAGER "sh -c 'col -bx | bat -l man -p --theme=tokyonight_night'"
 
 # Cross-platform aliases
-if test (uname) = "Darwin"
+if test (uname) = Darwin
     alias ls='eza -la --icons'
 else
     alias ls='eza -la --icons'
@@ -161,23 +161,23 @@ set --export PATH $BUN_INSTALL/bin $PATH
 # Bang-bang: !! and !$ history expansion
 function bind_bang
     switch (commandline -t)
-    case "!"
-        commandline -t $history[1]
-        commandline -f repaint
-    case "*"
-        commandline -i !
+        case "!"
+            commandline -t $history[1]
+            commandline -f repaint
+        case "*"
+            commandline -i !
     end
 end
 
 function bind_dollar
     switch (commandline -t)
-    case "!"
-        commandline -t ""
-        set -l last_token (string split " " $history[1])[-1]
-        commandline -i $last_token
-        commandline -f repaint
-    case "*"
-        commandline -i '$'
+        case "!"
+            commandline -t ""
+            set -l last_token (string split " " $history[1])[-1]
+            commandline -i $last_token
+            commandline -f repaint
+        case "*"
+            commandline -i '$'
     end
 end
 
@@ -190,6 +190,6 @@ end
 
 # fish_user_key_bindings is auto-called by fish; no need to invoke manually
 fish_add_path $HOME/.npm-global/bin
-if test -f ~/.agents/secrets/env.fish
-    source ~/.agents/secrets/env.fish
+if test -f ~/.config/secrets/env.fish
+    source ~/.config/secrets/env.fish
 end
