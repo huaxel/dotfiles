@@ -42,5 +42,5 @@ fi
 
 echo ""
 echo "💡 To use decrypted secrets in your shell:"
-echo "   source ~/.config/secrets/env.sh"
+echo "   source ~/.config/secrets/env.fish"
 
