@@ -117,3 +117,176 @@ alias workvpn="openvpn --config ~/work.ovpn"
 ```
 
 This is sourced at the end of the main zshrc.
+
+---
+
+## Secrets Management (sops + age)
+
+Encrypted secrets live in the dotfiles repo and auto-decrypt on `dotter deploy`.
+
+### Prerequisites
+
+```bash
+# macOS
+brew install sops age
+
+# Arch Linux
+pacman -S sops age
+
+# Ubuntu/Debian
+# Download from https://github.com/getsops/sops/releases
+# and https://github.com/FiloSottile/age/releases
+```
+
+### Setup on a new machine
+
+**1. Generate an age key** (one per machine):
+
+```bash
+mkdir -p ~/.config/sops/age
+age-keygen -o ~/.config/sops/age/keys.txt
+```
+
+This prints a **public key** like `age1xxx...`. Add it to `.sops.yaml` in the dotfiles repo so this machine can decrypt:
+
+```bash
+cd ~/dotfiles
+# Edit .sops.yaml and add the new public key to the age list
+git add .sops.yaml
+git commit -m "feat(secrets): add <machine-name> age key"
+git push
+```
+
+**2. Pull and deploy**:
+
+```bash
+cd ~/dotfiles && git pull
+dotter deploy
+# → secrets auto-decrypt to ~/.agents/secrets/
+```
+
+### How to add a secret
+
+**1. Create the plaintext file** (never commit this):
+
+```bash
+cat > ~/dotfiles/secrets/env.sh <<'EOF'
+export FIREWORKS_API_KEY="your-key-here"
+export OPENAI_API_KEY="your-key-here"
+export ANTHROPIC_API_KEY="your-key-here"
+EOF
+```
+
+**2. Encrypt it**:
+
+```bash
+cd ~/dotfiles/secrets
+sops --encrypt env.sh > env.sh.enc
+```
+
+**3. Remove plaintext and commit encrypted**:
+
+```bash
+rm env.sh
+cd ~/dotfiles
+git add secrets/env.sh.enc
+git commit -m "chore(secrets): add API keys"
+git push
+```
+
+### How to use decrypted secrets
+
+**Fish** (`~/.config/fish/config.fish`):
+```fish
+if test -f ~/.agents/secrets/env.sh
+    source ~/.agents/secrets/env.sh
+end
+```
+
+**Zsh/Bash** (`~/.zshrc`):
+```bash
+[ -f ~/.agents/secrets/env.sh ] && source ~/.agents/secrets/env.sh
+```
+
+### What gets encrypted vs. what's ignored
+
+| Tracked in git | Ignored |
+|---|---|
+| `secrets/*.enc` | `secrets/*` (plaintext) |
+| `secrets/README.md` | `~/.agents/secrets/` (decrypted) |
+| `.sops.yaml` | `~/.config/sops/age/keys.txt` |
+
+### Adding a new machine to decrypt existing secrets
+
+If you have a new machine that needs to read existing secrets:
+
+1. Generate age key on new machine
+2. Add the **public key** to `.sops.yaml` (comma-separated)
+3. **Re-encrypt all secrets** so the new key is included:
+
+```bash
+cd ~/dotfiles/secrets
+for f in *.enc; do
+  sops --rotate -in-place "$f"
+done
+git add *.enc
+git commit -m "chore(secrets): rotate keys for new machine"
+git push
+```
+
+Then on the new machine:
+```bash
+cd ~/dotfiles && git pull && dotter deploy
+```
+
+### Troubleshooting
+
+**"Failed to decrypt"** — wrong age key:
+```bash
+# Verify your key exists
+cat ~/.config/sops/age/keys.txt
+
+# Check which keys the file was encrypted for
+sops --encrypt --show-master-keys secrets/env.sh.enc
+```
+
+**"sops: command not found"** — install it:
+```bash
+# Arch
+pacman -S sops
+# macOS
+brew install sops
+```
+
+**Secrets not decrypting on deploy** — check the post-deploy hook ran:
+```bash
+cd ~/dotfiles && dotter deploy 2>&1 | tail -20
+# Should show: "🔐 Decrypting env.sh..."
+```
+
+### Full example: adding a Fireworks API key
+
+```bash
+# 1. Create the secret
+cat > ~/dotfiles/secrets/fireworks.env <<'EOF'
+export FIREWORKS_API_KEY="fw-abc123..."
+EOF
+
+# 2. Encrypt
+cd ~/dotfiles/secrets
+sops --encrypt fireworks.env > fireworks.env.enc
+
+# 3. Clean up
+cd ~/dotfiles
+rm secrets/fireworks.env
+
+# 4. Commit
+git add secrets/fireworks.env.enc
+git commit -m "chore(secrets): add fireworks api key"
+git push
+
+# 5. Source it in your shell
+echo '[ -f ~/.agents/secrets/fireworks.env ] && source ~/.agents/secrets/fireworks.env' >> ~/.zshrc
+```
+
+On the next `dotter deploy`, the secret decrypts automatically.
