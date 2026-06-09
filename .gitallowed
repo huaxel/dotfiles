@@ -55,3 +55,4 @@ accessTimes
 passwordHash
 resetToken
 publicFields
+tokensPerSecond
