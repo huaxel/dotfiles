@@ -31,7 +31,7 @@ if [ -d "$SECRETS_DIR" ]; then
         decrypt_path="$DECRYPT_DIR/$filename"
         
         echo "🔐 Decrypting $filename..."
-        if sops --decrypt "$enc_file" > "$decrypt_path" 2>/dev/null; then
+        if sops --decrypt --output-type binary "$enc_file" > "$decrypt_path" 2>/dev/null; then
             chmod 600 "$decrypt_path"
             echo "   ✅ Decrypted to $decrypt_path"
         else

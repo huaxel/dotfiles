@@ -181,7 +181,7 @@ EOF
 
 ```bash
 cd ~/dotfiles/secrets
-sops --encrypt env.sh > env.sh.enc
+sops --encrypt --input-type binary env.sh > env.sh.enc
 ```
 
 **3. Remove plaintext and commit encrypted**:
