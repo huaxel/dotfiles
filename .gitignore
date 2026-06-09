@@ -68,6 +68,7 @@ secrets/*
 !secrets/*.enc
 !secrets/*.sops
 !secrets/.gitkeep
+!secrets/README.md
 
 # Age keys (machine-specific)
 .config/sops/age/keys.txt

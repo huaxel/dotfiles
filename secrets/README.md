@@ -1,0 +1,69 @@
+# Secrets (sops + age)
+
+This directory contains **encrypted** secrets that sync across machines via git.
+
+## How it works
+
+1. **Encrypt** a secret file with `sops --encrypt`
+2. **Commit** the `.enc` file to this repo
+3. **Pull** on another machine
+4. **Dotter deploy** auto-decrypts secrets to `~/.agents/secrets/`
+
+## Quick start
+
+### 1. Add your age key to the repo (for other machines)
+
+The public key from `~/.config/sops/age/keys.txt` is already in `.sops.yaml`.
+For other machines to decrypt, you need to add their public keys to `.sops.yaml`:
+
+```yaml
+creation_rules:
+  - path_regex: secrets/.*$
+    age: >
+      age13tmsqsgvls98xku94mc53t0tn9et450nfkmydqrpl380cytt0pwsl7s8zl,
+      age1<other-machine-key>
+```
+
+### 2. Create a secret file
+
+Example: `env.sh` with API keys
+
+```bash
+# ~/.agents/secrets/env.sh
+export FIREWORKS_API_KEY="your-key-here"
+export OPENAI_API_KEY="your-key-here"
+export ANTHROPIC_API_KEY="your-key-here"
+```
+
+### 3. Encrypt it
+
+```bash
+cd ~/dotfiles/secrets
+sops --encrypt env.sh > env.sh.enc
+```
+
+### 4. Remove the plaintext and commit
+
+```bash
+rm env.sh
+git add env.sh.enc
+```
+
+### 5. Use it in your shell
+
+Add to `~/.config/fish/config.fish`:
+```fish
+if test -f ~/.agents/secrets/env.sh
+    source ~/.agents/secrets/env.sh
+end
+```
+
+Or in `~/.zshrc`:
+```bash
+[ -f ~/.agents/secrets/env.sh ] && source ~/.agents/secrets/env.sh
+```
+
+## Files
+
+- `*.enc` — encrypted secrets (committed to git)
+- `~/.agents/secrets/` — decrypted secrets (never committed, 600 permissions)
