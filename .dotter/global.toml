@@ -18,6 +18,7 @@ pi_settings = "~/.pi/agent/settings.json"
 pi_append_system = "~/.pi/agent/APPEND_SYSTEM.md"
 pi_extensions = { target = "~/.pi/agent/extensions", type = "symbolic" }
 skills = { target = "~/.pi/agent/skills", type = "symbolic" }
+"pi_npm/package.json" = "~/.pi/agent/npm/package.json"
 
 [default.variables]
 name = "Juan Benjumea"
