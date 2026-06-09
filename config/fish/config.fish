@@ -55,6 +55,7 @@ set -x VISUAL nvim
 set -x PAGER less
 set -x XDG_CONFIG_HOME $HOME/.config
 set -x EZA_CONFIG_DIR $HOME/.config/eza
+set -x PI_CODING_AGENT_DIR $HOME/.pi/agent
 
 # FZF defaults
 set -x FZF_DEFAULT_OPTS "--height 40% --layout=reverse --border --preview 'bat --color=always --style=numbers --line-range=:500 {}' --preview-window=right:60%"
@@ -188,3 +189,4 @@ function fish_user_key_bindings
 end
 
 # fish_user_key_bindings is auto-called by fish; no need to invoke manually
+fish_add_path $HOME/.npm-global/bin
