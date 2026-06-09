@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.78.1",
+  "lastChangelogVersion": "0.79.0",
   "defaults": {
     "model": "accounts/fireworks/routers/kimi-k2p6-turbo"
   },

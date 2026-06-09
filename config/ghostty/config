@@ -6,7 +6,8 @@ background =         #1a1b26
 foreground =         #c0caf5
 
 # Font
-font-family = "JetBrainsMono Nerd Font"
+font-family = "JetBrainsMono Nerd Font Mono"
+font-family = "Symbols Nerd Font"
 font-size = 13
 font-feature = "calt"
 font-feature = "liga"
@@ -17,11 +18,7 @@ cursor-style = block
 cursor-style-blink = false
 
 # Shell integration
-{{#if (eq dotter.os "macos")}}
-shell-integration = zsh
-{{else}}
 shell-integration = fish
-{{/if}}
 
 # Keybindings
 keybind = ctrl+shift+c=copy_to_clipboard
