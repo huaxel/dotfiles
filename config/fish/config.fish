@@ -190,3 +190,6 @@ end
 
 # fish_user_key_bindings is auto-called by fish; no need to invoke manually
 fish_add_path $HOME/.npm-global/bin
+if test -f ~/.agents/secrets/env.fish
+    source ~/.agents/secrets/env.fish
+end
