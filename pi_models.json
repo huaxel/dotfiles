@@ -1,0 +1,39 @@
+{
+  "providers": {
+    "firepass": {
+      "baseUrl": "https://api.fireworks.ai/inference/v1",
+      "api": "openai-completions",
+      "apiKey": "$FIREWORKS_API_KEY",
+      "models": [
+        {
+          "id": "accounts/fireworks/routers/kimi-k2p5-turbo",
+          "name": "Kimi k2.5 Turbo",
+          "reasoning": true,
+          "input": ["text"],
+          "contextWindow": 256000,
+          "maxTokens": 256000,
+          "cost": {
+            "input": 0.99,
+            "output": 4.94,
+            "cacheRead": 0.16,
+            "cacheWrite": 0
+          }
+        },
+        {
+          "id": "accounts/fireworks/routers/kimi-k2p6-turbo",
+          "name": "Kimi k2.6 Turbo",
+          "reasoning": true,
+          "input": ["text"],
+          "contextWindow": 256000,
+          "maxTokens": 256000,
+          "cost": {
+            "input": 2.00,
+            "output": 8.00,
+            "cacheRead": 0.30,
+            "cacheWrite": 0
+          }
+        }
+      ]
+    }
+  }
+}
