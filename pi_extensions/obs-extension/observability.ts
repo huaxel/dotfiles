@@ -569,7 +569,8 @@ export default function (pi: ExtensionAPI) {
             const sorted = Array.from(extStatuses.entries())
               .sort(([a], [b]) => a.localeCompare(b))
               .map(([, text]) => text);
-            footerLines.push(sorted.join(theme.fg("dim", " · ")));
+            const statusLine = sorted.join(theme.fg("dim", " · "));
+            footerLines.push(truncateToWidth(statusLine, width));
           }
           return footerLines;
         },
