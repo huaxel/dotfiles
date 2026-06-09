@@ -3,8 +3,8 @@
   "defaults": {
     "model": "accounts/fireworks/routers/kimi-k2p6-turbo"
   },
-  "defaultProvider": "opencode-go",
-  "defaultModel": "deepseek-v4-flash",
+  "defaultProvider": "fireworks",
+  "defaultModel": "accounts/fireworks/routers/kimi-k2p6-turbo",
   "defaultThinkingLevel": "high",
   "theme": "dark",
   "hideThinkingBlock": false,
