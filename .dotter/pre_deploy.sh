@@ -6,8 +6,8 @@ DOTFILES_DIR=$(cd $(dirname "$0")/.. && pwd)
 
 # Sync skills from dotfiles to live location
 if [ -d "$DOTFILES_DIR/skills" ]; then
-  mkdir -p ~/.config/skills
-  cp -r "$DOTFILES_DIR/skills/"* ~/.config/skills/
+  mkdir -p ~/.agents/skills
+  cp -r "$DOTFILES_DIR/skills/"* ~/.agents/skills/
 fi
 
 # Sync extensions from dotfiles to live location
