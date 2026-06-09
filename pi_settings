@@ -26,8 +26,6 @@
     "npm:pi-context-prune",
     "npm:pi-git-assistant",
     "npm:@feniix/pi-statusline",
-    "npm:@samfp/pi-memory",
-    "git:github.com/samfoy/pi-lesson-extractor"
   ],
   "enableSkillCommands": true,
   "steeringMode": "all"
