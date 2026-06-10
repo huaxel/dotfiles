@@ -3,8 +3,8 @@
   "defaults": {
     "model": "accounts/fireworks/routers/kimi-k2p6-turbo"
   },
-  "defaultProvider": "openai-codex",
-  "defaultModel": "gpt-5.5",
+  "defaultProvider": "fireworks",
+  "defaultModel": "accounts/fireworks/routers/kimi-k2p6-turbo",
   "defaultThinkingLevel": "high",
   "theme": "dark",
   "hideThinkingBlock": false,
