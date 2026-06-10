@@ -8,9 +8,6 @@ gitconfig = "~/.gitconfig"   # Template for user info
 ideavimrc = "~/.ideavimrc"
 gitignore_global = "~/.gitignore_global"
 ssh_config = "~/.ssh/config"
-{{#if (not (eq os "windows"))}}
-config = "~/.config"         # Includes fish/, nvim/, etc.
-{{/if}}
 aerospace = "~/.aerospace.toml"
 "tmux.conf" = "~/.tmux.conf"
 npmrc = "~/.npmrc"
@@ -21,9 +18,6 @@ pi_settings = "~/.pi/agent/settings.json"
 "pi_models.json" = "~/.pi/agent/models.json"
 pi_append_system = "~/.pi/agent/APPEND_SYSTEM.md"
 pi_extensions = { target = "~/.pi/agent/extensions", type = "symbolic" }
-{{#if (not (eq os "windows"))}}
-skills = { target = "~/.agents/skills", type = "symbolic" }
-{{/if}}
 "pi_npm/package.json" = "~/.pi/agent/npm/package.json"
 
 [windows.files]
@@ -72,6 +66,11 @@ skills = { target = "~/.agents/skills", type = "symbolic" }
 
 # Fastfetch — system info
 "config/fastfetch" = { target = "~\\.config\\fastfetch", type = "symbolic" }
+
+[unix.files]
+# macOS/Linux-only: full config directory (individual configs are in windows.files)
+config = "~/.config"
+skills = { target = "~/.agents/skills", type = "symbolic" }
 
 [windows.variables]
 name = "Juan Benjumea"
