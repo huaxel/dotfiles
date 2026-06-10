@@ -8,7 +8,9 @@ gitconfig = "~/.gitconfig"   # Template for user info
 ideavimrc = "~/.ideavimrc"
 gitignore_global = "~/.gitignore_global"
 ssh_config = "~/.ssh/config"
+{{#if (not (eq os "windows"))}}
 config = "~/.config"         # Includes fish/, nvim/, etc.
+{{/if}}
 aerospace = "~/.aerospace.toml"
 "tmux.conf" = "~/.tmux.conf"
 npmrc = "~/.npmrc"
@@ -19,26 +21,12 @@ pi_settings = "~/.pi/agent/settings.json"
 "pi_models.json" = "~/.pi/agent/models.json"
 pi_append_system = "~/.pi/agent/APPEND_SYSTEM.md"
 pi_extensions = { target = "~/.pi/agent/extensions", type = "symbolic" }
+{{#if (not (eq os "windows"))}}
 skills = { target = "~/.agents/skills", type = "symbolic" }
+{{/if}}
 "pi_npm/package.json" = "~/.pi/agent/npm/package.json"
 
 [windows.files]
-# Core dotfiles (also in default.files, but explicit for Windows)
-gitconfig = { target = "~\\.gitconfig", type = "symbolic" }
-gitignore_global = { target = "~\\.gitignore_global", type = "symbolic" }
-npmrc = { target = "~\\.npmrc", type = "symbolic" }
-ideavimrc = { target = "~\\.ideavimrc", type = "symbolic" }
-ssh_config = { target = "~\\.ssh\\config", type = "symbolic" }
-"starship.toml" = { target = "~\\.config\\starship.toml", type = "symbolic" }
-
-# Pi agent configuration
-pi_settings = { target = "~\\.pi\\agent\\settings.json", type = "symbolic" }
-"pi_models.json" = { target = "~\\.pi\\agent\\models.json", type = "symbolic" }
-pi_append_system = { target = "~\\.pi\\agent\\APPEND_SYSTEM.md", type = "symbolic" }
-pi_extensions = { target = "~\\.pi\\agent\\extensions", type = "symbolic" }
-skills = { target = "~\\.agents\\skills", type = "symbolic" }
-"pi_npm/package.json" = { target = "~\\.pi\\agent\\npm\\package.json", type = "symbolic" }
-
 # VS Code
 "config/vscode/settings.json" = { target = "$APPDATA\\Code\\User\\settings.json", type = "symbolic" }
 "config/vscode/profiles" = { target = "$APPDATA\\Code\\User\\profiles", type = "symbolic" }
