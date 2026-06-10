@@ -40,14 +40,14 @@ skills = { target = "~\\.agents\\skills", type = "symbolic" }
 "pi_npm/package.json" = { target = "~\\.pi\\agent\\npm\\package.json", type = "symbolic" }
 
 # VS Code
-"config/vscode/settings.json" = { target = "~\\.config\\vscode\\settings.json", type = "symbolic" }
-"config/vscode/profiles" = { target = "~\\.config\\vscode\\profiles", type = "symbolic" }
+"config/vscode/settings.json" = { target = "$APPDATA\\Code\\User\\settings.json", type = "symbolic" }
+"config/vscode/profiles" = { target = "$APPDATA\\Code\\User\\profiles", type = "symbolic" }
 
 # Zed
-"config/zed/keymap.json" = { target = "~\\.config\\zed\\keymap.json", type = "symbolic" }
+"config/zed/keymap.json" = { target = "$LOCALAPPDATA\\Zed\\keymap.json", type = "symbolic" }
 
-# GitHub Copilot instructions
-"config/github-copilot" = { target = "~\\.config\\github-copilot", type = "symbolic" }
+# GitHub Copilot instructions (IntelliJ on Windows)
+"config/github-copilot/intellij" = { target = "$APPDATA\\JetBrains\\github-copilot", type = "symbolic" }
 
 # PowerShell 7 profile
 "powershell/7/profile.ps1" = { target = "~\\Documents\\PowerShell\\Microsoft.PowerShell_profile.ps1", type = "symbolic" }
