@@ -6,3 +6,6 @@ packages = ["default"]
 [variables]
 # Set to "macos" for macOS, "linux" for Linux/WSL
 os = "macos"
+name = "Your Name"
+email = "your@email.com"
+hostname_color = "fg:#f7768e"
