@@ -23,6 +23,32 @@ skills = { target = "~/.agents/skills", type = "symbolic" }
 "pi_npm/package.json" = "~/.pi/agent/npm/package.json"
 
 [windows.files]
+# Core dotfiles (also in default.files, but explicit for Windows)
+gitconfig = { target = "~\\.gitconfig", type = "symbolic" }
+gitignore_global = { target = "~\\.gitignore_global", type = "symbolic" }
+npmrc = { target = "~\\.npmrc", type = "symbolic" }
+ideavimrc = { target = "~\\.ideavimrc", type = "symbolic" }
+ssh_config = { target = "~\\.ssh\\config", type = "symbolic" }
+"starship.toml" = { target = "~\\.config\\starship.toml", type = "symbolic" }
+
+# Pi agent configuration
+pi_settings = { target = "~\\.pi\\agent\\settings.json", type = "symbolic" }
+"pi_models.json" = { target = "~\\.pi\\agent\\models.json", type = "symbolic" }
+pi_append_system = { target = "~\\.pi\\agent\\APPEND_SYSTEM.md", type = "symbolic" }
+pi_extensions = { target = "~\\.pi\\agent\\extensions", type = "symbolic" }
+skills = { target = "~\\.agents\\skills", type = "symbolic" }
+"pi_npm/package.json" = { target = "~\\.pi\\agent\\npm\\package.json", type = "symbolic" }
+
+# VS Code
+"config/vscode/settings.json" = { target = "~\\.config\\vscode\\settings.json", type = "symbolic" }
+"config/vscode/profiles" = { target = "~\\.config\\vscode\\profiles", type = "symbolic" }
+
+# Zed
+"config/zed/keymap.json" = { target = "~\\.config\\zed\\keymap.json", type = "symbolic" }
+
+# GitHub Copilot instructions
+"config/github-copilot" = { target = "~\\.config\\github-copilot", type = "symbolic" }
+
 # PowerShell 7 profile
 "powershell/7/profile.ps1" = { target = "~\\Documents\\PowerShell\\Microsoft.PowerShell_profile.ps1", type = "symbolic" }
 
