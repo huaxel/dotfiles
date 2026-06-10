@@ -3,7 +3,7 @@
   "defaults": {
     "model": "accounts/fireworks/routers/kimi-k2p6-turbo"
   },
-  "defaultProvider": "fireworks",
+  "defaultProvider": "firepass",
   "defaultModel": "accounts/fireworks/routers/kimi-k2p6-turbo",
   "defaultThinkingLevel": "high",
   "theme": "dark",
