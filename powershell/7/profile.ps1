@@ -60,6 +60,37 @@ Set-Alias -Name ls -Value eza -ErrorAction SilentlyContinue
 Set-Alias -Name ll -Value 'eza -la' -ErrorAction SilentlyContinue
 
 # ============================
+# Modern Tool Aliases
+# ============================
+if (Get-Command procs -ErrorAction SilentlyContinue) {
+    Set-Alias -Name ps -Value procs -ErrorAction SilentlyContinue
+}
+if (Get-Command dust -ErrorAction SilentlyContinue) {
+    Set-Alias -Name du -Value dust -ErrorAction SilentlyContinue
+}
+if (Get-Command duf -ErrorAction SilentlyContinue) {
+    Set-Alias -Name df -Value duf -ErrorAction SilentlyContinue
+}
+if (Get-Command glow -ErrorAction SilentlyContinue) {
+    Set-Alias -Name md -Value glow -ErrorAction SilentlyContinue
+}
+
+# ============================
+# Yazi Integration
+# ============================
+function y() {
+    $tmp = New-TemporaryFile
+    yazi $args --cwd-file $tmp
+    if (Test-Path $tmp) {
+        $cwd = Get-Content $tmp
+        Remove-Item $tmp
+        if ($cwd -ne "") {
+            Set-Location $cwd
+        }
+    }
+}
+
+# ============================
 # Utility Functions
 # ============================
 function .. { Set-Location .. }
@@ -112,11 +143,16 @@ if (Get-Command atuin -ErrorAction SilentlyContinue) {
     (& atuin init powershell) | Out-String | Invoke-Expression
 }
 
+if (Get-Command just -ErrorAction SilentlyContinue) {
+    (& just --completions powershell) | Out-String | Invoke-Expression
+}
+
 # ============================
 # Environment Variables
 # ============================
 $env:BAT_THEME = "tokyonight_night"
 $env:EZA_CONFIG_DIR = "$env:USERPROFILE\.config\eza"
+$env:ZELLIJ_CONFIG_DIR = "$env:USERPROFILE\.config\zellij"
 
 # ============================
 # Window Title
