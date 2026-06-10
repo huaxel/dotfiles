@@ -32,6 +32,15 @@ skills = { target = "~/.agents/skills", type = "symbolic" }
 # Windows Terminal
 "windows-terminal/settings.json" = { target = "$LOCALAPPDATA\\Packages\\Microsoft.WindowsTerminal_8wekyb3d8bbwe\\LocalState\\settings.json", type = "symbolic" }
 
+# AutoHotkey — Mac-like key remap (deploy script to config dir)
+"autohotkey/mac-layout.ahk" = { target = "~\\.config\\autohotkey\\mac-layout.ahk", type = "symbolic" }
+
+# GlazeWM — Tiling window manager
+"glazewm/config.yaml" = { target = "~\\.glzr\\glazewm\\config.yaml", type = "symbolic" }
+
+# Zebar — Status bar for GlazeWM
+"zebar/settings.json" = { target = "~\\.glzr\\zebar\\settings.json", type = "symbolic" }
+
 [windows.variables]
 name = "Juan Benjumea"
 email = "benjumeamoreno@gmail.com"
