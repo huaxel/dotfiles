@@ -12,6 +12,7 @@ config = "~/.config"         # Includes fish/, nvim/, etc.
 aerospace = "~/.aerospace.toml"
 "tmux.conf" = "~/.tmux.conf"
 npmrc = "~/.npmrc"
+"starship.toml" = "~/.config/starship.toml"
 
 # Pi agent configuration
 pi_settings = "~/.pi/agent/settings.json"
@@ -25,3 +26,4 @@ skills = { target = "~/.agents/skills", type = "symbolic" }
 name = "Juan Benjumea"
 email = "benjumeamoreno@gmail.com"
 github_username = "huaxel"
+hostname_color = "fg:#f7768e"
