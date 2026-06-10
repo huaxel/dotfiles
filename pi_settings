@@ -22,7 +22,6 @@
     "npm:pi-web-access",
     "npm:pi-lsp-extension",
     "npm:@narumitw/pi-goal",
-    "npm:pi-context-prune",
     "npm:pi-git-assistant",
     "npm:@ff-labs/pi-fff"
   ],
