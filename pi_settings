@@ -18,7 +18,6 @@
     "npm:pi-dynamic-workflows",
     "npm:pi-review-loop",
     "npm:pi-simplify",
-    "npm:pi-speedometer",
     "npm:@mjfuertesf/pi-quota-status",
     "npm:pi-web-access",
     "npm:pi-lsp-extension",
