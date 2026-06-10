@@ -21,6 +21,10 @@
 	defaultBranch = main
 [core]
 	excludesfile = ~/.gitignore_global
+{{#if (eq os "windows")}}
+	pager = bat
+	autocrlf = false
+{{else}}
 	pager = delta
 	autocrlf = input
 	fsmonitor = true
@@ -35,6 +39,7 @@
 	line-numbers = true
 	hyperlinks = true
 	hyperlinks-commit-link-format = true
+{{/if}}
 
 [merge]
 	conflictstyle = diff3
