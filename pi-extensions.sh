@@ -12,7 +12,6 @@ PACKAGES=(
   # npm packages
   "npm:context-mode"
   "npm:pi-autoresearch"
-  "npm:pi-context-prune"
   "npm:pi-dynamic-workflows"
   "npm:pi-git-assistant"
   "npm:pi-lsp-extension"
