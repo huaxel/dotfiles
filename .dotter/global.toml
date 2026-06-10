@@ -41,6 +41,24 @@ skills = { target = "~/.agents/skills", type = "symbolic" }
 # Zebar — Status bar for GlazeWM
 "zebar/settings.json" = { target = "~\\.glzr\\zebar\\settings.json", type = "symbolic" }
 
+# Neovim
+"config/nvim" = { target = "~\\AppData\\Local\\nvim", type = "symbolic" }
+
+# Bat — cat replacement with syntax highlighting
+"config/bat" = { target = "~\\.config\\bat", type = "symbolic" }
+
+# Btop — resource monitor
+"config/btop" = { target = "~\\.config\\btop", type = "symbolic" }
+
+# Broot — file tree navigator
+"config/broot" = { target = "~\\.config\\broot", type = "symbolic" }
+
+# Eza — modern ls replacement
+"config/eza" = { target = "~\\.config\\eza", type = "symbolic" }
+
+# Fastfetch — system info
+"config/fastfetch" = { target = "~\\.config\\fastfetch", type = "symbolic" }
+
 [windows.variables]
 name = "Juan Benjumea"
 email = "benjumeamoreno@gmail.com"

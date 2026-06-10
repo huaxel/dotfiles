@@ -108,6 +108,16 @@ if (Get-Command zoxide -ErrorAction SilentlyContinue) {
     Invoke-Expression (& { $hook = if ($PSVersionTable.PSVersion.Major -ge 7) { 'pwd' } else { 'prompt' } (zoxide init powershell --hook $hook) -join "`n" })
 }
 
+if (Get-Command atuin -ErrorAction SilentlyContinue) {
+    (& atuin init powershell) | Out-String | Invoke-Expression
+}
+
+# ============================
+# Environment Variables
+# ============================
+$env:BAT_THEME = "tokyonight_night"
+$env:EZA_CONFIG_DIR = "$env:USERPROFILE\.config\eza"
+
 # ============================
 # Window Title
 # ============================
