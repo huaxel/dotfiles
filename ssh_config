@@ -2,7 +2,7 @@ Host github.com
     HostName ssh.github.com
     Port 443
     User git
-    IdentityFile ~/.ssh/id_rsa
+    IdentityFile ~/.ssh/id_ed25519
 
 Host framearch-juan
     HostName framearch-juan
@@ -12,7 +12,7 @@ Host ubuntu-desktopos
     HostName desktopos-2526s1-1008-ubu-juanbenjumeamoreno.westeurope.cloudapp.azure.com
     User ehbstudent
     Port 60022
-    IdentityFile ~/.ssh/id_rsa
+    IdentityFile ~/.ssh/id_ed25519
 
 Host liedelpi
     HostName liedelpi.bonobo-fort.ts.net

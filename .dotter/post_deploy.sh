@@ -1,15 +1,3 @@
-: << 'CMDBLOCK'
-@echo off
-REM Polyglot wrapper: runs on Windows (CMD) and Unix (bash)
-cd /d "%~dp0"
-where bash >nul 2>nul
-if %ERRORLEVEL% equ 0 (
-    bash "%~f0"
-    exit /b %ERRORLEVEL%
-)
-echo Error: bash not found in PATH >&2
-exit /b 1
-CMDBLOCK
 #!/bin/bash
 # Post-deploy hook: decrypt secrets with sops
 # This runs after dotter deploys files
