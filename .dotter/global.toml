@@ -22,7 +22,17 @@ pi_extensions = { target = "~/.pi/agent/extensions", type = "symbolic" }
 skills = { target = "~/.agents/skills", type = "symbolic" }
 "pi_npm/package.json" = "~/.pi/agent/npm/package.json"
 
-[default.variables]
+[windows.files]
+# PowerShell 7 profile
+"powershell/7/profile.ps1" = { target = "~\\Documents\\PowerShell\\Microsoft.PowerShell_profile.ps1", type = "symbolic" }
+
+# PowerShell 5.1 profile
+"powershell/5.1/profile.ps1" = { target = "~\\Documents\\WindowsPowerShell\\Microsoft.PowerShell_profile.ps1", type = "symbolic" }
+
+# Windows Terminal
+"windows-terminal/settings.json" = { target = "$LOCALAPPDATA\\Packages\\Microsoft.WindowsTerminal_8wekyb3d8bbwe\\LocalState\\settings.json", type = "symbolic" }
+
+[windows.variables]
 name = "Juan Benjumea"
 email = "benjumeamoreno@gmail.com"
 github_username = "huaxel"

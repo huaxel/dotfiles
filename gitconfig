@@ -4,6 +4,8 @@
 [credential]
 {{#if (eq os "macos")}}
 	helper = osxkeychain
+{{else if (eq os "windows")}}
+	helper = manager
 {{else}}
 	helper = cache
 {{/if}}
