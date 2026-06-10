@@ -1,6 +1,9 @@
 # PowerShell Profile
 # Source: ~/dotfiles/powershell/7/profile.ps1
 
+# Scoop pwsh takes priority over old Program Files install
+$env:PATH = "$env:USERPROFILE\scoop\apps\pwsh\current;$env:PATH"
+
 # Requires: starship, fzf, PSReadLine (included in PS 7+)
 
 # ============================

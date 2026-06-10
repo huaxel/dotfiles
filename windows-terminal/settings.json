@@ -18,6 +18,21 @@
         {
             "id": "Terminal.DuplicatePaneAuto",
             "keys": "alt+shift+d"
+        },
+        {
+            "action": "switchToProfile",
+            "name": "archlinux",
+            "keys": "ctrl+shift+1"
+        },
+        {
+            "action": "switchToProfile",
+            "name": "pwsh",
+            "keys": "ctrl+shift+2"
+        },
+        {
+            "action": "switchToProfile",
+            "name": "Command Prompt",
+            "keys": "ctrl+shift+3"
         }
     ],
     "newTabMenu":
@@ -67,10 +82,15 @@
                 "name": "Command Prompt"
             },
             {
+                "colorScheme": "TokyoNight",
+                "commandline": "C:\\Users\\jbenjumeamoreno\\scoop\\apps\\pwsh\\current\\pwsh.exe",
+                "font":
+                {
+                    "face": "JetBrainsMono Nerd Font"
+                },
                 "guid": "{574e775e-4f2a-5b96-ac1e-a2962a402336}",
                 "hidden": false,
-                "name": "PowerShell",
-                "source": "Windows.Terminal.PowershellCore"
+                "name": "pwsh"
             },
             {
                 "font":

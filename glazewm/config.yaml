@@ -1,0 +1,281 @@
+# ============================================================================
+# GlazeWM config — AeroSpace → GlazeWM port
+# ============================================================================
+# Install: winget install glzr-io.glazewm
+# Config:  %USERPROFILE%\.glzr\glazewm\config.yaml
+# ============================================================================
+
+general:
+  # Startup: launch Windows Terminal
+  startup_commands:
+    - "shell-exec wt"
+
+  # Mouse follows focus when switching monitors (like AeroSpace's move-mouse monitor-lazy-center)
+  cursor_jump:
+    enabled: true
+    trigger: "monitor_focus"
+
+  # Hide windows via cloaking (fast, stable)
+  hide_method: "cloak"
+
+  # Only show current workspace windows in taskbar
+  show_all_in_taskbar: false
+
+  # Don't toggle workspace on refocus
+  toggle_workspace_on_refocus: false
+
+gaps:
+  scale_with_dpi: true
+
+  # Inner gaps between windows (matches AeroSpace inner.horizontal/vertical = 10)
+  inner_gap: "10px"
+
+  # Outer gaps (matches AeroSpace outer.left/right/bottom = 10, outer.top = 40 for main monitors)
+  outer_gap:
+    top: "40px"
+    right: "10px"
+    bottom: "10px"
+    left: "10px"
+
+# Window effects — borders similar to AeroSpace's "borders" plugin
+window_effects:
+  focused_window:
+    border:
+      enabled: true
+      color: "#ffe1e3e4"  # AeroSpace active_color=glow(0xffe1e3e4)
+    hide_title_bar:
+      enabled: false
+    corner_style:
+      enabled: false
+      style: "square"
+    transparency:
+      enabled: false
+      opacity: "100%"
+
+  other_windows:
+    border:
+      enabled: true
+      color: "#494d64"  # AeroSpace inactive_color=0xff494d64
+    hide_title_bar:
+      enabled: false
+    corner_style:
+      enabled: false
+      style: "square"
+    transparency:
+      enabled: false
+      opacity: "0%"
+
+window_behavior:
+  # Default to tiling (matches AeroSpace)
+  initial_state: "tiling"
+  state_defaults:
+    floating:
+      centered: true
+      shown_on_top: false
+    fullscreen:
+      maximized: false
+      shown_on_top: false
+
+# Workspaces — 1 through 8 (matches AeroSpace)
+workspaces:
+  - name: "1"
+  - name: "2"
+  - name: "3"
+  - name: "4"
+  - name: "5"
+  - name: "6"
+  - name: "7"
+  - name: "8"
+
+# Window rules — route apps to workspaces (matches AeroSpace on-window-detected)
+window_rules:
+  # Zen Browser → workspace 1
+  - commands: ["move --workspace 1"]
+    match:
+      - window_process: { equals: "zen" }
+        on: "manage"
+
+  # Obsidian → workspace 2
+  - commands: ["move --workspace 2"]
+    match:
+      - window_process: { equals: "Obsidian" }
+        on: "manage"
+
+  # WhatsApp → workspace 3
+  - commands: ["move --workspace 3"]
+    match:
+      - window_process: { equals: "WhatsApp" }
+        on: "manage"
+
+  # Discord → workspace 3
+  - commands: ["move --workspace 3"]
+    match:
+      - window_process: { equals: "Discord" }
+        on: "manage"
+
+  # Ignore system UI windows (built-in defaults + extras)
+  - commands: ["ignore"]
+    match:
+      - window_process: { equals: "zebar" }
+      - window_title: { regex: "[Pp]icture.in.[Pp]icture" }
+        window_class: { regex: "Chrome_WidgetWin_1|MozillaDialogClass" }
+      - window_process: { equals: "PowerToys" }
+        window_class: { regex: "HwndWrapper\\[PowerToys\\.PowerAccent.*?\\]" }
+      - window_title: { equals: "Command Palette" }
+        window_class: { equals: "WinUIDesktopWin32WindowClass" }
+      - window_process: { equals: "PowerToys" }
+        window_title: { regex: ".*? - Peek" }
+      - window_process: { equals: "Lively" }
+        window_class: { regex: "HwndWrapper" }
+      - window_process: { equals: "EXCEL" }
+        window_class: { not_regex: "XLMAIN" }
+      - window_process: { equals: "WINWORD" }
+        window_class: { not_regex: "OpusApp" }
+      - window_process: { equals: "POWERPNT" }
+        window_class: { not_regex: "PPTFrameClass" }
+
+# ============================================================================
+# Binding modes (matches AeroSpace's service mode)
+# ============================================================================
+binding_modes:
+  # Resize mode: hold Alt+R, use arrows to resize, release to exit
+  - name: "resize"
+    keybindings:
+      - commands: ["resize --width -2%"]
+        bindings: ["left"]
+      - commands: ["resize --width +2%"]
+        bindings: ["right"]
+      - commands: ["resize --height +2%"]
+        bindings: ["up"]
+      - commands: ["resize --height -2%"]
+        bindings: ["down"]
+      - commands: ["wm-disable-binding-mode --name resize"]
+        bindings: ["escape", "enter", "alt+r"]
+
+  # Service mode: Alt+Semicolon to enter, Esc to exit
+  - name: "service"
+    keybindings:
+      # Reset layout (flatten workspace tree)
+      - commands: ["wm-reload-config", "wm-disable-binding-mode --name service"]
+        bindings: ["r"]
+      # Toggle floating/tiling
+      - commands: ["toggle-floating", "wm-disable-binding-mode --name service"]
+        bindings: ["f"]
+      # Close focused window
+      - commands: ["close", "wm-disable-binding-mode --name service"]
+        bindings: ["backspace"]
+      # Exit service mode
+      - commands: ["wm-disable-binding-mode --name service"]
+        bindings: ["escape"]
+
+# ============================================================================
+# Keybindings — matches AeroSpace layout (Alt-based)
+# ============================================================================
+keybindings:
+  # ---- Focus (Alt + arrows) ----
+  - commands: ["focus --direction left"]
+    bindings: ["alt+left"]
+  - commands: ["focus --direction right"]
+    bindings: ["alt+right"]
+  - commands: ["focus --direction up"]
+    bindings: ["alt+up"]
+  - commands: ["focus --direction down"]
+    bindings: ["alt+down"]
+
+  # ---- Move window (Alt + Shift + arrows) ----
+  - commands: ["move --direction left"]
+    bindings: ["alt+shift+left"]
+  - commands: ["move --direction right"]
+    bindings: ["alt+shift+right"]
+  - commands: ["move --direction up"]
+    bindings: ["alt+shift+up"]
+  - commands: ["move --direction down"]
+    bindings: ["alt+shift+down"]
+
+  # ---- Resize (Alt + minus/equal) ----
+  - commands: ["resize --width -2%"]
+    bindings: ["alt+-"]
+  - commands: ["resize --width +2%"]
+    bindings: ["alt+="]
+
+  # ---- Enter resize mode (Alt + R) ----
+  - commands: ["wm-enable-binding-mode --name resize"]
+    bindings: ["alt+r"]
+
+  # ---- Reload config (Alt + Shift + R) ----
+  - commands: ["wm-reload-config"]
+    bindings: ["alt+shift+r"]
+
+  # ---- Switch workspace (Alt + 1-8) ----
+  - commands: ["focus --workspace 1"]
+    bindings: ["alt+1"]
+  - commands: ["focus --workspace 2"]
+    bindings: ["alt+2"]
+  - commands: ["focus --workspace 3"]
+    bindings: ["alt+3"]
+  - commands: ["focus --workspace 4"]
+    bindings: ["alt+4"]
+  - commands: ["focus --workspace 5"]
+    bindings: ["alt+5"]
+  - commands: ["focus --workspace 6"]
+    bindings: ["alt+6"]
+  - commands: ["focus --workspace 7"]
+    bindings: ["alt+7"]
+  - commands: ["focus --workspace 8"]
+    bindings: ["alt+8"]
+
+  # ---- Move window to workspace (Alt + Shift + 1-8) ----
+  - commands: ["move --workspace 1", "focus --workspace 1"]
+    bindings: ["alt+shift+1"]
+  - commands: ["move --workspace 2", "focus --workspace 2"]
+    bindings: ["alt+shift+2"]
+  - commands: ["move --workspace 3", "focus --workspace 3"]
+    bindings: ["alt+shift+3"]
+  - commands: ["move --workspace 4", "focus --workspace 4"]
+    bindings: ["alt+shift+4"]
+  - commands: ["move --workspace 5", "focus --workspace 5"]
+    bindings: ["alt+shift+5"]
+  - commands: ["move --workspace 6", "focus --workspace 6"]
+    bindings: ["alt+shift+6"]
+  - commands: ["move --workspace 7", "focus --workspace 7"]
+    bindings: ["alt+shift+7"]
+  - commands: ["move --workspace 8", "focus --workspace 8"]
+    bindings: ["alt+shift+8"]
+
+  # ---- Workspace back-and-forth (Alt + Tab) ----
+  - commands: ["focus --recent-workspace"]
+    bindings: ["alt+tab"]
+
+  # ---- Move workspace to next monitor (Alt + Shift + Tab) ----
+  - commands: ["move-workspace --direction right"]
+    bindings: ["alt+shift+tab"]
+
+  # ---- Open terminal (Alt + Enter) ----
+  - commands: ["shell-exec wt"]
+    bindings: ["alt+enter"]
+
+  # ---- Layout toggle (Alt + Slash → tiles, Alt + Comma → accordion approximation) ----
+  # GlazeWM doesn't have accordion, but toggle-tiling-direction switches split orientation
+  - commands: ["toggle-tiling-direction"]
+    bindings: ["alt+slash", "alt+comma"]
+
+  # ---- Service mode (Alt + Shift + Semicolon) ----
+  - commands: ["wm-enable-binding-mode --name service"]
+    bindings: ["alt+shift+;"]
+
+  # ---- Extra useful bindings ----
+  # Toggle floating (Alt + Shift + Space)
+  - commands: ["toggle-floating --centered"]
+    bindings: ["alt+shift+space"]
+
+  # Toggle fullscreen (Alt + F)
+  - commands: ["toggle-fullscreen"]
+    bindings: ["alt+f"]
+
+  # Close window (Alt + Shift + Q)
+  - commands: ["close"]
+    bindings: ["alt+shift+q"]
+
+  # Kill GlazeWM (Alt + Shift + E)
+  - commands: ["wm-exit"]
+    bindings: ["alt+shift+e"]
