@@ -1,0 +1,11 @@
+# Force LF line endings for all shell scripts and dotter config
+# Prevents CRLF issues when sharing dotfiles between Windows, WSL, macOS, and Linux
+
+*.sh text eol=lf
+*.toml text eol=lf
+*.fish text eol=lf
+*.ps1 text eol=crlf
+
+# Ensure batch files stay CRLF on Windows
+*.bat text eol=crlf
+*.cmd text eol=crlf
