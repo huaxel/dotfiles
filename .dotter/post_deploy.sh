@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Post-deploy hook: decrypt secrets with sops
 # This runs after dotter deploys files
 
-DOTFILES_DIR=$(cd $(dirname "$0")/.. && pwd)
+DOTFILES_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 SECRETS_DIR="$DOTFILES_DIR/secrets"
 DECRYPT_DIR="$HOME/.config/secrets"
 
@@ -43,4 +43,3 @@ fi
 echo ""
 echo "💡 To use decrypted secrets in your shell:"
 echo "   source ~/.config/secrets/env.fish"
-
