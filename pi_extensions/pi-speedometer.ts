@@ -151,14 +151,13 @@ export default function (pi: ExtensionAPI) {
 		if (history.length > HISTORY_CAP) history.splice(0, history.length - HISTORY_CAP);
 	};
 
-	pi.on("session_start", async (_e, ctx) => {
+	pi.on("session_start", async () => {
 		history.length = 0;
 		reset();
-		ctx.ui.setStatus("speedometer", undefined);
 	});
 
-	pi.on("session_shutdown", async (_e, ctx) => {
-		ctx.ui.setStatus("speedometer", undefined);
+	pi.on("session_shutdown", async () => {
+		// nothing
 	});
 
 	pi.on("turn_start", async () => {
@@ -180,7 +179,6 @@ export default function (pi: ExtensionAPI) {
 		const turnEnd = performance.now();
 		const msg = event.message;
 		if (!msg || msg.role !== "assistant" || !msg.usage || !firstTokenAt) {
-			ctx.ui.setStatus("speedometer", undefined);
 			reset();
 			return;
 		}
@@ -194,7 +192,6 @@ export default function (pi: ExtensionAPI) {
 		});
 
 		pushStat(stat);
-		ctx.ui.setStatus("speedometer", ctx.ui.theme.fg("dim", fmt(stat)));
 		reset();
 	});
 
