@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.79.1",
+  "lastChangelogVersion": "0.79.2",
   "defaults": {
     "model": "accounts/fireworks/routers/kimi-k2p6-turbo"
   },
@@ -15,7 +15,6 @@
     "npm:pi-autoresearch",
     "npm:@juicesharp/rpiv-ask-user-question",
     "npm:@juicesharp/rpiv-todo",
-    "npm:pi-dynamic-workflows",
     "npm:pi-review-loop",
     "npm:pi-simplify",
     "npm:@mjfuertesf/pi-quota-status",
@@ -23,7 +22,8 @@
     "npm:pi-lsp-extension",
     "npm:@narumitw/pi-goal",
     "npm:pi-git-assistant",
-    "npm:@ff-labs/pi-fff"
+    "npm:@ff-labs/pi-fff",
+    "npm:@quintinshaw/pi-dynamic-workflows"
   ],
   "enableSkillCommands": true,
   "steeringMode": "all"
