@@ -193,3 +193,4 @@ fish_add_path $HOME/.npm-global/bin
 if test -f ~/.config/secrets/env.fish
     source ~/.config/secrets/env.fish
 end
+
