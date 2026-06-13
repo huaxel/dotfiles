@@ -1,10 +1,14 @@
 # Machine-specific dotter configuration
-# Copy this to .dotter/local.toml and set your OS
+# Copy this to .dotter/local.toml and set your OS/package set.
+# Linux, WSL, and macOS:
+#   packages = ["default", "unix"]
+# Windows:
+#   packages = ["default", "windows"]
 
-packages = ["default"]
+packages = ["default", "unix"]
 
 [variables]
-# Set to "macos" for macOS, "linux" for Linux/WSL
+# Set to "macos", "linux", or "windows"
 os = "macos"
 name = "Your Name"
 email = "your@email.com"

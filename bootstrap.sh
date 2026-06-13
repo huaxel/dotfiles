@@ -17,6 +17,28 @@ if ! command -v dotter &> /dev/null; then
     fi
 fi
 
+# Create machine-local Dotter config on fresh clones
+if [ ! -f .dotter/local.toml ]; then
+    case "$(uname -s)" in
+        Darwin*) dotter_os="macos" ;;
+        *) dotter_os="linux" ;;
+    esac
+
+    git_name=$(git config --global user.name 2>/dev/null || printf '%s' "${USER:-Your Name}")
+    git_email=$(git config --global user.email 2>/dev/null || printf '%s' "your@email.com")
+
+    cat > .dotter/local.toml <<EOF
+packages = ["default", "unix"]
+
+[variables]
+os = "$dotter_os"
+name = "$git_name"
+email = "$git_email"
+hostname_color = "fg:#f7768e"
+EOF
+    echo "Created .dotter/local.toml for $dotter_os"
+fi
+
 # Deploy dotfiles
 echo "Deploying dotfiles..."
 dotter deploy
