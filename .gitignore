@@ -54,7 +54,8 @@ Thumbs.db
 # Local machine config (not shared)
 # ─────────────────────────────────────────────────────────────
 local/
-\n# Dotter local config (machine-specific)
+
+# Dotter local config (machine-specific)
 .dotter/local.toml
 
 # Nested git repos (pi extensions cloned separately)

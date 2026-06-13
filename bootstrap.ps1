@@ -78,6 +78,28 @@ if (-not (Get-Command dotter -ErrorAction SilentlyContinue)) {
 Write-Host "`nDeploying dotfiles with dotter..." -ForegroundColor Yellow
 $repoRoot = Split-Path -Parent $MyInvocation.MyCommand.Definition
 Push-Location $repoRoot
+
+# Create machine-local Dotter config on fresh clones
+if (-not (Test-Path ".dotter/local.toml")) {
+    $gitName = (git config --global user.name 2>$null)
+    if (-not $gitName) { $gitName = "Your Name" }
+    $gitEmail = (git config --global user.email 2>$null)
+    if (-not $gitEmail) { $gitEmail = "your@email.com" }
+    $gitName = $gitName.Replace('"', '\"')
+    $gitEmail = $gitEmail.Replace('"', '\"')
+
+@"
+packages = ["default", "windows"]
+
+[variables]
+os = "windows"
+name = "$gitName"
+email = "$gitEmail"
+hostname_color = "fg:#f7768e"
+"@ | Set-Content -Path ".dotter/local.toml" -Encoding UTF8
+    Write-Host "Created .dotter/local.toml for windows" -ForegroundColor Green
+}
+
 dotter deploy
 Pop-Location
 

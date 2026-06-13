@@ -8,5 +8,5 @@ if %ERRORLEVEL% equ 0 (
     exit /b %ERRORLEVEL%
 )
 
-echo Error: bash not found in PATH >&2
-exit /b 1
+echo Warning: bash not found in PATH; skipping pre-deploy hook >&2
+exit /b 0
