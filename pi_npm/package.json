@@ -6,7 +6,7 @@
     "@juicesharp/rpiv-ask-user-question": "^1.19.1",
     "@juicesharp/rpiv-todo": "^1.19.1",
     "@mjfuertesf/pi-quota-status": "^0.1.5",
-    "@narumitw/pi-goal": "^0.4.0",
+    "@narumitw/pi-goal": "^0.4.2",
     "@quintinshaw/pi-dynamic-workflows": "^2.4.0",
     "context-mode": "^1.0.162",
     "pi-autoresearch": "^1.6.0",
