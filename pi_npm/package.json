@@ -16,8 +16,9 @@
     "pi-web-access": "^0.10.7"
   },
   "allowScripts": {
-    "better-sqlite3@12.10.0": true,
-    "context-mode@1.0.162": true
+    "context-mode@1.0.162": true,
+    "better-sqlite3@12.10.1": true,
+    "patch-package@8.0.1": true
   },
   "scripts": {
     "postinstall": "patch-package"
