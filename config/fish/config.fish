@@ -45,6 +45,12 @@ end
 
 # Note: ~/Projects and ~/Developer are workspace directories, not binary paths
 
+# HuggingFace cache — use fast storage when available, else default
+if test -d /mnt/ai_models
+    set -gx HF_HOME /mnt/ai_models
+    set -gx HF_HUB_CACHE /mnt/ai_models/models
+end
+
 # Enable vi mode
 fish_vi_key_bindings
 
@@ -193,4 +199,3 @@ fish_add_path $HOME/.npm-global/bin
 if test -f ~/.config/secrets/env.fish
     source ~/.config/secrets/env.fish
 end
-
