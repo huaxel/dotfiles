@@ -1,11 +1,11 @@
 {
-  "lastChangelogVersion": "0.79.3",
+  "lastChangelogVersion": "0.79.4",
   "defaults": {
     "model": "accounts/fireworks/routers/kimi-k2p6-turbo"
   },
-  "defaultProvider": "firepass",
-  "defaultModel": "accounts/fireworks/routers/kimi-k2p6-turbo",
-  "defaultThinkingLevel": "medium",
+  "defaultProvider": "openai-codex",
+  "defaultModel": "gpt-5.5",
+  "defaultThinkingLevel": "high",
   "theme": "dark",
   "hideThinkingBlock": false,
   "extensions": [],
