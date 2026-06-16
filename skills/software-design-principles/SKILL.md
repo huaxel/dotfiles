@@ -1,6 +1,7 @@
 ---
 name: software-design-principles
-description: Apply YAGNI, DRY, KISS, SOLID, GRASP, and GoF principles to evaluate and improve code architecture.
+description: "Command-only architecture review using YAGNI, DRY, KISS, SOLID, GRASP, and GoF principles. Use explicitly via slash command when requested."
+disable-model-invocation: true
 ---
 
 # Software Design Principles

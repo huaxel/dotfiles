@@ -1,6 +1,7 @@
 ---
 name: find-skills
-description: Help users discover and install agent skills. Use when someone asks "how do I do X" or wants to find a skill.
+description: "Command-only helper for discovering and installing agent skills. Use explicitly when the user asks about available skills or wants to find/install one."
+disable-model-invocation: true
 ---
 
 # Find Skills

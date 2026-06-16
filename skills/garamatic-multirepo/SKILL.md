@@ -1,6 +1,6 @@
 ---
 name: garamatic-multirepo
-description: Manage the Garamatic microservices multirepo - 6 repos (garamatic-web, ticket-masala, masala-web, mailing-service, event-planner, integration-contracts). Use when working across multiple services, updating shared contracts, or coordinating changes.
+description: "Use only for Garamatic microservices work across garamatic-web, ticket-masala, masala-web, mailing-service, event-planner, or integration-contracts, especially shared contracts or coordinated multi-repo changes."
 ---
 
 # Garamatic Multirepo Management
