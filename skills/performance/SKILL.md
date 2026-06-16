@@ -1,6 +1,6 @@
 ---
 name: performance
-description: Optimizes application performance. Use when profiling reveals bottlenecks or when load times need improvement.
+description: "Optimize application performance when the user explicitly mentions slowness, load time, profiling, latency, memory, throughput, or a measured bottleneck."
 ---
 
 # Performance

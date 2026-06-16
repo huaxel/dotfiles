@@ -1,6 +1,6 @@
 ---
 name: security
-description: Hardens code against vulnerabilities. Use when handling user input, auth, data storage, or external integrations.
+description: "Harden code at trust boundaries: user input, auth, authorization, secrets, data storage, payments, file/network access, or external integrations."
 ---
 
 # Security

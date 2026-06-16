@@ -1,6 +1,7 @@
 ---
 name: native-web-search
-description: "Trigger native web search. Use when you need quick internet research with concise summaries and full source URLs."
+description: "Command-only fallback for native web search when explicitly requested. Prefer find-docs for library docs and built-in web tools for normal research."
+disable-model-invocation: true
 ---
 
 # Native Web Search

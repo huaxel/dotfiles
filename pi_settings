@@ -1,11 +1,11 @@
 {
-  "lastChangelogVersion": "0.79.4",
+  "lastChangelogVersion": "0.79.5",
   "defaults": {
     "model": "accounts/fireworks/routers/kimi-k2p6-turbo"
   },
-  "defaultProvider": "opencode-go",
-  "defaultModel": "mimo-v2.5",
-  "defaultThinkingLevel": "high",
+  "defaultProvider": "openai-codex",
+  "defaultModel": "gpt-5.5",
+  "defaultThinkingLevel": "medium",
   "theme": "dark",
   "hideThinkingBlock": false,
   "extensions": [],
@@ -16,7 +16,6 @@
     "npm:@juicesharp/rpiv-ask-user-question",
     "npm:@juicesharp/rpiv-todo",
     "npm:pi-review-loop",
-    "npm:pi-simplify",
     "npm:@mjfuertesf/pi-quota-status",
     "npm:pi-web-access",
     "npm:pi-lsp-extension",
