@@ -22,7 +22,8 @@
     "npm:pi-lsp-extension",
     "npm:@narumitw/pi-goal",
     "npm:pi-git-assistant",
-    "npm:@ff-labs/pi-fff"
+    "npm:@ff-labs/pi-fff",
+    "git:github.com/DietrichGebert/ponytail"
   ],
   "enableSkillCommands": true,
   "steeringMode": "all"
