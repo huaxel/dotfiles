@@ -22,8 +22,25 @@
     "npm:@narumitw/pi-goal",
     "npm:pi-git-assistant",
     "npm:@ff-labs/pi-fff",
-    "git:github.com/DietrichGebert/ponytail"
+    "git:github.com/DietrichGebert/ponytail",
+    "npm:pi-jules",
+    "npm:@benvargas/pi-firecrawl"
   ],
   "enableSkillCommands": true,
-  "steeringMode": "all"
+  "steeringMode": "all",
+  "enabledModels": [
+    "opencode-go/deepseek-v4-flash",
+    "openai-codex/gpt-5.5",
+    "openai-codex/gpt-5.4-mini",
+    "opencode/mimo-v2.5-free",
+    "opencode-go/mimo-v2.5",
+    "opencode-go/kimi-k2.7-code",
+    "opencode/big-pickle",
+    "opencode/deepseek-v4-flash-free",
+    "openai-codex/gpt-5.3-codex-spark",
+    "opencode-go/minimax-m3",
+    "openrouter/openrouter/free",
+    "opencode/nemotron-3-ultra-free",
+    "openrouter/nex-agi/nex-n2-pro:free"
+  ]
 }

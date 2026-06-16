@@ -2,6 +2,7 @@
   "name": "pi-extensions",
   "private": true,
   "dependencies": {
+    "@benvargas/pi-firecrawl": "^1.0.2",
     "@ff-labs/pi-fff": "^0.9.4",
     "@juicesharp/rpiv-ask-user-question": "^1.20.0",
     "@juicesharp/rpiv-todo": "^1.20.0",
@@ -10,6 +11,7 @@
     "context-mode": "^1.0.162",
     "pi-autoresearch": "^1.6.0",
     "pi-git-assistant": "github:elt7613/pi-git-assistant",
+    "pi-jules": "^1.0.2",
     "pi-lsp-extension": "github:samfoy/pi-lsp-extension#f2433d1",
     "pi-review-loop": "^0.4.4",
     "pi-simplify": "^0.2.2",
