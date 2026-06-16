@@ -9,3 +9,6 @@
 # Ensure batch files stay CRLF on Windows
 *.bat text eol=crlf
 *.cmd text eol=crlf
+
+# Strip machine-specific fields from pi_settings on commit
+pi_settings filter=strip-pi-machine-config
