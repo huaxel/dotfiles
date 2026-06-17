@@ -38,14 +38,14 @@
     "custom/workspaces": {
         "format": "{}",
         "return-type": "json",
-        "exec": "/home/juan/.config/waybar/scripts/workspaces.sh",
+        "exec": "~/.config/waybar/scripts/workspaces.sh",
         "interval": 1,
         "tooltip": false
     },
     "custom/app-icon": {
         "format": "{}",
         "return-type": "json",
-        "exec": "/home/juan/.config/waybar/scripts/app-icon.sh",
+        "exec": "~/.config/waybar/scripts/app-icon.sh",
         "interval": 1,
         "tooltip": true
     },
@@ -59,7 +59,7 @@
     "custom/weather": {
         "format": "{}",
         "return-type": "json",
-        "exec": "/home/juan/.config/waybar/scripts/weather.sh",
+        "exec": "~/.config/waybar/scripts/weather.sh",
         "interval": 1800,
         "on-click": "xdg-open https://wttr.in"
     },

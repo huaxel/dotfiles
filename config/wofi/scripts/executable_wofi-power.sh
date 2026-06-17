@@ -6,7 +6,7 @@ selected=$(echo -e $entries | wofi --width 250 --height 210 --dmenu --cache-file
 
 case $selected in
   lock)
-    /home/juan/.config/sway/scripts/lock.sh;;
+    ~/.config/sway/scripts/lock.sh;;
   logout)
     swaymsg exit;;
   suspend)

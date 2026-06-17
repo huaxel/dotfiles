@@ -1,7 +1,7 @@
 # Read `man 5 sway` for a complete reference.
 
 # Include all module configurations
-include /home/juan/.config/sway/config.d/*
+include ~/.config/sway/config.d/*
 
 ## Bluetooth Manager binding and bar
 # Bluetooth Manager (Modifier + B)
