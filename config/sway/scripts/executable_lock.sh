@@ -2,7 +2,7 @@
 # Wrapper for swaylock to provide a better visual experience
 
 # Path to wallpaper
-WALLPAPER="/home/juan/.config/wallpapers/daniel-leone-v7daTKlZzaw-unsplash.jpg"
+WALLPAPER="$HOME/.config/wallpapers/daniel-leone-v7daTKlZzaw-unsplash.jpg"
 
 # Dracula Theme Colors
 # Ring: Selection
