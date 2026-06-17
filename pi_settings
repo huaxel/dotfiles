@@ -17,7 +17,6 @@
     "npm:@juicesharp/rpiv-todo",
     "npm:pi-review-loop",
     "npm:@mjfuertesf/pi-quota-status",
-    "npm:pi-web-access",
     "npm:pi-lsp-extension",
     "npm:@narumitw/pi-goal",
     "npm:pi-git-assistant",
