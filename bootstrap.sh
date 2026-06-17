@@ -70,13 +70,15 @@ case "$(uname -s)" in
                 # Shell & prompt
                 starship zoxide atuin fzf
                 # Modern CLI replacements
-                eza bat fd ripgrep procs dust duf btop fastfetch
+                eza bat fd ripgrep procs dust duf btop bottom fastfetch viddy
                 # Dev tools
                 gh jq glow lazygit uv just
                 # Terminal multiplexer
                 tmux zellij
                 # Encryption
                 age gnupg
+                # Build
+                make
                 # Utilities
                 curl wget tree htop
             )
