@@ -71,6 +71,8 @@ pi_npm = { target = "~/.pi/agent/npm", type = "symbolic", recurse = false }
 # macOS/Linux-only: full config directory (individual configs are in windows.files)
 config = "~/.config"
 skills = { target = "~/.agents/skills", type = "symbolic", recurse = false }
+# llama.cpp built-in-tools MCP config (placeholder keys; fill in per machine)
+"llama.cpp/mcp.json" = { target = "~/.llama.cpp/mcp.json", type = "symbolic" }
 
 [windows.variables]
 name = "Juan Benjumea"
