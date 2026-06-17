@@ -28,6 +28,13 @@ if [ -d "$SECRETS_DIR" ]; then
     [ -e "$enc_file" ] || continue
 
     filename=$(basename "$enc_file" .enc)
+
+    # App-specific secrets decrypt to their real config path below, not the
+    # generic ~/.config/secrets/ dir — skip them here.
+    case "$filename" in
+      llama-webui-config.json) continue ;;
+    esac
+
     decrypt_path="$DECRYPT_DIR/$filename"
 
     echo "🔐 Decrypting $filename..."
@@ -38,6 +45,23 @@ if [ -d "$SECRETS_DIR" ]; then
       echo "   ❌ Failed to decrypt $filename (wrong key or corrupt file)"
     fi
   done
+
+  # App-specific secrets: decrypt to their real config path.
+  # Map of "<enc-basename-without-.enc>" -> "<destination path>".
+  app_secret() {
+    local name="$1" dest="$2"
+    local enc="$SECRETS_DIR/$name.enc"
+    [ -f "$enc" ] || return 0
+    mkdir -p "$(dirname "$dest")"
+    if sops --decrypt --output-type binary "$enc" >"$dest" 2>/dev/null; then
+      chmod 600 "$dest"
+      echo "🔐 Decrypted $name -> $dest"
+    else
+      echo "❌ Failed to decrypt $name (wrong key or corrupt file)"
+    fi
+  }
+
+  app_secret "llama-webui-config.json" "$HOME/.config/llama.cpp/webui-config.json"
 fi
 
 echo ""
