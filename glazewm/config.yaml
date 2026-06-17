@@ -4,6 +4,12 @@
 # Install: winget install glzr-io.glazewm
 # Config:  %USERPROFILE%\.glzr\glazewm\config.yaml
 # ============================================================================
+# REFERENCE VALUES (update these when zebar changes, then search/replace below)
+# - zebar_height:     32px  (was 26px, increased to 32px with bigger fonts)
+# - inner_gap:        8px
+# - outer_gap:        8px  (all sides: top/right/bottom/left)
+# - zebar installs:   scoop install zebar
+# ============================================================================
 
 general:
   # Startup: launch Windows Terminal
@@ -25,17 +31,19 @@ general:
   toggle_workspace_on_refocus: false
 
 gaps:
-  scale_with_dpi: true
+  # Disable DPI scaling so gaps are exact pixel values (zebar is 32px actual)
+  scale_with_dpi: false
 
-  # Inner gaps between windows (matches AeroSpace inner.horizontal/vertical = 10)
-  inner_gap: "10px"
+  # Inner gaps between windows (uniform 8px everywhere)
+  inner_gap: "8px"
 
-  # Outer gaps (matches AeroSpace outer.left/right/bottom = 10, outer.top = 40 for main monitors)
+  # Outer gaps — uniform 8px on all sides
+  # REF: zebar_height (zebar reserves 26px; 8px gap below it = 34px total from screen top)
   outer_gap:
-    top: "40px"
-    right: "10px"
-    bottom: "10px"
-    left: "10px"
+    top: "8px"
+    right: "8px"
+    bottom: "8px"
+    left: "8px"
 
 # Window effects — borders similar to AeroSpace's "borders" plugin
 window_effects:
@@ -141,13 +149,13 @@ binding_modes:
   # Resize mode: hold Alt+R, use arrows to resize, release to exit
   - name: "resize"
     keybindings:
-      - commands: ["resize --width -2%"]
+      - commands: ["resize --width -50px"]
         bindings: ["left"]
-      - commands: ["resize --width +2%"]
+      - commands: ["resize --width +50px"]
         bindings: ["right"]
-      - commands: ["resize --height +2%"]
+      - commands: ["resize --height +50px"]
         bindings: ["up"]
-      - commands: ["resize --height -2%"]
+      - commands: ["resize --height -50px"]
         bindings: ["down"]
       - commands: ["wm-disable-binding-mode --name resize"]
         bindings: ["escape", "enter", "alt+r"]
@@ -164,6 +172,15 @@ binding_modes:
       # Close focused window
       - commands: ["close", "wm-disable-binding-mode --name service"]
         bindings: ["backspace"]
+      # Volume down (matches AeroSpace service mode)
+      - commands: ["shell-exec powershell -command \"$o = New-Object -ComObject WScript.Shell; $o.SendKeys([char]174)\""]
+        bindings: ["down"]
+      # Volume up (matches AeroSpace service mode)
+      - commands: ["shell-exec powershell -command \"$o = New-Object -ComObject WScript.Shell; $o.SendKeys([char]175)\""]
+        bindings: ["up"]
+      # Mute volume (matches AeroSpace service mode)
+      - commands: ["shell-exec powershell -command \"$o = New-Object -ComObject WScript.Shell; $o.SendKeys([char]173)\""]
+        bindings: ["shift+down"]
       # Exit service mode
       - commands: ["wm-disable-binding-mode --name service"]
         bindings: ["escape"]
@@ -192,10 +209,10 @@ keybindings:
   - commands: ["move --direction down"]
     bindings: ["alt+shift+down"]
 
-  # ---- Resize (Alt + minus/equal) ----
-  - commands: ["resize --width -2%"]
+  # ---- Resize (Alt + minus/equal) — matches AeroSpace's resize smart ±50 ----
+  - commands: ["resize --width -50px"]
     bindings: ["alt+-"]
-  - commands: ["resize --width +2%"]
+  - commands: ["resize --width +50px"]
     bindings: ["alt+="]
 
   # ---- Enter resize mode (Alt + R) ----
@@ -205,6 +222,10 @@ keybindings:
   # ---- Reload config (Alt + Shift + R) ----
   - commands: ["wm-reload-config"]
     bindings: ["alt+shift+r"]
+
+  # ---- Redraw / re-tile all windows (Alt + Shift + W) ----
+  - commands: ["wm-redraw"]
+    bindings: ["alt+shift+w"]
 
   # ---- Switch workspace (Alt + 1-8) ----
   - commands: ["focus --workspace 1"]
