@@ -2,7 +2,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 const PROVIDER_NAME = "framearch";
 const DISCOVERY_URL = "http://framearch-juan:8000/v1/models";
-const API_BASE_URL = "http://framearch-juan:55268/v1";
+const API_BASE_URL = "http://framearch-juan:8000/v1";
 
 type DiscoveredModel = {
 	id: string;
