@@ -1,16 +1,21 @@
-# Minimal zsh for bash compatibility
-# Fish is primary shell - this is for scripts/tools that need bash/zsh
+# Minimal zsh/bash for script compatibility
+# Fish is primary shell — this is for tools that need bash/zsh
 
-{{#if (eq os "macos")}}
-export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$HOME/.local/bin:$PATH"
-{{else}}
-export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:$PATH"
-{{/if}}
+# OS-specific PATH
+case "$(uname)" in
+    Darwin)
+        export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$HOME/.local/bin:$PATH"
+        ;;
+    *)
+        export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:$PATH"
+        ;;
+esac
+
 export EDITOR="${EDITOR:-nvim}"
 export TERM=xterm-256color
 
 # Starship prompt
 eval "$(starship init zsh)"
 
-# Added by LM Studio CLI tool (lms)
+# LM Studio
 export PATH="$PATH:$HOME/.lmstudio/bin"
