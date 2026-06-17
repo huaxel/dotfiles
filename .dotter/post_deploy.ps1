@@ -3,6 +3,8 @@
 #   . .\.dotter\post_deploy.ps1
 #
 # Requires: scoop install age sops
+# NOTE: Keep this file ASCII-safe (no emoji) to avoid encoding issues
+#       when invoked through the dotter hook dispatcher.
 
 $DOTFILES_DIR = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Definition)
 $SECRETS_DIR = Join-Path $DOTFILES_DIR "secrets"
@@ -11,14 +13,14 @@ $DECRYPT_DIR = "$env:USERPROFILE\.config\secrets"
 # Check if sops and age are available
 if (-not (Get-Command sops -ErrorAction SilentlyContinue) -or `
     -not (Get-Command age -ErrorAction SilentlyContinue)) {
-    Write-Host "⚠️  sops or age not found — install with: scoop install age sops" -ForegroundColor Yellow
+    Write-Host "[WARN] sops or age not found -- install with: scoop install age sops" -ForegroundColor Yellow
     return
 }
 
 # Check if age key exists
 $ageKeyPath = "$env:USERPROFILE\.config\sops\age\keys.txt"
 if (-not (Test-Path $ageKeyPath)) {
-    Write-Host "⚠️  Age key not found at $ageKeyPath" -ForegroundColor Yellow
+    Write-Host "[WARN] Age key not found at $ageKeyPath" -ForegroundColor Yellow
     Write-Host "   Generate one with: age-keygen -o $ageKeyPath" -ForegroundColor Yellow
     return
 }
@@ -36,32 +38,32 @@ if (Test-Path $SECRETS_DIR) {
             "llama-webui-config.json" {
                 $dest = "$env:USERPROFILE\.config\llama.cpp\webui-config.json"
                 New-Item -ItemType Directory -Force -Path (Split-Path $dest -Parent) | Out-Null
-                Write-Host "🔐 Decrypting $filename..." -NoNewline
+                Write-Host "[...] Decrypting $filename..." -NoNewline
                 $result = & sops --decrypt --output-type binary $encFile 2>$null
                 if ($LASTEXITCODE -eq 0) {
                     [System.IO.File]::WriteAllBytes($dest, $result)
                     attrib +R $dest  # equivalent to chmod 600 on NTFS
-                    Write-Host " ✅ -> $dest" -ForegroundColor Green
+                    Write-Host " [OK] -> $dest" -ForegroundColor Green
                 } else {
-                    Write-Host " ❌ Failed" -ForegroundColor Red
+                    Write-Host " [FAIL]" -ForegroundColor Red
                 }
                 continue
             }
         }
 
         $decryptPath = "$DECRYPT_DIR\$filename"
-        Write-Host "🔐 Decrypting $filename..." -NoNewline
+        Write-Host "[...] Decrypting $filename..." -NoNewline
         $result = & sops --decrypt --output-type binary $encFile 2>$null
         if ($LASTEXITCODE -eq 0) {
             [System.IO.File]::WriteAllBytes($decryptPath, $result)
             attrib +R $decryptPath
-            Write-Host " ✅ -> $decryptPath" -ForegroundColor Green
+            Write-Host " [OK] -> $decryptPath" -ForegroundColor Green
         } else {
-            Write-Host " ❌ Failed" -ForegroundColor Red
+            Write-Host " [FAIL]" -ForegroundColor Red
         }
     }
 }
 
 Write-Host ""
-Write-Host "💡 To use decrypted secrets in your shell:" -ForegroundColor Cyan
+Write-Host "[INFO] To use decrypted secrets in your shell:" -ForegroundColor Cyan
 Write-Host "   Add to PowerShell profile: . `"$DECRYPT_DIR\env.fish`"" -ForegroundColor Cyan
