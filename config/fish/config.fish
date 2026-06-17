@@ -67,6 +67,9 @@ function pi
     end
 end
 
+# Run pi as restricted pi-agent user
+alias pi-sudo='sudo -iu pi-agent PI_CODING_AGENT_DIR=/home/juan/.pi/agent -- pi'
+
 # FZF defaults
 set -x FZF_DEFAULT_OPTS "--height 40% --layout=reverse --border --preview 'bat --color=always --style=numbers --line-range=:500 {}' --preview-window=right:60%"
 set -x FZF_CTRL_T_OPTS "--preview 'bat --color=always --style=numbers --line-range=:500 {}' --preview-window=right:60%"
