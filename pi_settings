@@ -24,8 +24,9 @@
     "npm:@ff-labs/pi-fff",
     "git:github.com/DietrichGebert/ponytail",
     "npm:pi-jules",
-    "npm:@benvargas/pi-firecrawl",
-    "npm:pi-subagents"
+    "npm:@juicesharp/rpiv-web-tools",
+    "npm:pi-subagents",
+    "npm:@juicesharp/rpiv-advisor"
   ],
   "enableSkillCommands": true,
   "steeringMode": "all",
