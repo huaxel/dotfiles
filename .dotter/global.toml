@@ -34,6 +34,9 @@ pi_npm = { target = "~/.pi/agent/npm", type = "symbolic", recurse = false }
 # AutoHotkey — Mac-like key remap
 "autohotkey/mac-layout.ahk" = { target = "~\\.config\\autohotkey\\mac-layout.ahk", type = "symbolic" }
 
+# Flow Launcher
+"flow-launcher/README.md" = { target = "~\\.config\\flow-launcher\\README.md", type = "symbolic" }
+
 # GlazeWM — Tiling window manager
 "glazewm/config.yaml" = { target = "~\\.glzr\\glazewm\\config.yaml", type = "symbolic" }
 
