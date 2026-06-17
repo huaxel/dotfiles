@@ -1,10 +1,10 @@
 {
-  "lastChangelogVersion": "0.0.0",
+  "lastChangelogVersion": "0.79.6",
   "defaults": {
-    "model": null
+    "model": "accounts/fireworks/routers/kimi-k2p6-turbo"
   },
-  "defaultProvider": null,
-  "defaultModel": null,
+  "defaultProvider": "opencode-go",
+  "defaultModel": "deepseek-v4-flash",
   "defaultThinkingLevel": "high",
   "theme": "dark",
   "hideThinkingBlock": false,
