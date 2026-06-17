@@ -76,7 +76,7 @@ case "$(uname -s)" in
                 # Terminal multiplexer
                 tmux zellij
                 # Encryption
-                age gnupg
+                age gnupg sops
                 # Build
                 make
                 # Utilities
