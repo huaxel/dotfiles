@@ -1,11 +1,9 @@
-# Dotter configuration - migrated from chezmoi
+# Dotter configuration
 [default]
 
 [default.files]
 # Core dotfiles
-zshrc = "~/.zshrc"           # Keep for zsh compatibility (if needed)
-gitconfig = "~/.gitconfig"   # Template for user info
-ideavimrc = "~/.ideavimrc"
+gitconfig = "~/.gitconfig"
 gitignore_global = "~/.gitignore_global"
 ssh_config = "~/.ssh/config"
 aerospace = "~/.aerospace.toml"
@@ -21,15 +19,8 @@ pi_extensions = { target = "~/.pi/agent/extensions", type = "symbolic", recurse 
 pi_npm = { target = "~/.pi/agent/npm", type = "symbolic", recurse = false }
 
 [windows.files]
-# VS Code
-"config/vscode/settings.json" = { target = "$APPDATA\\Code\\User\\settings.json", type = "symbolic" }
-"config/vscode/profiles" = { target = "$APPDATA\\Code\\User\\profiles", type = "symbolic", recurse = false }
-
 # Zed
 "config/zed/keymap.json" = { target = "$LOCALAPPDATA\\Zed\\keymap.json", type = "symbolic" }
-
-# GitHub Copilot instructions (IntelliJ on Windows)
-"config/github-copilot/intellij" = { target = "$APPDATA\\JetBrains\\github-copilot", type = "symbolic", recurse = false }
 
 # PowerShell 7 profile
 "powershell/7/profile.ps1" = { target = "~\\Documents\\PowerShell\\Microsoft.PowerShell_profile.ps1", type = "symbolic" }
@@ -40,7 +31,7 @@ pi_npm = { target = "~/.pi/agent/npm", type = "symbolic", recurse = false }
 # Windows Terminal
 "windows-terminal/settings.json" = { target = "$LOCALAPPDATA\\Packages\\Microsoft.WindowsTerminal_8wekyb3d8bbwe\\LocalState\\settings.json", type = "symbolic" }
 
-# AutoHotkey — Mac-like key remap (deploy script to config dir)
+# AutoHotkey — Mac-like key remap
 "autohotkey/mac-layout.ahk" = { target = "~\\.config\\autohotkey\\mac-layout.ahk", type = "symbolic" }
 
 # GlazeWM — Tiling window manager
@@ -57,9 +48,6 @@ pi_npm = { target = "~/.pi/agent/npm", type = "symbolic", recurse = false }
 
 # Btop — resource monitor
 "config/btop" = { target = "~\\.config\\btop", type = "symbolic", recurse = false }
-
-# Broot — file tree navigator
-"config/broot" = { target = "~\\.config\\broot", type = "symbolic", recurse = false }
 
 # Eza — modern ls replacement
 "config/eza" = { target = "~\\.config\\eza", type = "symbolic", recurse = false }
