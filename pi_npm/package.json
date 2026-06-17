@@ -15,6 +15,7 @@
     "pi-lsp-extension": "github:samfoy/pi-lsp-extension#f2433d1",
     "pi-review-loop": "^0.4.4",
     "pi-simplify": "^0.2.2",
+    "pi-subagents": "^0.28.0",
     "pi-web-access": "^0.10.7"
   },
   "allowScripts": {
