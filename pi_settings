@@ -3,9 +3,19 @@
   "defaults": {
     "model": null
   },
+<<<<<<< Updated upstream
   "defaultProvider": null,
   "defaultModel": null,
   "defaultThinkingLevel": "high",
+||||||| Stash base
+  "defaultProvider": "openai-codex",
+  "defaultModel": "gpt-5.5",
+  "defaultThinkingLevel": "medium",
+=======
+  "defaultProvider": "opencode-go",
+  "defaultModel": "deepseek-v4-pro",
+  "defaultThinkingLevel": "high",
+>>>>>>> Stashed changes
   "theme": "dark",
   "hideThinkingBlock": false,
   "extensions": [],
