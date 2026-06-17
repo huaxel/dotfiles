@@ -33,7 +33,7 @@ foreach ($bucket in $buckets) {
 Write-Host "Installing packages via Scoop..." -ForegroundColor Yellow
 $packages = @(
     # Core tools
-    "git", "pwsh", "neovim", "vscode", "node", "python", "rust"
+    "git", "pwsh", "neovim", "node", "python", "rust"
     # Shell & prompt
     "starship", "zoxide", "atuin", "fzf"
     # File management
