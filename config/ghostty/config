@@ -7,8 +7,8 @@ foreground =         #c0caf5
 
 # Font
 font-family = "JetBrainsMono Nerd Font Mono"
-font-family = "Symbols Nerd Font"
-font-size = 13
+font-size = 5
+window-inherit-font-size = false
 font-feature = "calt"
 font-feature = "liga"
 font-feature = "dlig"
