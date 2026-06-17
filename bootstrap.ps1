@@ -52,6 +52,8 @@ $packages = @(
     "age", "gpg", "sops"
     # AI tools
     "opencode", "pi-coding-agent"
+    # Clipboard
+    "ditto"
     # Key remap
     "autohotkey"
     # Utilities
