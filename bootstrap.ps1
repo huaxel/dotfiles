@@ -104,6 +104,11 @@ hostname_color = "fg:#f7768e"
 }
 
 dotter deploy
+
+# --- Secrets ---
+Write-Host "`n🔐 Decrypting secrets..." -ForegroundColor Yellow
+. .\.dotter\post_deploy.ps1
+
 Pop-Location
 
 Write-Host "`n✅ Windows dotfiles deployed successfully!" -ForegroundColor Green
