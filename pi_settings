@@ -24,7 +24,8 @@
     "npm:@ff-labs/pi-fff",
     "git:github.com/DietrichGebert/ponytail",
     "npm:pi-jules",
-    "npm:@benvargas/pi-firecrawl"
+    "npm:@benvargas/pi-firecrawl",
+    "npm:pi-subagents"
   ],
   "enableSkillCommands": true,
   "steeringMode": "all",
