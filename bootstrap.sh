@@ -17,6 +17,12 @@ if ! command -v dotter &> /dev/null; then
     fi
 fi
 
+# Enable tracked git hooks (auto-encrypt secrets, etc.)
+if [ -d .githooks ]; then
+    git config core.hooksPath .githooks
+    echo "🔗 Git hooks enabled from .githooks/"
+fi
+
 # Create machine-local Dotter config on fresh clones
 if [ ! -f .dotter/local.toml ]; then
     case "$(uname -s)" in
