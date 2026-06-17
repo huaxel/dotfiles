@@ -19,11 +19,6 @@ if command -sq fzf
     fzf --fish | source
 end
 
-# Broot — br function for cd on quit
-if command -sq broot
-    broot --print-shell-function fish | source
-end
-
 # Zoxide — smart cd
 if command -sq zoxide
     zoxide init fish | source
@@ -81,11 +76,9 @@ set -x FZF_ALT_C_OPTS "--preview 'eza --tree --color=always --icons {} | head -2
 # Bat as man pager
 set -x MANPAGER "sh -c 'col -bx | bat -l man -p --theme=tokyonight_night'"
 
-# Cross-platform aliases
-if test (uname) = Darwin
-    alias ls='eza -la --icons'
-else
-    alias ls='eza -la --icons'
+# Aliases
+alias ls='eza -la --icons'
+if not test (uname) = Darwin
     alias open='xdg-open' 2>/dev/null || true
 end
 
