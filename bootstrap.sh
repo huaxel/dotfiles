@@ -43,6 +43,13 @@ fi
 echo "Deploying dotfiles..."
 dotter deploy
 
+# Install tracked system config (/etc/*) — root-owned, so outside dotter's
+# scope. Skipped automatically on non-Linux. Uses sudo; safe to re-run.
+if [ "$(uname -s)" = "Linux" ] && [ -x ./etc/install-system-config.sh ]; then
+    echo "Installing system config (/etc) — may prompt for sudo..."
+    ./etc/install-system-config.sh || echo "⚠️  system config install skipped/failed"
+fi
+
 echo "✅ Dotfiles deployed successfully!"
 echo ""
 echo "Next steps:"
