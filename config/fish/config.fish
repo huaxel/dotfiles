@@ -156,7 +156,6 @@ alias gl='git log --oneline --graph --decorate'
 # WSL-specific
 if test -f /proc/version && grep -q Microsoft /proc/version
     alias explorer='explorer.exe'
-    alias code='code.exe'
 end
 
 # opencode
