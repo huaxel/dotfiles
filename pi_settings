@@ -1,11 +1,11 @@
 {
-  "lastChangelogVersion": "0.79.5",
+  "lastChangelogVersion": "0.79.6",
   "defaults": {
     "model": "accounts/fireworks/routers/kimi-k2p6-turbo"
   },
-  "defaultProvider": "openai-codex",
-  "defaultModel": "gpt-5.5",
-  "defaultThinkingLevel": "medium",
+  "defaultProvider": "opencode-go",
+  "defaultModel": "deepseek-v4-flash",
+  "defaultThinkingLevel": "high",
   "theme": "dark",
   "hideThinkingBlock": false,
   "extensions": [],
