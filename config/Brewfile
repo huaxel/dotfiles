@@ -95,7 +95,6 @@ brew "starship"
 brew "switchaudio-osx"
 brew "tailscale", restart_service: :changed
 brew "tectonic"
-brew "thefuck"
 brew "tmux"
 brew "transmission-cli"
 brew "tree"
