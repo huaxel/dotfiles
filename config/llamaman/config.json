@@ -1,0 +1,384 @@
+{
+  "version": 1,
+  "globals": {
+    "llama-server-bin": "/usr/bin/llama-server",
+    "ip_address": "0.0.0.0",
+    "port": 8000
+  },
+  "models": [
+    {
+      "alias": "qwen3.6-27b",
+      "location": "/mnt/ai_models/models/models--unsloth--Qwen3.6-27B-MTP-GGUF/snapshots/0da008d9b980b76520a952bb3aa4abbaa0955647/Qwen3.6-27B-Q4_K_M.gguf",
+      "presets": [
+        {
+          "preset": "default",
+          "description": "32K ctx, MTP speculative decoding, Flash Attention",
+          "params": {
+            "ngl": 99,
+            "flash-attn": "on",
+            "ctx-size": 32768,
+            "batch-size": 2048,
+            "ubatch-size": 512,
+            "spec-type": "draft-mtp",
+            "spec-draft-n-max": 3,
+            "jinja": true,
+            "mlock": true
+          }
+        },
+        {
+          "preset": "large-ctx",
+          "description": "128K ctx, MTP, Q4 KV cache",
+          "params": {
+            "ngl": 99,
+            "flash-attn": "on",
+            "ctx-size": 131072,
+            "batch-size": 2048,
+            "ubatch-size": 512,
+            "ctk": "q4_0",
+            "ctv": "q4_0",
+            "spec-type": "draft-mtp",
+            "spec-draft-n-max": 3,
+            "jinja": true,
+            "mlock": true
+          }
+        },
+        {
+          "preset": "vision",
+          "description": "32K ctx, MTP, vision enabled via mmproj",
+          "params": {
+            "ngl": 99,
+            "flash-attn": "on",
+            "ctx-size": 32768,
+            "batch-size": 2048,
+            "ubatch-size": 512,
+            "mmproj": "/mnt/ai_models/models/models--unsloth--Qwen3.6-27B-MTP-GGUF/snapshots/0da008d9b980b76520a952bb3aa4abbaa0955647/mmproj-BF16.gguf",
+            "spec-type": "draft-mtp",
+            "spec-draft-n-max": 3,
+            "jinja": true,
+            "mlock": true
+          }
+        }
+      ]
+    },
+    {
+      "alias": "qwen3.6-35b-moe",
+      "location": "/mnt/ai_models/models/models--unsloth--Qwen3.6-35B-A3B-MTP-GGUF/snapshots/e28512781649329c5b37cbf55029355a48d158d4/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf",
+      "presets": [
+        {
+          "preset": "default",
+          "description": "MoE 3B active, 32K ctx, MTP speculative decoding",
+          "params": {
+            "ngl": 99,
+            "flash-attn": "on",
+            "ctx-size": 32768,
+            "batch-size": 2048,
+            "ubatch-size": 512,
+            "spec-type": "draft-mtp",
+            "spec-draft-n-max": 3,
+            "jinja": true,
+            "mlock": true
+          }
+        },
+        {
+          "preset": "large-ctx",
+          "description": "128K ctx, MTP, Q4 KV cache",
+          "params": {
+            "ngl": 99,
+            "flash-attn": "on",
+            "ctx-size": 131072,
+            "batch-size": 2048,
+            "ubatch-size": 512,
+            "ctk": "q4_0",
+            "ctv": "q4_0",
+            "spec-type": "draft-mtp",
+            "spec-draft-n-max": 3,
+            "jinja": true,
+            "mlock": true
+          }
+        }
+      ]
+    },
+    {
+      "alias": "hermes-36b",
+      "location": "/mnt/ai_models/models/models--bartowski--NousResearch_Hermes-4.3-36B-GGUF/snapshots/56b57c47136327060928c009c5164be185e4d4e9/NousResearch_Hermes-4.3-36B-Q4_K_M.gguf",
+      "presets": [
+        {
+          "preset": "default",
+          "description": "32K ctx, all layers GPU",
+          "params": {
+            "ngl": 99,
+            "flash-attn": "on",
+            "ctx-size": 32768,
+            "batch-size": 2048,
+            "ubatch-size": 512,
+            "jinja": true,
+            "mlock": true
+          }
+        }
+      ]
+    },
+    {
+      "alias": "gpt-oss-20b",
+      "location": "/mnt/ai_models/models/models--unsloth--gpt-oss-20b-GGUF/snapshots/d449b42d93e1c2c7bda5312f5c25c8fb91dfa9b4/gpt-oss-20b-Q4_K_M.gguf",
+      "presets": [
+        {
+          "preset": "default",
+          "description": "32K ctx, all layers GPU",
+          "params": {
+            "ngl": 99,
+            "flash-attn": "on",
+            "ctx-size": 32768,
+            "batch-size": 2048,
+            "ubatch-size": 512,
+            "jinja": true,
+            "mlock": true
+          }
+        },
+        {
+          "preset": "large-ctx",
+          "description": "128K ctx with Q4 KV cache",
+          "params": {
+            "ngl": 99,
+            "flash-attn": "on",
+            "ctx-size": 131072,
+            "batch-size": 2048,
+            "ubatch-size": 512,
+            "ctk": "q4_0",
+            "ctv": "q4_0",
+            "jinja": true,
+            "mlock": true
+          }
+        }
+      ]
+    },
+    {
+      "alias": "nemotron-30b-moe",
+      "location": "/mnt/ai_models/models/models--unsloth--Nemotron-3-Nano-30B-A3B-GGUF/snapshots/9ad8b366c308f931b2a96b9306f0b41aef9cd405/Nemotron-3-Nano-30B-A3B-UD-Q4_K_XL.gguf",
+      "presets": [
+        {
+          "preset": "default",
+          "description": "MoE 3B active params, 32K ctx",
+          "params": {
+            "ngl": 99,
+            "flash-attn": "on",
+            "ctx-size": 32768,
+            "batch-size": 2048,
+            "ubatch-size": 512,
+            "jinja": true,
+            "mlock": true
+          }
+        }
+      ]
+    },
+    {
+      "alias": "glm-4.7-flash",
+      "location": "/mnt/ai_models/models/models--unsloth--GLM-4.7-Flash-GGUF/snapshots/0d32489ecb9db6d2a4fc93bd27ef01519f95474d/GLM-4.7-Flash-UD-Q4_K_XL.gguf",
+      "presets": [
+        {
+          "preset": "default",
+          "description": "32K ctx, all layers GPU",
+          "params": {
+            "ngl": 99,
+            "flash-attn": "on",
+            "ctx-size": 32768,
+            "batch-size": 2048,
+            "ubatch-size": 512,
+            "jinja": true,
+            "mlock": true
+          }
+        }
+      ]
+    },
+    {
+      "alias": "qwen3-8b",
+      "location": "/mnt/ai_models/models/models--unsloth--Qwen3-8B-GGUF/snapshots/a6adef130ffb23ddaf1a62fec9dced968c9bc482/Qwen3-8B-Q8_0.gguf",
+      "presets": [
+        {
+          "preset": "default",
+          "description": "32K ctx, Q8 precision, fast",
+          "params": {
+            "ngl": 99,
+            "flash-attn": "on",
+            "ctx-size": 32768,
+            "batch-size": 2048,
+            "ubatch-size": 512,
+            "jinja": true,
+            "mlock": true
+          }
+        },
+        {
+          "preset": "large-ctx",
+          "description": "128K ctx, Q4 KV cache",
+          "params": {
+            "ngl": 99,
+            "flash-attn": "on",
+            "ctx-size": 131072,
+            "batch-size": 2048,
+            "ubatch-size": 512,
+            "ctk": "q4_0",
+            "ctv": "q4_0",
+            "jinja": true,
+            "mlock": true
+          }
+        }
+      ]
+    },
+    {
+      "alias": "qwen3.5-4b",
+      "location": "/mnt/ai_models/models/models--unsloth--Qwen3.5-4B-GGUF/snapshots/e87f176479d0855a907a41277aca2f8ee7a09523/Qwen3.5-4B-UD-Q4_K_XL.gguf",
+      "presets": [
+        {
+          "preset": "default",
+          "description": "Fast, small, 32K ctx",
+          "params": {
+            "ngl": 99,
+            "flash-attn": "on",
+            "ctx-size": 32768,
+            "batch-size": 2048,
+            "ubatch-size": 512,
+            "jinja": true,
+            "mlock": true
+          }
+        }
+      ]
+    },
+    {
+      "alias": "zeta-2",
+      "location": "/mnt/ai_models/models/models--bartowski--zed-industries_zeta-2-GGUF/snapshots/c11146400f88564904c7b7488542dc03bad36b2b/zed-industries_zeta-2-Q4_K_M.gguf",
+      "presets": [
+        {
+          "preset": "default",
+          "description": "Zed IDE code model, 32K ctx",
+          "params": {
+            "ngl": 99,
+            "flash-attn": "on",
+            "ctx-size": 32768,
+            "batch-size": 2048,
+            "ubatch-size": 512,
+            "jinja": true,
+            "mlock": true
+          }
+        }
+      ]
+    },
+    {
+      "alias": "gemma4-31b-qat",
+      "location": "/mnt/ai_models/models/models--unsloth--gemma-4-31B-it-qat-GGUF/snapshots/365d657136993b4d7c40d868dd45ecb7a48e7ebf/gemma-4-31B-it-qat-UD-Q4_K_XL.gguf",
+      "presets": [
+        {
+          "preset": "default",
+          "description": "QAT quant, 32K ctx, Flash Attention",
+          "params": {
+            "ngl": 99,
+            "flash-attn": "on",
+            "ctx-size": 32768,
+            "batch-size": 2048,
+            "ubatch-size": 512,
+            "jinja": true,
+            "mlock": true
+          }
+        },
+        {
+          "preset": "large-ctx",
+          "description": "128K ctx, Q4 KV cache",
+          "params": {
+            "ngl": 99,
+            "flash-attn": "on",
+            "ctx-size": 131072,
+            "batch-size": 2048,
+            "ubatch-size": 512,
+            "ctk": "q4_0",
+            "ctv": "q4_0",
+            "jinja": true,
+            "mlock": true
+          }
+        },
+        {
+          "preset": "vision",
+          "description": "32K ctx, vision enabled",
+          "params": {
+            "ngl": 99,
+            "flash-attn": "on",
+            "ctx-size": 32768,
+            "batch-size": 2048,
+            "ubatch-size": 512,
+            "mmproj": "/mnt/ai_models/models/models--unsloth--gemma-4-31B-it-qat-GGUF/snapshots/365d657136993b4d7c40d868dd45ecb7a48e7ebf/mmproj-BF16.gguf",
+            "jinja": true,
+            "mlock": true
+          }
+        }
+      ]
+    },
+    {
+      "alias": "gemma4-12b-qat",
+      "location": "/mnt/ai_models/models/models--unsloth--gemma-4-12B-it-qat-GGUF/snapshots/7102bdea62863acff919c945405ef29973113d66/gemma-4-12B-it-qat-UD-Q4_K_XL.gguf",
+      "presets": [
+        {
+          "preset": "default",
+          "description": "QAT quant, 32K ctx, fast",
+          "params": {
+            "ngl": 99,
+            "flash-attn": "on",
+            "ctx-size": 32768,
+            "batch-size": 2048,
+            "ubatch-size": 512,
+            "jinja": true,
+            "mlock": true
+          }
+        },
+        {
+          "preset": "vision",
+          "description": "32K ctx, vision enabled",
+          "params": {
+            "ngl": 99,
+            "flash-attn": "on",
+            "ctx-size": 32768,
+            "batch-size": 2048,
+            "ubatch-size": 512,
+            "mmproj": "/mnt/ai_models/models/models--unsloth--gemma-4-12B-it-qat-GGUF/snapshots/7102bdea62863acff919c945405ef29973113d66/mmproj-BF16.gguf",
+            "jinja": true,
+            "mlock": true
+          }
+        }
+      ]
+    },
+    {
+      "alias": "lfm2.5-8b",
+      "location": "/mnt/ai_models/models/models--LiquidAI--LFM2.5-8B-A1B-GGUF/snapshots/dfd5fdcad7a1c0d31473fb4ca443b8befbacddf0/LFM2.5-8B-A1B-Q4_K_M.gguf",
+      "presets": [
+        {
+          "preset": "default",
+          "description": "Hybrid SSM/MoE, 1B active params, very fast",
+          "params": {
+            "ngl": 99,
+            "flash-attn": "on",
+            "ctx-size": 32768,
+            "batch-size": 2048,
+            "ubatch-size": 512,
+            "jinja": true,
+            "mlock": true
+          }
+        }
+      ]
+    },
+    {
+      "alias": "qwen3.5-27b-uncensored",
+      "location": "/mnt/ai_models/models/models--HauhauCS--Qwen3.5-27B-Uncensored-HauhauCS-Aggressive/snapshots/ba23816347e0f24d82efbd2397278ff32743b75c/Qwen3.5-27B-Uncensored-HauhauCS-Aggressive-Q4_K_M.gguf",
+      "presets": [
+        {
+          "preset": "default",
+          "description": "32K ctx, all layers GPU",
+          "params": {
+            "ngl": 99,
+            "flash-attn": "on",
+            "ctx-size": 32768,
+            "batch-size": 2048,
+            "ubatch-size": 512,
+            "jinja": true,
+            "mlock": true
+          }
+        }
+      ]
+    }
+  ]
+}
