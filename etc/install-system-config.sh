@@ -28,8 +28,14 @@ if [ ${#changed[@]} -eq 0 ]; then
   exit 0
 fi
 
+# Reload systemd if any unit/drop-in changed.
+if printf '%s\n' "${changed[@]}" | grep -q '^systemd/'; then
+  echo "↻ systemctl daemon-reload (unit/drop-in changed)"
+  sudo systemctl daemon-reload || true
+fi
+
 # Restart affected services.
-if printf '%s\n' "${changed[@]}" | grep -q '^conf.d/llama.cpp$'; then
+if printf '%s\n' "${changed[@]}" | grep -qE '^(conf.d/llama.cpp|systemd/system/llama.cpp)'; then
   echo "↻ restarting llama.cpp.service (config changed)"
   sudo systemctl restart llama.cpp.service || true
 fi
