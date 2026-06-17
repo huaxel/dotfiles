@@ -37,6 +37,7 @@ $packages = @(
     # Shell & prompt
     "starship", "zoxide", "atuin", "fzf"
     # File management
+    "eza", "bat", "fd", "ripgrep", "yazi"
     # System info
     "btop", "fastfetch", "procs", "dust", "duf"
     # Dev tools
@@ -55,6 +56,7 @@ $packages = @(
     "autohotkey"
     # Utilities
     "7zip", "less", "curl", "tar", "make"
+    "wget", "tree",
 )
 
 foreach ($pkg in $packages) {
