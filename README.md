@@ -162,7 +162,7 @@ git push
 ```bash
 cd ~/dotfiles && git pull
 dotter deploy
-# → secrets auto-decrypt to ~/.agents/secrets/
+# → secrets auto-decrypt to ~/.config/secrets/
 ```
 
 ### How to add a secret
@@ -170,10 +170,10 @@ dotter deploy
 **1. Create the plaintext file** (never commit this):
 
 ```bash
-cat > ~/dotfiles/secrets/env.sh <<'EOF'
-export FIREWORKS_API_KEY="your-key-here"
-export OPENAI_API_KEY="your-key-here"
-export ANTHROPIC_API_KEY="your-key-here"
+cat > ~/dotfiles/secrets/env.fish <<'EOF'
+set -x FIREWORKS_API_KEY "your-key-here"
+set -x OPENAI_API_KEY "your-key-here"
+set -x ANTHROPIC_API_KEY "your-key-here"
 EOF
 ```
 
@@ -181,15 +181,15 @@ EOF
 
 ```bash
 cd ~/dotfiles/secrets
-sops --encrypt --input-type binary env.sh > env.sh.enc
+sops --encrypt env.fish > env.fish.enc
 ```
 
 **3. Remove plaintext and commit encrypted**:
 
 ```bash
-rm env.sh
+rm env.fish
 cd ~/dotfiles
-git add secrets/env.sh.enc
+git add secrets/env.fish.enc
 git commit -m "chore(secrets): add API keys"
 git push
 ```
@@ -198,14 +198,14 @@ git push
 
 **Fish** (`~/.config/fish/config.fish`):
 ```fish
-if test -f ~/.agents/secrets/env.sh
-    source ~/.agents/secrets/env.sh
+if test -f ~/.config/secrets/env.fish
+    source ~/.config/secrets/env.fish
 end
 ```
 
 **Zsh/Bash** (`~/.zshrc`):
 ```bash
-[ -f ~/.agents/secrets/env.sh ] && source ~/.agents/secrets/env.sh
+[ -f ~/.config/secrets/env.fish ] && . ~/.config/secrets/env.fish
 ```
 
 ### What gets encrypted vs. what's ignored
@@ -213,7 +213,7 @@ end
 | Tracked in git | Ignored |
 |---|---|
 | `secrets/*.enc` | `secrets/*` (plaintext) |
-| `secrets/README.md` | `~/.agents/secrets/` (decrypted) |
+| `secrets/README.md` | `~/.config/secrets/` (decrypted) |
 | `.sops.yaml` | `~/.config/sops/age/keys.txt` |
 
 ### Adding a new machine to decrypt existing secrets
@@ -286,7 +286,7 @@ git commit -m "chore(secrets): add fireworks api key"
 git push
 
 # 5. Source it in your shell
-echo '[ -f ~/.agents/secrets/fireworks.env ] && source ~/.agents/secrets/fireworks.env' >> ~/.zshrc
+echo '[ -f ~/.config/secrets/fireworks.env ] && . ~/.config/secrets/fireworks.env' >> ~/.zshrc
 ```
 
 On the next `dotter deploy`, the secret decrypts automatically.

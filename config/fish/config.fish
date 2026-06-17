@@ -98,7 +98,6 @@ alias vi='nvim'
 alias vim='nvim'
 
 # SSH tunnel helper
-alias tunnel='~/.config/autossh/tunnels.sh'
 
 # Mise aliases
 alias m='mise'
