@@ -10,13 +10,21 @@ It serves three endpoints on BRIDGE_PORT (default 55268):
     GET /stream  -> the same snapshot pushed as Server-Sent Events
     GET /health  -> {"status": "ok"}
 
-Data sources (all best-effort; any one failing never crashes the loop):
+Data sources (HTTP-only; each is best-effort and never crashes the loop):
 
-    * journalctl -u llama.cpp.service   -> live per-slot timing (tok/s, decoded)
     * GET /v1/models                    -> currently loaded model + ctx size
-    * GET /slots?model=<loaded>         -> live slot processing state
+    * GET /slots?model=<loaded>         -> per-slot processing / prompt progress
+    * GET /metrics?model=<loaded>       -> live tok/s (requires the server to be
+                                           started with --metrics /
+                                           LLAMA_ARG_ENDPOINT_METRICS=1)
     * /sys/.../mem_info_{gtt,vram}_used -> GPU memory footprint (Strix Halo: GTT)
     * cgroup memory.current             -> resident RAM of the service
+
+Live generation speed is derived from the *derivative* of the cumulative
+`llamacpp:n_decode_total` counter, which advances every decode step — so tok/s
+is reported in real time during a stream, not just at completion. The
+`predicted_tokens_seconds` / `prompt_tokens_seconds` gauges (which only settle
+at request end) are used as fall-backs.
 
 No third-party dependencies on purpose: the previous incarnation was OOM-killed
 under memory pressure, so this one stays tiny and has zero import-time cost.
@@ -38,6 +46,7 @@ The emitted schema (consumed by pi_extensions/llama-stats.ts):
 
 from __future__ import annotations
 
+import glob
 import json
 import os
 import re
@@ -59,7 +68,7 @@ BRIDGE_PORT = int(os.environ.get("BRIDGE_PORT", "55268"))
 POLL_INTERVAL = float(os.environ.get("POLL_INTERVAL", "1.0"))
 HISTORY_LEN = int(os.environ.get("HISTORY_LEN", "120"))
 HTTP_TIMEOUT = float(os.environ.get("HTTP_TIMEOUT", "2.0"))
-VERSION = "bridge/2.0-stdlib"
+VERSION = "bridge/2.1-metrics"
 
 # ── Shared state ─────────────────────────────────────────────────────────────
 
@@ -74,12 +83,12 @@ class State:
         self.slots: dict[str, dict] = {}
         self.n_ctx: int = 0
         self.max_tokens: int = 0
-        self.model_size_mb: int = 0
-        self.offloaded_layers: int | None = None
-        self.total_layers: int | None = None
         self.history: deque[list] = deque(maxlen=HISTORY_LEN)
-        self.unmatched_lines: int = 0
         self.last_update: float = 0.0
+        # Counter bookkeeping for deriving live generation speed.
+        self.prev_decode: tuple[float, float] | None = None  # (count, ts)
+        self.decode_baseline: float = 0.0  # n_decode_total at current req start
+        self.was_processing: bool = False
 
     def snapshot(self) -> dict:
         with self.lock:
@@ -92,12 +101,6 @@ class State:
                 mem["ram_used_mb"] = ram
             if vram is not None:
                 mem["vram_used_mb"] = vram
-            elif self.model_size_mb:
-                mem["vram_used_mb"] = self.model_size_mb
-            if self.offloaded_layers is not None:
-                mem["offloaded_layers"] = self.offloaded_layers
-            if self.total_layers is not None:
-                mem["total_layers"] = self.total_layers
             return {
                 "model": self.model,
                 "is_processing": any_processing,
@@ -107,7 +110,7 @@ class State:
                     else None
                 ),
                 "version": self.build or VERSION,
-                "unmatched_lines": self.unmatched_lines,
+                "unmatched_lines": 0,
                 "slots": slots,
                 "memory": mem,
                 "context": {"n_ctx": self.n_ctx, "max_tokens": self.max_tokens},
@@ -178,8 +181,6 @@ def read_vram_mb() -> int | None:
     memory), not the tiny dedicated VRAM carveout, so sum both."""
     total = 0
     found = False
-    import glob
-
     for base in glob.glob("/sys/class/drm/card*/device"):
         for name in ("mem_info_vram_used", "mem_info_gtt_used"):
             val = _read_int(os.path.join(base, name))
@@ -189,222 +190,165 @@ def read_vram_mb() -> int | None:
     return total // (1024 * 1024) if found else None
 
 
-# ── HTTP polling of the llama-server router ──────────────────────────────────
+# ── HTTP helpers ─────────────────────────────────────────────────────────────
 
 
 def http_get_json(path: str):
-    url = LLAMA_SERVER + path
-    req = urllib.request.Request(url, headers={"Accept": "application/json"})
+    req = urllib.request.Request(
+        LLAMA_SERVER + path, headers={"Accept": "application/json"}
+    )
     with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT) as resp:
         return json.load(resp)
+
+
+def http_get_text(path: str) -> str:
+    with urllib.request.urlopen(LLAMA_SERVER + path, timeout=HTTP_TIMEOUT) as resp:
+        return resp.read().decode("utf-8", "replace")
+
+
+_METRIC_LINE = re.compile(r"^(llamacpp:[a-z_]+)\s+([\d.eE+-]+)\s*$")
+
+
+def parse_prometheus(text: str) -> dict[str, float]:
+    out: dict[str, float] = {}
+    for line in text.splitlines():
+        if line.startswith("#"):
+            continue
+        m = _METRIC_LINE.match(line)
+        if m:
+            try:
+                out[m.group(1)] = float(m.group(2))
+            except ValueError:
+                pass
+    return out
 
 
 _CTX_ARG = re.compile(r"--ctx-size[= ](\d+)")
 
 
-def poll_http() -> None:
-    """Refresh model / ctx / live slot state from the router HTTP API."""
-    loaded_model = None
+# ── Pollers ──────────────────────────────────────────────────────────────────
+
+
+def poll_models() -> str | None:
+    """Return the currently loaded model id, updating model/ctx state."""
     try:
         models = http_get_json("/v1/models")
-        for m in models.get("data", []):
-            status = (m.get("status") or {}).get("value")
-            if status in ("loaded", "loading", "active"):
-                loaded_model = m.get("id")
-                args = (m.get("status") or {}).get("args") or []
-                argline = " ".join(str(a) for a in args)
-                match = _CTX_ARG.search(argline)
-                with STATE.lock:
-                    STATE.model = loaded_model
-                    if match:
-                        STATE.n_ctx = int(match.group(1))
-                break
-        else:
-            # Nothing loaded -> router is idle.
-            with STATE.lock:
-                STATE.model = None
     except Exception:
-        pass
+        return None
+    loaded = None
+    for m in models.get("data", []):
+        status = m.get("status") or {}
+        if status.get("value") in ("loaded", "loading", "active"):
+            loaded = m.get("id")
+            argline = " ".join(str(a) for a in (status.get("args") or []))
+            match = _CTX_ARG.search(argline)
+            with STATE.lock:
+                STATE.model = loaded
+                if match:
+                    STATE.n_ctx = int(match.group(1))
+            break
+    if loaded is None:
+        with STATE.lock:
+            STATE.model = None
+    return loaded
 
-    if not loaded_model:
+
+def poll_slots(model: str) -> None:
+    """Per-slot prompt progress / token counts (the prompt phase)."""
+    try:
+        slots = http_get_json(f"/slots?model={quote(model)}")
+    except Exception:
+        return
+    if not isinstance(slots, list):
+        return
+    with STATE.lock:
+        for s in slots:
+            rec = slot(str(s.get("id", 0)))
+            processing = bool(s.get("is_processing"))
+            rec["is_processing"] = processing
+            if s.get("n_ctx"):
+                STATE.n_ctx = int(s["n_ctx"])
+            params = s.get("params") or {}
+            n_predict = params.get("n_predict") or params.get("max_tokens")
+            if isinstance(n_predict, int) and n_predict > 0:
+                STATE.max_tokens = n_predict
+            total_pt = s.get("n_prompt_tokens") or 0
+            done_pt = s.get("n_prompt_tokens_processed") or 0
+            if processing:
+                rec["prompt_tokens"] = total_pt
+                rec["pp_progress"] = min(1.0, done_pt / total_pt) if total_pt else 0.0
+                rec["last_active"] = now()
+            # NB: phase (state) is owned by poll_metrics — it runs after this and
+            # knows whether tokens are actually being decoded, which /slots can
+            # misreport during context-checkpoint reuse.
+
+
+def poll_metrics(model: str) -> None:
+    """Live generation speed from the Prometheus metrics endpoint.
+
+    tok/s is the derivative of the cumulative `n_decode_total` counter, which
+    advances per decode step — giving a true real-time rate during a stream.
+    """
+    try:
+        metrics = parse_prometheus(http_get_text(f"/metrics?model={quote(model)}"))
+    except Exception:
+        return  # metrics disabled or instance not up — leave slots as-is.
+    if not metrics:
         return
 
-    try:
-        slots = http_get_json(f"/slots?model={quote(loaded_model)}")
-        if isinstance(slots, list):
-            with STATE.lock:
-                for s in slots:
-                    sid = str(s.get("id", 0))
-                    rec = slot(sid)
-                    processing = bool(s.get("is_processing"))
-                    rec["is_processing"] = processing
-                    n_ctx = s.get("n_ctx")
-                    if n_ctx:
-                        STATE.n_ctx = int(n_ctx)
-                    params = s.get("params") or {}
-                    n_predict = params.get("n_predict") or params.get("max_tokens")
-                    if isinstance(n_predict, int) and n_predict > 0:
-                        STATE.max_tokens = n_predict
-                    total_pt = s.get("n_prompt_tokens") or 0
-                    done_pt = s.get("n_prompt_tokens_processed") or 0
-                    if processing:
-                        rec["prompt_tokens"] = total_pt
-                        rec["pp_progress"] = (
-                            min(1.0, done_pt / total_pt) if total_pt else 0.0
-                        )
-                        rec["last_active"] = now()
-                        if rec["pp_progress"] < 1.0 and rec["pp_progress"] > 0:
-                            rec["state"] = "prompt"
-                        elif rec["state"] in ("idle", "done"):
-                            rec["state"] = "generating"
-                    elif rec["state"] not in ("idle", "done"):
-                        rec["state"] = "done"
-    except Exception:
-        pass
+    decode_total = metrics.get("llamacpp:n_decode_total", 0.0)
+    processing = metrics.get("llamacpp:requests_processing", 0.0) > 0
+    pp_gauge = metrics.get("llamacpp:prompt_tokens_seconds", 0.0)
+    tg_gauge = metrics.get("llamacpp:predicted_tokens_seconds", 0.0)
+    t = now()
 
-
-# ── Journal tailing for per-request timing ───────────────────────────────────
-
-_RE_LAUNCH = re.compile(r"slot\s+launch_slot_:\s+id\s+(\d+)")
-_RE_RELEASE = re.compile(r"slot\s+release:\s+id\s+(\d+)")
-_RE_PP = re.compile(
-    r"slot\s+print_timing:\s+id\s+(\d+).*?prompt eval time\s*=\s*[\d.]+\s*ms\s*/\s*"
-    r"(\d+)\s*tokens.*?([\d.]+)\s*tokens per second"
-)
-_RE_TG = re.compile(
-    r"slot\s+print_timing:\s+id\s+(\d+).*?\|\s+eval time\s*=\s*[\d.]+\s*ms\s*/\s*"
-    r"(\d+)\s*tokens.*?([\d.]+)\s*tokens per second"
-)
-_RE_PROGRESS = re.compile(
-    r"slot\s+update_slots:\s+id\s+(\d+).*?progress\s*=\s*([\d.]+)"
-)
-_RE_NEWSLOT = re.compile(r"slot\s+load_model:\s+id\s+(\d+).*?n_ctx\s*=\s*(\d+)")
-_RE_IDLE = re.compile(r"all slots are idle")
-_RE_CHILD_INFO = re.compile(r"cmd_child_to_router:info:(\{.*\})")
-
-
-def handle_log_line(line: str) -> None:
     with STATE.lock:
-        m = _RE_LAUNCH.search(line)
-        if m:
-            rec = slot(m.group(1))
-            rec.update(
-                is_processing=True,
-                state="prompt",
-                pp_progress=0.0,
-                pp_speed=0.0,
-                tg_speed=0.0,
-                n_decoded=0,
-                last_active=now(),
-            )
-            return
+        rate = 0.0
+        if STATE.prev_decode is not None:
+            prev_count, prev_t = STATE.prev_decode
+            dt = t - prev_t
+            if dt > 0 and decode_total >= prev_count:
+                rate = (decode_total - prev_count) / dt
+        STATE.prev_decode = (decode_total, t)
 
-        m = _RE_PP.search(line)
-        if m:
-            rec = slot(m.group(1))
-            rec["prompt_tokens"] = int(m.group(2))
-            rec["pp_speed"] = float(m.group(3))
-            rec["pp_progress"] = 1.0
-            rec["state"] = "generating"
-            rec["last_active"] = now()
-            return
+        rec = slot("0")
+        # Detect a fresh request and reset this request's per-stream counters.
+        if processing and not STATE.was_processing:
+            STATE.decode_baseline = decode_total
+            rec.update(n_decoded=0, tg_speed=0.0, pp_progress=0.0, state="prompt")
+        STATE.was_processing = processing
 
-        m = _RE_TG.search(line)
-        if m and "prompt eval time" not in line:
-            rec = slot(m.group(1))
-            rec["n_decoded"] = int(m.group(2))
-            rec["tg_speed"] = float(m.group(3))
-            rec["state"] = "generating"
-            rec["last_active"] = now()
-            STATE.history.append(
-                [now(), rec.get("pp_speed", 0.0), rec.get("tg_speed", 0.0)]
-            )
-            return
-
-        m = _RE_PROGRESS.search(line)
-        if m:
-            rec = slot(m.group(1))
-            rec["pp_progress"] = float(m.group(2))
-            rec["state"] = "prompt"
-            rec["is_processing"] = True
-            rec["last_active"] = now()
-            return
-
-        m = _RE_RELEASE.search(line)
-        if m:
-            rec = slot(m.group(1))
-            rec["is_processing"] = False
+        rec["is_processing"] = processing
+        if processing:
+            # Prefer the live derivative; fall back to the (lagging) gauge.
+            rec["tg_speed"] = round(rate if rate > 0 else tg_gauge, 2)
+            rec["pp_speed"] = round(pp_gauge, 2)
+            rec["n_decoded"] = max(0, int(decode_total - STATE.decode_baseline))
+            # Once any token is decoded we're generating; until then it's the
+            # prompt phase (so the widget shows the PP progress bar, not TG).
+            if rec["n_decoded"] > 0 or rate > 0:
+                rec["state"] = "generating"
+                rec["pp_progress"] = 1.0
+            else:
+                rec["state"] = "prompt"
+            rec["last_active"] = t
+            STATE.history.append([t, rec["pp_speed"], rec["tg_speed"]])
+        elif rec["state"] not in ("idle", "done"):
             rec["state"] = "done"
-            return
-
-        m = _RE_NEWSLOT.search(line)
-        if m:
-            STATE.n_ctx = int(m.group(2))
-            return
-
-        m = _RE_CHILD_INFO.search(line)
-        if m:
-            try:
-                info = json.loads(m.group(1))
-                STATE.model = info.get("id") or STATE.model
-                meta = info.get("meta") or {}
-                if meta.get("n_ctx"):
-                    STATE.n_ctx = int(meta["n_ctx"])
-                if meta.get("size"):
-                    STATE.model_size_mb = int(meta["size"]) // (1024 * 1024)
-            except (ValueError, TypeError):
-                STATE.unmatched_lines += 1
-            return
-
-        if _RE_IDLE.search(line):
-            for rec in STATE.slots.values():
-                rec["is_processing"] = False
-                if rec["state"] != "idle":
-                    rec["state"] = "done"
-            return
-
-        # Lines that look like slot telemetry but matched no pattern.
-        if "print_timing" in line or "update_slots" in line:
-            STATE.unmatched_lines += 1
-
-
-def journal_tail() -> None:
-    """Follow the service journal forever, restarting on any hiccup."""
-    cmd = [
-        "journalctl",
-        "-u",
-        SERVICE,
-        "-f",
-        "-o",
-        "cat",
-        "-n",
-        "0",
-        "--no-hostname",
-    ]
-    while True:
-        try:
-            proc = subprocess.Popen(
-                cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True
-            )
-            assert proc.stdout is not None
-            for line in proc.stdout:
-                try:
-                    handle_log_line(line)
-                except Exception:
-                    pass
-        except Exception:
-            pass
-        time.sleep(2)  # journalctl died/unavailable — back off and retry.
 
 
 def poll_loop() -> None:
     while True:
         try:
-            poll_http()
+            model = poll_models()
+            if model:
+                poll_slots(model)
+                poll_metrics(model)
             with STATE.lock:
                 STATE.last_update = now()
-                # Keep the sparkline alive while idle so it decays visibly.
+                # Keep the sparkline decaying visibly while idle.
                 if not any(s.get("is_processing") for s in STATE.slots.values()):
+                    STATE.prev_decode = None  # reset rate window between streams
                     STATE.history.append([now(), 0.0, 0.0])
         except Exception:
             pass
@@ -461,7 +405,6 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
-    threading.Thread(target=journal_tail, daemon=True).start()
     threading.Thread(target=poll_loop, daemon=True).start()
     server = ThreadingHTTPServer((BRIDGE_HOST, BRIDGE_PORT), Handler)
     print(f"{VERSION} listening on http://{BRIDGE_HOST}:{BRIDGE_PORT}  -> {LLAMA_SERVER}")
