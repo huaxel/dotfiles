@@ -160,7 +160,7 @@ if test -f /proc/version && grep -q Microsoft /proc/version
 end
 
 # opencode
-fish_add_path /Users/juanbenjumea/.opencode/bin
+fish_add_path $HOME/.opencode/bin
 
 # bun
 set --export BUN_INSTALL "$HOME/.bun"

@@ -50,8 +50,80 @@ if [ "$(uname -s)" = "Linux" ] && [ -x ./etc/install-system-config.sh ]; then
     ./etc/install-system-config.sh || echo "⚠️  system config install skipped/failed"
 fi
 
+# Install packages based on platform
+echo ""
+echo "📦 Installing platform packages..."
+case "$(uname -s)" in
+    Darwin)
+        if command -v brew &> /dev/null; then
+            echo "Run: brew bundle --file=~/.config/Brewfile"
+        else
+            echo "Homebrew not found. Install: https://brew.sh"
+        fi
+        ;;
+    Linux)
+        if command -v pacman &> /dev/null; then
+            # Arch Linux packages — mirrors Brewfile/Scoop tool set
+           packages=(
+                # Core tools
+                git neovim nodejs python rust
+                # Shell & prompt
+                starship zoxide atuin fzf
+                # Modern CLI replacements
+                eza bat fd ripgrep procs dust duf btop fastfetch
+                # Dev tools
+                gh jq glow lazygit uv just
+                # Terminal multiplexer
+                tmux zellij
+                # Encryption
+                age gnupg
+                # Utilities
+                curl wget tree htop
+            )
+
+            # AUR packages (via paru or yay)
+            aur_packages=(
+                opencode pi-coding-agent
+            )
+
+            # Install official packages
+            missing=()
+            for pkg in "${packages[@]}"; do
+                if ! pacman -Qi "$pkg" &> /dev/null; then
+                    missing+=("$pkg")
+                fi
+            done
+
+            if [ ${#missing[@]} -gt 0 ]; then
+                echo "Installing: ${missing[*]}"
+                sudo pacman -S --noconfirm "${missing[@]}"
+            else
+                echo "✅ All pacman packages installed"
+            fi
+
+            # Install AUR packages
+            if command -v paru &> /dev/null || command -v yay &> /dev/null; then
+                aur_cmd=$(command -v paru || command -v yay)
+                aur_missing=()
+                for pkg in "${aur_packages[@]}"; do
+                    if ! pacman -Qi "$pkg" &> /dev/null; then
+                        aur_missing+=("$pkg")
+                    fi
+                done
+                if [ ${#aur_missing[@]} -gt 0 ]; then
+                    echo "Installing AUR: ${aur_missing[*]}"
+                    $aur_cmd -S --noconfirm "${aur_missing[@]}"
+                fi
+            else
+                echo "⚠️  No AUR helper found. Install paru or yay for AUR packages."
+            fi
+        else
+            echo "Package manager not detected. Install packages manually."
+        fi
+        ;;
+esac
+
 echo "✅ Dotfiles deployed successfully!"
 echo ""
 echo "Next steps:"
-echo "  - Restart your shell or run: source ~/.zshrc"
-echo "  - Install your package manager packages (brew, pacman, etc.)"
+echo "  - Restart your shell"
