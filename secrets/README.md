@@ -67,3 +67,15 @@ Or in `~/.zshrc`:
 
 - `*.enc` — encrypted secrets (committed to git)
 - `~/.config/secrets/` — decrypted secrets (never committed, 600 permissions)
+
+## Auto-encrypt on commit
+
+The `.githooks/pre-commit` hook auto-re-encrypts `env.fish` when you commit.
+No manual `sops --encrypt` needed — just edit `~/.config/secrets/env.fish` and commit.
+
+Enable hooks on a fresh clone:
+```bash
+git config core.hooksPath .githooks
+```
+
+Or run `bootstrap.sh` which does this automatically.
