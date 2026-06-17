@@ -37,7 +37,6 @@ $packages = @(
     # Shell & prompt
     "starship", "zoxide", "atuin", "fzf"
     # File management
-    "eza", "bat", "yazi", "broot", "fd", "ripgrep"
     # System info
     "btop", "fastfetch", "procs", "dust", "duf"
     # Dev tools
