@@ -48,6 +48,10 @@
 	colorMoved = default
 	colorMovedWS = allow-indentation-change
 
+[filter "strip-pi-machine-config"]
+	clean = node scripts/strip-pi-machine-config.mjs
+	required = true
+
 [push]
 	autoSetupRemote = true
 
