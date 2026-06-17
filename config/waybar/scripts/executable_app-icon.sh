@@ -20,7 +20,6 @@ get_icon() {
         "tmux"*) echo "󰕮" ;;
         
         # Editors/IDEs
-        "code"*|"vscode"*) echo "󰨞" ;;
         "codium"*) echo "󰨞" ;;
         "nvim"*|"neovim"*) echo "󰕷" ;;
         "vim"*) echo "" ;;
