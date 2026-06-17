@@ -1,10 +1,10 @@
 #!/bin/bash
 BRITISH_CONF='input "type:keyboard" {
-    xkb_file "/home/juan/.config/xkb/symbols/gb_qwerty"
+    xkb_file "$HOME/.config/xkb/symbols/gb_qwerty"
 }
 '
 COLEMAK_CONF='input "type:keyboard" {
-    xkb_file "/home/juan/.config/xkb/symbols/mac_colemak"
+    xkb_file "$HOME/.config/xkb/symbols/mac_colemak"
 }
 '
 
