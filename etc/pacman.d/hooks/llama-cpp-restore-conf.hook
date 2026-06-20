@@ -1,0 +1,21 @@
+# Re-install the tracked /etc/conf.d/llama.cpp after any llama.cpp package op.
+#
+# The llama.cpp-* packages ship their own /etc/conf.d/llama.cpp and, on
+# upgrade, pacman moves the local (customised) file to .pacsave and drops the
+# package default in its place — which silently strips LLAMA_ARG_HOST/PORT,
+# the models-preset path, etc., so the router comes back up on 127.0.0.1:8080
+# with zero models. This restores the dotfiles copy right after the transaction.
+#
+# Installed to /etc/pacman.d/hooks/ by etc/install-system-config.sh.
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = llama.cpp
+Target = llama.cpp-vulkan
+Target = llama.cpp-gfx1151
+
+[Action]
+Description = Restoring tracked /etc/conf.d/llama.cpp from dotfiles...
+When = PostTransaction
+Exec = /usr/bin/install -D -m644 -o root -g root /home/juan/dotfiles/etc/conf.d/llama.cpp /etc/conf.d/llama.cpp
