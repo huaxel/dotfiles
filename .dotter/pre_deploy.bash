@@ -12,22 +12,22 @@ sync_dir() {
   local label=$3
 
   [ -d "$source_dir" ] || return 0
-  mkdir -p "$target_dir"
 
-  # Dotter deploys these trees as symlinks on Unix. If a target file already
-  # resolves to the source file, copying would try to copy a file onto itself.
-  local sample rel target_sample
-  sample=$(find "$source_dir" -type f -print -quit)
-  if [ -n "$sample" ]; then
-    rel=${sample#"$source_dir"/}
-    target_sample="$target_dir/$rel"
-    if [ -e "$target_sample" ] && [ "$sample" -ef "$target_sample" ]; then
-      echo "✓ $label already linked by Dotter; skipping pre-deploy copy"
-      return 0
-    fi
+  # If Dotter (or a previous setup) already linked the whole tree, copying would
+  # copy files onto themselves. Check the directory itself, not a single sample
+  # file, because the target can be partially populated.
+  if [ -e "$target_dir" ] && [ "$source_dir" -ef "$target_dir" ]; then
+    echo "✓ $label already linked by Dotter; skipping pre-deploy copy"
+    return 0
   fi
 
-  cp -R "$source_dir"/. "$target_dir"/
+  mkdir -p "$target_dir"
+
+  # Use rsync instead of cp -R: macOS cp fails when an existing destination file
+  # is a symlink back into this repo ("Permission denied"). rsync replaces those
+  # per-file symlinks with normal files while preserving unrelated target files.
+  rsync -a "$source_dir"/ "$target_dir"/
+  echo "✓ $label synced to $target_dir"
 }
 
 sync_dir "$DOTFILES_DIR/skills" "$HOME/.agents/skills" "skills"

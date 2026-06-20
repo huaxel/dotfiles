@@ -3,5 +3,18 @@
   "theme": "dark",
   "defaultProvider": null,
   "defaultModel": null,
-  "defaultThinkingLevel": "high"
+  "defaultThinkingLevel": "high",
+  "enabledModels": [
+    "openai-codex/gpt-5.5",
+    "openai-codex/gpt-5.4-mini",
+    "opencode-go/glm-5.2",
+    "opencode-go/glm-5.1",
+    "opencode-go/deepseek-v4-flash",
+    "opencode-go/deepseek-v4-pro",
+    "opencode-go/kimi-k2.7-code",
+    "opencode-go/minimax-m3",
+    "opencode/mimo-v2.5-free",
+    "opencode/north-mini-code-free",
+    "opencode/nemotron-3-ultra-free"
+  ]
 }
