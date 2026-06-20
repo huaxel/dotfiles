@@ -15,7 +15,7 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 
 function resolveSubsPath(): string {
   const candidates = [
-    join(homedir(), "Projects/sub-roi-tracker/data/subscriptions.json"),
+    join(homedir(), "projects/sub-roi-tracker/data/subscriptions.json"),
     join(homedir(), "coding/projects/sub-roi-tracker/data/subscriptions.json"),
   ];
   for (const p of candidates) {
