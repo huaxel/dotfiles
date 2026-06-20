@@ -8,12 +8,16 @@ LLAMA_ARG_HOST=0.0.0.0
 LLAMA_ARG_PORT=8000
 #LLAMA_ARG_MODELS_DIR="/mnt/ai_models/router-models"
 LLAMA_ARG_MODELS_PRESET="/home/juan/.config/llama.cpp/models.ini"
+LLAMA_ARG_UI_CONFIG_FILE="/home/juan/.config/llama.cpp/webui-config.json"
 #LLAMA_ARG_UI_MCP_PROXY=true
 LLAMA_ARG_TOOLS=all
 # Prometheus metrics endpoint — required by the llama-stats bridge for live
 # tok/s (it derives generation speed from llamacpp:n_decode_total).
 LLAMA_ARG_ENDPOINT_METRICS=1
-LLAMA_ARG_THREADS=32
+# Strix Halo is 16C/32T: 14 threads for generation (avoid hyperthread
+# contention — 32 gen threads hurts), 28 for prompt/batch processing.
+LLAMA_ARG_THREADS=14
+LLAMA_ARG_THREADS_BATCH=28
 LLAMA_ARG_BATCH=4096
 LLAMA_ARG_UBATCH=1024
 LLAMA_ARG_N_PARALLEL=1
