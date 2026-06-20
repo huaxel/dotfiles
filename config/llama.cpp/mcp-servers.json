@@ -1,0 +1,84 @@
+[
+  {
+    "id": "exa",
+    "name": "Exa Search",
+    "enabled": true,
+    "url": "https://mcp.exa.ai/mcp?exaApiKey=${EXA_API_KEY}",
+    "requestTimeoutSeconds": 30,
+    "useProxy": false
+  },
+  {
+    "id": "context7",
+    "name": "Context7 Docs",
+    "enabled": true,
+    "url": "https://mcp.context7.com/mcp",
+    "requestTimeoutSeconds": 30,
+    "headers": {"CONTEXT7_API_KEY": "${CONTEXT7_KEY}"},
+    "useProxy": true
+  },
+  {
+    "id": "github",
+    "name": "GitHub Copilot",
+    "enabled": true,
+    "url": "https://api.githubcopilot.com/mcp/",
+    "requestTimeoutSeconds": 30,
+    "headers": {"Authorization": "Bearer ${GITHUB_PERSONAL_ACCESS_TOKEN}"},
+    "useProxy": true
+  },
+  {
+    "id": "filesystem",
+    "name": "Local Filesystem",
+    "enabled": true,
+    "url": "http://framearch-juan:3008/mcp",
+    "requestTimeoutSeconds": 30,
+    "useProxy": false
+  },
+  {
+    "id": "git",
+    "name": "Local Git Repos",
+    "enabled": true,
+    "url": "http://framearch-juan:3002/mcp",
+    "requestTimeoutSeconds": 30,
+    "useProxy": false
+  },
+  {
+    "id": "sequential-thinking",
+    "name": "Sequential Thinking",
+    "enabled": true,
+    "url": "http://framearch-juan:3003/mcp",
+    "requestTimeoutSeconds": 30,
+    "useProxy": false
+  },
+  {
+    "id": "fetch",
+    "name": "Web Fetch (URLs)",
+    "enabled": true,
+    "url": "http://framearch-juan:3004/mcp",
+    "requestTimeoutSeconds": 30,
+    "useProxy": false
+  },
+  {
+    "id": "sqlite",
+    "name": "SQLite Database",
+    "enabled": true,
+    "url": "http://framearch-juan:3005/mcp",
+    "requestTimeoutSeconds": 30,
+    "useProxy": false
+  },
+  {
+    "id": "memory",
+    "name": "Knowledge Graph Memory",
+    "enabled": true,
+    "url": "http://framearch-juan:3006/mcp",
+    "requestTimeoutSeconds": 30,
+    "useProxy": false
+  },
+  {
+    "id": "brave-search",
+    "name": "Brave Web Search",
+    "enabled": true,
+    "url": "http://framearch-juan:3007/mcp",
+    "requestTimeoutSeconds": 30,
+    "useProxy": false
+  }
+]
