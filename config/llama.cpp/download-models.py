@@ -54,11 +54,11 @@ no-mmap = true
         ("LFM2.5-1.2B",     "LiquidAI/LFM2.5-1.2B-Instruct-GGUF",
             {"model": "LFM2.5-1.2B-Instruct-Q4_K_M.gguf"}, ["fit = false"]),
         ("Qwen3.5-4B",      "unsloth/Qwen3.5-4B-GGUF",
-            {"model": "Qwen3.5-4B-Q8_0.gguf"}, ["fit = false"]),
+            {"model": "Qwen3.5-4B-Q8_0.gguf", "mmproj": "mmproj-BF16.gguf"}, ["fit = false"]),
         ("Qwen3.5-2B",      "unsloth/Qwen3.5-2B-GGUF",
-            {"model": "Qwen3.5-2B-Q8_0.gguf"}, ["fit = false"]),
+            {"model": "Qwen3.5-2B-Q8_0.gguf", "mmproj": "mmproj-BF16.gguf"}, ["fit = false"]),
         ("Qwen3.5-0.8B",    "unsloth/Qwen3.5-0.8B-GGUF",
-            {"model": "Qwen3.5-0.8B-Q8_0.gguf"}, ["fit = false"]),
+            {"model": "Qwen3.5-0.8B-Q8_0.gguf", "mmproj": "mmproj-BF16.gguf"}, ["fit = false"]),
     ],
 }
 
