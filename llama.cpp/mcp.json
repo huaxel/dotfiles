@@ -2,14 +2,11 @@
   "mcpServers": {
     "exa": {
       "command": "npx",
-      "args": ["-y", "exa-mcp-server"],
-      "env": {
-        "EXA_API_KEY": "YOUR_EXA_API_KEY"
-      }
+      "args": ["-y", "exa-mcp-server"]
     },
     "context7": {
       "command": "npx",
-      "args": ["-y", "@upstash/context7-mcp", "--api-key", "YOUR_CONTEXT7_API_KEY"]
+      "args": ["-y", "@upstash/context7-mcp"]
     },
     "github": {
       "command": "docker",
@@ -20,10 +17,7 @@
         "-e",
         "GITHUB_PERSONAL_ACCESS_TOKEN",
         "ghcr.io/github/github-mcp-server"
-      ],
-      "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "YOUR_GITHUB_TOKEN"
-      }
+      ]
     },
     "filesystem": {
       "command": "npx",
@@ -47,10 +41,7 @@
     },
     "brave-search": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-brave-search"],
-      "env": {
-        "BRAVE_API_KEY": "YOUR_BRAVE_API_KEY"
-      }
+      "args": ["-y", "@modelcontextprotocol/server-brave-search"]
     },
     "sequential-thinking": {
       "command": "npx",
