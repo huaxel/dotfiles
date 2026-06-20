@@ -58,14 +58,6 @@ set -x XDG_CONFIG_HOME $HOME/.config
 set -x EZA_CONFIG_DIR $HOME/.config/eza
 set -x PI_CODING_AGENT_DIR $HOME/.pi/agent
 
-# pi update wrapper: runs pi update, then applies patches
-function pi
-    command pi $argv
-    if contains -- update $argv
-        echo "Applying patches..."
-        command npx patch-package --patch-dir $HOME/.pi/agent/npm/patches
-    end
-end
 
 # Run pi as restricted pi-agent user
 alias pi-sudo='sudo -iu pi-agent PI_CODING_AGENT_DIR=$HOME/.pi/agent -- pi'

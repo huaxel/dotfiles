@@ -9,7 +9,7 @@ LLAMA_ARG_PORT=8000
 #LLAMA_ARG_MODELS_DIR="/mnt/ai_models/router-models"
 LLAMA_ARG_MODELS_PRESET="/home/juan/.config/llama.cpp/models.ini"
 LLAMA_ARG_UI_CONFIG_FILE="/home/juan/.config/llama.cpp/webui-config.json"
-#LLAMA_ARG_UI_MCP_PROXY=true
+LLAMA_ARG_UI_MCP_PROXY=true
 LLAMA_ARG_TOOLS=all
 # Prometheus metrics endpoint — required by the llama-stats bridge for live
 # tok/s (it derives generation speed from llamacpp:n_decode_total).
