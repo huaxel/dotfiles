@@ -80,6 +80,7 @@ load-on-startup = false
 ; Metal is auto-detected — no device or no-mmap override needed
 """,
     "models": [
+        # (section_name, repo, {role: filename}, [extra_lines])
         ("gemma-4-E4B-qat", "unsloth/gemma-4-E4B-it-qat-GGUF",
             {"model": "gemma-4-E4B-it-qat-UD-Q4_K_XL.gguf", "mmproj": "mmproj-BF16.gguf"}, []),
         ("gemma-4-E2B-qat", "unsloth/gemma-4-E2B-it-qat-GGUF",
