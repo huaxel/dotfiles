@@ -8,12 +8,22 @@
  *   /sub-compare <sub>   — show single subscription detail
  */
 
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 
-const SUBS_PATH = join(homedir(), "Projects/sub-roi-tracker/data/subscriptions.json");
+function resolveSubsPath(): string {
+  const candidates = [
+    join(homedir(), "Projects/sub-roi-tracker/data/subscriptions.json"),
+    join(homedir(), "coding/projects/sub-roi-tracker/data/subscriptions.json"),
+  ];
+  for (const p of candidates) {
+    if (existsSync(p)) return p;
+  }
+  return candidates[0];
+}
+const SUBS_PATH = resolveSubsPath();
 const MODELS_PATH = join(homedir(), ".pi/agent/models.json");
 const SESSIONS_DIR = join(homedir(), ".pi/agent/sessions");
 
