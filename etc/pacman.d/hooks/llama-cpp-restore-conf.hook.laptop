@@ -1,0 +1,16 @@
+# Same as llama-cpp-restore-conf.hook but restores the laptop conf variant.
+# Install this file (without the .laptop suffix) on the laptop:
+#   sudo install -D -m644 -o root -g root \
+#     ~/dotfiles/etc/pacman.d/hooks/llama-cpp-restore-conf.hook.laptop \
+#     /etc/pacman.d/hooks/llama-cpp-restore-conf.hook
+[Trigger]
+Operation = Install
+Operation = Upgrade
+Type = Package
+Target = llama.cpp
+Target = llama.cpp-vulkan
+
+[Action]
+Description = Restoring tracked /etc/conf.d/llama.cpp from dotfiles (laptop)...
+When = PostTransaction
+Exec = /usr/bin/install -D -m644 -o root -g root /home/juan/dotfiles/etc/conf.d/llama.cpp.laptop /etc/conf.d/llama.cpp
