@@ -61,7 +61,6 @@ if [ -d "$SECRETS_DIR" ]; then
     fi
   }
 
-  app_secret "llama-webui-config.json" "$HOME/.config/llama.cpp/webui-config.json"
 fi
 
 echo ""
