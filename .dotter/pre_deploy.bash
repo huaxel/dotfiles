@@ -30,5 +30,8 @@ sync_dir() {
   echo "✓ $label synced to $target_dir"
 }
 
+# pi_extensions is managed by Dotter as a single symlink (see .dotter/global.toml),
+# so we must NOT pre-sync it here — doing so creates a real directory at the
+# target path before Dotter runs, causing Dotter to skip the symlink with
+# "target already exists and isn't a symlink".
 sync_dir "$DOTFILES_DIR/skills" "$HOME/.agents/skills" "skills"
-sync_dir "$DOTFILES_DIR/pi_extensions" "$HOME/.pi/agent/extensions" "pi extensions"
