@@ -15,7 +15,7 @@ npmrc = "~/.npmrc"
 pi_settings = "~/.pi/agent/settings.json"
 pi_append_system = "~/.pi/agent/APPEND_SYSTEM.md"
 pi_extensions = "~/.pi/agent/extensions"
-pi_npm = "~/.pi/agent/npm"
+pi_npm = { target = "~/.pi/agent/npm", type = "symbolic", recurse = false }
 
 [windows.files]
 # Zed
