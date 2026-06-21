@@ -3,6 +3,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 const PROVIDER_NAME = "framearch";
 const DISCOVERY_URL = "http://framearch-juan:8000/v1/models";
 const API_BASE_URL = "http://framearch-juan:8000/v1";
+const DISCOVERY_TIMEOUT_MS = Number(process.env.FRAMEARCH_DISCOVERY_TIMEOUT_MS) || 5000;
 
 const FRAMEARCH_COMPAT = {
 	supportsDeveloperRole: false,
@@ -120,25 +121,44 @@ function applyLlamaCppThinkingPayload(modelId: string, payload: unknown, thinkin
 let discoveredModels: DiscoveredModel[] | undefined;
 
 /** In-flight discovery promise (deduplicates concurrent requests) */
-let discoveryPromise: Promise<void> | undefined;
+let discoveryPromise: Promise<DiscoveredModel[] | undefined> | undefined;
+
+function registerFramearchProvider(
+	pi: ExtensionAPI,
+	models?: DiscoveredModel[],
+): void {
+	const config = {
+		baseUrl: API_BASE_URL,
+		apiKey: "local",
+		api: "openai-completions" as const,
+		compat: FRAMEARCH_COMPAT,
+		...(models ? { models } : {}),
+	};
+
+	pi.registerProvider(PROVIDER_NAME, config);
+}
 
 /**
  * Discover framearch models from the llama.cpp server and register them.
  * Deduplicates concurrent calls via a shared promise.
  */
-async function discoverModels(pi: ExtensionAPI): Promise<void> {
+async function discoverModels(
+	pi: ExtensionAPI,
+): Promise<DiscoveredModel[] | undefined> {
 	if (discoveryPromise) {
 		return discoveryPromise;
 	}
 
 	discoveryPromise = (async () => {
 		try {
-			const response = await fetch(DISCOVERY_URL);
+			const response = await fetch(DISCOVERY_URL, {
+				signal: AbortSignal.timeout(DISCOVERY_TIMEOUT_MS),
+			});
 			if (!response.ok) {
 				console.warn(
 					`[framearch-autodiscover] Server returned ${response.status}, skipping dynamic registration`,
 				);
-				return;
+				return undefined;
 			}
 
 			const payload = (await response.json()) as {
@@ -164,23 +184,18 @@ async function discoverModels(pi: ExtensionAPI): Promise<void> {
 			});
 
 			discoveredModels = models;
-
-			pi.registerProvider(PROVIDER_NAME, {
-				baseUrl: API_BASE_URL,
-				apiKey: "local",
-				api: "openai-completions",
-				compat: FRAMEARCH_COMPAT,
-				models,
-			});
+			registerFramearchProvider(pi, models);
 
 			console.log(
 				`[framearch-autodiscover] Discovered ${models.length} models from llama.cpp server`,
 			);
+			return models;
 		} catch (err: any) {
 			const cause = err.cause?.code || err.code || err.message || "unknown";
 			console.warn(
 				`[framearch-autodiscover] Discovery failed (${cause})`,
 			);
+			return undefined;
 		} finally {
 			discoveryPromise = undefined;
 		}
@@ -199,19 +214,16 @@ function triggerDiscovery(pi: ExtensionAPI): void {
 }
 
 export default async function (pi: ExtensionAPI) {
-	// Register provider with minimal config immediately — no blocking fetch.
-	// The provider is available for API key resolution and baseUrl routing,
-	// but no models appear in the model list until discovery completes.
-	pi.registerProvider(PROVIDER_NAME, {
-		baseUrl: API_BASE_URL,
-		apiKey: "local",
-		api: "openai-completions",
-		compat: FRAMEARCH_COMPAT,
-	});
+	// Discover during extension startup so framearch models are available to
+	// normal startup paths, /model, and `pi --list-models`.
+	const startupModels = await discoverModels(pi);
 
-	// Discover once during extension load so pi --list-models and startup model
-	// metadata (thinking/image/context) reflect the live llama.cpp router.
-	await discoverModels(pi);
+	// If the server is unavailable, still register the provider shell so an
+	// already-selected framearch model can route requests and later retry
+	// discovery via events or /models.
+	if (!startupModels) {
+		registerFramearchProvider(pi);
+	}
 
 	// Trigger discovery when a framearch model is selected (e.g. restored from
 	// session state, cycled via keyboard shortcut, or set via command).
@@ -221,7 +233,7 @@ export default async function (pi: ExtensionAPI) {
 		}
 	});
 
-	// Trigger discovery at session start unconditionally so framearch models
+	// Refresh discovery at session start unconditionally so framearch models
 	// are always available for selection. Fire-and-forget, non-blocking.
 	pi.on("session_start", async (_event, ctx) => {
 		triggerDiscovery(pi);
@@ -245,7 +257,11 @@ export default async function (pi: ExtensionAPI) {
 			triggerDiscovery(pi);
 
 			if (supportsLlamaCppThinking(ctx.model.id)) {
-				applyLlamaCppThinkingPayload(ctx.model.id, event.payload, pi.getThinkingLevel() as ThinkingLevel);
+				applyLlamaCppThinkingPayload(
+					ctx.model.id,
+					event.payload,
+					pi.getThinkingLevel() as ThinkingLevel,
+				);
 			}
 		}
 	});
@@ -275,5 +291,5 @@ export default async function (pi: ExtensionAPI) {
 		},
 	});
 
-	console.log(`[framearch-autodiscover] Provider registered (lazy discovery)`);
+	console.log(`[framearch-autodiscover] Provider registered`);
 }
