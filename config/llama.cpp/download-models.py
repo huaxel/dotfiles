@@ -12,8 +12,6 @@ paths to --out (default: ~/.config/llama.cpp/models.ini).
 """
 
 import argparse
-import os
-import sys
 from pathlib import Path
 from huggingface_hub import hf_hub_download, constants
 
@@ -81,12 +79,10 @@ load-on-startup = false
 """,
     "models": [
         # (section_name, repo, {role: filename}, [extra_lines])
-        ("gemma-4-E4B-qat", "unsloth/gemma-4-E4B-it-qat-GGUF",
-            {"model": "gemma-4-E4B-it-qat-UD-Q4_K_XL.gguf", "mmproj": "mmproj-BF16.gguf"}, []),
+        ("LFM2.5-1.2B",     "LiquidAI/LFM2.5-1.2B-Instruct-GGUF",
+            {"model": "LFM2.5-1.2B-Instruct-Q4_K_M.gguf"}, ["fit = false"]),
         ("gemma-4-E2B-qat", "unsloth/gemma-4-E2B-it-qat-GGUF",
             {"model": "gemma-4-E2B-it-qat-UD-Q4_K_XL.gguf", "mmproj": "mmproj-BF16.gguf"}, []),
-        ("LFM2.5-1.2B",     "LiquidAI/LFM2.5-1.2B-Instruct-GGUF",
-            {"model": "LFM2.5-1.2B-Instruct-Q4_K_M.gguf"}, []),
         ("Qwen3.5-4B",      "unsloth/Qwen3.5-4B-GGUF",
             {"model": "Qwen3.5-4B-Q4_K_M.gguf"}, []),  # Q4 not Q8 — saves ~1.6 GB on 8 GB
         ("Qwen3.5-2B",      "unsloth/Qwen3.5-2B-GGUF",
