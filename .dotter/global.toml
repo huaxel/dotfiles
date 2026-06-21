@@ -14,7 +14,7 @@ npmrc = "~/.npmrc"
 # Pi agent configuration
 pi_settings = "~/.pi/agent/settings.json"
 pi_append_system = "~/.pi/agent/APPEND_SYSTEM.md"
-pi_extensions = "~/.pi/agent/extensions"
+pi_extensions = { target = "~/.pi/agent/extensions", type = "symbolic", recurse = false }
 pi_npm = { target = "~/.pi/agent/npm", type = "symbolic", recurse = false }
 
 [windows.files]
