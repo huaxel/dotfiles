@@ -13,7 +13,6 @@ npmrc = "~/.npmrc"
 
 # Pi agent configuration
 pi_settings = "~/.pi/agent/settings.json"
-"pi_models.json" = "~/.pi/agent/models.json"
 pi_append_system = "~/.pi/agent/APPEND_SYSTEM.md"
 pi_extensions = { target = "~/.pi/agent/extensions", type = "symbolic", recurse = false }
 pi_npm = { target = "~/.pi/agent/npm", type = "symbolic", recurse = false }
