@@ -15,8 +15,8 @@ npmrc = "~/.npmrc"
 pi_settings = "~/.pi/agent/settings.json"
 "pi_models.json" = "~/.pi/agent/models.json"
 pi_append_system = "~/.pi/agent/APPEND_SYSTEM.md"
-pi_extensions = { target = "~/.pi/agent/extensions", type = "symbolic", recurse = false }
-pi_npm = { target = "~/.pi/agent/npm", type = "symbolic", recurse = false }
+pi_extensions = "~/.pi/agent/extensions"
+pi_npm = "~/.pi/agent/npm"
 
 [windows.files]
 # Zed
@@ -44,19 +44,19 @@ pi_npm = { target = "~/.pi/agent/npm", type = "symbolic", recurse = false }
 "zebar/settings.json" = { target = "~\\.glzr\\zebar\\settings.json", type = "symbolic" }
 
 # Neovim
-"config/nvim" = { target = "~\\AppData\\Local\\nvim", type = "symbolic", recurse = false }
+"config/nvim" = "~\\AppData\\Local\\nvim"
 
 # Bat — cat replacement with syntax highlighting
-"config/bat" = { target = "~\\.config\\bat", type = "symbolic", recurse = false }
+"config/bat" = "~\\.config\\bat"
 
 # Btop — resource monitor
-"config/btop" = { target = "~\\.config\\btop", type = "symbolic", recurse = false }
+"config/btop" = "~\\.config\\btop"
 
 # Eza — modern ls replacement
-"config/eza" = { target = "~\\.config\\eza", type = "symbolic", recurse = false }
+"config/eza" = "~\\.config\\eza"
 
 # Fastfetch — system info
-"config/fastfetch" = { target = "~\\.config\\fastfetch", type = "symbolic", recurse = false }
+"config/fastfetch" = "~\\.config\\fastfetch"
 
 [unix.files]
 # macOS/Linux-only: full config directory (individual configs are in windows.files)
