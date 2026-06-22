@@ -47,6 +47,10 @@ pi_npm = { target = "~/.pi/agent/npm", type = "symbolic", recurse = false }
 # Neovim
 "config/nvim" = "~\\AppData\\Local\\nvim"
 
+# llama.cpp Windows launcher
+"config/llama.cpp/start-server.ps1" = "~\\.config\\llama.cpp\\start-server.ps1"
+"config/llama.cpp/README-windows.md" = "~\\.config\\llama.cpp\\README.md"
+
 # Bat — cat replacement with syntax highlighting
 "config/bat" = "~\\.config\\bat"
 
