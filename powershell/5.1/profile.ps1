@@ -25,5 +25,10 @@ function gca($msg) { git add -A; git commit -m $msg }
 function ep { code $PROFILE }
 function rp { . $PROFILE }
 
+# llama.cpp inference server
+function llama-serve {
+  & "$env:USERPROFILE\.config\llama.cpp\start-server.ps1" @args
+}
+
 # Window Title
 $host.ui.RawUI.WindowTitle = "PowerShell 5.1 | $env:USERNAME@$env:COMPUTERNAME"
