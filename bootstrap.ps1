@@ -119,6 +119,7 @@ os = "windows"
 name = "$gitName"
 email = "$gitEmail"
 hostname_color = "fg:#f7768e"
+models_base_path = "$env:USERPROFILE\.cache\huggingface\hub"
 "@ | Set-Content -Path ".dotter/local.toml" -Encoding UTF8
     Write-Host "Created .dotter/local.toml for windows" -ForegroundColor Green
 }
