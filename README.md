@@ -106,6 +106,55 @@ Removed from chezmoi migration:
 
 These should be installed separately via git clone or package manager.
 
+## llama.cpp Models
+
+Model paths are machine-specific, so the models config is a **template** (`llama-models.ini`) that uses variables from `local.toml`.
+
+### First-time setup on a new machine
+
+Each machine needs a `.dotter/local.toml` with the right `models_base_path`:
+
+**Linux (this machine — framearch-juan):**
+```toml
+packages = ["default"]
+
+[variables]
+os = "linux"
+name = "Juan Benjumea"
+email = "benjumeamoreno@gmail.com"
+hostname_color = "fg:#f7768e"
+models_base_path = "/mnt/ai_models/models"
+```
+
+**macOS (M2 Mac):**
+```toml
+packages = ["default"]
+
+[variables]
+os = "macos"
+name = "Juan Benjumea"
+email = "benjumeamoreno@gmail.com"
+hostname_color = "fg:#f7768e"
+models_base_path = "/Users/juanbenjumea/.cache/huggingface/hub"
+```
+
+The template branches on `os`:
+- **Linux** → Vulkan/RADV, 14 gen threads, per-model speculative decoding configs
+- **macOS** → Metal, 4 gen threads, minimal model set
+
+### Adding models
+
+Edit `llama-models.ini` in the dotfiles root, then:
+
+```bash
+cd ~/dotfiles && dotter deploy --force && sudo systemctl restart llama.cpp
+```
+
+Model paths use HuggingFace Hub cache layout:
+```
+{{ models_base_path }}/models--author--model-name-GGUF/snapshots/<hash>/file.gguf
+```
+
 ## Local Machine Config
 
 Create `~/.config/local/zshrc` for machine-specific settings not tracked in git:

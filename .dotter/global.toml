@@ -13,6 +13,8 @@ npmrc = "~/.npmrc"
 
 # Pi agent configuration
 pi_settings = "~/.pi/agent/settings.json"
+# llama.cpp models.ini — template because model paths are machine-specific
+"llama-models.ini" = "~/.config/llama.cpp/models.ini"
 pi_append_system = "~/.pi/agent/APPEND_SYSTEM.md"
 pi_extensions = { target = "~/.pi/agent/extensions", type = "symbolic", recurse = false }
 pi_npm = { target = "~/.pi/agent/npm", type = "symbolic", recurse = false }
