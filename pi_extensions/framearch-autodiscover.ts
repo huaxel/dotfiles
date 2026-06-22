@@ -186,9 +186,7 @@ async function discoverModels(
 			discoveredModels = models;
 			registerFramearchProvider(pi, models);
 
-			console.log(
-				`[framearch-autodiscover] Discovered ${models.length} models from llama.cpp server`,
-			);
+			// Success — models cached, no log noise
 			return models;
 		} catch (err: any) {
 			const cause = err.cause?.code || err.code || err.message || "unknown";
@@ -233,19 +231,10 @@ export default async function (pi: ExtensionAPI) {
 		}
 	});
 
-	// Refresh discovery at session start unconditionally so framearch models
-	// are always available for selection. Fire-and-forget, non-blocking.
-	pi.on("session_start", async (_event, ctx) => {
+	// Silently re-discover at session start so framearch models are always
+	// available. No notification — just ensures discovery happens.
+	pi.on("session_start", async (_event, _ctx) => {
 		triggerDiscovery(pi);
-
-		// Show available models only if already discovered
-		if (discoveredModels) {
-			const modelList = discoveredModels.map((m) => `• ${m.name}`).join("\n");
-			ctx.ui.notify(
-				`framearch: ${discoveredModels.length} models available\n${modelList}`,
-				"info",
-			);
-		}
 	});
 
 	// Safety net: if a request is about to be sent to a framearch model and
@@ -291,5 +280,5 @@ export default async function (pi: ExtensionAPI) {
 		},
 	});
 
-	console.log(`[framearch-autodiscover] Provider registered`);
+	// No startup banner — models are discovered silently
 }
