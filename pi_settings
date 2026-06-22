@@ -22,5 +22,8 @@
     "openai-codex/gpt-5.3-codex-spark",
     "opencode/deepseek-v4-flash-free",
     "framearch/GLM-4.7-Flash"
-  ]
+  ],
+  "defaults": {
+    "model": null
+  }
 }
