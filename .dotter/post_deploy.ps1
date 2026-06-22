@@ -8,7 +8,7 @@
 
 $DOTFILES_DIR = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Definition)
 $SECRETS_DIR = Join-Path $DOTFILES_DIR "secrets"
-$DECRYPT_DIR = "$env:USERPROFILE\.config\secrets"
+$DECRYPT_DIR = [System.IO.Path]::Combine($env:USERPROFILE, ".config", "secrets")
 
 # Check if sops and age are available
 if (-not (Get-Command sops -ErrorAction SilentlyContinue) -or `
@@ -25,6 +25,10 @@ if (-not (Test-Path $ageKeyPath)) {
     return
 }
 
+# sops on Windows does not auto-detect ~/.config/sops/age/keys.txt
+# so we must set SOPS_AGE_KEY_FILE explicitly
+$env:SOPS_AGE_KEY_FILE = $ageKeyPath
+
 # Decrypt secrets
 if (Test-Path $SECRETS_DIR) {
     New-Item -ItemType Directory -Force -Path $DECRYPT_DIR | Out-Null
@@ -36,13 +40,13 @@ if (Test-Path $SECRETS_DIR) {
         # App-specific secrets decrypt to their real config path
         switch ($filename) {
             "llama-webui-config.json" {
-                $dest = "$env:USERPROFILE\.config\llama.cpp\webui-config.json"
+                $dest = [System.IO.Path]::Combine($env:USERPROFILE, ".config", "llama.cpp", "webui-config.json")
                 New-Item -ItemType Directory -Force -Path (Split-Path $dest -Parent) | Out-Null
+                # Clear read-only if exists (from a previous deploy)
+                if (Test-Path $dest) { attrib -R $dest }
                 Write-Host "[...] Decrypting $filename..." -NoNewline
-                $result = & sops --decrypt --output-type binary $encFile 2>$null
+                & sops --decrypt --output-type binary --output $dest $encFile 2>$null
                 if ($LASTEXITCODE -eq 0) {
-                    [System.IO.File]::WriteAllBytes($dest, $result)
-                    attrib +R $dest  # equivalent to chmod 600 on NTFS
                     Write-Host " [OK] -> $dest" -ForegroundColor Green
                 } else {
                     Write-Host " [FAIL]" -ForegroundColor Red
@@ -51,12 +55,12 @@ if (Test-Path $SECRETS_DIR) {
             }
         }
 
-        $decryptPath = "$DECRYPT_DIR\$filename"
+        $decryptPath = [System.IO.Path]::Combine($DECRYPT_DIR, $filename)
+        # Clear read-only if exists (from a previous deploy)
+        if (Test-Path $decryptPath) { attrib -R $decryptPath }
         Write-Host "[...] Decrypting $filename..." -NoNewline
-        $result = & sops --decrypt --output-type binary $encFile 2>$null
+        & sops --decrypt --output-type binary --output $decryptPath $encFile 2>$null
         if ($LASTEXITCODE -eq 0) {
-            [System.IO.File]::WriteAllBytes($decryptPath, $result)
-            attrib +R $decryptPath
             Write-Host " [OK] -> $decryptPath" -ForegroundColor Green
         } else {
             Write-Host " [FAIL]" -ForegroundColor Red
