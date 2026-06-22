@@ -45,7 +45,7 @@ foreach ($alias in $customBuckets.Keys) {
 Write-Host "Installing packages via Scoop..." -ForegroundColor Yellow
 $packages = @(
     # Core tools
-    "git", "pwsh", "neovim", "node", "python", "rust"
+    "git", "pwsh", "neovim", "nodejs", "python", "rust"
     # Shell & prompt
     "starship", "zoxide", "atuin", "fzf"
     # File management
@@ -63,13 +63,19 @@ $packages = @(
     # Encryption
     "age", "gpg", "sops"
     # AI tools
-    "opencode", "pi-coding-agent"
+    "opencode", "pi-coding-agent", "claude"
     # llama inference server + model downloader
     "llama.cpp-vulkan", "HuggingFaceModelDownloader"
+    # Databases
+    "sqlite"
+    # Compilers
+    "gcc"
     # Clipboard
     "ditto"
     # Key remap
     "autohotkey"
+    # Package managers
+    "pnpm"
     # Utilities
     "7zip", "less", "curl", "tar", "make"
     "wget", "tree"
