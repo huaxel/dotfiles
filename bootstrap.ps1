@@ -54,8 +54,6 @@ $packages = @(
     "btop", "fastfetch", "procs", "dust", "duf"
     # Dev tools
     "gh", "jq", "glow", "viddy", "just", "lazygit", "uv"
-    # Terminal multiplexer
-    "zellij"
     # Window manager
     "glazewm", "zebar"
     # Browser & launcher
