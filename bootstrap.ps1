@@ -51,7 +51,7 @@ $packages = @(
     # File management
     "eza", "bat", "fd", "ripgrep", "yazi"
     # System info
-    "btop", "fastfetch", "procs", "dust", "duf"
+    "btop", "bottom", "fastfetch", "procs", "dust", "duf"
     # Dev tools
     "gh", "jq", "glow", "viddy", "just", "lazygit", "uv"
     # Window manager
