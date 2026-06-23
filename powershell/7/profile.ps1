@@ -152,7 +152,6 @@ if (Get-Command just -ErrorAction SilentlyContinue) {
 # ============================
 $env:BAT_THEME = "tokyonight_night"
 $env:EZA_CONFIG_DIR = "$env:USERPROFILE\.config\eza"
-$env:ZELLIJ_CONFIG_DIR = "$env:USERPROFILE\.config\zellij"
 
 # ============================
 # Window Title

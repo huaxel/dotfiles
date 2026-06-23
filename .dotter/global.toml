@@ -7,7 +7,6 @@ gitconfig = "~/.gitconfig"
 gitignore_global = "~/.gitignore_global"
 ssh_config = "~/.ssh/config"
 aerospace = "~/.aerospace.toml"
-"tmux.conf" = "~/.tmux.conf"
 npmrc = "~/.npmrc"
 "starship.toml" = "~/.config/starship.toml"
 
