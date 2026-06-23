@@ -79,8 +79,6 @@ case "$(uname -s)" in
                 eza bat fd ripgrep procs dust duf btop bottom fastfetch viddy
                 # Dev tools
                 gh jq glow lazygit uv just
-                # Terminal multiplexer
-                tmux zellij
                 # Encryption
                 age gnupg sops
                 # Build

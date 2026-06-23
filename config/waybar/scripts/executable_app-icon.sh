@@ -17,8 +17,6 @@ get_icon() {
         "kitty"*) echo "󰄛" ;;
         "alacritty"*) echo "󰊠" ;;
         "foot"*) echo "󰊠" ;;
-        "tmux"*) echo "󰕮" ;;
-        
         # Editors/IDEs
         "codium"*) echo "󰨞" ;;
         "nvim"*|"neovim"*) echo "󰕷" ;;
