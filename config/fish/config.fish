@@ -102,11 +102,6 @@ alias bi='bun install'
 alias br='bun run'
 alias bx='bunx'
 
-# Zellij aliases
-alias z='zellij'
-alias za='zellij attach'
-alias zr='zellij --layout remote-dev attach -c remote-dev'
-
 # Remote dev shortcuts
 alias ssh-mosh='mosh'
 alias ssh-tunnel='autossh -M 0 -N'
