@@ -70,15 +70,15 @@ case "$(uname -s)" in
     Linux)
         if command -v pacman &> /dev/null; then
             # Arch Linux packages — mirrors Brewfile/Scoop tool set
-           packages=(
+            packages=(
                 # Core tools
                 git neovim nodejs python rust
                 # Shell & prompt
                 starship zoxide atuin fzf
                 # Modern CLI replacements
-                eza bat fd ripgrep procs dust duf btop bottom fastfetch viddy
+                eza bat fd ripgrep procs dust duf btop bottom fastfetch yazi
                 # Dev tools
-                gh jq glow lazygit uv just
+                github-cli jq glow lazygit uv just opencode pnpm
                 # Encryption
                 age gnupg sops
                 # Build
@@ -89,7 +89,7 @@ case "$(uname -s)" in
 
             # AUR packages (via paru or yay)
             aur_packages=(
-                opencode pi-coding-agent
+                viddy llama.cpp pi-coding-agent
             )
 
             # Install official packages
