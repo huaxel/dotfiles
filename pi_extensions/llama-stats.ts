@@ -91,6 +91,10 @@ export default function (pi: ExtensionAPI) {
   let bgAbortController: AbortController | null = null;
   let isPolling = false;
   let currentPollPromise: Promise<void> | null = null;
+  let sseRetryTimer: ReturnType<typeof setTimeout> | null = null;
+  let sseRetryDelay = 5000;
+  const SSE_RETRY_MAX = 30000;
+  let autoReconnect = true;
 
   // ── Fetch helpers ────────────────────────────────────────────────────────
 
@@ -126,14 +130,13 @@ export default function (pi: ExtensionAPI) {
       .join("");
   }
 
-  // ── Speed classification ───────────────────────────────────────────────
+  // ── State icons (Nerd Font — JetBrainsMono NF) ────────────────────────
 
-  function speedEmoji(speed: number): string {
-    if (speed >= 50) return "🟢";
-    if (speed >= 10) return "🟡";
-    if (speed > 0) return "🔴";
-    return "⚪";
-  }
+  const ICON = {
+    idle: "󰏤",       // nf-md-pause
+    prompt: "󰊗",     // nf-md-magnify
+    gen: "󰻠",        // nf-md-cog
+  } as const;
 
   // ── Widget formatting ──────────────────────────────────────────────────
 
@@ -146,19 +149,20 @@ export default function (pi: ExtensionAPI) {
     const processing = stats.is_processing ?? false;
     const memory = stats.memory ?? {};
     const context = stats.context ?? {};
+    const sep = " ▸ ";
 
     const slotList = Object.values(slots);
     const activeSlots = slotList.filter((s) => s.is_processing);
 
+    const fmtMem = (mb: number) =>
+      mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${mb} MB`;
+
+    // Idle — one line
     if (!processing && activeSlots.length === 0) {
-      const lines: string[] = [`💤 ${model} — idle`];
-      if (memory.vram_used_mb) {
-        lines.push(`   VRAM: ${memory.vram_used_mb} MB`);
-      }
-      if (context.n_ctx) {
-        lines.push(`   Ctx: ${context.n_ctx}`);
-      }
-      return lines;
+      const parts = [`${ICON.idle} ${model}`];
+      if (memory.vram_used_mb) parts.push(fmtMem(memory.vram_used_mb));
+      if (context.n_ctx) parts.push(`Ctx ${context.n_ctx}`);
+      return [parts.join(sep)];
     }
 
     // Aggregate speeds
@@ -171,21 +175,12 @@ export default function (pi: ExtensionAPI) {
     const totalPP = ppSpeeds.reduce((a, b) => a + b, 0);
     const totalTG = tgSpeeds.reduce((a, b) => a + b, 0);
 
-    const lines: string[] = [];
+    const icon = activeSlots.some((s) => s.state === "prompt")
+      ? ICON.prompt
+      : ICON.gen;
+    const parts: string[] = [`${icon} ${model}`];
 
-    // Header line
-    if (activeSlots.length === 1) {
-      const slot = activeSlots[0];
-      const state = slot.state ?? "processing";
-      const speed = totalTG > 0 ? totalTG : totalPP;
-      const emoji = speedEmoji(speed);
-      lines.push(`${emoji} ${model} — ${state}`);
-    } else {
-      const emoji = speedEmoji(totalTG > 0 ? totalTG : totalPP);
-      lines.push(`${emoji} ${model} — ${activeSlots.length} slots active`);
-    }
-
-    // Prompt progress
+    // Prompt progress — inline bar
     const promptSlots = activeSlots.filter((s) => s.state === "prompt");
     if (promptSlots.length > 0) {
       const avgProgress =
@@ -195,17 +190,10 @@ export default function (pi: ExtensionAPI) {
         (a, s) => a + (s.prompt_tokens ?? 0),
         0
       );
-      const bar = "█"
-        .repeat(Math.round(avgProgress * 10))
-        .padEnd(10, "░");
-      lines.push(
-        `   PP ${bar} ${(avgProgress * 100).toFixed(0)}%  ${totalPP.toFixed(
-          1
-        )} tok/s`
-      );
-      if (totalPromptTokens > 0) {
-        lines.push(`      ${totalPromptTokens} prompt tokens`);
-      }
+      const bar = "█".repeat(Math.round(avgProgress * 10)).padEnd(10, "░");
+      parts.push(`[${bar}] ${(avgProgress * 100).toFixed(0)}%`);
+      parts.push(`${totalPP.toFixed(1)} tok/s`);
+      if (totalPromptTokens > 0) parts.push(`${totalPromptTokens} tok`);
     }
 
     // Generation speed
@@ -214,29 +202,27 @@ export default function (pi: ExtensionAPI) {
         (a, s) => a + (s.n_decoded ?? 0),
         0
       );
-      lines.push(`   TG ${totalTG.toFixed(1)} tok/s  ${totalDecoded} decoded`);
-    }
-
-    // Sparkline
-    if (SHOW_SPARKLINE && history.length > 0) {
-      const speeds = history.map(([, pp, tg]) => pp + tg);
-      const spark = renderSparkline(speeds);
-      if (spark) {
-        const avg = speeds.reduce((a, b) => a + b, 0) / speeds.length;
-        lines.push(`   ${spark}  ~${avg.toFixed(1)} avg`);
-      }
+      parts.push(`${totalTG.toFixed(1)} tok/s`);
+      parts.push(`${totalDecoded} ▾`);
     }
 
     // Memory
     if (memory.vram_used_mb) {
       const layers =
         memory.offloaded_layers && memory.total_layers
-          ? `  ${memory.offloaded_layers}/${memory.total_layers} layers`
+          ? ` ${memory.offloaded_layers}/${memory.total_layers}`
           : "";
-      lines.push(`   VRAM: ${memory.vram_used_mb} MB${layers}`);
+      parts.push(`${fmtMem(memory.vram_used_mb)}${layers}`);
     }
 
-    return lines;
+    // Sparkline — short, inline
+    if (SHOW_SPARKLINE && history.length > 0) {
+      const speeds = history.map(([, pp, tg]) => pp + tg);
+      const spark = renderSparkline(speeds, 8);
+      if (spark) parts.push(spark);
+    }
+
+    return [parts.join(sep)];
   }
 
   // ── UI update ────────────────────────────────────────────────────────────
@@ -314,7 +300,7 @@ export default function (pi: ExtensionAPI) {
     tick();
   }
 
-  async function stopPolling() {
+  async function stopPolling(deactivate = true) {
     isPolling = false;
     bgAbortController?.abort();
     bgAbortController = null;
@@ -322,10 +308,30 @@ export default function (pi: ExtensionAPI) {
       clearTimeout(pollTimer);
       pollTimer = null;
     }
-    isActive = false;
+    if (deactivate) {
+      isActive = false;
+    }
     if (currentPollPromise) {
       await currentPollPromise;
       currentPollPromise = null;
+    }
+  }
+
+  // ── SSE reconnection ──────────────────────────────────────────────────
+
+  function scheduleSSEReconnect(ctx: any) {
+    if (sseRetryTimer || !autoReconnect) return;
+    sseRetryTimer = setTimeout(() => {
+      sseRetryTimer = null;
+      startSSE(ctx);
+    }, sseRetryDelay);
+    sseRetryDelay = Math.min(sseRetryDelay * 1.5, SSE_RETRY_MAX);
+  }
+
+  function clearSSERetry() {
+    if (sseRetryTimer) {
+      clearTimeout(sseRetryTimer);
+      sseRetryTimer = null;
     }
   }
 
@@ -333,6 +339,7 @@ export default function (pi: ExtensionAPI) {
 
   async function startSSE(ctx: any) {
     isActive = true;
+    lastStats = null; // clear stale data on reconnect
     try {
       sseSource = new EventSource(`${BRIDGE}/stream`);
       sseSource.onmessage = (e) => {
@@ -343,6 +350,10 @@ export default function (pi: ExtensionAPI) {
           lastStats = stats;
           lastSuccess = Date.now();
           isActive = true;
+          sseRetryDelay = 5000; // reset backoff on successful message
+          if (isPolling) {
+            stopPolling(false).catch(() => {});
+          }
           if (stats.is_processing) {
             lastSeen = Date.now();
           }
@@ -357,10 +368,16 @@ export default function (pi: ExtensionAPI) {
       sseSource.onerror = () => {
         sseSource?.close();
         sseSource = null;
-        startPolling(ctx).catch(() => {});
+        if (!isPolling) {
+          startPolling(ctx).catch(() => {});
+        }
+        scheduleSSEReconnect(ctx);
       };
     } catch {
-      startPolling(ctx).catch(() => {});
+      if (!isPolling) {
+        startPolling(ctx).catch(() => {});
+      }
+      scheduleSSEReconnect(ctx);
     }
   }
 
@@ -375,13 +392,17 @@ export default function (pi: ExtensionAPI) {
   // ── Lifecycle ────────────────────────────────────────────────────────────
 
   pi.on("session_start", async (_event, ctx) => {
+    autoReconnect = true;
+    sseRetryDelay = 5000;
     await stopSSE();
+    clearSSERetry();
     await stopPolling();
     startSSE(ctx);
   });
 
   pi.on("session_shutdown", async () => {
     stopSSE();
+    clearSSERetry();
     await stopPolling();
   });
 
@@ -441,7 +462,9 @@ export default function (pi: ExtensionAPI) {
   pi.registerCommand("llama-stats-off", {
     description: "Hide llama-stats widget",
     handler: async (_args, ctx) => {
+      autoReconnect = false;
       await stopSSE();
+      clearSSERetry();
       await stopPolling();
       ctx.ui.setWidget("llama-stats", undefined);
       ctx.ui.notify("llama-stats widget hidden", "info");
@@ -451,7 +474,11 @@ export default function (pi: ExtensionAPI) {
   pi.registerCommand("llama-stats-on", {
     description: "Show llama-stats widget",
     handler: async (_args, ctx) => {
-      updateUI(ctx);
+      autoReconnect = true;
+      clearSSERetry();
+      await stopPolling(false);
+      await stopSSE();
+      await startSSE(ctx);
       ctx.ui.notify("llama-stats widget enabled", "info");
     },
   });
@@ -459,7 +486,9 @@ export default function (pi: ExtensionAPI) {
   pi.registerCommand("llama-stats-poll", {
     description: "Force switch to polling mode (disable SSE)",
     handler: async (_args, ctx) => {
+      autoReconnect = false;
       await stopSSE();
+      clearSSERetry();
       await stopPolling();
       await startPolling(ctx);
       ctx.ui.notify("llama-stats: switched to polling mode", "info");
@@ -469,8 +498,10 @@ export default function (pi: ExtensionAPI) {
   pi.registerCommand("llama-stats-sse", {
     description: "Force switch to SSE streaming mode",
     handler: async (_args, ctx) => {
+      autoReconnect = true;
       await stopPolling();
       await stopSSE();
+      clearSSERetry();
       await startSSE(ctx);
       ctx.ui.notify("llama-stats: switched to SSE mode", "info");
     },
