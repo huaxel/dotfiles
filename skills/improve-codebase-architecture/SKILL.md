@@ -1,6 +1,7 @@
 ---
 name: improve-codebase-architecture
 description: "Use when the user explicitly asks for architecture improvement, refactoring opportunities, coupling reduction, testability improvements, or an architecture audit. Not for ordinary feature implementation."
+disable-model-invocation: true
 ---
 
 # Improve Codebase Architecture

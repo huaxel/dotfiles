@@ -3,6 +3,7 @@ name: socratic-teacher
 description: |
   Teach the user incrementally during coding sessions. Use when the user says
   "teach me", "explain this", or needs to understand a technical concept.
+disable-model-invocation: true
 ---
 
 # Socratic Teacher

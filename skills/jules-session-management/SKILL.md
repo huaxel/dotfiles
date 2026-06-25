@@ -1,6 +1,7 @@
 ---
 name: jules-session-management
 description: "Manage Jules coding sessions programmatically: create, list, inspect, interact with, pull results from, and delete sessions via the REST API and CLI."
+disable-model-invocation: true
 ---
 
 # Jules Session Management

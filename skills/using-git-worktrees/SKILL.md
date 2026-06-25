@@ -1,6 +1,7 @@
 ---
 name: using-git-worktrees
 description: Create isolated git worktrees for feature work. Use when you need isolation from the current workspace.
+disable-model-invocation: true
 ---
 
 # Using Git Worktrees
