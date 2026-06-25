@@ -25,5 +25,8 @@
   ],
   "defaults": {
     "model": null
-  }
+  },
+  "packages": [
+    "git:github.com/nicobailon/visual-explainer"
+  ]
 }
