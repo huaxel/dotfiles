@@ -1,8 +1,17 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
-const PROVIDER_NAME = "framearch";
-const DISCOVERY_URL = "http://framearch-juan:8000/v1/models";
-const API_BASE_URL = "http://framearch-juan:8000/v1";
+// ── framearch (packaged llama.cpp on port 8000) ────────────────────
+
+const FRAMEARCH_PROVIDER = "framearch";
+const FRAMEARCH_DISCOVERY_URL = "http://framearch-juan:8000/v1/models";
+const FRAMEARCH_API_BASE_URL = "http://framearch-juan:8000/v1";
+
+// ── CachyLLama (fork on port 9092) ─────────────────────────────────
+
+const CACHY_PROVIDER = "cachy";
+const CACHY_DISCOVERY_URL = "http://127.0.0.1:9092/v1/models";
+const CACHY_API_BASE_URL = "http://127.0.0.1:9092/v1";
+
 const DISCOVERY_TIMEOUT_MS = Number(process.env.FRAMEARCH_DISCOVERY_TIMEOUT_MS) || 5000;
 
 const FRAMEARCH_COMPAT = {
@@ -118,131 +127,154 @@ function applyLlamaCppThinkingPayload(modelId: string, payload: unknown, thinkin
 }
 
 /** Cached discovered models */
-let discoveredModels: DiscoveredModel[] | undefined;
+let discoveredFramearchModels: DiscoveredModel[] | undefined;
+let discoveredCachyModels: DiscoveredModel[] | undefined;
 
-/** In-flight discovery promise (deduplicates concurrent requests) */
-let discoveryPromise: Promise<DiscoveredModel[] | undefined> | undefined;
+/** In-flight discovery promises (deduplicates concurrent requests) */
+let framearchDiscoveryPromise: Promise<DiscoveredModel[] | undefined> | undefined;
+let cachyDiscoveryPromise: Promise<DiscoveredModel[] | undefined> | undefined;
 
 function registerFramearchProvider(
 	pi: ExtensionAPI,
 	models?: DiscoveredModel[],
 ): void {
-	const config = {
-		baseUrl: API_BASE_URL,
+	pi.registerProvider(FRAMEARCH_PROVIDER, {
+		baseUrl: FRAMEARCH_API_BASE_URL,
 		apiKey: "local",
 		api: "openai-completions" as const,
 		compat: FRAMEARCH_COMPAT,
 		...(models ? { models } : {}),
-	};
-
-	pi.registerProvider(PROVIDER_NAME, config);
-}
-
-/**
- * Discover framearch models from the llama.cpp server and register them.
- * Deduplicates concurrent calls via a shared promise.
- */
-async function discoverModels(
-	pi: ExtensionAPI,
-): Promise<DiscoveredModel[] | undefined> {
-	if (discoveryPromise) {
-		return discoveryPromise;
-	}
-
-	discoveryPromise = (async () => {
-		try {
-			const response = await fetch(DISCOVERY_URL, {
-				signal: AbortSignal.timeout(DISCOVERY_TIMEOUT_MS),
-			});
-			if (!response.ok) {
-				console.warn(
-					`[framearch-autodiscover] Server returned ${response.status}, skipping dynamic registration`,
-				);
-				return undefined;
-			}
-
-			const payload = (await response.json()) as {
-				data: LlamaCppModel[];
-			};
-
-			const models = payload.data.map((model) => {
-				const reasoning = supportsLlamaCppThinking(model.id);
-
-				return {
-					id: model.id,
-					name: model.id
-						.replace(/-/g, " ")
-						.replace(/\b\w/g, (c) => c.toUpperCase()),
-					reasoning,
-					thinkingLevelMap: reasoning ? {} : undefined,
-					input: getInputModalities(model),
-					cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-					contextWindow: getContextWindow(model),
-					maxTokens: Number(process.env.FRAMEARCH_MAX_TOKENS) || 16384,
-					compat: FRAMEARCH_COMPAT,
-				};
-			});
-
-			discoveredModels = models;
-			registerFramearchProvider(pi, models);
-
-			// Success — models cached, no log noise
-			return models;
-		} catch (err: any) {
-			const cause = err.cause?.code || err.code || err.message || "unknown";
-			console.warn(
-				`[framearch-autodiscover] Discovery failed (${cause})`,
-			);
-			return undefined;
-		} finally {
-			discoveryPromise = undefined;
-		}
-	})();
-
-	return discoveryPromise;
-}
-
-/**
- * Fire-and-forget discovery helper for non-blocking event handlers.
- */
-function triggerDiscovery(pi: ExtensionAPI): void {
-	discoverModels(pi).catch(() => {
-		// Swallow errors — they are already logged in discoverModels
 	});
 }
 
-export default async function (pi: ExtensionAPI) {
-	// Discover during extension startup so framearch models are available to
-	// normal startup paths, /model, and `pi --list-models`.
-	const startupModels = await discoverModels(pi);
+function registerCachyProvider(
+	pi: ExtensionAPI,
+	models?: DiscoveredModel[],
+): void {
+	pi.registerProvider(CACHY_PROVIDER, {
+		baseUrl: CACHY_API_BASE_URL,
+		apiKey: "pi",
+		api: "openai-completions" as const,
+		compat: FRAMEARCH_COMPAT,
+		...(models ? { models } : {}),
+	});
+}
 
-	// If the server is unavailable, still register the provider shell so an
-	// already-selected framearch model can route requests and later retry
-	// discovery via events or /models.
-	if (!startupModels) {
-		registerFramearchProvider(pi);
+/**
+ * Fetch model list from a llama.cpp /v1/models endpoint and convert to
+ * DiscoveredModel[].
+ */
+async function fetchModelsFrom(url: string): Promise<DiscoveredModel[] | undefined> {
+	try {
+		const response = await fetch(url, {
+			signal: AbortSignal.timeout(DISCOVERY_TIMEOUT_MS),
+		});
+		if (!response.ok) return undefined;
+
+		const payload = (await response.json()) as { data: LlamaCppModel[] };
+
+		return payload.data.map((model) => {
+			const reasoning = supportsLlamaCppThinking(model.id);
+			return {
+				id: model.id,
+				name: model.id
+					.replace(/-/g, " ")
+					.replace(/\b\w/g, (c) => c.toUpperCase()),
+				reasoning,
+				thinkingLevelMap: reasoning ? {} : undefined,
+				input: getInputModalities(model),
+				cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+				contextWindow: getContextWindow(model),
+				maxTokens: Number(process.env.FRAMEARCH_MAX_TOKENS) || 16384,
+				compat: FRAMEARCH_COMPAT,
+			};
+		});
+	} catch {
+		return undefined;
 	}
+}
 
-	// Trigger discovery when a framearch model is selected (e.g. restored from
-	// session state, cycled via keyboard shortcut, or set via command).
+/**
+ * Discover framearch models (port 8000) and register them.
+ */
+async function discoverFramearch(
+	pi: ExtensionAPI,
+): Promise<DiscoveredModel[] | undefined> {
+	if (framearchDiscoveryPromise) return framearchDiscoveryPromise;
+
+	framearchDiscoveryPromise = (async () => {
+		const models = await fetchModelsFrom(FRAMEARCH_DISCOVERY_URL);
+		if (models) {
+			discoveredFramearchModels = models;
+			registerFramearchProvider(pi, models);
+		} else {
+			console.warn("[framearch-autodiscover] framearch server unavailable");
+		}
+		return models;
+	})().finally(() => { framearchDiscoveryPromise = undefined; });
+
+	return framearchDiscoveryPromise;
+}
+
+/**
+ * Discover CachyLLama models (port 9092) and register them.
+ */
+async function discoverCachy(
+	pi: ExtensionAPI,
+): Promise<DiscoveredModel[] | undefined> {
+	if (cachyDiscoveryPromise) return cachyDiscoveryPromise;
+
+	cachyDiscoveryPromise = (async () => {
+		const models = await fetchModelsFrom(CACHY_DISCOVERY_URL);
+		if (models) {
+			discoveredCachyModels = models;
+			registerCachyProvider(pi, models);
+		} else {
+			console.warn("[framearch-autodiscover] CachyLLama server unavailable");
+		}
+		return models;
+	})().finally(() => { cachyDiscoveryPromise = undefined; });
+
+	return cachyDiscoveryPromise;
+}
+
+/**
+ * Fire-and-forget discovery for both providers.
+ */
+function triggerDiscovery(pi: ExtensionAPI): void {
+	discoverFramearch(pi).catch(() => {});
+	discoverCachy(pi).catch(() => {});
+}
+
+export default async function (pi: ExtensionAPI) {
+	// Discover both servers at startup.
+	const [framearchModels, cachyModels] = await Promise.all([
+		discoverFramearch(pi),
+		discoverCachy(pi),
+	]);
+
+	// Register provider shells even if discovery failed, so already-selected
+	// models can still route requests and retry discovery later.
+	if (!framearchModels) registerFramearchProvider(pi);
+	if (!cachyModels) registerCachyProvider(pi);
+
+	// ── Event handlers (both providers) ────────────────────────────
+
+	const isLlamaProvider = (name: string) =>
+		name === FRAMEARCH_PROVIDER || name === CACHY_PROVIDER;
+
 	pi.on("model_select", async (event, _ctx) => {
-		if (event.model.provider === PROVIDER_NAME) {
+		if (isLlamaProvider(event.model.provider)) {
 			triggerDiscovery(pi);
 		}
 	});
 
-	// Silently re-discover at session start so framearch models are always
-	// available. No notification — just ensures discovery happens.
 	pi.on("session_start", async (_event, _ctx) => {
 		triggerDiscovery(pi);
 	});
 
-	// Safety net: if a request is about to be sent to a framearch model and
-	// models haven't been discovered yet, trigger discovery in the background.
-	// The request proceeds with the already-selected model — the provider config
-	// (baseUrl, apiKey) is already registered, so the API call works regardless.
 	pi.on("before_provider_request", async (event, ctx) => {
-		if (ctx.model?.provider === PROVIDER_NAME) {
+		if (isLlamaProvider(ctx.model?.provider ?? "")) {
 			triggerDiscovery(pi);
 
 			if (supportsLlamaCppThinking(ctx.model.id)) {
@@ -255,28 +287,39 @@ export default async function (pi: ExtensionAPI) {
 		}
 	});
 
-	// Register /models command to trigger discovery and list available models.
-	// Awaits discovery so the user sees the result immediately.
-	pi.registerCommand("models", {
-		description: "List available framearch models",
-		handler: async (_args, ctx) => {
-			await discoverModels(pi);
+	// ── /models command ────────────────────────────────────────────
 
-			if (!discoveredModels) {
+	pi.registerCommand("models", {
+		description: "List available local models (framearch + CachyLLama)",
+		handler: async (_args, ctx) => {
+			const [framearch, cachy] = await Promise.all([
+				discoverFramearch(pi),
+				discoverCachy(pi),
+			]);
+
+			const lines: string[] = [];
+			if (framearch) {
+				lines.push("─ framearch (port 8000) ─");
+				framearch.forEach((m, i) => lines.push(`  ${i + 1}. ${m.name} (${m.id})`));
+			} else {
+				lines.push("─ framearch (port 8000) ─ unavailable");
+			}
+			if (cachy) {
+				lines.push("─ CachyLLama (port 9092) ─");
+				cachy.forEach((m, i) => lines.push(`  ${i + 1}. ${m.name} (${m.id})`));
+			} else {
+				lines.push("─ CachyLLama (port 9092) ─ unavailable");
+			}
+
+			if (!framearch && !cachy) {
 				ctx.ui.notify(
-					"framearch: No models discovered. Server may be unavailable.",
+					"No local models discovered. Both servers may be unavailable.",
 					"warning",
 				);
 				return;
 			}
 
-			const modelList = discoveredModels
-				.map((m, i) => `${i + 1}. ${m.name} (${m.id})`)
-				.join("\n");
-			ctx.ui.notify(
-				`Available framearch models:\n${modelList}`,
-				"info",
-			);
+			ctx.ui.notify(lines.join("\n"), "info");
 		},
 	});
 
