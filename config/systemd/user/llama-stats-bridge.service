@@ -1,8 +1,6 @@
 [Unit]
-Description=llama.cpp live stats bridge
-After=llama.cpp.service
-# Don't fail startup if the (system) llama.cpp service isn't up yet; the
-# bridge tolerates an absent backend and recovers on its own.
+Description=llama.cpp + CachyLLama live stats bridge
+After=network.target
 Wants=network.target
 
 [Service]
@@ -10,13 +8,10 @@ Type=simple
 ExecStart=/usr/bin/python3 %h/.config/llama.cpp/stats-bridge.py
 Restart=on-failure
 RestartSec=5
-# The previous bridge was OOM-killed under memory pressure when large models
-# loaded. It's tiny (<60 MB) and pure-stdlib, so deprioritise it for the OOM
-# killer and cap it well above its real footprint as a runaway backstop.
 OOMScoreAdjust=-400
 MemoryMax=256M
 Environment=BRIDGE_PORT=55268
-Environment=LLAMA_SERVER=http://127.0.0.1:8000
+Environment=LLAMA_SERVERS=framearch=http://127.0.0.1:8000,cachy=http://127.0.0.1:9092
 
 [Install]
 WantedBy=default.target

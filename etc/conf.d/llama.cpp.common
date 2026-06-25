@@ -1,0 +1,35 @@
+# ─────────────────────────────────────────────────────────────────────
+# llama.cpp / CachyLLama — shared environment
+# Sourced by /etc/conf.d/llama.cpp (packaged) and
+#          start-cachy.sh (CachyLLama fork).
+# ─────────────────────────────────────────────────────────────────────
+
+# GPU / backend
+HIP_VISIBLE_DEVICES=-1
+
+# Threading — Strix Halo 16C/32T: 14 gen threads, 28 batch
+LLAMA_ARG_THREADS=14
+LLAMA_ARG_THREADS_BATCH=28
+
+# Batching
+LLAMA_ARG_BATCH=4096
+LLAMA_ARG_UBATCH=1024
+
+# Parallel slots — single slot for agentic workloads (reduces KV memory)
+LLAMA_ARG_N_PARALLEL=1
+
+# KV cache reuse (min chunk size for KV shift-based reuse)
+LLAMA_ARG_CACHE_REUSE=256
+
+# Don't preserve idle slot KV across tasks
+LLAMA_ARG_CACHE_IDLE_SLOTS=off
+
+# KV cache quantisation
+LLAMA_ARG_CACHE_TYPE_K=q8_0
+LLAMA_ARG_CACHE_TYPE_V=q8_0
+
+# Prompt similarity threshold for cache matching
+LLAMA_ARG_SLOT_PROMPT_SIMILARITY=0.20
+
+# Enable unified KV cache
+LLAMA_ARG_KV_UNIFIED=1
