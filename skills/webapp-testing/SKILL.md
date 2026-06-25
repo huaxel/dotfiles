@@ -1,6 +1,7 @@
 ---
 name: webapp-testing
 description: Test local web applications using Playwright. Use for verifying frontend functionality, debugging UI, and capturing screenshots.
+disable-model-invocation: true
 license: Complete terms in LICENSE.txt
 ---
 
