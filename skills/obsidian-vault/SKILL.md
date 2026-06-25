@@ -1,6 +1,7 @@
 ---
 name: obsidian-vault
 description: "Use only when the user explicitly asks to search, create, organize, or update notes in the Obsidian vault, including wikilinks and index notes."
+disable-model-invocation: true
 ---
 
 # Obsidian Vault

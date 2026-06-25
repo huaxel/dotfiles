@@ -1,0 +1,1 @@
+/home/juan/dotfiles/skills/impeccable/scripts/impeccable-paths.mjs
