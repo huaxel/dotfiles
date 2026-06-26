@@ -12,7 +12,7 @@ Endpoints on BRIDGE_PORT (default 55268):
 
 Servers are configured via LLAMA_SERVERS (comma-separated label=url pairs):
 
-    LLAMA_SERVERS=framearch=http://127.0.0.1:8000,cachy=http://127.0.0.1:9092
+    LLAMA_SERVERS=llamacpp=http://127.0.0.1:8000,cachyllama=http://127.0.0.1:9092
 
 For backward compat, LLAMA_SERVER (single url) is accepted as a fallback.
 

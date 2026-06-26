@@ -1,14 +1,14 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
-// ── framearch (packaged llama.cpp on port 8000) ────────────────────
+// ── llamacpp (packaged llama.cpp on port 8000) ─────────────────────
 
-const FRAMEARCH_PROVIDER = "framearch";
+const FRAMEARCH_PROVIDER = "llamacpp";
 const FRAMEARCH_DISCOVERY_URL = "http://framearch-juan:8000/v1/models";
 const FRAMEARCH_API_BASE_URL = "http://framearch-juan:8000/v1";
 
-// ── CachyLLama (fork on port 9092) ─────────────────────────────────
+// ── cachyllama (fork on port 9092) ────────────────────────────────
 
-const CACHY_PROVIDER = "cachy";
+const CACHY_PROVIDER = "cachyllama";
 const CACHY_DISCOVERY_URL = "http://framearch-juan:9092/v1/models";
 const CACHY_API_BASE_URL = "http://framearch-juan:9092/v1";
 
@@ -130,14 +130,14 @@ function applyLlamaCppThinkingPayload(payload: unknown, thinkingLevel: ThinkingL
 }
 
 /** Cached discovered models */
-let discoveredFramearchModels: DiscoveredModel[] | undefined;
-let discoveredCachyModels: DiscoveredModel[] | undefined;
+let discoveredLlamacppModels: DiscoveredModel[] | undefined;
+let discoveredCachyllamaModels: DiscoveredModel[] | undefined;
 
 /** In-flight discovery promises (deduplicates concurrent requests) */
-let framearchDiscoveryPromise: Promise<DiscoveredModel[] | undefined> | undefined;
-let cachyDiscoveryPromise: Promise<DiscoveredModel[] | undefined> | undefined;
+let llamacppDiscoveryPromise: Promise<DiscoveredModel[] | undefined> | undefined;
+let cachyllamaDiscoveryPromise: Promise<DiscoveredModel[] | undefined> | undefined;
 
-function registerFramearchProvider(
+function registerLlamacppProvider(
 	pi: ExtensionAPI,
 	models?: DiscoveredModel[],
 ): void {
@@ -150,7 +150,7 @@ function registerFramearchProvider(
 	});
 }
 
-function registerCachyProvider(
+function registerCachyllamaProvider(
 	pi: ExtensionAPI,
 	models?: DiscoveredModel[],
 ): void {
@@ -272,68 +272,68 @@ async function fetchModelsFrom(
 }
 
 /**
- * Discover framearch models (port 8000) and register them.
+ * Discover llamacpp models (port 8000) and register them.
  */
-async function discoverFramearch(
+async function discoverLlamacpp(
 	pi: ExtensionAPI,
 ): Promise<DiscoveredModel[] | undefined> {
-	if (framearchDiscoveryPromise) return framearchDiscoveryPromise;
+	if (llamacppDiscoveryPromise) return llamacppDiscoveryPromise;
 
-	framearchDiscoveryPromise = (async () => {
+	llamacppDiscoveryPromise = (async () => {
 		const models = await fetchModelsFrom(FRAMEARCH_DISCOVERY_URL, FRAMEARCH_PROVIDER);
 		if (models) {
-			discoveredFramearchModels = models;
-			registerFramearchProvider(pi, models);
+			discoveredLlamacppModels = models;
+			registerLlamacppProvider(pi, models);
 		} else {
-			console.warn("[framearch-autodiscover] framearch server unavailable");
+			console.warn("[framearch-autodiscover] llamacpp server unavailable");
 		}
 		return models;
-	})().finally(() => { framearchDiscoveryPromise = undefined; });
+	})().finally(() => { llamacppDiscoveryPromise = undefined; });
 
-	return framearchDiscoveryPromise;
+	return llamacppDiscoveryPromise;
 }
 
 /**
- * Discover CachyLLama models (port 9092) and register them.
+ * Discover cachyllama models (port 9092) and register them.
  */
-async function discoverCachy(
+async function discoverCachyllama(
 	pi: ExtensionAPI,
 ): Promise<DiscoveredModel[] | undefined> {
-	if (cachyDiscoveryPromise) return cachyDiscoveryPromise;
+	if (cachyllamaDiscoveryPromise) return cachyllamaDiscoveryPromise;
 
-	cachyDiscoveryPromise = (async () => {
+	cachyllamaDiscoveryPromise = (async () => {
 		const models = await fetchModelsFrom(CACHY_DISCOVERY_URL, CACHY_PROVIDER);
 		if (models) {
-			discoveredCachyModels = models;
-			registerCachyProvider(pi, models);
+			discoveredCachyllamaModels = models;
+			registerCachyllamaProvider(pi, models);
 		} else {
-			console.warn("[framearch-autodiscover] CachyLLama server unavailable");
+			console.warn("[framearch-autodiscover] cachyllama server unavailable");
 		}
 		return models;
-	})().finally(() => { cachyDiscoveryPromise = undefined; });
+	})().finally(() => { cachyllamaDiscoveryPromise = undefined; });
 
-	return cachyDiscoveryPromise;
+	return cachyllamaDiscoveryPromise;
 }
 
 /**
  * Fire-and-forget discovery for both providers.
  */
 function triggerDiscovery(pi: ExtensionAPI): void {
-	discoverFramearch(pi).catch(() => {});
-	discoverCachy(pi).catch(() => {});
+	discoverLlamacpp(pi).catch(() => {});
+	discoverCachyllama(pi).catch(() => {});
 }
 
 export default async function (pi: ExtensionAPI) {
 	// Discover both servers at startup.
-	const [framearchModels, cachyModels] = await Promise.all([
-		discoverFramearch(pi),
-		discoverCachy(pi),
+	const [llamacppModels, cachyllamaModels] = await Promise.all([
+		discoverLlamacpp(pi),
+		discoverCachyllama(pi),
 	]);
 
 	// Register provider shells even if discovery failed, so already-selected
 	// models can still route requests and retry discovery later.
-	if (!framearchModels) registerFramearchProvider(pi);
-	if (!cachyModels) registerCachyProvider(pi);
+	if (!llamacppModels) registerLlamacppProvider(pi);
+	if (!cachyllamaModels) registerCachyllamaProvider(pi);
 
 	// ── Event handlers (both providers) ────────────────────────────
 
@@ -366,8 +366,8 @@ export default async function (pi: ExtensionAPI) {
 		if (modelId) {
 			const models =
 				provider === FRAMEARCH_PROVIDER
-					? discoveredFramearchModels
-					: discoveredCachyModels;
+					? discoveredLlamacppModels
+					: discoveredCachyllamaModels;
 			const model = models?.find((m) => m.id === modelId);
 			if (model && model.loadStatus === "unloaded") {
 				console.warn(
@@ -383,7 +383,7 @@ export default async function (pi: ExtensionAPI) {
 	// ── /models command ────────────────────────────────────────────
 
 	pi.registerCommand("models", {
-		description: "List, load, unload, or switch local models (framearch + CachyLLama)",
+		description: "List, load, unload, or switch local models (llamacpp + cachyllama)",
 		getArgumentCompletions: (prefix: string) => {
 			const subcommands = [
 				{ value: "", label: "(list)", description: "List all models" },
@@ -398,14 +398,14 @@ export default async function (pi: ExtensionAPI) {
 			return filtered.length > 0 ? filtered : null;
 		},
 		handler: async (args, ctx) => {
-			const [framearch, cachy] = await Promise.all([
-				discoverFramearch(pi),
-				discoverCachy(pi),
+			const [llamacpp, cachyllama] = await Promise.all([
+				discoverLlamacpp(pi),
+				discoverCachyllama(pi),
 			]);
 
 			const allModels = [
-				...(framearch ?? []),
-				...(cachy ?? []),
+				...(llamacpp ?? []),
+				...(cachyllama ?? []),
 			];
 
 			const parts = args.trim().split(/\s+/);
@@ -547,28 +547,28 @@ export default async function (pi: ExtensionAPI) {
 
 			// ── /models (list) ──
 			const lines: string[] = [];
-			if (framearch) {
-				lines.push("─ framearch (port 8000) ─");
-				framearch.forEach((m, i) => {
+			if (llamacpp) {
+				lines.push("─ llamacpp (port 8000) ─");
+				llamacpp.forEach((m, i) => {
 					const status = m.loadStatus ?? "unknown";
 					const icon = STATUS_ICON[status] ?? STATUS_ICON.unknown;
 					lines.push(`  ${icon} ${i + 1}. ${m.name} (${m.id})`);
 				});
 			} else {
-				lines.push("─ framearch (port 8000) ─ unavailable");
+				lines.push("─ llamacpp (port 8000) ─ unavailable");
 			}
-			if (cachy) {
-				lines.push("─ CachyLLama (port 9092) ─");
-				cachy.forEach((m, i) => {
+			if (cachyllama) {
+				lines.push("─ cachyllama (port 9092) ─");
+				cachyllama.forEach((m, i) => {
 					const status = m.loadStatus ?? "unknown";
 					const icon = STATUS_ICON[status] ?? STATUS_ICON.unknown;
 					lines.push(`  ${icon} ${i + 1}. ${m.name} (${m.id})`);
 				});
 			} else {
-				lines.push("─ CachyLLama (port 9092) ─ unavailable");
+				lines.push("─ cachyllama (port 9092) ─ unavailable");
 			}
 
-			if (!framearch && !cachy) {
+			if (!llamacpp && !cachyllama) {
 				ctx.ui.notify(
 					"No local models discovered. Both servers may be unavailable.",
 					"warning",
