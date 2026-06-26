@@ -3,7 +3,7 @@
   "theme": "dark",
   "defaultProvider": null,
   "defaultModel": null,
-  "defaultThinkingLevel": "off",
+  "defaultThinkingLevel": "high",
   "enabledModels": [
     "openai-codex/gpt-5.5",
     "openai-codex/gpt-5.4-mini",
@@ -21,11 +21,11 @@
     "umans/umans-glm-5.2",
     "umans/umans-coder",
     "umans/umans-flash",
-    "cachy/gemma-4-26B-A4B-qat",
-    "cachy/Qwen3.6-35B-A3B-MTP",
-    "cachy/Qwen3.5-27B",
-    "cachy/Qwen3.6-27B-MTP",
-    "cachy/gemma-4-31B-qat"
+    "cachyllama/gemma-4-26B-A4B-qat",
+    "cachyllama/Qwen3.6-35B-A3B-MTP",
+    "cachyllama/Qwen3.5-27B",
+    "cachyllama/Qwen3.6-27B-MTP",
+    "cachyllama/gemma-4-31B-qat"
   ],
   "defaults": {
     "model": null
