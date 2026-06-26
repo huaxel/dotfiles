@@ -246,8 +246,18 @@ export default function (pi: ExtensionAPI) {
         return;
       }
 
-      const lines = formatWidget(lastStats, lastHistory);
-      ctx.ui.setWidget("llama-stats", lines);
+      // Use factory form — render() reads live state so the TUI always
+      // gets fresh content on each render cycle.  The simple string-array
+      // form can cause the differential renderer to miss updates because
+      // it compares stale snapshots.
+      ctx.ui.setWidget("llama-stats", (_tui: any, _theme: any) => ({
+        render: () => {
+          if (!lastStats || !isActive) return [];
+          return formatWidget(lastStats, lastHistory);
+        },
+        invalidate: () => {},
+        dispose: () => {},
+      }));
     } catch (err: any) {
       // Stale context after session reload — ignore
       if (err?.message?.includes("stale")) {

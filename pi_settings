@@ -21,12 +21,17 @@
     "opencode/nemotron-3-ultra-free",
     "openai-codex/gpt-5.3-codex-spark",
     "opencode/deepseek-v4-flash-free",
-    "framearch/GLM-4.7-Flash"
+    "framearch/GLM-4.7-Flash",
+    "umans/umans-kimi-k2.7",
+    "umans/umans-glm-5.2",
+    "umans/umans-coder",
+    "umans/umans-flash"
   ],
   "defaults": {
     "model": null
   },
   "packages": [
-    "git:github.com/nicobailon/visual-explainer"
+    "git:github.com/nicobailon/visual-explainer",
+    "npm:pi-provider-umans"
   ]
 }
