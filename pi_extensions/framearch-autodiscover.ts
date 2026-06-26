@@ -14,14 +14,42 @@ const CACHY_API_BASE_URL = "http://127.0.0.1:9092/v1";
 
 const DISCOVERY_TIMEOUT_MS = Number(process.env.FRAMEARCH_DISCOVERY_TIMEOUT_MS) || 5000;
 
+// ── Status icons (Nerd Font — JetBrainsMono NF) ────────────────────
+
+const STATUS_ICON = {
+	loaded: "󰐊",   // nf-md-play
+	loading: "󰑐",  // nf-md-sync
+	error: "󰅚",    // nf-md-alert
+	unloaded: "󰏤", // nf-md-pause
+	unknown: "󰋗",  // nf-md-help
+} as const;
+
 const FRAMEARCH_COMPAT = {
 	supportsDeveloperRole: false,
-	supportsReasoningEffort: false,
+	supportsReasoningEffort: true,
+	thinkingFormat: "qwen" as const,
 	maxTokensField: "max_tokens" as const,
 };
 
+const LLAMA_THINKING_LEVEL_MAP = {
+	minimal: "low",
+	low: "low",
+	medium: "medium",
+	high: "high",
+	xhigh: "max",
+} satisfies Partial<Record<ThinkingLevel, string | null>>;
+
+const LLAMA_THINKING_BUDGET_TOKENS = {
+	minimal: 512,
+	low: 512,
+	medium: 2048,
+	high: 8192,
+	xhigh: undefined,
+} satisfies Partial<Record<Exclude<ThinkingLevel, "off">, number | undefined>>;
+
 type InputModality = "text" | "image";
 type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
+type ModelLoadStatus = "loaded" | "unloaded" | "loading" | "error" | "unknown";
 
 type DiscoveredModel = {
 	id: string;
@@ -38,12 +66,15 @@ type DiscoveredModel = {
 	contextWindow: number;
 	maxTokens: number;
 	compat: typeof FRAMEARCH_COMPAT;
+	loadStatus?: ModelLoadStatus;
+	provider?: string;
 };
 
 type LlamaCppModel = {
 	id: string;
 	status?: {
 		args?: string[];
+		value?: ModelLoadStatus;
 	};
 	architecture?: {
 		input_modalities?: string[];
@@ -68,62 +99,34 @@ function getInputModalities(model: LlamaCppModel): InputModality[] {
 	return modalities.includes("image") ? ["text", "image"] : ["text"];
 }
 
-function getThinkingBudgetMap(modelId: string): Record<Exclude<ThinkingLevel, "off">, number> | undefined {
-	if (modelId.startsWith("gemma-4-")) {
-		return {
-			minimal: 8,
-			low: 48,
-			medium: 256,
-			high: 1024,
-			xhigh: 4096,
-		};
-	}
-
-	if (/^Qwen3\.[56]-/.test(modelId)) {
-		return {
-			minimal: 4,
-			low: 8,
-			medium: 48,
-			high: 1024,
-			xhigh: 4096,
-		};
-	}
-
-	return undefined;
+function getModelLoadStatus(model: LlamaCppModel): ModelLoadStatus {
+	return model.status?.value ?? "unknown";
 }
 
-function supportsLlamaCppThinking(modelId: string): boolean {
-	return getThinkingBudgetMap(modelId) !== undefined;
-}
-
-// llama.cpp exposes Gemma/Qwen reasoning as request-level
-// thinking_budget_tokens plus chat_template_kwargs.enable_thinking, not OpenAI
-// reasoning_effort.
-function applyLlamaCppThinkingPayload(modelId: string, payload: unknown, thinkingLevel: ThinkingLevel): void {
+// llama.cpp exposes reasoning with the same knobs as its bundled UI:
+//   off, low (512 tokens), medium (2048), high (8192), max (unlimited).
+// Pi's normalized thinking levels are translated here at the provider layer.
+function applyLlamaCppThinkingPayload(payload: unknown, thinkingLevel: ThinkingLevel): void {
 	if (!payload || typeof payload !== "object") return;
 
 	const request = payload as {
-		chat_template_kwargs?: Record<string, unknown>;
+		enable_thinking?: boolean;
 		thinking_budget_tokens?: number;
 	};
 
 	if (thinkingLevel === "off") {
-		request.chat_template_kwargs = {
-			...(request.chat_template_kwargs ?? {}),
-			enable_thinking: false,
-		};
+		request.enable_thinking = false;
 		delete request.thinking_budget_tokens;
 		return;
 	}
 
-	const budgets = getThinkingBudgetMap(modelId);
-	if (!budgets) return;
-
-	request.chat_template_kwargs = {
-		...(request.chat_template_kwargs ?? {}),
-		enable_thinking: true,
-	};
-	request.thinking_budget_tokens = budgets[thinkingLevel];
+	request.enable_thinking = true;
+	const budget = LLAMA_THINKING_BUDGET_TOKENS[thinkingLevel];
+	if (budget === undefined) {
+		delete request.thinking_budget_tokens;
+	} else {
+		request.thinking_budget_tokens = budget;
+	}
 }
 
 /** Cached discovered models */
@@ -160,11 +163,86 @@ function registerCachyProvider(
 	});
 }
 
+type PostResult =
+	| { ok: true; status: number }
+	| { ok: false; status: number; text: string };
+
+/**
+ * POST to a llama.cpp endpoint (load/unload).
+ */
+async function postToLlamaCpp(
+	baseUrl: string,
+	path: string,
+	body: Record<string, unknown>,
+): Promise<PostResult> {
+	try {
+		const url = baseUrl.replace(/\/$/, "") + path;
+		const response = await fetch(url, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(body),
+			signal: AbortSignal.timeout(DISCOVERY_TIMEOUT_MS * 2),
+		});
+		if (response.ok) {
+			return { ok: true, status: response.status };
+		}
+		const text = await response.text();
+		return { ok: false, status: response.status, text };
+	} catch (err) {
+		return { ok: false, status: 0, text: String(err) };
+	}
+}
+
+/**
+ * Load a model on the llama.cpp server.
+ */
+async function loadModel(
+	provider: string,
+	modelId: string,
+): Promise<PostResult> {
+	const baseUrl =
+		provider === FRAMEARCH_PROVIDER
+			? FRAMEARCH_API_BASE_URL
+			: CACHY_API_BASE_URL;
+	return postToLlamaCpp(baseUrl, "/models/load", { model: modelId });
+}
+
+/**
+ * Unload a model (or all models if modelId is omitted) from the llama.cpp server.
+ */
+async function unloadModel(
+	provider: string,
+	modelId?: string,
+): Promise<PostResult> {
+	const baseUrl =
+		provider === FRAMEARCH_PROVIDER
+			? FRAMEARCH_API_BASE_URL
+			: CACHY_API_BASE_URL;
+	const body: Record<string, unknown> = modelId ? { model: modelId } : {};
+	return postToLlamaCpp(baseUrl, "/models/unload", body);
+}
+
+/**
+ * Find a model by exact ID first, then by partial ID.
+ */
+function findModelByTarget(
+	models: DiscoveredModel[],
+	target: string,
+): DiscoveredModel | undefined {
+	const exact = models.find((m) => m.id === target);
+	if (exact) return exact;
+	const lower = target.toLowerCase();
+	return models.find((m) => m.id.toLowerCase().includes(lower));
+}
+
 /**
  * Fetch model list from a llama.cpp /v1/models endpoint and convert to
  * DiscoveredModel[].
  */
-async function fetchModelsFrom(url: string): Promise<DiscoveredModel[] | undefined> {
+async function fetchModelsFrom(
+	url: string,
+	provider: string,
+): Promise<DiscoveredModel[] | undefined> {
 	try {
 		const response = await fetch(url, {
 			signal: AbortSignal.timeout(DISCOVERY_TIMEOUT_MS),
@@ -173,22 +251,21 @@ async function fetchModelsFrom(url: string): Promise<DiscoveredModel[] | undefin
 
 		const payload = (await response.json()) as { data: LlamaCppModel[] };
 
-		return payload.data.map((model) => {
-			const reasoning = supportsLlamaCppThinking(model.id);
-			return {
-				id: model.id,
-				name: model.id
-					.replace(/-/g, " ")
-					.replace(/\b\w/g, (c) => c.toUpperCase()),
-				reasoning,
-				thinkingLevelMap: reasoning ? {} : undefined,
-				input: getInputModalities(model),
-				cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-				contextWindow: getContextWindow(model),
-				maxTokens: Number(process.env.FRAMEARCH_MAX_TOKENS) || 16384,
-				compat: FRAMEARCH_COMPAT,
-			};
-		});
+		return payload.data.map((model) => ({
+			id: model.id,
+			name: model.id
+				.replace(/-/g, " ")
+				.replace(/\b\w/g, (c) => c.toUpperCase()),
+			reasoning: true,
+			thinkingLevelMap: LLAMA_THINKING_LEVEL_MAP,
+			input: getInputModalities(model),
+			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+			contextWindow: getContextWindow(model),
+			maxTokens: Number(process.env.FRAMEARCH_MAX_TOKENS) || 16384,
+			compat: FRAMEARCH_COMPAT,
+			loadStatus: getModelLoadStatus(model),
+			provider,
+		}));
 	} catch {
 		return undefined;
 	}
@@ -203,7 +280,7 @@ async function discoverFramearch(
 	if (framearchDiscoveryPromise) return framearchDiscoveryPromise;
 
 	framearchDiscoveryPromise = (async () => {
-		const models = await fetchModelsFrom(FRAMEARCH_DISCOVERY_URL);
+		const models = await fetchModelsFrom(FRAMEARCH_DISCOVERY_URL, FRAMEARCH_PROVIDER);
 		if (models) {
 			discoveredFramearchModels = models;
 			registerFramearchProvider(pi, models);
@@ -225,7 +302,7 @@ async function discoverCachy(
 	if (cachyDiscoveryPromise) return cachyDiscoveryPromise;
 
 	cachyDiscoveryPromise = (async () => {
-		const models = await fetchModelsFrom(CACHY_DISCOVERY_URL);
+		const models = await fetchModelsFrom(CACHY_DISCOVERY_URL, CACHY_PROVIDER);
 		if (models) {
 			discoveredCachyModels = models;
 			registerCachyProvider(pi, models);
@@ -274,15 +351,31 @@ export default async function (pi: ExtensionAPI) {
 	});
 
 	pi.on("before_provider_request", async (event, ctx) => {
-		if (isLlamaProvider(ctx.model?.provider ?? "")) {
-			triggerDiscovery(pi);
+		const provider = ctx.model?.provider ?? "";
+		if (!isLlamaProvider(provider)) return;
 
-			if (supportsLlamaCppThinking(ctx.model.id)) {
-				applyLlamaCppThinkingPayload(
-					ctx.model.id,
-					event.payload,
-					pi.getThinkingLevel() as ThinkingLevel,
+		triggerDiscovery(pi);
+		applyLlamaCppThinkingPayload(
+			event.payload,
+			pi.getThinkingLevel() as ThinkingLevel,
+		);
+
+		// Pre-load unloaded models in router mode (fire-and-forget; router also
+		// auto-loads on demand, this just warms it up without blocking the request).
+		const modelId = ctx.model?.id;
+		if (modelId) {
+			const models =
+				provider === FRAMEARCH_PROVIDER
+					? discoveredFramearchModels
+					: discoveredCachyModels;
+			const model = models?.find((m) => m.id === modelId);
+			if (model && model.loadStatus === "unloaded") {
+				console.warn(
+					`[framearch-autodiscover] pre-loading ${modelId}...`,
 				);
+				loadModel(provider, modelId).catch(() => {
+					// Router will still load on-demand if this fails.
+				});
 			}
 		}
 	});
@@ -290,23 +383,187 @@ export default async function (pi: ExtensionAPI) {
 	// ── /models command ────────────────────────────────────────────
 
 	pi.registerCommand("models", {
-		description: "List available local models (framearch + CachyLLama)",
-		handler: async (_args, ctx) => {
+		description: "List, load, unload, or switch local models (framearch + CachyLLama)",
+		getArgumentCompletions: (prefix: string) => {
+			const subcommands = [
+				{ value: "", label: "(list)", description: "List all models" },
+				{ value: "info", label: "info", description: "Show model details" },
+				{ value: "load", label: "load", description: "Load a model" },
+				{ value: "unload", label: "unload", description: "Unload a model (or all)" },
+				{ value: "switch", label: "switch", description: "Switch to a loaded model" },
+			];
+			const filtered = subcommands.filter((s) =>
+				s.value.startsWith(prefix),
+			);
+			return filtered.length > 0 ? filtered : null;
+		},
+		handler: async (args, ctx) => {
 			const [framearch, cachy] = await Promise.all([
 				discoverFramearch(pi),
 				discoverCachy(pi),
 			]);
 
+			const allModels = [
+				...(framearch ?? []),
+				...(cachy ?? []),
+			];
+
+			const parts = args.trim().split(/\s+/);
+			const subcommand = parts[0] || "";
+			const target = parts.slice(1).join(" ");
+
+			// ── /models info ──
+			if (subcommand === "info") {
+				if (allModels.length === 0) {
+					ctx.ui.notify("No models discovered.", "warning");
+					return;
+				}
+				const lines: string[] = ["── Model Info ──"];
+				for (const m of allModels) {
+					const status = m.loadStatus ?? "unknown";
+					const icon = STATUS_ICON[status] ?? STATUS_ICON.unknown;
+					lines.push(
+						`${icon} ${m.name}`,
+						`   id: ${m.id}`,
+						`   provider: ${m.provider ?? "?"}`,
+						`   status: ${status}`,
+						`   context: ${m.contextWindow.toLocaleString()}`,
+						`   modalities: ${m.input.join(", ")}`,
+						"",
+					);
+				}
+				ctx.ui.notify(lines.join("\n"), "info");
+				return;
+			}
+
+			// ── /models load <name> ──
+			if (subcommand === "load") {
+				if (!target) {
+					ctx.ui.notify("Usage: /models load <model-id>", "warning");
+					return;
+				}
+				const match = findModelByTarget(allModels, target);
+				if (!match) {
+					ctx.ui.notify(`Model "${target}" not found.`, "warning");
+					return;
+				}
+				if (match.loadStatus === "loaded") {
+					ctx.ui.notify(`"${match.name}" is already loaded.`, "info");
+					return;
+				}
+				ctx.ui.notify(`Loading ${match.name}...`, "info");
+				const result = await loadModel(match.provider!, match.id);
+				if (result.ok) {
+					triggerDiscovery(pi);
+					ctx.ui.notify(`Loaded ${match.name}.`, "info");
+				} else {
+					console.warn(
+						`[framearch-autodiscover] load ${match.id} failed:`,
+						result.status,
+						result.text,
+					);
+					ctx.ui.notify(
+						`Failed to load ${match.name} (${result.status}).`,
+						"warning",
+					);
+				}
+				return;
+			}
+
+			// ── /models unload [name] ──
+			if (subcommand === "unload") {
+				if (target) {
+					const match = findModelByTarget(allModels, target);
+					if (!match) {
+						ctx.ui.notify(`Model "${target}" not found.`, "warning");
+						return;
+					}
+					ctx.ui.notify(`Unloading ${match.name}...`, "info");
+					const result = await unloadModel(match.provider!, match.id);
+					if (result.ok) {
+						triggerDiscovery(pi);
+						ctx.ui.notify(`${match.name} unloaded.`, "info");
+					} else {
+						console.warn(
+							`[framearch-autodiscover] unload ${match.id} failed:`,
+							result.status,
+							result.text,
+						);
+						ctx.ui.notify(
+							`Failed to unload ${match.name} (${result.status}).`,
+							"warning",
+						);
+					}
+				} else {
+					// Unload all from both servers
+					ctx.ui.notify("Unloading all models...", "info");
+						const [r1, r2] = await Promise.all([
+						unloadModel(FRAMEARCH_PROVIDER),
+						unloadModel(CACHY_PROVIDER),
+					]);
+					triggerDiscovery(pi);
+					const anyOk = r1.ok || r2.ok;
+					ctx.ui.notify(
+						anyOk ? "All models unloaded." : "Unload failed.",
+						"info",
+					);
+				}
+				return;
+			}
+
+			// ── /models switch <name> ──
+			if (subcommand === "switch") {
+				if (!target) {
+					ctx.ui.notify("Usage: /models switch <model-id>", "warning");
+					return;
+				}
+				const match = findModelByTarget(allModels, target);
+				if (!match) {
+					ctx.ui.notify(`Model "${target}" not found.`, "warning");
+					return;
+				}
+				if (match.loadStatus !== "loaded") {
+					ctx.ui.notify(
+						`"${match.name}" is not loaded (status: ${match.loadStatus ?? "unknown"}). Use /models load first.`,
+						"warning",
+					);
+					return;
+				}
+				const model = ctx.modelRegistry.find(match.provider!, match.id);
+				if (!model) {
+					ctx.ui.notify(
+						`Model "${match.name}" is not available in the registry; try \`/reload\`.`,
+						"warning",
+					);
+					return;
+				}
+				const ok = await pi.setModel(model);
+				ctx.ui.notify(
+					ok ? `Switched to ${match.name}.` : `Failed to switch to ${match.name}.`,
+					ok ? "info" : "warning",
+				);
+				return;
+			}
+
+			// ── /models (list) ──
 			const lines: string[] = [];
 			if (framearch) {
 				lines.push("─ framearch (port 8000) ─");
-				framearch.forEach((m, i) => lines.push(`  ${i + 1}. ${m.name} (${m.id})`));
+				framearch.forEach((m, i) => {
+					const status = m.loadStatus ?? "unknown";
+					const icon = STATUS_ICON[status] ?? STATUS_ICON.unknown;
+					lines.push(`  ${icon} ${i + 1}. ${m.name} (${m.id})`);
+				});
 			} else {
 				lines.push("─ framearch (port 8000) ─ unavailable");
 			}
 			if (cachy) {
 				lines.push("─ CachyLLama (port 9092) ─");
-				cachy.forEach((m, i) => lines.push(`  ${i + 1}. ${m.name} (${m.id})`));
+				cachy.forEach((m, i) => {
+					const status = m.loadStatus ?? "unknown";
+					const icon = STATUS_ICON[status] ?? STATUS_ICON.unknown;
+					lines.push(`  ${icon} ${i + 1}. ${m.name} (${m.id})`);
+				});
 			} else {
 				lines.push("─ CachyLLama (port 9092) ─ unavailable");
 			}
@@ -318,6 +575,9 @@ export default async function (pi: ExtensionAPI) {
 				);
 				return;
 			}
+
+			lines.push("");
+			lines.push("Subcommands: info, load <id>, unload [id], switch <id>");
 
 			ctx.ui.notify(lines.join("\n"), "info");
 		},
