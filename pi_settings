@@ -3,12 +3,8 @@
   "theme": "dark",
   "defaultProvider": null,
   "defaultModel": null,
-  "defaultThinkingLevel": "high",
+  "defaultThinkingLevel": "off",
   "enabledModels": [
-    "framearch/Qwen3.6-27B-MTP",
-    "framearch/Qwen3.6-35B-A3B-MTP",
-    "framearch/gemma-4-26B-A4B-qat",
-    "framearch/gemma-4-31B-qat",
     "openai-codex/gpt-5.5",
     "openai-codex/gpt-5.4-mini",
     "opencode-go/glm-5.2",
@@ -21,11 +17,15 @@
     "opencode/nemotron-3-ultra-free",
     "openai-codex/gpt-5.3-codex-spark",
     "opencode/deepseek-v4-flash-free",
-    "framearch/GLM-4.7-Flash",
     "umans/umans-kimi-k2.7",
     "umans/umans-glm-5.2",
     "umans/umans-coder",
-    "umans/umans-flash"
+    "umans/umans-flash",
+    "cachy/gemma-4-26B-A4B-qat",
+    "cachy/Qwen3.6-35B-A3B-MTP",
+    "cachy/Qwen3.5-27B",
+    "cachy/Qwen3.6-27B-MTP",
+    "cachy/gemma-4-31B-qat"
   ],
   "defaults": {
     "model": null

@@ -1,4 +1,5 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { truncateToWidth } from "@earendil-works/pi-tui";
 
 // ── Type definitions ───────────────────────────────────────────────────────
 
@@ -81,6 +82,22 @@ export default function (pi: ExtensionAPI) {
     (pi.config?.get("llama-stats.sparkline") as boolean | undefined) ??
     envBool(process.env.LLAMA_STATS_SPARKLINE, true);
 
+  // Only show the widget for sessions that are actually using a local
+  // llama.cpp provider. This avoids cluttering the UI when talking to remote
+  // providers (OpenAI, Umans, etc.). Defaults cover the framearch/Cachy
+  // providers registered by framearch-autodiscover.
+  const WATCHED_PROVIDERS = new Set(
+    (pi.config?.get("llama-stats.providers") as string[] | undefined) ?? [
+      "framearch",
+      "cachy",
+    ],
+  );
+
+  function shouldShowFor(ctx: any): boolean {
+    const provider = ctx?.model?.provider ?? "";
+    return WATCHED_PROVIDERS.has(provider);
+  }
+
   let pollTimer: ReturnType<typeof setTimeout> | null = null;
   let lastStats: LlamaStats | null = null;
   let lastHistory: Array<[number, number, number]> = [];
@@ -142,9 +159,9 @@ export default function (pi: ExtensionAPI) {
 
   function formatWidget(
     stats: LlamaStats,
-    history: Array<[number, number, number]>
+    history: Array<[number, number, number]>,
+    width?: number
   ): string[] {
-    const model = stats.model ?? "unknown";
     const slots = stats.slots ?? {};
     const processing = stats.is_processing ?? false;
     const memory = stats.memory ?? {};
@@ -159,10 +176,11 @@ export default function (pi: ExtensionAPI) {
 
     // Idle — one line
     if (!processing && activeSlots.length === 0) {
-      const parts = [`${ICON.idle} ${model}`];
+      const parts = [ICON.idle];
       if (memory.vram_used_mb) parts.push(fmtMem(memory.vram_used_mb));
       if (context.n_ctx) parts.push(`Ctx ${context.n_ctx}`);
-      return [parts.join(sep)];
+      const line = parts.join(sep);
+      return width ? [truncateToWidth(line, width)] : [line];
     }
 
     // Aggregate speeds
@@ -178,7 +196,7 @@ export default function (pi: ExtensionAPI) {
     const icon = activeSlots.some((s) => s.state === "prompt")
       ? ICON.prompt
       : ICON.gen;
-    const parts: string[] = [`${icon} ${model}`];
+    const parts: string[] = [icon];
 
     // Prompt progress — inline bar
     const promptSlots = activeSlots.filter((s) => s.state === "prompt");
@@ -222,7 +240,8 @@ export default function (pi: ExtensionAPI) {
       if (spark) parts.push(spark);
     }
 
-    return [parts.join(sep)];
+    const line = parts.join(sep);
+    return width ? [truncateToWidth(line, width)] : [line];
   }
 
   // ── UI update ────────────────────────────────────────────────────────────
@@ -251,9 +270,9 @@ export default function (pi: ExtensionAPI) {
       // form can cause the differential renderer to miss updates because
       // it compares stale snapshots.
       ctx.ui.setWidget("llama-stats", (_tui: any, _theme: any) => ({
-        render: () => {
+        render: (width: number) => {
           if (!lastStats || !isActive) return [];
-          return formatWidget(lastStats, lastHistory);
+          return formatWidget(lastStats, lastHistory, width);
         },
         invalidate: () => {},
         dispose: () => {},
@@ -407,7 +426,26 @@ export default function (pi: ExtensionAPI) {
     await stopSSE();
     clearSSERetry();
     await stopPolling();
+    if (!shouldShowFor(ctx)) {
+      ctx.ui.setWidget("llama-stats", undefined);
+      return;
+    }
     startSSE(ctx);
+  });
+
+  pi.on("model_select", async (_event, ctx) => {
+    if (!shouldShowFor(ctx)) {
+      autoReconnect = false;
+      await stopSSE();
+      clearSSERetry();
+      await stopPolling();
+      ctx.ui.setWidget("llama-stats", undefined);
+      return;
+    }
+    if (isActive || isPolling || sseSource) return;
+    autoReconnect = true;
+    sseRetryDelay = 5000;
+    await startSSE(ctx);
   });
 
   pi.on("session_shutdown", async () => {

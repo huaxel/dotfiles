@@ -9,8 +9,8 @@ const FRAMEARCH_API_BASE_URL = "http://framearch-juan:8000/v1";
 // ── CachyLLama (fork on port 9092) ─────────────────────────────────
 
 const CACHY_PROVIDER = "cachy";
-const CACHY_DISCOVERY_URL = "http://127.0.0.1:9092/v1/models";
-const CACHY_API_BASE_URL = "http://127.0.0.1:9092/v1";
+const CACHY_DISCOVERY_URL = "http://framearch-juan:9092/v1/models";
+const CACHY_API_BASE_URL = "http://framearch-juan:9092/v1";
 
 const DISCOVERY_TIMEOUT_MS = Number(process.env.FRAMEARCH_DISCOVERY_TIMEOUT_MS) || 5000;
 
