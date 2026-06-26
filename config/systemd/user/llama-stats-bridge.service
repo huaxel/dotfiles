@@ -1,5 +1,5 @@
 [Unit]
-Description=llama.cpp + CachyLLama live stats bridge
+Description=llamacpp + cachyllama live stats bridge
 After=network.target
 Wants=network.target
 
@@ -11,7 +11,7 @@ RestartSec=5
 OOMScoreAdjust=-400
 MemoryMax=256M
 Environment=BRIDGE_PORT=55268
-Environment=LLAMA_SERVERS=framearch=http://127.0.0.1:8000,cachy=http://127.0.0.1:9092
+Environment=LLAMA_SERVERS=llamacpp=http://127.0.0.1:8000,cachyllama=http://127.0.0.1:9092
 
 [Install]
 WantedBy=default.target
