@@ -14,7 +14,7 @@
     "pi-git-assistant": "github:elt7613/pi-git-assistant",
     "pi-jules": "^1.0.2",
     "pi-lsp-extension": "github:samfoy/pi-lsp-extension#f2433d1",
-    "pi-provider-umans": "^1.4.0",
+    "pi-provider-umans": "^1.4.1",
     "pi-review-loop": "^0.4.4",
     "pi-simplify": "^0.2.2",
     "pi-subagents": "^0.28.0",
