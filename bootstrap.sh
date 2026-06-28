@@ -74,13 +74,15 @@ git config filter.strip-pi-machine-config.smudge \
 # ---------------------------------------------------------------------------
 if [ ! -f .dotter/local.toml ]; then
     case "$OS" in
-        Darwin*) dotter_os="macos" ;;
-        *) dotter_os="linux" ;;
+        Darwin*) dotter_os="macos"; models_base_path="$HOME/.cache/huggingface/hub" ;;
+        *)       dotter_os="linux"; models_base_path="/mnt/ai_models/models" ;;
     esac
 
     git_name=$(git config --global user.name 2>/dev/null || printf '%s' "${USER:-Your Name}")
     git_email=$(git config --global user.email 2>/dev/null || printf '%s' "your@email.com")
 
+    # models_base_path is required by the llama-models.ini template; without it
+    # `dotter deploy` renders a broken llama.cpp config.
     cat > .dotter/local.toml <<EOF
 packages = ["default", "unix"]
 
@@ -89,6 +91,7 @@ os = "$dotter_os"
 name = "$git_name"
 email = "$git_email"
 hostname_color = "fg:#f7768e"
+models_base_path = "$models_base_path"
 EOF
     echo "Created .dotter/local.toml for $dotter_os"
 fi
