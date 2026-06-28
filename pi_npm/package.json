@@ -4,9 +4,7 @@
   "dependencies": {
     "@ff-labs/pi-fff": "^0.9.4",
     "@juicesharp/rpiv-advisor": "^1.20.0",
-    "@juicesharp/rpiv-ask-user-question": "^1.20.0",
     "@juicesharp/rpiv-todo": "^1.20.0",
-    "@juicesharp/rpiv-web-tools": "^1.20.0",
     "@mjfuertesf/pi-quota-status": "^0.1.7",
     "@narumitw/pi-goal": "^0.4.2",
     "context-mode": "^1.0.162",
@@ -17,7 +15,10 @@
     "pi-provider-umans": "^1.4.1",
     "pi-review-loop": "^0.4.4",
     "pi-simplify": "^0.2.2",
-    "pi-subagents": "^0.28.0",
+    "pi-intercom": "^0.6.0",
+    "pi-interactive-shell": "^0.13.0",
+    "pi-mcp-adapter": "^2.10.0",
+    "pi-subagents": "^0.31.0",
     "pi-web-access": "^0.10.7"
   },
   "allowScripts": {
