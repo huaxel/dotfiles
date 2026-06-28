@@ -3,14 +3,18 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 // ── llamacpp (packaged llama.cpp on port 8000) ─────────────────────
 
 const FRAMEARCH_PROVIDER = "llamacpp";
-const FRAMEARCH_DISCOVERY_URL = "http://framearch-juan:8000/v1/models";
-const FRAMEARCH_API_BASE_URL = "http://framearch-juan:8000/v1";
+const FRAMEARCH_HOST = process.env.FRAMEARCH_HOST || "framearch-juan";
+const FRAMEARCH_PORT = Number(process.env.FRAMEARCH_PORT) || 8000;
+const FRAMEARCH_DISCOVERY_URL = `http://${FRAMEARCH_HOST}:${FRAMEARCH_PORT}/v1/models`;
+const FRAMEARCH_API_BASE_URL = `http://${FRAMEARCH_HOST}:${FRAMEARCH_PORT}/v1`;
 
 // ── cachyllama (fork on port 9092) ────────────────────────────────
 
 const CACHY_PROVIDER = "cachyllama";
-const CACHY_DISCOVERY_URL = "http://framearch-juan:9092/v1/models";
-const CACHY_API_BASE_URL = "http://framearch-juan:9092/v1";
+const CACHY_HOST = process.env.CACHY_HOST || FRAMEARCH_HOST;
+const CACHY_PORT = Number(process.env.CACHY_PORT) || 9092;
+const CACHY_DISCOVERY_URL = `http://${CACHY_HOST}:${CACHY_PORT}/v1/models`;
+const CACHY_API_BASE_URL = `http://${CACHY_HOST}:${CACHY_PORT}/v1`;
 
 const DISCOVERY_TIMEOUT_MS = Number(process.env.FRAMEARCH_DISCOVERY_TIMEOUT_MS) || 5000;
 

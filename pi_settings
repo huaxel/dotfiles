@@ -30,6 +30,23 @@
   "defaults": {
     "model": null
   },
+  "subagents": {
+    "agentOverrides": {
+      "oracle": {
+        "model": "umans/umans-glm-5.2",
+        "thinking": "medium"
+      },
+      "reviewer": {
+        "model": "umans/umans-glm-5.2"
+      },
+      "scout": {
+        "model": "umans/umans-flash"
+      },
+      "researcher": {
+        "model": "umans/umans-glm-5.2"
+      }
+    }
+  },
   "packages": [
     "git:github.com/nicobailon/visual-explainer",
     "npm:pi-provider-umans"
