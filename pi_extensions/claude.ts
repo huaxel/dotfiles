@@ -16,36 +16,45 @@ const BRIDGE_URL = (
   process.env.CLAUDE_BRIDGE_URL || "http://100.116.127.30:7863"
 ).replace(/\/$/, "");
 const BRIDGE_KEY = process.env.CLAUDE_BRIDGE_KEY || "";
+const BRIDGE_TIMEOUT_MS = Number(process.env.CLAUDE_BRIDGE_TIMEOUT_MS || "1500");
 
 export default async function (pi: ExtensionAPI) {
-  const res = await fetch(`${BRIDGE_URL}/v1/models`, {
-    headers: BRIDGE_KEY ? { Authorization: `Bearer ${BRIDGE_KEY}` } : {},
-  });
-  if (!res.ok) {
-    console.warn(
-      `[claude-bridge] bridge returned ${res.status}${res.statusText ? ` ${res.statusText}` : ""}; provider registration skipped.`
-    );
-    return;
-  }
-  const payload = (await res.json()) as { data: Array<{ id: string }> };
+  try {
+    const res = await fetch(`${BRIDGE_URL}/v1/models`, {
+      headers: BRIDGE_KEY ? { Authorization: `Bearer ${BRIDGE_KEY}` } : {},
+      signal: AbortSignal.timeout(BRIDGE_TIMEOUT_MS),
+    });
+    if (!res.ok) {
+      console.warn(
+        `[claude-bridge] bridge returned ${res.status}${res.statusText ? ` ${res.statusText}` : ""}; provider registration skipped.`
+      );
+      return;
+    }
+    const payload = (await res.json()) as { data: Array<{ id: string }> };
 
-  pi.registerProvider("claude", {
-    name: "Claude Pro",
-    baseUrl: `${BRIDGE_URL}/v1`,
-    apiKey: BRIDGE_KEY || "claude-bridge",
-    api: "openai-completions",
-    models: payload.data.map((m) => ({
-      id: m.id,
-      name: m.id,
-      reasoning: m.id.includes("sonnet") || m.id.includes("opus"),
-      input: ["text"] as const,
-      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-      contextWindow: 200_000,
-      maxTokens: 8192,
-      compat: {
-        supportsDeveloperRole: false,
-        supportsUsageInStreaming: false,
-      },
-    })),
-  });
+    pi.registerProvider("claude", {
+      name: "Claude Pro",
+      baseUrl: `${BRIDGE_URL}/v1`,
+      apiKey: BRIDGE_KEY || "claude-bridge",
+      api: "openai-completions",
+      models: payload.data.map((m) => ({
+        id: m.id,
+        name: m.id,
+        reasoning: m.id.includes("sonnet") || m.id.includes("opus"),
+        input: ["text"] as const,
+        cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+        contextWindow: 200_000,
+        maxTokens: 8192,
+        compat: {
+          supportsDeveloperRole: false,
+          supportsUsageInStreaming: false,
+        },
+      })),
+    });
+  } catch (err) {
+    console.warn(
+      `[claude-bridge] bridge not reachable at ${BRIDGE_URL}; provider registration skipped.`,
+      err instanceof Error ? err.message : String(err)
+    );
+  }
 }
