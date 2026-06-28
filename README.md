@@ -13,15 +13,34 @@ Migrated from chezmoi to [dotter](https://github.com/SuperCuber/dotter) for clea
 
 ## Quick Start
 
-```bash
-# 1. Install dotter
-cargo install dotter
+### macOS — one command (fully automated)
 
-# 2. Clone this repo
+```bash
+git clone https://github.com/huaxel/dotfiles.git ~/dotfiles
+cd ~/dotfiles && ./bootstrap.sh
+```
+
+`bootstrap.sh` will, in order: install Homebrew → install dotter + git + age +
+sops + mas → enable git hooks → generate an age key if missing →
+`dotter deploy` (renders templates, symlinks, decrypts secrets) →
+`brew bundle` the full `config/Brewfile` → apply `macos/defaults.sh`.
+
+Toggles: `SKIP_BREW_BUNDLE=1` and `SKIP_MACOS_DEFAULTS=1`.
+
+> Secrets: if you have an existing age key, restore it to
+> `~/.config/sops/age/keys.txt` **before** running bootstrap. Otherwise a new
+> key is generated and you must authorize it in `.sops.yaml` and rotate
+> secrets (see [Secrets Management](#secrets-management-sops--age)).
+
+### Linux / manual
+
+```bash
+# 1. Install dotter (cargo) and clone
+cargo install dotter
 git clone <your-repo> ~/dotfiles
 cd ~/dotfiles
 
-# 3. Deploy (creates symlinks)
+# 2. Deploy (creates symlinks) — or just run ./bootstrap.sh
 dotter deploy
 ```
 
