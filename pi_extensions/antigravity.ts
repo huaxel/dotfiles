@@ -35,13 +35,15 @@ const BRIDGE_URL = (process.env.ANTIGRAVITY_BRIDGE_URL || "http://100.116.127.30
   ""
 );
 const BRIDGE_KEY = process.env.ANTIGRAVITY_BRIDGE_KEY || "";
-const DISABLE_PROVIDER = Boolean(process.env.ANTIGRAVITY_DISABLE_PROVIDER);
+const BRIDGE_TIMEOUT_MS = Number(process.env.ANTIGRAVITY_BRIDGE_TIMEOUT_MS || "1500");
+const DISABLE_PROVIDER = Boolean(process.env.ANTIGRAVITY_DISABLE_PROVIDER) || /^(1|true|yes)$/i.test(process.env.PI_OFFLINE || "");
 const DISABLE_SUBAGENT = Boolean(process.env.ANTIGRAVITY_DISABLE_SUBAGENT);
 
 async function fetchBridgeModels(): Promise<Array<{ id: string }> | undefined> {
   try {
     const res = await fetch(`${BRIDGE_URL}/v1/models`, {
       headers: BRIDGE_KEY ? { Authorization: `Bearer ${BRIDGE_KEY}` } : {},
+      signal: AbortSignal.timeout(BRIDGE_TIMEOUT_MS),
     });
     if (!res.ok) {
       console.warn(
