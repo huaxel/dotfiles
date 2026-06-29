@@ -89,5 +89,16 @@ title=$(swaymsg -t get_tree | jq -r '.. | objects | select(.focused == true) | .
 icon=$(get_icon "$app_id")
 
 # Output for waybar (icon + truncated title)
-# Sketchybar style: just icon for minimal, or icon + short title
-echo "{\"text\": \"$icon $title\", \"tooltip\": \"$app_id: $title\", \"class\": \"$app_id\"}"
+# Keep this short: on the 4K monitor Sway uses scale 2, so Waybar has
+# 1920 logical pixels, not 3840. Long browser/page titles otherwise collide
+# with the right-side modules and make the bar look duplicated/cut off.
+max_title_len=${WAYBAR_APP_TITLE_MAX:-40}
+display_title=$(jq -rn --arg title "$title" --argjson max "$max_title_len" '
+  $title | if length > $max then .[:($max - 1)] + "…" else . end
+')
+
+jq -nc \
+  --arg text "$icon $display_title" \
+  --arg tooltip "$app_id: $title" \
+  --arg class "$app_id" \
+  '{text: $text, tooltip: $tooltip, class: $class}'
