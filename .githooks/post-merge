@@ -1,0 +1,22 @@
+#!/bin/bash
+# Post-merge hook: redeploy dotfiles after a pull/merge
+# This ensures secrets are decrypted, templates re-rendered, and symlinks
+# refreshed whenever the repo changes via git pull / merge.
+#
+# Only runs if dotter is installed and the .dotter directory exists.
+
+set -e
+
+DOTFILES_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+
+if ! command -v dotter &>/dev/null; then
+    echo "⚠️  post-merge: dotter not found — skipping auto-deploy"
+    exit 0
+fi
+
+if [ ! -f "$DOTFILES_DIR/.dotter/global.toml" ]; then
+    exit 0
+fi
+
+cd "$DOTFILES_DIR"
+dotter deploy
