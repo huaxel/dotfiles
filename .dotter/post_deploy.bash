@@ -53,13 +53,23 @@ if [ -d "$SECRETS_DIR" ]; then
     local enc="$SECRETS_DIR/$name.enc"
     [ -f "$enc" ] || return 0
     mkdir -p "$(dirname "$dest")"
-    if sops --decrypt --output-type binary "$enc" >"$dest" 2>/dev/null; then
+    # Decrypt to a temp file first so a failed decrypt never truncates the
+    # existing destination (which would clobber a good secret with an empty file).
+    local tmp
+    tmp="$(mktemp)"
+    if sops --decrypt --output-type binary "$enc" >"$tmp" 2>/dev/null; then
+      mv "$tmp" "$dest"
       chmod 600 "$dest"
       echo "🔐 Decrypted $name -> $dest"
     else
+      rm -f "$tmp"
       echo "❌ Failed to decrypt $name (wrong key or corrupt file)"
     fi
   }
+
+  # App-specific secrets: decrypt to their real config path.
+  # (enc basename -> destination; mirrors post_deploy.ps1 on Windows)
+  app_secret "llama-webui-config.json" "$HOME/.config/llama.cpp/webui-config.json"
 
 fi
 
