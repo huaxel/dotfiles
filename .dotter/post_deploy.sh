@@ -8,11 +8,11 @@
 # to the :windows section which runs post_deploy.bash via bash if available.
 #
 DOTTER_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
-exec "$DOTTER_DIR/post_deploy.bash"
+exec "$DOTTER_DIR/.dotter/post_deploy.bash"
 
 :windows
 @echo off
 setlocal
 cd /d "%~dp0"
-powershell.exe -ExecutionPolicy Bypass -File "%~dp0..\..\post_deploy.ps1"
+powershell.exe -ExecutionPolicy Bypass -File "%~dp0..\..\.dotter\post_deploy.ps1"
 exit /b %ERRORLEVEL%
