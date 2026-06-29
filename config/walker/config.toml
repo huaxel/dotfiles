@@ -1,0 +1,95 @@
+# Lightweight Walker setup for Sway.
+# Main goals: fast app launch, quick calculator, web search.
+# File search is handled by ~/.config/sway/scripts/walker-files.sh because
+# Walker's native files provider needs the Elephant backend/provider packages.
+
+force_keyboard_focus = true
+close_when_open = true
+click_to_close = true
+single_click_activation = true
+selection_wrap = true
+theme = "default"
+hide_quick_activation = true
+hide_action_hints = false
+resume_last_query = false
+
+[shell]
+exclusive_zone = -1
+layer = "overlay"
+anchor_top = true
+anchor_bottom = true
+anchor_left = true
+anchor_right = true
+
+[placeholders]
+"default" = { input = "Search apps, calculate, or type @ to web search", list = "No results" }
+"calc" = { input = "Calculate", list = "Type an expression" }
+"desktopapplications" = { input = "Launch app", list = "No apps" }
+"websearch" = { input = "Search the web", list = "No search results" }
+"files" = { input = "Search files", list = "No files" }
+
+[keybinds]
+close = ["Escape"]
+next = ["Down", "ctrl n"]
+previous = ["Up", "ctrl p"]
+toggle_exact = ["ctrl e"]
+page_down = ["Page_Down"]
+page_up = ["Page_Up"]
+show_actions = ["alt j"]
+
+[providers]
+default = [
+  "desktopapplications",
+  "calc",
+  "websearch",
+]
+empty = ["desktopapplications"]
+ignore_preview = []
+max_results = 30
+
+[providers.max_results_provider]
+desktopapplications = 12
+calc = 5
+websearch = 5
+files = 20
+
+[[providers.prefixes]]
+prefix = "="
+provider = "calc"
+
+[[providers.prefixes]]
+prefix = "@"
+provider = "websearch"
+
+[[providers.prefixes]]
+prefix = "/"
+provider = "files"
+
+[[providers.prefixes]]
+prefix = ">"
+provider = "runner"
+
+[[providers.prefixes]]
+prefix = ";"
+provider = "providerlist"
+
+[providers.actions]
+calc = [
+  { action = "copy", default = true, bind = "Return" },
+  { action = "save", bind = "ctrl s", after = "AsyncClearReload" },
+]
+
+websearch = [
+  { action = "search", default = true, bind = "Return" },
+  { action = "open_url", label = "open url", default = true, bind = "Return" },
+]
+
+desktopapplications = [
+  { action = "start", default = true, bind = "Return" },
+  { action = "new_instance", label = "new instance", bind = "ctrl Return" },
+]
+
+runner = [
+  { action = "run", default = true, bind = "Return" },
+  { action = "runterminal", label = "run in terminal", bind = "shift Return" },
+]

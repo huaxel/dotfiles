@@ -32,7 +32,7 @@
     },
     "custom/launcher": {
         "format": "",
-        "on-click": "wofi --show drun",
+        "on-click": "walker",
         "tooltip": false
     },
     "custom/workspaces": {
@@ -47,6 +47,7 @@
         "return-type": "json",
         "exec": "~/.config/waybar/scripts/app-icon.sh",
         "interval": 1,
+        "max-length": 48,
         "tooltip": true
     },
     "custom/clipboard": {
@@ -140,6 +141,8 @@
     "mpris": {
         "format": "{player_icon} {dynamic}",
         "format-paused": "{status_icon} <i>{dynamic}</i>",
+        "max-length": 32,
+        "ellipsis": "…",
         "player-icons": {
             "default": "▶",
             "mpv": "🎵"
