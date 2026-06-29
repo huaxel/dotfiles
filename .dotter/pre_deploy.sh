@@ -8,11 +8,11 @@
 # to the :windows section which runs pre_deploy.bash via bash if available.
 #
 DOTTER_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
-exec "$DOTTER_DIR/pre_deploy.bash"
+exec "$DOTTER_DIR/.dotter/pre_deploy.bash"
 
 :windows
 @echo off
 setlocal
 cd /d "%~dp0"
-powershell.exe -ExecutionPolicy Bypass -File "%~dp0..\..\pre_deploy.ps1"
+powershell.exe -ExecutionPolicy Bypass -File "%~dp0..\..\.dotter\pre_deploy.ps1"
 exit /b %ERRORLEVEL%
