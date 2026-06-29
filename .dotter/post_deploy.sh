@@ -7,12 +7,15 @@
 # On Windows, cmd.exe interprets it; the "#" line above triggers || and jumps
 # to the :windows section which runs post_deploy.bash via bash if available.
 #
-DOTTER_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
-exec "$DOTTER_DIR/.dotter/post_deploy.bash"
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+if [ -x "$SCRIPT_DIR/post_deploy.bash" ]; then
+  exec "$SCRIPT_DIR/post_deploy.bash"
+fi
+exec "$SCRIPT_DIR/../../post_deploy.bash"
 
 :windows
 @echo off
 setlocal
 cd /d "%~dp0"
-powershell.exe -ExecutionPolicy Bypass -File "%~dp0..\..\.dotter\post_deploy.ps1"
+powershell.exe -ExecutionPolicy Bypass -File "%~dp0post_deploy.ps1" || powershell.exe -ExecutionPolicy Bypass -File "%~dp0..\..\post_deploy.ps1"
 exit /b %ERRORLEVEL%
