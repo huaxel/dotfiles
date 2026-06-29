@@ -27,6 +27,6 @@ if (settings.defaults && typeof settings.defaults === 'object' && !Array.isArray
 
 settings.defaultProvider = null;
 settings.defaultModel = null;
-settings.defaultThinkingLevel = 'high';
+settings.defaultThinkingLevel = 'low';
 
 process.stdout.write(`${JSON.stringify(settings, null, 2)}\n`);
