@@ -1,28 +1,64 @@
 #!/bin/bash
 # Pre-commit hook for auto-encrypting secrets
-# Place this in ~/dotfiles/.git/hooks/pre-commit
+# Re-encrypts any secret whose live (plaintext) copy is newer than the
+# committed .enc file, then `git add`s the result so the commit stays in sync.
+#
+# Enable on a fresh clone:  git config core.hooksPath .githooks
+# (bootstrap.sh does this automatically.)
+
+set -euo pipefail
 
 DOTFILES_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SECRETS_DIR="$DOTFILES_DIR/secrets"
-LIVE_SECRETS="$HOME/.config/secrets"
 
-# Check if env.fish exists and is newer than the encrypted version
-if [ -f "$LIVE_SECRETS/env.fish" ]; then
-    if [ ! -f "$SECRETS_DIR/env.fish.enc" ] || [ "$LIVE_SECRETS/env.fish" -nt "$SECRETS_DIR/env.fish.enc" ]; then
-        echo "🔐 Auto-encrypting secrets from $LIVE_SECRETS/env.fish..."
-        if sops --encrypt --input-type binary "$LIVE_SECRETS/env.fish" > "$SECRETS_DIR/env.fish.enc"; then
-            git add "$SECRETS_DIR/env.fish.enc"
-            echo "   ✅ Secrets auto-encrypted and added to commit"
-        else
-            echo "   ❌ Failed to encrypt secrets. Aborting commit."
-            exit 1
-        fi
-    fi
+# Skip entirely if sops isn't installed — don't block unrelated commits.
+if ! command -v sops &>/dev/null; then
+    echo "⚠️  sops not installed — skipping secret auto-encrypt (install: brew/pacman install sops)"
+    exit 0
 fi
 
-# Check if env.sh exists (legacy, warn if found)
-if [ -f "$LIVE_SECRETS/env.sh" ]; then
-    echo "⚠️  Warning: $LIVE_SECRETS/env.sh exists but is deprecated. Use env.fish instead."
+# encrypt_secret <live plaintext path> <enc basename without .enc>
+# Returns non-zero (aborting the commit) if encryption fails, so a broken
+# encrypt never silently commits a stale secret.
+encrypt_secret() {
+    local live="$1" name="$2"
+    local enc="$SECRETS_DIR/$name.enc"
+
+    [ -f "$live" ] || return 0
+
+    if [ ! -f "$enc" ] || [ "$live" -nt "$enc" ]; then
+        echo "🔐 Auto-encrypting $name from $live..."
+        # sops selects creation rules by matching the INPUT path against
+        # .sops.yaml's path_regex ("secrets/.*"). The live plaintext usually
+        # lives elsewhere (e.g. ~/.config/llama.cpp/...), so copy it under
+        # secrets/ first. The temp is gitignored (secrets/* with no !un-ignore)
+        # and removed immediately, win or lose.
+        local staging="$SECRETS_DIR/.tmp.$name"
+        local tmpout
+        tmpout="$(mktemp)"
+        cp "$live" "$staging"
+        if sops --encrypt --input-type binary "$staging" >"$tmpout"; then
+            rm -f "$staging"
+            mv "$tmpout" "$enc"
+            git add "$enc"
+            echo "   ✅ $name auto-encrypted and added to commit"
+        else
+            rm -f "$staging" "$tmpout"
+            echo "   ❌ Failed to encrypt $name. Aborting commit."
+            return 1
+        fi
+    fi
+}
+
+# Generic shell secrets (source ~/.config/secrets/env.fish)
+encrypt_secret "$HOME/.config/secrets/env.fish" "env.fish"
+
+# App-specific secrets (live plaintext path -> enc basename)
+encrypt_secret "$HOME/.config/llama.cpp/webui-config.json" "llama-webui-config.json"
+
+# Legacy warning
+if [ -f "$HOME/.config/secrets/env.sh" ]; then
+    echo "⚠️  Warning: ~/.config/secrets/env.sh exists but is deprecated. Use env.fish instead."
 fi
 
 exit 0
