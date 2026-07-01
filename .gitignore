@@ -60,7 +60,6 @@ local/
 
 # Nested git repos (pi extensions cloned separately)
 pi_extensions/*/.git/
-pi_extensions/subagent/
 
 # ─────────────────────────────────────────────────────────────
 # Secrets (decrypted versions — never commit these)
