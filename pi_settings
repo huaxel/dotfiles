@@ -3,7 +3,7 @@
   "theme": "dark",
   "defaultProvider": null,
   "defaultModel": null,
-  "defaultThinkingLevel": "high",
+  "defaultThinkingLevel": "low",
   "enabledModels": [
     "cline-pass/glm-5.2",
     "cline-pass/kimi-k2.7-code",
@@ -33,23 +33,6 @@
   ],
   "defaults": {
     "model": null
-  },
-  "subagents": {
-    "agentOverrides": {
-      "oracle": {
-        "model": "umans/umans-glm-5.2",
-        "thinking": "medium"
-      },
-      "reviewer": {
-        "model": "umans/umans-glm-5.2"
-      },
-      "scout": {
-        "model": "umans/umans-flash"
-      },
-      "researcher": {
-        "model": "umans/umans-glm-5.2"
-      }
-    }
   },
   "packages": [
     "git:github.com/nicobailon/visual-explainer",
