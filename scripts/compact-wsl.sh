@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2015
 #
 # compact-wsl.sh — Compact WSL2 VHDX without admin rights
 #
@@ -70,7 +71,7 @@ if command -v pacman &>/dev/null; then
     if [ -n "$ORPHANS" ]; then
         ORPHAN_COUNT=$(echo "$ORPHANS" | wc -l)
         info "Removing ${ORPHAN_COUNT} orphaned packages..."
-        sudo pacman -Rns --noconfirm $ORPHANS 2>/dev/null || true
+        sudo pacman -Rns --noconfirm "$ORPHANS" 2>/dev/null || true
         ok "Orphaned packages removed"
     else
         ok "No orphaned packages"

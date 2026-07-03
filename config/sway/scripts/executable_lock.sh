@@ -11,9 +11,9 @@ WALLPAPER="$HOME/.config/wallpapers/daniel-leone-v7daTKlZzaw-unsplash.jpg"
 # Text: Text color inside ring
 
 swaylock-effects \
-  --clock \\
-  --effect-blur 7x5 \\
-  --effect-vignette 0.5:0.5 \\
+  --clock \
+  --effect-blur 7x5 \
+  --effect-vignette 0.5:0.5 \
   --daemonize \
   --image "$WALLPAPER" \
   --scaling fill \
