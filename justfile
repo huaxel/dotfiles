@@ -154,8 +154,10 @@ check-dotter:
     else
         echo "  ✓ global.toml exists (install taplo for TOML validation)"
     fi
-    # 4. Dry-run dotter deploy
-    if output=$(dotter deploy --dry-run 2>&1); then
+    # 4. Dry-run dotter deploy (skip if no local config on this machine)
+    if [ ! -f .dotter/local.toml ]; then
+        echo "  ✓ dotter deploy --dry-run skipped (no local config on this machine)"
+    elif output=$(dotter deploy --dry-run 2>&1); then
         changes=$(echo "$output" | grep -c "will be" 2>/dev/null || true)
         if [ "$changes" -gt 0 ] 2>/dev/null; then
             echo "  ✅ dotter deploy --dry-run OK (${changes} pending changes)"
