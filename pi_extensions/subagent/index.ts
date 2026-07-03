@@ -179,6 +179,17 @@ function getFinalOutput(messages: Message[]): string {
 	return "";
 }
 
+/** Keep only the last assistant message to reduce context bloat from subagent transcripts. */
+function trimResultMessages(messages: Message[]): Message[] {
+	for (let i = messages.length - 1; i >= 0; i--) {
+		const msg = messages[i];
+		if (msg.role === "assistant") {
+			return [msg];
+		}
+	}
+	return [];
+}
+
 function isFailedResult(result: SingleResult): boolean {
 	return result.exitCode !== 0 || result.stopReason === "error" || result.stopReason === "aborted";
 }
@@ -274,6 +285,7 @@ async function runSingleAgent(
 	signal: AbortSignal | undefined,
 	onUpdate: OnUpdateCallback | undefined,
 	makeDetails: (results: SingleResult[]) => SubagentDetails,
+	context?: string,
 ): Promise<SingleResult> {
 	const agent = agents.find((a) => a.name === agentName);
 
@@ -312,11 +324,12 @@ async function runSingleAgent(
 
 			if (signal?.aborted) throw new Error("Subagent was aborted");
 
-			const args: string[] = ["--mode", "json", "-p", "--no-session"];
+			const args: string[] = ["--mode", "json", "-p", "--no-session", "--no-context-files", "--no-skills", "--no-prompt-templates", "--no-themes"];
 			if (model) args.push("--model", model);
 			if (agent.tools && agent.tools.length > 0) args.push("--tools", agent.tools.join(","));
 			if (tmpPromptPath) args.push("--append-system-prompt", tmpPromptPath);
-			args.push(`Task: ${task}`);
+			const fullTask = context ? `${context}\n\n${task}` : task;
+			args.push(`Task: ${fullTask}`);
 
 			const currentResult: SingleResult = {
 				agent: agentName,
@@ -423,6 +436,9 @@ async function runSingleAgent(
 			currentResult.exitCode = exitCode;
 			if (wasAborted) throw new Error("Subagent was aborted");
 
+			// Trim accumulated messages to reduce context bloat from subagent transcripts
+			currentResult.messages = trimResultMessages(currentResult.messages);
+
 			// Check if this attempt succeeded
 			const isSuccess =
 				exitCode === 0 &&
@@ -477,12 +493,14 @@ const TaskItem = Type.Object({
 	agent: Type.String({ description: "Name of the agent to invoke" }),
 	task: Type.String({ description: "Task to delegate to the agent" }),
 	cwd: Type.Optional(Type.String({ description: "Working directory for the agent process" })),
+	context: Type.Optional(Type.String({ description: "Pre-read file contents or analysis to pass inline, avoiding redundant subagent re-reads" })),
 });
 
 const ChainItem = Type.Object({
 	agent: Type.String({ description: "Name of the agent to invoke" }),
 	task: Type.String({ description: "Task with optional {previous} placeholder for prior output" }),
 	cwd: Type.Optional(Type.String({ description: "Working directory for the agent process" })),
+	context: Type.Optional(Type.String({ description: "Pre-read file contents or analysis to pass inline, avoiding redundant subagent re-reads" })),
 });
 
 const AgentScopeSchema = StringEnum(["user", "project", "both"] as const, {
@@ -493,6 +511,7 @@ const AgentScopeSchema = StringEnum(["user", "project", "both"] as const, {
 const SubagentParams = Type.Object({
 	agent: Type.Optional(Type.String({ description: "Name of the agent to invoke (for single mode)" })),
 	task: Type.Optional(Type.String({ description: "Task to delegate (for single mode)" })),
+	context: Type.Optional(Type.String({ description: "Pre-read file contents or analysis to pass inline, avoiding redundant subagent re-reads" })),
 	tasks: Type.Optional(Type.Array(TaskItem, { description: "Array of {agent, task} for parallel execution" })),
 	chain: Type.Optional(Type.Array(ChainItem, { description: "Array of {agent, task} for sequential execution" })),
 	agentScope: Type.Optional(AgentScopeSchema),
@@ -509,6 +528,7 @@ export default function (pi: ExtensionAPI) {
 		description: [
 			"Delegate tasks to specialized subagents with isolated context.",
 			"Modes: single (agent + task), parallel (tasks array), chain (sequential with {previous} placeholder).",
+			"Save tokens by passing pre-read file contents via the context parameter instead of having subagents re-read files.",
 			`Default agent scope is "user" (from ${path.join(getAgentDir(), "agents")}).`,
 			`To enable project-local agents in ${CONFIG_DIR_NAME}/agents, set agentScope: "both" (or "project").`,
 		].join(" "),
@@ -605,6 +625,7 @@ export default function (pi: ExtensionAPI) {
 						signal,
 						chainUpdate,
 						makeDetails("chain"),
+						step.context,
 					);
 					results.push(result);
 
@@ -683,6 +704,7 @@ export default function (pi: ExtensionAPI) {
 							}
 						},
 						makeDetails("parallel"),
+						t.context,
 					);
 					allResults[index] = result;
 					emitParallelUpdate();
@@ -719,6 +741,7 @@ export default function (pi: ExtensionAPI) {
 					signal,
 					onUpdate,
 					makeDetails("single"),
+					params.context,
 				);
 				const isError = isFailedResult(result);
 				if (isError) {
