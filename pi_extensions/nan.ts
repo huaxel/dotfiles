@@ -137,7 +137,7 @@ async function fetchModelList(): Promise<string[] | null> {
 /** Convert a bare model ID + spec into a ProviderModelConfig. */
 function toProviderModel(id: string, spec: ModelSpec): ProviderModelConfig {
   return {
-    id: `nan/${id}`,
+    id,
     name: `${displayName(id)} (NaN)`,
     reasoning: spec.reasoning,
     input: spec.input,
