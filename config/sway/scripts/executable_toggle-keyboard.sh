@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2016
 BRITISH_CONF='input "type:keyboard" {
     xkb_file "$HOME/.config/xkb/symbols/gb_qwerty"
 }
@@ -10,7 +11,8 @@ COLEMAK_CONF='input "type:keyboard" {
 
 # Set SWAYSOCK if not set (for when called from keybinding)
 if [ -z "$SWAYSOCK" ]; then
-    SWAYSOCK=$(ls -t /run/user/$(id -u)/sway-ipc.* 2>/dev/null | head -n1)
+    # shellcheck disable=SC2012
+    SWAYSOCK=$(ls -t "/run/user/$(id -u)"/sway-ipc.* 2>/dev/null | head -n1)
     export SWAYSOCK
 fi
 

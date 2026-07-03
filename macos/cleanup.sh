@@ -21,6 +21,7 @@ run() {
     echo "  [dry-run] $*"
   else
     echo "  → $*"
+    # shellcheck disable=SC2294
     eval "$@"
   fi
 }

@@ -49,6 +49,8 @@ check: ci
 # ── Shell scripts ──
 
 # Lint all shell scripts with ShellCheck
+# Excludes: node_modules (npm deps), pi_npm/node_modules (pi npm deps),
+#           .dotter/cache (dotter generated), and Windows .bat-styled .sh files
 check-sh:
     #!/usr/bin/env bash
     echo "=== ShellCheck ==="
@@ -59,13 +61,17 @@ check-sh:
     fi
     count=0; errors=0
     while IFS= read -r f; do
+        # Skip Windows batch files masquerading as .sh
+        if grep -q '%~dp0\|%ERRORLEVEL%\|^@echo\|^rem ' "$f" 2>/dev/null; then
+            continue
+        fi
         if shellcheck -x -s bash "$f" 2>/dev/null; then
             count=$((count + 1))
         else
             echo "  ❌ $f has issues"
             errors=$((errors + 1))
         fi
-    done < <(find . -path ./node_modules -prune -o -path ./.git -prune -o -type f \( -name '*.sh' -o -name '*.bash' \) -print 2>/dev/null | sort || true)
+    done < <(find . \( -path ./node_modules -o -path ./pi_npm/node_modules -o -path ./.git -o -path ./.dotter/cache \) -prune -o -type f \( -name '*.sh' -o -name '*.bash' \) -print 2>/dev/null | sort || true)
     echo "  Checked $count shell scripts"
     if [ "$errors" -gt 0 ]; then echo "  ❌ $errors files have issues"; exit 1; fi
     echo "  ✅ All shell scripts pass ShellCheck"
@@ -139,10 +145,10 @@ check-dotter:
     echo "  ✅ .dotter/local.toml.example present"
     # 3. TOML lint if taplo available
     if command -v taplo &>/dev/null; then
-        if taplo check .dotter/global.toml 2>&1 | grep -q "valid"; then
+        if taplo check .dotter/global.toml 2>/dev/null; then
             echo "  ✅ global.toml is valid TOML"
         else
-            taplo check .dotter/global.toml 2>&1 | sed 's/^/    /'
+            taplo check .dotter/global.toml 2>/dev/null | sed 's/^/    /'
             echo "  ❌ global.toml has TOML errors"; exit 1
         fi
     else

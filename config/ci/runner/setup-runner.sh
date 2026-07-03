@@ -16,7 +16,6 @@
 set -euo pipefail
 
 RUNNER_VERSION="2.325.0"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ── Parse args ──
 HOST="${1:-}"
@@ -139,6 +138,7 @@ read -r -p "  Enter GitHub URL (org: https://github.com/YOUR_ORG, repo: https://
 
 RUNNER_NAME="ci-$(ssh "$HOST" 'hostname')"
 
+# shellcheck disable=SC2029 # Intentional: $RUNNER_DIR expands on client side
 ssh "$HOST" "cd ~ && mkdir -p $RUNNER_DIR && cd $RUNNER_DIR && \
     curl -sSLO https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-${RUNNER_ARCH}-${RUNNER_VERSION}.tar.gz && \
     tar xzf actions-runner-linux-${RUNNER_ARCH}-${RUNNER_VERSION}.tar.gz && \
