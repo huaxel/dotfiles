@@ -24,7 +24,7 @@ concurrency:
 jobs:
   ci:
     name: lint · typecheck · test · build
-    runs-on: ${{ vars.CI_RUNNER || 'ubuntu-latest' }}
+    runs-on: ${{ fromJSON(vars.CI_RUNNER || '["ubuntu-latest"]') }}
 
     steps:
       - uses: actions/checkout@v4
