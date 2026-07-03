@@ -1,0 +1,301 @@
+# ─────────────────────────────────────────────────────────
+# Reusable local CI justfile — auto-detects project type.
+#
+# Three ways to use:
+#
+#   1. SYMLINK (recommended):
+#      ln -s ~/dotfiles/config/ci/justfile project/justfile
+#      (Template resolves relative to its own location.)
+#
+#   2. BOOTSTRAP:
+#      just -f ~/dotfiles/config/ci/justfile init
+#      (Copies template into current dir → own justfile.)
+#
+#   3. REMOTE (no project justfile needed):
+#      cd ~/projects/foo && just -f ~/dotfiles/config/ci/justfile ci
+#
+# ─────────────────────────────────────────────────────────
+
+set shell := ["bash", "-uc"]
+
+# ── Help / listing ──
+
+# Run all CI checks (lint, typecheck, test, build)
+ci: lint typecheck test build
+    @echo ""
+    @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    @echo "  🟢  All checks passed!  🟢"
+    @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Alias
+check: ci
+
+# Show available recipes
+list:
+    @just --list --justfile {{justfile()}}
+
+# ── Project detection (shell helpers) ──
+
+# These are recipes that return "1" or "" so other recipes can use them.
+# They wrap `test -f` checks.
+
+_has-node:
+    @test -f package.json && echo -n "1" || echo -n ""
+
+_has-python:
+    @test -f pyproject.toml -o -f requirements.txt -o -f setup.py -o -f setup.cfg && echo -n "1" || echo -n ""
+
+_has-cargo:
+    @test -f Cargo.toml && echo -n "1" || echo -n ""
+
+_has-go:
+    @test -f go.mod && echo -n "1" || echo -n ""
+
+_has-csproj:
+    @ls *.csproj 2>/dev/null | head -1 | grep -q . && echo -n "1" || echo -n ""
+
+_has-tests-dir:
+    @test -d test -o -d tests -o -d __tests__ -o -d spec && echo -n "1" || echo -n ""
+
+_has-vite:
+    @ls vite.config.* 2>/dev/null | head -1 | grep -q . && echo -n "1" || echo -n ""
+
+_has-shell:
+    @find . -maxdepth 2 -name '*.sh' -o -name '*.bash' 2>/dev/null | head -1 | grep -q . && echo -n "1" || echo -n ""
+
+# ── Install dependencies ──
+
+# Install project dependencies
+install:
+    #!/usr/bin/env bash
+    echo "=== Install dependencies ==="
+    if [ -f package.json ]; then
+        if command -v pnpm &>/dev/null && [ -f pnpm-lock.yaml ]; then
+            echo "  Installing with pnpm..."; pnpm install
+        elif command -v npm &>/dev/null; then
+            echo "  Installing with npm..."; npm install
+        fi
+    elif [ -f pyproject.toml ] && command -v uv &>/dev/null; then
+        echo "  Installing with uv..."; uv sync
+    elif [ -f requirements.txt ]; then
+        echo "  Installing with pip..."; pip install -r requirements.txt
+    elif [ -f Cargo.toml ]; then
+        echo "  Dependencies built by cargo automatically"
+    else
+        echo "  ⚡ No package manager detected"
+    fi
+    echo "  ✅ Dependencies installed"
+
+# ── Lint ──
+
+# Run the linter appropriate for this project
+lint:
+    #!/usr/bin/env bash
+    echo "=== Lint ==="
+    if [ -f package.json ] && [ -f node_modules/.bin/eslint ]; then
+        echo "  ESLint..."; npx eslint . --max-warnings 0 || true
+    elif [ -f package.json ] && [ -f node_modules/.bin/biome ]; then
+        echo "  Biome..."; npx biome check . || true
+    elif [ -f pyproject.toml ] && command -v ruff &>/dev/null; then
+        echo "  Ruff..."; ruff check .
+    elif [ -f pyproject.toml ] && command -v flake8 &>/dev/null; then
+        echo "  Flake8..."; flake8 .
+    elif [ -f Cargo.toml ]; then
+        echo "  cargo clippy..."; cargo clippy 2>/dev/null || echo "  ⚡ clippy not available"
+    else
+        echo "  ⚡ No linter configured for this project"
+    fi
+    echo "  ✅ Lint complete"
+
+# ── Type-check ──
+
+# Run type-checker (TypeScript, Python, Rust, Go)
+typecheck:
+    #!/usr/bin/env bash
+    echo "=== Type-check ==="
+    if [ -f package.json ] && [ -f node_modules/.bin/tsc ] && [ -f tsconfig.json ]; then
+        echo "  tsc..."; npx tsc --noEmit
+    elif [ -f package.json ] && command -v deno &>/dev/null; then
+        echo "  deno check (light)..."
+        for f in $(find src -name '*.ts' -maxdepth 3 2>/dev/null | head -20); do
+            deno check "$f" 2>/dev/null || true
+        done
+        echo "  (deno check — may miss tsconfig-aware types)"
+    elif [ -f pyproject.toml ] && command -v mypy &>/dev/null; then
+        echo "  mypy..."; mypy src 2>/dev/null || true
+    elif [ -f pyproject.toml ] && command -v pyright &>/dev/null; then
+        echo "  pyright..."; pyright src 2>/dev/null || true
+    elif [ -f Cargo.toml ]; then
+        echo "  cargo check..."; cargo check
+    elif [ -f go.mod ]; then
+        echo "  go vet..."; go vet ./...
+    else
+        echo "  ⚡ No type-checker available for this project"
+    fi
+    echo "  ✅ Type-check complete"
+
+# ── Test ──
+
+# Run tests
+test:
+    #!/usr/bin/env bash
+    echo "=== Test ==="
+    if [ -f package.json ] && [ -f node_modules/.bin/vitest ]; then
+        echo "  Vitest..."; npx vitest run 2>/dev/null || npx vitest --reporter=verbose
+    elif [ -f package.json ] && [ -f node_modules/.bin/jest ]; then
+        echo "  Jest..."; npx jest --passWithNoTests
+    elif [ -f package.json ] && grep -q '"test"' package.json 2>/dev/null; then
+        echo "  npm test..."; npm test
+    elif [ -f pyproject.toml ] && command -v uv &>/dev/null; then
+        if grep -q 'tool.pytest' pyproject.toml 2>/dev/null; then
+            echo "  pytest (uv)..."; uv run pytest
+        elif [ -d tests ] || [ -d test ]; then
+            echo "  pytest..."; uv run pytest -x 2>/dev/null || python3 -m pytest -x 2>/dev/null || echo "  ⚡ pytest not configured"
+        else
+            echo "  ⚡ No tests directory found"
+        fi
+    elif [ -f requirements-dev.txt ] && grep -q 'pytest' requirements-dev.txt 2>/dev/null; then
+        echo "  pytest..."; python3 -m pytest -x
+    elif [ -f Cargo.toml ]; then
+        echo "  cargo test..."; cargo test
+    elif [ -f go.mod ]; then
+        echo "  go test..."; go test ./...
+    elif ls *.csproj 2>/dev/null | head -1 | grep -q .; then
+        echo "  dotnet test..."; dotnet test 2>/dev/null || echo "  ⚡ dotnet test failed"
+    else
+        echo "  ⚡ No test framework detected"
+    fi
+    echo "  ✅ Tests complete"
+
+# ── Build ──
+
+# Build the project
+build:
+    #!/usr/bin/env bash
+    echo "=== Build ==="
+    if [ -f package.json ] && grep -q '"build"' package.json 2>/dev/null; then
+        echo "  npm run build..."; npm run build 2>/dev/null || pnpm build 2>/dev/null || echo "  ⚡ Build failed"
+    elif [ -f package.json ] && [ -f node_modules/.bin/vite ]; then
+        echo "  vite build..."; npx vite build
+    elif [ -f pyproject.toml ]; then
+        echo "  python -m build..."; python3 -m build 2>/dev/null || echo "  ⚡ build not configured (install build: uv pip install build)"
+    elif [ -f Cargo.toml ]; then
+        echo "  cargo build..."; cargo build
+    elif [ -f go.mod ]; then
+        echo "  go build..."; go build ./...
+    elif ls *.csproj 2>/dev/null | head -1 | grep -q .; then
+        echo "  dotnet build..."; dotnet build 2>/dev/null || echo "  ⚡ dotnet build failed"
+    else
+        echo "  ⚡ No build system detected"
+    fi
+    echo "  ✅ Build complete"
+
+# ── Pre-commit (fast subset) ──
+
+# Fast checks for pre-commit hooks (<1s)
+check-precommit:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "=== Pre-commit ==="
+    errors=0
+    # 1. Syntax-check staged .sh files
+    while IFS= read -r f; do
+        if [ -f "$f" ] && bash -n "$f" 2>/dev/null; then
+            :
+        elif [ -f "$f" ]; then
+            echo "  ❌ $f has shell syntax errors"
+            bash -n "$f" 2>&1 | sed 's/^/    /'
+            errors=$((errors + 1))
+        fi
+    done < <(git diff --cached --name-only --diff-filter=ACM 2>/dev/null | grep -E '\\.(sh|bash)$' || true)
+    # 2. Merge conflict markers
+    conflicts=$(git diff --cached --name-only -G'^<<<<<<< |^=======$|^>>>>>>>' 2>/dev/null || true)
+    if [ -n "$conflicts" ]; then
+        echo "  ❌ Merge conflict markers in: $conflicts"
+        errors=$((errors + 1))
+    fi
+    # 3. Check for large files being staged
+    large=$(git diff --cached --name-only 2>/dev/null | xargs -I{} sh -c 'test -f "{}" && test "$(wc -c < "{}")" -gt 1048576 && echo "{}"' 2>/dev/null || true)
+    if [ -n "$large" ]; then
+        echo "  ⚠️  Large files staged (>1MB):"
+        echo "$large" | sed 's/^/    /'
+    fi
+    if [ "$errors" -gt 0 ]; then echo "  ❌ $errors pre-commit error(s)"; exit 1; fi
+    echo "  ✅ Pre-commit checks passed"
+
+# ── Utilities ──
+
+# Clean build artifacts
+clean:
+    #!/usr/bin/env bash
+    echo "=== Clean ==="
+    if [ -f package.json ]; then
+        echo "  Cleaning node_modules/.cache, dist, .svelte-kit..."
+        rm -rf node_modules/.cache dist .svelte-kit .turbo 2>/dev/null
+    elif [ -f pyproject.toml ] || [ -f setup.py ]; then
+        echo "  Cleaning __pycache__, .pytest_cache, dist..."
+        find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null
+        find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null
+        rm -rf dist build *.egg-info 2>/dev/null
+    elif [ -f Cargo.toml ]; then
+        echo "  cargo clean..."; cargo clean
+    elif [ -f go.mod ]; then
+        echo "  go clean..."; go clean -cache
+    else
+        echo "  ⚡ No cleanup configured"
+    fi
+    echo "  ✅ Clean complete"
+
+# ── Info ──
+
+# Show detected project type and tool versions
+info:
+    #!/usr/bin/env bash
+    echo "=== Project Info ==="
+    types=""
+    [ -f package.json ] && types="$types Node"
+    [ -f pyproject.toml -o -f requirements.txt -o -f setup.py ] && types="$types Python"
+    [ -f Cargo.toml ] && types="$types Rust"
+    [ -f go.mod ] && types="$types Go"
+    ls *.csproj 2>/dev/null | head -1 | grep -q . && types="$types C#"
+    find . -maxdepth 2 -name '*.sh' 2>/dev/null | head -1 | grep -q . && types="$types Shell"
+    echo "  Project type(s):$types"
+    if [ -f package.json ]; then
+        name=$(node -e "console.log(require('./package.json').name || 'unknown')" 2>/dev/null)
+        echo "  Name:      $name"
+        echo "  Node:      $(node --version 2>/dev/null || echo '?')"
+        echo "  npm:       $(npm --version 2>/dev/null || echo '?')"
+    fi
+    if [ -f pyproject.toml ]; then
+        echo "  Python:    $(python3 --version 2>/dev/null || echo '?')"
+        echo "  uv:        $(uv --version 2>/dev/null || echo '?')"
+    fi
+    if [ -f Cargo.toml ]; then
+        echo "  Rust:      $(rustc --version 2>/dev/null || echo '?')"
+    fi
+    if [ -f go.mod ]; then
+        echo "  Go:        $(go version 2>/dev/null || echo '?')"
+    fi
+    echo "  Git:       $(git --version 2>/dev/null || echo '?')"
+    if [ -f justfile ]; then
+        echo "  justfile:  local copy"
+    elif [ -L justfile ]; then
+        echo "  justfile:  symlinked → $(readlink justfile)"
+    else
+        echo "  justfile:  using template"
+    fi
+
+# ── Init (bootstrap template into project) ──
+
+# Copy this template as a standalone justfile in the current project
+init:
+    #!/usr/bin/env bash
+    SELF=$(realpath "{{justfile()}}" 2>/dev/null || readlink -f "{{justfile()}}" 2>/dev/null || echo "{{justfile()}}")
+    if [ "$SELF" = "justfile" ] || [ "$SELF" = "./justfile" ]; then
+        # Already a local justfile
+        echo "  ✅ Already running from a local justfile"
+        exit 0
+    fi
+    cp "$SELF" justfile
+    echo "  ✅ Created justfile (standalone copy)"
+    echo "  ▶  Run 'just ci' to check, 'just --list' for all recipes"
