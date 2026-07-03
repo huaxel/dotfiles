@@ -20,7 +20,7 @@ line=$(echo "$list" | grep "$chosen_id")
 
 # If connection is already active, ask to disconnect
 if [[ "$selected" =~ "" ]]; then
-    if (echo -e "Yes\nNo" | wofi --dmenu --prompt "Disconnect from $chosen_id?") == "Yes"; then
+    if [[ $(echo -e "Yes\nNo" | wofi --dmenu --prompt "Disconnect from $chosen_id?") == "Yes" ]]; then
         nmcli connection down id "$chosen_id" | wofi --dmenu --prompt "Status" --width 300 --height 100
     fi
 else
