@@ -1,9 +1,10 @@
 #!/bin/bash
-# Pre-commit hook for auto-encrypting secrets
-# Re-encrypts any secret whose live (plaintext) copy is newer than the
-# committed .enc file, then `git add`s the result so the commit stays in sync.
+# Pre-commit hook for local CI checks + auto-encrypting secrets
+# Runs before every commit:
+#   1. `just check-precommit` — fast syntax/config checks (<1s)
+#   2. Auto-encrypts secrets whose plaintext is newer than the committed .enc
 #
-# Enable on a fresh clone:  git config core.hooksPath .githooks
+# Enable:  git config core.hooksPath .githooks
 # (bootstrap.sh does this automatically.)
 
 set -euo pipefail
@@ -11,7 +12,24 @@ set -euo pipefail
 DOTFILES_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SECRETS_DIR="$DOTFILES_DIR/secrets"
 
-# Skip entirely if sops isn't installed — don't block unrelated commits.
+# ──────────────────────────────────────────────────────
+# Step 1: Run just check-precommit (fast CI checks)
+# ──────────────────────────────────────────────────────
+if command -v just &>/dev/null; then
+    cd "$DOTFILES_DIR"
+    if ! just check-precommit 2>&1; then
+        echo "❌ Pre-commit checks failed. Fix the issues above or use --no-verify to skip."
+        exit 1
+    fi
+else
+    echo "⚠️  just not installed — skipping fast CI checks (install: brew/cargo install just)"
+fi
+
+# ──────────────────────────────────────────────────────
+# Step 2: Auto-encrypt secrets
+# ──────────────────────────────────────────────────────
+
+# Skip if sops isn't installed
 if ! command -v sops &>/dev/null; then
     echo "⚠️  sops not installed — skipping secret auto-encrypt (install: brew/pacman install sops)"
     exit 0
