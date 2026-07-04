@@ -8,14 +8,6 @@ const FRAMEARCH_PORT = Number(process.env.FRAMEARCH_PORT) || 8000;
 const FRAMEARCH_DISCOVERY_URL = `http://${FRAMEARCH_HOST}:${FRAMEARCH_PORT}/v1/models`;
 const FRAMEARCH_API_BASE_URL = `http://${FRAMEARCH_HOST}:${FRAMEARCH_PORT}/v1`;
 
-// ── cachyllama (fork on port 9092) ────────────────────────────────
-
-const CACHY_PROVIDER = "cachyllama";
-const CACHY_HOST = process.env.CACHY_HOST || FRAMEARCH_HOST;
-const CACHY_PORT = Number(process.env.CACHY_PORT) || 9092;
-const CACHY_DISCOVERY_URL = `http://${CACHY_HOST}:${CACHY_PORT}/v1/models`;
-const CACHY_API_BASE_URL = `http://${CACHY_HOST}:${CACHY_PORT}/v1`;
-
 const DISCOVERY_TIMEOUT_MS = Number(process.env.FRAMEARCH_DISCOVERY_TIMEOUT_MS) || 5000;
 
 // ── Status icons (Nerd Font — JetBrainsMono NF) ────────────────────
@@ -135,11 +127,9 @@ function applyLlamaCppThinkingPayload(payload: unknown, thinkingLevel: ThinkingL
 
 /** Cached discovered models */
 let discoveredLlamacppModels: DiscoveredModel[] | undefined;
-let discoveredCachyllamaModels: DiscoveredModel[] | undefined;
 
-/** In-flight discovery promises (deduplicates concurrent requests) */
+/** In-flight discovery promise (deduplicates concurrent requests) */
 let llamacppDiscoveryPromise: Promise<DiscoveredModel[] | undefined> | undefined;
-let cachyllamaDiscoveryPromise: Promise<DiscoveredModel[] | undefined> | undefined;
 
 function registerLlamacppProvider(
 	pi: ExtensionAPI,
@@ -148,19 +138,6 @@ function registerLlamacppProvider(
 	pi.registerProvider(FRAMEARCH_PROVIDER, {
 		baseUrl: FRAMEARCH_API_BASE_URL,
 		apiKey: "local",
-		api: "openai-completions" as const,
-		compat: FRAMEARCH_COMPAT,
-		...(models ? { models } : {}),
-	});
-}
-
-function registerCachyllamaProvider(
-	pi: ExtensionAPI,
-	models?: DiscoveredModel[],
-): void {
-	pi.registerProvider(CACHY_PROVIDER, {
-		baseUrl: CACHY_API_BASE_URL,
-		apiKey: "pi",
 		api: "openai-completions" as const,
 		compat: FRAMEARCH_COMPAT,
 		...(models ? { models } : {}),
@@ -200,30 +177,16 @@ async function postToLlamaCpp(
 /**
  * Load a model on the llama.cpp server.
  */
-async function loadModel(
-	provider: string,
-	modelId: string,
-): Promise<PostResult> {
-	const baseUrl =
-		provider === FRAMEARCH_PROVIDER
-			? FRAMEARCH_API_BASE_URL
-			: CACHY_API_BASE_URL;
-	return postToLlamaCpp(baseUrl, "/models/load", { model: modelId });
+async function loadModel(modelId: string): Promise<PostResult> {
+	return postToLlamaCpp(FRAMEARCH_API_BASE_URL, "/models/load", { model: modelId });
 }
 
 /**
  * Unload a model (or all models if modelId is omitted) from the llama.cpp server.
  */
-async function unloadModel(
-	provider: string,
-	modelId?: string,
-): Promise<PostResult> {
-	const baseUrl =
-		provider === FRAMEARCH_PROVIDER
-			? FRAMEARCH_API_BASE_URL
-			: CACHY_API_BASE_URL;
+async function unloadModel(modelId?: string): Promise<PostResult> {
 	const body: Record<string, unknown> = modelId ? { model: modelId } : {};
-	return postToLlamaCpp(baseUrl, "/models/unload", body);
+	return postToLlamaCpp(FRAMEARCH_API_BASE_URL, "/models/unload", body);
 }
 
 /**
@@ -298,51 +261,23 @@ async function discoverLlamacpp(
 }
 
 /**
- * Discover cachyllama models (port 9092) and register them.
- */
-async function discoverCachyllama(
-	pi: ExtensionAPI,
-): Promise<DiscoveredModel[] | undefined> {
-	if (cachyllamaDiscoveryPromise) return cachyllamaDiscoveryPromise;
-
-	cachyllamaDiscoveryPromise = (async () => {
-		const models = await fetchModelsFrom(CACHY_DISCOVERY_URL, CACHY_PROVIDER);
-		if (models) {
-			discoveredCachyllamaModels = models;
-			registerCachyllamaProvider(pi, models);
-		} else {
-			console.warn("[framearch-autodiscover] cachyllama server unavailable");
-		}
-		return models;
-	})().finally(() => { cachyllamaDiscoveryPromise = undefined; });
-
-	return cachyllamaDiscoveryPromise;
-}
-
-/**
- * Fire-and-forget discovery for both providers.
+ * Fire-and-forget discovery.
  */
 function triggerDiscovery(pi: ExtensionAPI): void {
 	discoverLlamacpp(pi).catch(() => {});
-	discoverCachyllama(pi).catch(() => {});
 }
 
 export default async function (pi: ExtensionAPI) {
-	// Discover both servers at startup.
-	const [llamacppModels, cachyllamaModels] = await Promise.all([
-		discoverLlamacpp(pi),
-		discoverCachyllama(pi),
-	]);
+	// Discover the router at startup.
+	const llamacppModels = await discoverLlamacpp(pi);
 
-	// Register provider shells even if discovery failed, so already-selected
+	// Register the provider shell even if discovery failed, so already-selected
 	// models can still route requests and retry discovery later.
 	if (!llamacppModels) registerLlamacppProvider(pi);
-	if (!cachyllamaModels) registerCachyllamaProvider(pi);
 
-	// ── Event handlers (both providers) ────────────────────────────
+	// ── Event handlers ─────────────────────────────────────────────
 
-	const isLlamaProvider = (name: string) =>
-		name === FRAMEARCH_PROVIDER || name === CACHY_PROVIDER;
+	const isLlamaProvider = (name: string) => name === FRAMEARCH_PROVIDER;
 
 	pi.on("model_select", async (event, _ctx) => {
 		if (isLlamaProvider(event.model.provider)) {
@@ -368,16 +303,12 @@ export default async function (pi: ExtensionAPI) {
 		// auto-loads on demand, this just warms it up without blocking the request).
 		const modelId = ctx.model?.id;
 		if (modelId) {
-			const models =
-				provider === FRAMEARCH_PROVIDER
-					? discoveredLlamacppModels
-					: discoveredCachyllamaModels;
-			const model = models?.find((m) => m.id === modelId);
+			const model = discoveredLlamacppModels?.find((m) => m.id === modelId);
 			if (model && model.loadStatus === "unloaded") {
 				console.warn(
 					`[framearch-autodiscover] pre-loading ${modelId}...`,
 				);
-				loadModel(provider, modelId).catch(() => {
+				loadModel(modelId).catch(() => {
 					// Router will still load on-demand if this fails.
 				});
 			}
@@ -387,7 +318,7 @@ export default async function (pi: ExtensionAPI) {
 	// ── /models command ────────────────────────────────────────────
 
 	pi.registerCommand("models", {
-		description: "List, load, unload, or switch local models (llamacpp + cachyllama)",
+		description: "List, load, unload, or switch local models (llamacpp)",
 		getArgumentCompletions: (prefix: string) => {
 			const subcommands = [
 				{ value: "", label: "(list)", description: "List all models" },
@@ -402,15 +333,8 @@ export default async function (pi: ExtensionAPI) {
 			return filtered.length > 0 ? filtered : null;
 		},
 		handler: async (args, ctx) => {
-			const [llamacpp, cachyllama] = await Promise.all([
-				discoverLlamacpp(pi),
-				discoverCachyllama(pi),
-			]);
-
-			const allModels = [
-				...(llamacpp ?? []),
-				...(cachyllama ?? []),
-			];
+			const llamacpp = await discoverLlamacpp(pi);
+			const allModels = llamacpp ?? [];
 
 			const parts = args.trim().split(/\s+/);
 			const subcommand = parts[0] || "";
@@ -456,7 +380,7 @@ export default async function (pi: ExtensionAPI) {
 					return;
 				}
 				ctx.ui.notify(`Loading ${match.name}...`, "info");
-				const result = await loadModel(match.provider!, match.id);
+				const result = await loadModel(match.id);
 				if (result.ok) {
 					triggerDiscovery(pi);
 					ctx.ui.notify(`Loaded ${match.name}.`, "info");
@@ -483,7 +407,7 @@ export default async function (pi: ExtensionAPI) {
 						return;
 					}
 					ctx.ui.notify(`Unloading ${match.name}...`, "info");
-					const result = await unloadModel(match.provider!, match.id);
+					const result = await unloadModel(match.id);
 					if (result.ok) {
 						triggerDiscovery(pi);
 						ctx.ui.notify(`${match.name} unloaded.`, "info");
@@ -499,16 +423,12 @@ export default async function (pi: ExtensionAPI) {
 						);
 					}
 				} else {
-					// Unload all from both servers
+					// Unload all models
 					ctx.ui.notify("Unloading all models...", "info");
-						const [r1, r2] = await Promise.all([
-						unloadModel(FRAMEARCH_PROVIDER),
-						unloadModel(CACHY_PROVIDER),
-					]);
+					const result = await unloadModel();
 					triggerDiscovery(pi);
-					const anyOk = r1.ok || r2.ok;
 					ctx.ui.notify(
-						anyOk ? "All models unloaded." : "Unload failed.",
+						result.ok ? "All models unloaded." : "Unload failed.",
 						"info",
 					);
 				}
@@ -561,20 +481,10 @@ export default async function (pi: ExtensionAPI) {
 			} else {
 				lines.push("─ llamacpp (port 8000) ─ unavailable");
 			}
-			if (cachyllama) {
-				lines.push("─ cachyllama (port 9092) ─");
-				cachyllama.forEach((m, i) => {
-					const status = m.loadStatus ?? "unknown";
-					const icon = STATUS_ICON[status] ?? STATUS_ICON.unknown;
-					lines.push(`  ${icon} ${i + 1}. ${m.name} (${m.id})`);
-				});
-			} else {
-				lines.push("─ cachyllama (port 9092) ─ unavailable");
-			}
 
-			if (!llamacpp && !cachyllama) {
+			if (!llamacpp) {
 				ctx.ui.notify(
-					"No local models discovered. Both servers may be unavailable.",
+					"No local models discovered. Server may be unavailable.",
 					"warning",
 				);
 				return;

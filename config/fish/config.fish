@@ -189,3 +189,10 @@ fish_add_path $HOME/.npm-global/bin
 if test -f ~/.config/secrets/env.fish
     source ~/.config/secrets/env.fish
 end
+
+# pnpm
+set -gx PNPM_HOME "/home/juan/.local/share/pnpm"
+if not string match -q -- "$PNPM_HOME/bin" $PATH
+  set -gx PATH "$PNPM_HOME/bin" $PATH
+end
+# pnpm end
