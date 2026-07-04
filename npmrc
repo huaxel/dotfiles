@@ -1,2 +1,2 @@
-prefix=~/.npm-global
+prefix=/home/juan/.npm-global
 ignore-scripts=false
