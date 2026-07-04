@@ -7,6 +7,9 @@ const FRAMEARCH_HOST = process.env.FRAMEARCH_HOST || "framearch-juan";
 const FRAMEARCH_PORT = Number(process.env.FRAMEARCH_PORT) || 8000;
 const FRAMEARCH_DISCOVERY_URL = `http://${FRAMEARCH_HOST}:${FRAMEARCH_PORT}/v1/models`;
 const FRAMEARCH_API_BASE_URL = `http://${FRAMEARCH_HOST}:${FRAMEARCH_PORT}/v1`;
+// Router management endpoints (load/unload) live at the server root, not /v1
+// (CachyLLama serves /models/load; /v1/models/load 404s).
+const FRAMEARCH_ROOT_URL = `http://${FRAMEARCH_HOST}:${FRAMEARCH_PORT}`;
 
 const DISCOVERY_TIMEOUT_MS = Number(process.env.FRAMEARCH_DISCOVERY_TIMEOUT_MS) || 5000;
 
@@ -178,7 +181,7 @@ async function postToLlamaCpp(
  * Load a model on the llama.cpp server.
  */
 async function loadModel(modelId: string): Promise<PostResult> {
-	return postToLlamaCpp(FRAMEARCH_API_BASE_URL, "/models/load", { model: modelId });
+	return postToLlamaCpp(FRAMEARCH_ROOT_URL, "/models/load", { model: modelId });
 }
 
 /**
@@ -186,7 +189,7 @@ async function loadModel(modelId: string): Promise<PostResult> {
  */
 async function unloadModel(modelId?: string): Promise<PostResult> {
 	const body: Record<string, unknown> = modelId ? { model: modelId } : {};
-	return postToLlamaCpp(FRAMEARCH_API_BASE_URL, "/models/unload", body);
+	return postToLlamaCpp(FRAMEARCH_ROOT_URL, "/models/unload", body);
 }
 
 /**

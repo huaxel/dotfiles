@@ -29,7 +29,8 @@
     "cachyllama/Qwen3.6-35B-A3B-MTP",
     "cachyllama/Qwen3.5-27B",
     "cachyllama/Qwen3.6-27B-MTP",
-    "cachyllama/gemma-4-31B-qat"
+    "cachyllama/gemma-4-31B-qat",
+    "nan/qwen3.6"
   ],
   "defaults": {
     "model": null
