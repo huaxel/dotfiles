@@ -1,7 +1,7 @@
 ---
 name: scout
 description: Fast codebase recon that returns compressed context for handoff to other agents.
-tools: read, grep, find, ls, bash
+tools: read, grep, find, ls
 models:
   - llamacpp/Qwen3.6-35B-A3B-MTP
   - opencode/deepseek-v4-flash-free
