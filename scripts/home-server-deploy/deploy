@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Push the current project's branch to a home server, triggering deploy.
+#
+# Usage: deploy <server-name> [branch]
+# Example: deploy acerpepe
+
+cd "$(git rev-parse --show-toplevel 2>/dev/null)" || {
+  echo "Not inside a git repository." >&2
+  exit 1
+}
+
+SERVER="${1:-}"
+BRANCH="${2:-main}"
+
+if [ -z "$SERVER" ]; then
+  echo "Usage: $0 <server-name> [branch]" >&2
+  echo "" >&2
+  echo "Pushes the current repo's branch to the given home server." >&2
+  exit 1
+fi
+
+git push "$SERVER" "$BRANCH"
