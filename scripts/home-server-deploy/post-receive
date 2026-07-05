@@ -1,0 +1,507 @@
+#!/usr/bin/env bash
+# Shared git post-receive hook for home server deployments.
+# Deployed to ~/deploy-hooks/post-receive and symlinked from each bare repo.
+#
+# On each git push to main/master, this script:
+#   1. Checks out the pushed code to a temp dir
+#   2. Auto-detects the project type
+#   3. Builds/installs the project
+#   4. Moves it to a timestamped release dir
+#   5. Swaps the ~/apps/<name>/current symlink
+#   6. Starts/restarts the process (systemd, docker, or none for static)
+#   7. Writes a Caddy snippet and reloads Caddy
+#   8. Prunes old releases
+
+set -euo pipefail
+
+# -----------------------------------------------------------------------------
+# Configuration
+# -----------------------------------------------------------------------------
+
+APPS_DIR="$HOME/apps"
+PORT_REGISTRY="$APPS_DIR/.port-registry.json"
+LOG_PREFIX="[home-deploy]"
+KEEP_RELEASES=5
+
+# -----------------------------------------------------------------------------
+# Helpers
+# -----------------------------------------------------------------------------
+
+log() {
+  echo "$LOG_PREFIX $*"
+}
+
+fail() {
+  echo "$LOG_PREFIX ERROR: $*" >&2
+  exit 1
+}
+
+slugify() {
+  # Convert a project name into a valid systemd service name and Caddy hostname
+  local name="$1"
+  echo "$name" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9' '-' | sed 's/-$//;s/^-//'
+}
+
+get_server_ip() {
+  tailscale ip -4 2>/dev/null || hostname -I | awk '{print $1}'
+}
+
+get_server_name() {
+  hostname -s
+}
+
+ensure_port_registry() {
+  if [ ! -f "$PORT_REGISTRY" ]; then
+    mkdir -p "$(dirname "$PORT_REGISTRY")"
+    echo '{}' > "$PORT_REGISTRY"
+  fi
+}
+
+# Assign a port in the given range to the project. Reuse if already assigned.
+assign_port() {
+  local project="$1"
+  local range_low="$2"
+  local range_high="$3"
+  local assigned
+
+  ensure_port_registry
+  assigned=$(python3 - "$project" "$range_low" "$range_high" "$PORT_REGISTRY" <<'PY'
+import json, sys
+project, low, high, path = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), sys.argv[4]
+with open(path) as f:
+    registry = json.load(f)
+if project in registry:
+    print(registry[project])
+    sys.exit(0)
+used = set(registry.values())
+for port in range(low, high + 1):
+    if port not in used:
+        registry[project] = port
+        with open(path, "w") as f:
+            json.dump(registry, f, indent=2)
+        print(port)
+        sys.exit(0)
+print("NO_FREE_PORT", flush=True)
+sys.exit(1)
+PY
+  )
+  if [ "$assigned" = "NO_FREE_PORT" ]; then
+    fail "No free port available in range $range_low-$range_high"
+  fi
+  echo "$assigned"
+}
+
+# -----------------------------------------------------------------------------
+# Project type detection
+# -----------------------------------------------------------------------------
+
+detect_project_type() {
+  local dir="$1"
+  if [ -f "$dir/docker-compose.yml" ] || [ -f "$dir/docker-compose.yaml" ]; then
+    echo "docker-compose"
+    return
+  fi
+  if [ -f "$dir/Dockerfile" ]; then
+    echo "docker"
+    return
+  fi
+  if [ -f "$dir/package.json" ]; then
+    if grep -qE '"vite"\s*:|"svelte"\s*:|"astro"\s*:|"next"\s*:|"@sveltejs/vite-plugin"' "$dir/package.json" 2>/dev/null; then
+      echo "node-static"
+    else
+      echo "node-server"
+    fi
+    return
+  fi
+  if [ -f "$dir/pyproject.toml" ] || [ -f "$dir/requirements.txt" ]; then
+    echo "python"
+    return
+  fi
+  echo "static"
+}
+
+# -----------------------------------------------------------------------------
+# Build / install per project type
+# -----------------------------------------------------------------------------
+
+build_static() {
+  local src="$1" release="$2"
+  cp -a "$src/." "$release/"
+}
+
+# Read an optional Procfile at the project root.
+# Format: web: <command>  or  build: <command>
+read_procfile() {
+  local src="$1" key="$2"
+  if [ -f "$src/Procfile" ]; then
+    grep "^$key:" "$src/Procfile" | sed -E "s/^$key:\s*//" | head -n1
+  fi
+}
+
+build_node_static() {
+  local src="$1" release="$2"
+  local build_cmd
+  build_cmd=$(read_procfile "$src" "build")
+
+  cd "$src"
+  if [ -f "pnpm-lock.yaml" ]; then
+    pnpm install
+  elif [ -f "package-lock.json" ]; then
+    npm ci
+  elif [ -f "yarn.lock" ]; then
+    yarn install
+  else
+    npm install
+  fi
+
+  if [ -n "$build_cmd" ]; then
+    eval "$build_cmd"
+  elif [ -f "pnpm-lock.yaml" ] && pnpm run | grep -qE '^\s*build\s+'; then
+    pnpm run build
+  elif npm run | grep -qE '^\s*build\s+'; then
+    npm run build
+  else
+    log "No 'build' script in package.json; serving source files"
+  fi
+  cd - >/dev/null
+
+  # Copy only the dist/ directory if a build produced one
+  if [ -d "$src/dist" ]; then
+    cp -a "$src/dist" "$release/"
+  elif [ -d "$src/build" ]; then
+    cp -a "$src/build" "$release/"
+  else
+    # Serve source files, but skip node_modules
+    rsync -a --exclude=node_modules --exclude=.git "$src/" "$release/"
+  fi
+}
+
+build_node_server() {
+  local src="$1" release="$2"
+  cd "$src"
+  if [ -f "pnpm-lock.yaml" ]; then
+    pnpm install
+  elif [ -f "package-lock.json" ]; then
+    npm ci
+  elif [ -f "yarn.lock" ]; then
+    yarn install
+  else
+    npm install
+  fi
+
+  local build_cmd
+  build_cmd=$(read_procfile "$src" "build")
+  if [ -n "$build_cmd" ]; then
+    eval "$build_cmd"
+  elif [ -f "pnpm-lock.yaml" ] && pnpm run | grep -qE '^\s*build\s+'; then
+    pnpm run build
+  elif npm run | grep -qE '^\s*build\s+'; then
+    npm run build
+  fi
+  cd - >/dev/null
+  cp -a "$src/." "$release/"
+}
+
+build_python() {
+  local src="$1" release="$2"
+  cp -a "$src/." "$release/"
+  cd "$release"
+  if command -v uv >/dev/null 2>&1 && [ -f "pyproject.toml" ]; then
+    uv sync --no-dev || uv pip install -e .
+  elif [ -f "requirements.txt" ]; then
+    python3 -m venv .venv
+    .venv/bin/pip install -r requirements.txt
+  elif [ -f "pyproject.toml" ]; then
+    python3 -m venv .venv
+    .venv/bin/pip install -e .
+  fi
+  cd - >/dev/null
+}
+
+build_docker() {
+  local src="$1" release="$2" project="$3"
+  cp -a "$src/." "$release/"
+  cd "$release"
+  docker build -t "home-deploy/$project:latest" .
+  cd - >/dev/null
+}
+
+build_docker_compose() {
+  local src="$1" release="$2"
+  cp -a "$src/." "$release/"
+  # Nothing to pre-build; docker compose handles it
+}
+
+# -----------------------------------------------------------------------------
+# Process management
+# -----------------------------------------------------------------------------
+
+write_systemd_service() {
+  local project="$1"
+  local service_name="$2"
+  local port="$3"
+  local type="$4"
+  local release="$5"
+
+  mkdir -p "$HOME/.config/systemd/user"
+  local service_file="$HOME/.config/systemd/user/$service_name.service"
+
+  local exec_cmd
+  local web_cmd
+  web_cmd=$(read_procfile "$release" "web")
+
+  case "$type" in
+    node-server)
+      if [ -n "$web_cmd" ]; then
+        exec_cmd="/usr/bin/env PORT=$port NODE_ENV=production sh -c 'cd $release && $web_cmd'"
+      else
+        # Prefer the start script
+        exec_cmd="/usr/bin/env PORT=$port NODE_ENV=production /usr/bin/npm start"
+      fi
+      ;;
+    python)
+      if [ -n "$web_cmd" ]; then
+        exec_cmd="/usr/bin/env PORT=$port sh -c 'cd $release && $web_cmd'"
+      elif [ -f "$release/.venv/bin/python" ]; then
+        exec_cmd="/usr/bin/env PORT=$port $release/.venv/bin/python $release/main.py"
+      else
+        exec_cmd="/usr/bin/env PORT=$port python3 $release/main.py"
+      fi
+      ;;
+  esac
+
+  cat > "$service_file" <<EOF
+[Unit]
+Description=$project home deploy service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=$release
+ExecStart=$exec_cmd
+Restart=on-failure
+RestartSec=5
+Environment=PORT=$port
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=default.target
+EOF
+
+  systemctl --user daemon-reload
+  systemctl --user enable --now "$service_name"
+  systemctl --user restart "$service_name"
+}
+
+run_docker() {
+  local project="$1"
+  local port="$2"
+  local release="$3"
+  local tag="home-deploy/$project:latest"
+
+  docker build -t "$tag" "$release"
+  docker rm -f "$project" 2>/dev/null || true
+  docker run -d --name "$project" \
+    -p "$port:80" \
+    --restart unless-stopped \
+    "$tag"
+}
+
+run_docker_compose() {
+  local project="$1"
+  local release="$2"
+  cd "$release"
+  # Stop any previous compose project with the same name
+  docker compose down 2>/dev/null || true
+  docker compose up -d --build
+  cd - >/dev/null
+}
+
+# -----------------------------------------------------------------------------
+# Caddy snippet generation
+# -----------------------------------------------------------------------------
+
+write_caddy_snippet() {
+  local project="$1"
+  local type="$2"
+  local port="$3"
+  local release="$4"
+  local server_name server_ip hostname
+
+  server_name=$(get_server_name)
+  server_ip=$(get_server_ip)
+  hostname="$project.$server_name.bonobo-fort.ts.net"
+  local snippet="$release/Caddyfile"
+
+  case "$type" in
+    node-static|static)
+      local root_dir
+      if [ -d "$release/dist" ]; then
+        root_dir="$release/dist"
+      else
+        root_dir="$release"
+      fi
+      cat > "$snippet" <<EOF
+$hostname {
+    bind $server_ip
+    root * $root_dir
+    file_server
+    encode gzip
+}
+EOF
+      ;;
+    node-server|python)
+      cat > "$snippet" <<EOF
+$hostname {
+    bind $server_ip
+    reverse_proxy localhost:$port
+    encode gzip
+}
+EOF
+      ;;
+    docker)
+      cat > "$snippet" <<EOF
+$hostname {
+    bind $server_ip
+    reverse_proxy localhost:$port
+    encode gzip
+}
+EOF
+      ;;
+    docker-compose)
+      # For docker compose, the project is expected to expose its own port.
+      # We use the port assigned by the registry and assume the compose maps it.
+      cat > "$snippet" <<EOF
+$hostname {
+    bind $server_ip
+    reverse_proxy localhost:$port
+    encode gzip
+}
+EOF
+      ;;
+  esac
+}
+
+reload_caddy() {
+  # Caddy user service will auto-reload its config via SIGHUP or ExecReload
+  systemctl --user reload-or-restart caddy || true
+}
+
+# -----------------------------------------------------------------------------
+# Main hook
+# -----------------------------------------------------------------------------
+
+main() {
+  local newrev ref
+  # oldrev is ignored; we only need the new revision being pushed
+  read -r _ newrev ref
+
+  # Only deploy main or master
+  case "$ref" in
+    refs/heads/main|refs/heads/master) ;;
+    *)
+      log "Ignoring push to $ref (only main/master trigger deploy)"
+      exit 0
+      ;;
+  esac
+
+  local repo_dir
+  repo_dir=$(pwd)
+  local project
+  project=$(basename "$repo_dir" .git)
+  local service_name
+  service_name=$(slugify "$project")
+  local timestamp
+  timestamp=$(date +%Y%m%d-%H%M%S)
+
+  local release_dir="$APPS_DIR/$project/releases/$timestamp"
+  local current_link="$APPS_DIR/$project/current"
+  local tmp_worktree
+  tmp_worktree=$(mktemp -d)
+
+  log "Deploying $project (ref: $ref)"
+
+  # 1. Checkout
+  git --work-tree="$tmp_worktree" --git-dir="$repo_dir" checkout -f "$newrev" -- .
+
+  # 2. Detect project type
+  local project_type
+  project_type=$(detect_project_type "$tmp_worktree")
+  log "Detected project type: $project_type"
+
+  # 3. Assign port if needed
+  local port=""
+  case "$project_type" in
+    node-server|python|docker)
+      port=$(assign_port "$project" 3000 3999)
+      log "Assigned port: $port"
+      ;;
+    docker-compose)
+      port=$(assign_port "$project" 4000 4999)
+      log "Assigned compose port: $port"
+      ;;
+  esac
+
+  # 4. Build
+  mkdir -p "$release_dir"
+  case "$project_type" in
+    static) build_static "$tmp_worktree" "$release_dir" ;;
+    node-static) build_node_static "$tmp_worktree" "$release_dir" ;;
+    node-server) build_node_server "$tmp_worktree" "$release_dir" ;;
+    python) build_python "$tmp_worktree" "$release_dir" ;;
+    docker) build_docker "$tmp_worktree" "$release_dir" "$project" ;;
+    docker-compose) build_docker_compose "$tmp_worktree" "$release_dir" ;;
+  esac
+
+  # 5. Write .env with port if needed
+  if [ -n "$port" ]; then
+    echo "PORT=$port" >> "$release_dir/.env"
+  fi
+
+  # 6. Install release and swap symlink
+  # Ensure parent directory exists before symlinking
+  mkdir -p "$(dirname "$current_link")"
+  ln -sfn "$release_dir" "$current_link"
+  log "Current symlink updated to $release_dir"
+
+  # 7. Start/restart process
+  case "$project_type" in
+    node-server|python)
+      write_systemd_service "$project" "$service_name" "$port" "$project_type" "$release_dir"
+      ;;
+    docker)
+      run_docker "$project" "$port" "$release_dir"
+      ;;
+    docker-compose)
+      run_docker_compose "$project" "$release_dir"
+      # If the compose exposes a port, ensure it matches the assigned one.
+      # This is project-dependent; we assume the compose file is authored
+      # to use the env var PORT or a fixed port.
+      ;;
+    *)
+      log "No process to start for static project"
+      ;;
+  esac
+
+  # 8. Write Caddy snippet and reload
+  write_caddy_snippet "$project" "$project_type" "$port" "$release_dir"
+  reload_caddy
+
+  # 9. Prune old releases
+  local all_releases count=0 release
+  mapfile -t all_releases < <(find "$APPS_DIR/$project/releases" -mindepth 1 -maxdepth 1 -printf '%f\n' | sort -r)
+  for release in "${all_releases[@]}"; do
+    count=$((count + 1))
+    if [ "$count" -gt "$KEEP_RELEASES" ]; then
+      rm -rf "$APPS_DIR/$project/releases/$release"
+      log "Pruned old release: $release"
+    fi
+  done
+
+  # 10. Cleanup
+  rm -rf "$tmp_worktree"
+
+  log "Deploy of $project complete. Access at https://$project.$(get_server_name).bonobo-fort.ts.net"
+}
+
+main

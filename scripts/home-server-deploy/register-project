@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Register a new project for git-push deployment on this server.
+# Run on the target server via SSH.
+#
+# Usage: register-project <project-name>
+
+set -euo pipefail
+
+PROJECT="${1:-}"
+if [ -z "$PROJECT" ]; then
+  echo "Usage: $0 <project-name>" >&2
+  exit 1
+fi
+
+HOME_DIR="$HOME"
+REPO_DIR="$HOME_DIR/repos/$PROJECT.git"
+HOOK_TARGET="$HOME_DIR/deploy-hooks/post-receive"
+APPS_DIR="$HOME_DIR/apps/$PROJECT"
+
+if [ ! -f "$HOOK_TARGET" ]; then
+  echo "ERROR: shared hook not found at $HOOK_TARGET" >&2
+  exit 1
+fi
+
+mkdir -p "$HOME_DIR/repos"
+mkdir -p "$APPS_DIR/releases"
+
+if [ -d "$REPO_DIR" ]; then
+  echo "Project '$PROJECT' already registered at $REPO_DIR"
+else
+  git init --bare "$REPO_DIR"
+  ln -s "$HOOK_TARGET" "$REPO_DIR/hooks/post-receive"
+  echo "Registered '$PROJECT' for git-push deploy."
+fi
+
+echo ""
+echo "On your dev machine, run:"
+echo "  cd ~/projects/$PROJECT"
+echo "  git remote add $(hostname -s) $(hostname -s):~/repos/$PROJECT.git"
+echo "  git push $(hostname -s) main"

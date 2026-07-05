@@ -387,6 +387,22 @@ fix-gitignore:
 runner-setup host="" action="install":
     bash {{dotfiles-dir}}/config/ci/runner/setup-runner.sh --host {{host}} {{action}}
 
+# ──────────── Home server deploy recipes ────────────
+
+# Register the current (or named) git project on a home server for git-push deployments.
+# Usage: just register-project acerpepe [project-name]
+register-project server project="":
+    #!/usr/bin/env bash
+    PROJECT="{{project}}"
+    if [ -z "$PROJECT" ]; then PROJECT="$(basename "$(git rev-parse --show-toplevel 2>/dev/null || pwd)")"; fi
+    ssh "{{server}}" "$HOME/deploy-hooks/register-project" "$PROJECT"
+
+# Push the current project branch to a home server, triggering deploy.
+# Usage: just deploy-server acerpepe [branch]
+deploy-server server branch="main":
+    #!/usr/bin/env bash
+    git push "{{server}}" "{{branch}}"
+
 # ──────────── Utility ────────────
 
 # List all available recipes
