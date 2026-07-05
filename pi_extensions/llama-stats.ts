@@ -85,7 +85,7 @@ export default function (pi: ExtensionAPI) {
   // Only show the widget for sessions that are actually using a local
   // llama.cpp provider. This avoids cluttering the UI when talking to remote
   // providers (OpenAI, Umans, etc.). Default covers the llamacpp provider
-  // registered by framearch-autodiscover.
+  // registered by pi-llama.
   const WATCHED_PROVIDERS = new Set(
     (pi.config?.get("llama-stats.providers") as string[] | undefined) ?? [
       "llamacpp",
