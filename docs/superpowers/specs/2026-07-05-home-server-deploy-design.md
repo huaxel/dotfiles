@@ -166,32 +166,49 @@ WantedBy=default.target
 
 ### Port allocation
 
-To avoid conflicts, each app is assigned a unique port between 3000-3999.
-The hook maintains a port registry at `~/apps/.port-registry.json` mapping
-project names to ports.
+To avoid conflicts, each app is assigned a unique port. The hook maintains
+a port registry at `~/apps/.port-registry.json` mapping project names to ports.
+
+| Project type | Port range | Example |
+|---|---|---|
+| Node/Python server apps | 3000–3999 | `brussel-jeu`: 3001, `nursultan-web`: 3002 |
+| Docker apps | 4000–4999 | `agentq`: 4001, `pokemon-felix`: 4002 |
+
+On first deploy, the hook finds the next available port in the appropriate
+range and assigns it. The port is passed to the app via environment variable
+(`PORT`) or by writing a `.env` file in the release directory.
 
 ```json
+// ~/apps/.port-registry.json example
 {
   "brussel-jeu": 3001,
   "nursultan-web": 3002,
-  "tourmanager": 3003
+  "tourmanager": 3003,
+  "agentq": 4001,
+  "pokemon-felix": 4002
 }
 ```
 
-On first deploy, the hook finds the next available port and assigns it.
-The port is passed to the app via environment variable or config file.
-
 ### Caddy config integration
 
-Caddy's main config file (`~/Caddyfile`) includes the per-project snippets:
+### Caddy main config
+
+Caddy's main config file (`~/Caddyfile`) binds to the Tailscale interface
+only (MagicDNS domain) and includes per-project snippets:
 
 ```
 {
     admin off
+    # Bind to the tailnet IP so Caddy is not reachable from outside.
+    # Replace with the server's Tailscale IP (100.x.x.x).
+    default_bind 100.121.136.112
 }
 
 import /home/juan/apps/*/current/Caddyfile
 ```
+
+On first bootstrap, the hook detects the server's Tailscale IP and writes
+this config automatically.
 
 Each deploy hook writes a Caddy snippet to
 `~/apps/<project>/current/Caddyfile`. Examples:

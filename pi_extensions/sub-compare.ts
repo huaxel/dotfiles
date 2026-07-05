@@ -13,15 +13,16 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 
-function resolveSubsPath(): string {
+function resolveSubsPath(): string | undefined {
   const candidates = [
+    join(homedir(), "projects/agentq/data/subscriptions.json"),
     join(homedir(), "projects/sub-roi-tracker/data/subscriptions.json"),
     join(homedir(), "coding/projects/sub-roi-tracker/data/subscriptions.json"),
   ];
   for (const p of candidates) {
     if (existsSync(p)) return p;
   }
-  return candidates[0];
+  return undefined;
 }
 const SUBS_PATH = resolveSubsPath();
 const MODELS_PATH = join(homedir(), ".pi/agent/models.json");
@@ -296,6 +297,12 @@ export default function (pi: ExtensionAPI) {
   let sessionStart: string = new Date().toISOString().slice(0, 10);
 
   function loadConfig() {
+    if (!SUBS_PATH) {
+      console.error("[sub-compare] subscriptions.json not found at:",
+        join(homedir(), "projects/agentq/data/subscriptions.json"),
+        "or other candidates.");
+      return;
+    }
     try {
       subs = loadJson<{ subscriptions: Record<string, SubConfig> }>(SUBS_PATH).subscriptions;
       modelToSub = buildModelToSubMap(subs);
