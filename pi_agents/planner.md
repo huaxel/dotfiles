@@ -3,8 +3,8 @@ name: planner
 description: Creates implementation plans from context and requirements.
 tools: read, grep, find, ls
 models:
-  - llamacpp/Qwen3.6-27B-MTP
   - opencode-go/deepseek-v4-pro
+  - llamacpp/Qwen3.6-27B-MTP
   - cline-pass/deepseek-v4-flash
 ---
 

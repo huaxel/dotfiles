@@ -4,8 +4,8 @@ description: Code review specialist for quality and security analysis.
 tools: read, grep, find, ls
 models:
   - opencode-go/deepseek-v4-flash
-  - llamacpp/Qwen3.6-27B-MTP
   - opencode-go/kimi-k2.7-code
+  - llamacpp/Qwen3.6-27B-MTP
   - openai-codex/gpt-5.5
 ---
 
