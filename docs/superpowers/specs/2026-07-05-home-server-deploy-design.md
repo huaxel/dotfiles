@@ -242,17 +242,22 @@ Tailscale IP on the project's external port.
 import /home/juan/apps/*/current/Caddyfile
 ```
 
-Example generated snippet for a static site:
+If a Tailscale HTTPS certificate is available for the server, snippets are
+generated with `https://<hostname>:<port>` and explicit `tls` paths. If
+not, they fall back to `http://<tailscale-ip>:<port>`.
+
+Example generated snippet for a static site (with Tailscale cert):
 ```
-http://100.121.136.112:8080 {
+https://acerpepe.bonobo-fort.ts.net:8080 {
     bind 100.121.136.112
+    tls /home/juan/.config/tailscale/certs/acerpepe.bonobo-fort.ts.net.crt /home/juan/.config/tailscale/certs/acerpepe.bonobo-fort.ts.net.key
     root * /home/juan/apps/brussel-jeu/current/dist
     file_server
     encode gzip
 }
 ```
 
-Example generated snippet for a server app:
+Example generated snippet for a server app (without Tailscale cert):
 ```
 http://100.121.136.112:8082 {
     bind 100.121.136.112
@@ -350,10 +355,11 @@ If no Procfile is found, the hook uses sensible defaults based on project type.
 - **Tailscale-only**: Each project Caddy snippet binds to the Tailscale IP only
   (`100.x.x.x`). Caddy does not listen on `0.0.0.0` or on the server's LAN IP.
   No public exposure.
-- **HTTP only for now**: The current setup disables Caddy auto-HTTPS and serves
-  plain HTTP over the tailnet. Tailscale already encrypts traffic between
-  tailnet nodes, so this is acceptable for private use. HTTPS via Tailscale
-  certs or Caddy's Tailscale plugin can be added later.
+- **HTTPS via Tailscale certs**: If a Tailscale certificate exists for the
+  server's MagicDNS name, the hook configures Caddy to serve `https://` on
+  each project's external port using that certificate. Tailscale traffic is
+  already encrypted, but this gives browsers a valid TLS handshake. A weekly
+  systemd timer renews the certificate and reloads Caddy.
 - **User isolation**: All apps run as the `juan` user. For multi-tenant isolation,
   systemd dynamic users could be added later, but this is personal use.
 
@@ -365,8 +371,9 @@ If no Procfile is found, the hook uses sensible defaults based on project type.
    `just deploy-server <server> [branch]`)
 4. Bootstrap acerpepe: install Caddy + Docker Compose plugin, create dirs,
    enable linger, start Caddy
-5. Bootstrap liedelpi when it's online
-6. Test with a static project (brussel-jeu)
-7. Test with a Node server project (test-node-server)
-8. Test with a Docker project (agentq or a minimal nginx)
-9. Write rollback + troubleshooting docs
+5. Set up Tailscale HTTPS cert + weekly renewal timer
+6. Bootstrap liedelpi when it's online
+7. Test with a static project (brussel-jeu)
+8. Test with a Node server project (test-node-server)
+9. Test with a Docker project (minimal nginx compose)
+10. Write rollback + troubleshooting docs

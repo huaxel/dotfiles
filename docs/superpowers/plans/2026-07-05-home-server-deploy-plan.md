@@ -15,6 +15,7 @@ Implement the git-push deploy system designed in
 4. Create directory structure (`~/repos`, `~/apps`, `~/deploy-hooks`)
 5. Start Caddy as a systemd user service with config (`admin 127.0.0.1:2019`,
    `auto_https off`, import pattern for per-project snippets)
+6. Set up Tailscale HTTPS cert + weekly renewal timer
 
 ### Phase 1 — Write the shared deploy hook
 
@@ -50,9 +51,9 @@ just deploy-server acerpepe [branch]        # push and deploy
 
 | Test | Project | Type | What to verify |
 |---|---|---|---|
-| 1 | brussel-jeu | node-static | Build on server, serve static via Caddy |
+| 1 | brussel-jeu | node-static | Build on server, serve static via Caddy over HTTPS |
 | 2 | test-node-server | node-server | Install, run systemd service, proxy via Caddy |
-| 3 | agentq (or minimal nginx) | docker/compose | Docker build + run behind Caddy |
+| 3 | minimal nginx compose | docker-compose | Docker compose build + run behind Caddy |
 | 4 | (future) | python | uv install, systemd service, proxy |
 
 ### Phase 5 — Bootstrap liedelpi (when online)
@@ -64,6 +65,6 @@ Same Phase 0 steps on liedelpi, plus:
 ## Delivery
 
 By end of Phase 4 you have working:
-- `git push acerpepe main` → project live at `http://acerpepe.bonobo-fort.ts.net:<port>`
+- `git push acerpepe main` → project live at `https://acerpepe.bonobo-fort.ts.net:<port>` (HTTPS when Tailscale cert is present)
 - `just deploy-server acerpepe` → same thing from any project
 - `just register-project acerpepe <name>` → onboard a new project in one step
