@@ -4,14 +4,14 @@
 
 A git-push deployment system for two home Debian servers (`acerpepe` and `liedelpi`)
 connected via a Tailscale tailnet (`bonobo-fort.ts.net`). Projects are pushed as
-source, built server-side, and served via Caddy reverse proxy under MagicDNS
-hostnames.
+source, built server-side, and served via Caddy reverse proxy on a unique port
+per project.
 
 ## Goals
 
 - Deploy any web project (static, Node, Python, Docker) with `git push`
 - Zero per-project config beyond source code (auto-detect project type)
-- Access projects at `https://<project>.<server>.bonobo-fort.ts.net`
+- Access projects at `http://<server>.bonobo-fort.ts.net:<port>` (each project gets a unique port)
 - Rollback to previous deploy by symlink swap
 - Work identically on both servers
 
@@ -38,7 +38,8 @@ hostnames.
                                                  │    └─ releases/<ts>/          │
                                                  │                              │
                                                  │  Caddy (reverse proxy)        │
-                                                 │  listens :80/:443 on tailnet  │
+                                                 │  listens on Tailscale IP per  │
+                                                 │  project port                 │
                                                  │  └─ imports per-project       │
                                                  │     Caddyfile snippets        │
                                                  │                              │
@@ -46,9 +47,10 @@ hostnames.
                                                  │  (for Node/Python apps)       │
                                                  └──────────────────────────────┘
 
-Access via browser:
-  https://<project>.acerpepe.bonobo-fort.ts.net
-  https://<project>.liedelpi.bonobo-fort.ts.net
+Access via browser (example):
+  http://acerpepe.bonobo-fort.ts.net:8080   # brussel-jeu
+  http://acerpepe.bonobo-fort.ts.net:8082   # test-node-server
+  http://liedelpi.bonobo-fort.ts.net:8080   # same project on second server
 ```
 
 ## Server setup (one-time per server)
@@ -65,16 +67,26 @@ These steps assume the server has:
 ### Install Caddy
 
 ```bash
-# From the Caddy download page
-curl -fsSL https://github.com/caddyserver/caddy/releases/latest/download/caddy_linux_amd64.tar.gz \
-  | tar -xz caddy
-sudo mv caddy /usr/local/bin/
-sudo setcap cap_net_bind_service=+ep /usr/local/bin/caddy
+# Add the official Caddy APT repository
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+sudo apt-get update
+sudo apt-get install -y caddy
+sudo setcap cap_net_bind_service=+ep /usr/bin/caddy
 ```
 
-No systemd unit for Caddy needed — we'll run it as a user process via systemd
-`--user` or let it restart automatically. The `setcap` allows binding to
-low ports (80, 443) as a non-root user.
+Caddy runs as a systemd user service (`caddy.service` under `systemctl --user`).
+The `setcap` allows the binary to bind to any port as a non-root user.
+
+### Install Docker Compose plugin (if using Docker projects)
+
+```bash
+mkdir -p ~/.docker/cli-plugins
+curl -fsSL https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-linux-x86_64 \
+  -o ~/.docker/cli-plugins/docker-compose
+chmod +x ~/.docker/cli-plugins/docker-compose
+docker compose version
+```
 
 ### Create directory structure
 
@@ -90,6 +102,33 @@ sudo loginctl enable-linger juan
 
 This allows systemd user services to survive logout.
 
+### Caddy systemd user service
+
+`~/.config/systemd/user/caddy.service`:
+
+```ini
+[Unit]
+Description=Caddy reverse proxy
+After=network.target tailscaled.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/caddy run --config /home/juan/Caddyfile
+ExecReload=/usr/bin/caddy reload --config /home/juan/Caddyfile
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65536
+
+[Install]
+WantedBy=default.target
+```
+
+Enable and start it with:
+```bash
+systemctl --user daemon-reload
+systemctl --user enable --now caddy
+```
+
 ## Shared deploy hook
 
 A single bash script at `~/deploy-hooks/post-receive` is symlinked into every
@@ -104,7 +143,7 @@ bare repo's `hooks/` directory. It handles all project types via auto-detection.
    - `docker-compose.yml` present → **Docker-compose mode**
    - `Dockerfile` present → **Docker mode** (build image, run container)
    - `package.json` present → **Node mode**
-     - If `vite` / `svelte` / `astro` / `next` in devDependencies → **Static** (build to `dist/`)
+     - If `vite` / `svelte` / `astro` / `next` in dependencies, or no `start`/`serve` script → **Static** (build to `dist/`)
      - Else → **Server** (npm install, run via systemd)
    - `pyproject.toml` present → **Python server mode** (uv install, run via systemd)
    - Otherwise → **Raw static mode** (copy files as-is, serve by Caddy)
@@ -166,56 +205,69 @@ WantedBy=default.target
 
 ### Port allocation
 
-To avoid conflicts, each app is assigned a unique port. The hook maintains
-a port registry at `~/apps/.port-registry.json` mapping project names to ports.
+Each project gets a unique **external port** (8080–8999) on which Caddy
+listens on the Tailscale IP. Server apps (Node/Python) also get an
+**internal port** (3000–3999) for the process itself; Caddy reverse-proxies
+from the external port to the internal port. Docker apps publish directly on
+the external port.
 
-| Project type | Port range | Example |
-|---|---|---|
-| Node/Python server apps | 3000–3999 | `brussel-jeu`: 3001, `nursultan-web`: 3002 |
-| Docker apps | 4000–4999 | `agentq`: 4001, `pokemon-felix`: 4002 |
-
-On first deploy, the hook finds the next available port in the appropriate
-range and assigns it. The port is passed to the app via environment variable
-(`PORT`) or by writing a `.env` file in the release directory.
+The hook maintains a port registry at `~/apps/.port-registry.json`:
 
 ```json
-// ~/apps/.port-registry.json example
 {
-  "brussel-jeu": 3001,
-  "nursultan-web": 3002,
-  "tourmanager": 3003,
-  "agentq": 4001,
-  "pokemon-felix": 4002
+  "brussel-jeu": { "external": 8080 },
+  "test-node-server": { "external": 8082, "internal": 3000 },
+  "pokemon-felix": { "external": 8081 }
 }
 ```
+
+On first deploy, the hook finds the next free port in each range and assigns
+it. The internal port is passed to the app via the `PORT` environment
+variable.
 
 ### Caddy config integration
 
 ### Caddy main config
 
-Caddy's main config file (`~/Caddyfile`) binds to the Tailscale interface
-only (MagicDNS domain) and includes per-project snippets:
+Caddy's main config file (`~/Caddyfile`) enables the local admin API for
+reloads and imports per-project snippets. Each snippet binds to the server's
+Tailscale IP on the project's external port.
 
 ```
 {
-    admin off
-    # Bind to the tailnet IP so Caddy is not reachable from outside.
-    # Replace with the server's Tailscale IP (100.x.x.x).
-    default_bind 100.121.136.112
+    admin 127.0.0.1:2019
+    auto_https off
 }
 
 import /home/juan/apps/*/current/Caddyfile
 ```
 
-On first bootstrap, the hook detects the server's Tailscale IP and writes
-this config automatically.
+Example generated snippet for a static site:
+```
+http://100.121.136.112:8080 {
+    bind 100.121.136.112
+    root * /home/juan/apps/brussel-jeu/current/dist
+    file_server
+    encode gzip
+}
+```
+
+Example generated snippet for a server app:
+```
+http://100.121.136.112:8082 {
+    bind 100.121.136.112
+    reverse_proxy localhost:3000
+    encode gzip
+}
+```
 
 Each deploy hook writes a Caddy snippet to
 `~/apps/<project>/current/Caddyfile`. Examples:
 
-**Static site (Node static or raw):**
+**Static site:**
 ```
-brussel-jeu.acerpepe.bonobo-fort.ts.net {
+http://100.121.136.112:8080 {
+    bind 100.121.136.112
     root * /home/juan/apps/brussel-jeu/current/dist
     file_server
     encode gzip
@@ -224,21 +276,23 @@ brussel-jeu.acerpepe.bonobo-fort.ts.net {
 
 **Node/Python server:**
 ```
-nursultan-web.acerpepe.bonobo-fort.ts.net {
-    reverse_proxy localhost:3002
+http://100.121.136.112:8082 {
+    bind 100.121.136.112
+    reverse_proxy localhost:3000
     encode gzip
 }
 ```
 
-**Docker app (container published on a port):**
+**Docker app:**
 ```
-agentq.acerpepe.bonobo-fort.ts.net {
-    reverse_proxy localhost:4001
+http://100.121.136.112:8081 {
+    bind 100.121.136.112
+    reverse_proxy localhost:8081
     encode gzip
 }
 ```
 
-After writing the snippet, the hook sends `SIGHUP` to Caddy to reload config.
+After writing the snippet, the hook runs `caddy reload --config ~/Caddyfile`.
 
 ## Rollback
 
@@ -276,8 +330,8 @@ git remote add acerpepe acerpepe:~/repos/<project>.git
 git push acerpepe main
 ```
 
-A `register-project` script could handle the server-side steps
-(init bare repo + symlink hook + create apps dir + add tailscale serve config).
+The `register-project` script handles the server-side steps
+(init bare repo + symlink hook + create apps dir).
 
 ### The Procfile (optional)
 
@@ -293,11 +347,13 @@ If no Procfile is found, the hook uses sensible defaults based on project type.
 
 ## Security considerations
 
-- **Tailscale-only**: Caddy binds to the Tailscale interface IP only
-  (`100.x.x.x` and `fd7a:...`), not `0.0.0.0`. No public exposure.
-- **Tailscale HTTPS**: Caddy uses Tailscale's built-in TLS certs via
-  `tailscale cert` or the MagicDNS HTTPS endpoint, avoiding Let's Encrypt rate
-  limits and port forwarding.
+- **Tailscale-only**: Each project Caddy snippet binds to the Tailscale IP only
+  (`100.x.x.x`). Caddy does not listen on `0.0.0.0` or on the server's LAN IP.
+  No public exposure.
+- **HTTP only for now**: The current setup disables Caddy auto-HTTPS and serves
+  plain HTTP over the tailnet. Tailscale already encrypts traffic between
+  tailnet nodes, so this is acceptable for private use. HTTPS via Tailscale
+  certs or Caddy's Tailscale plugin can be added later.
 - **User isolation**: All apps run as the `juan` user. For multi-tenant isolation,
   systemd dynamic users could be added later, but this is personal use.
 
@@ -305,11 +361,12 @@ If no Procfile is found, the hook uses sensible defaults based on project type.
 
 1. Write the shared `post-receive` hook script
 2. Write a `register-project` helper script
-3. Write a `justfile` recipe for each server (`just deploy-acerpepe`, etc.) that
-   does `git push acerpepe main` from the current project
-4. Bootstrap acerpepe: install Caddy, create dirs, enable linger, start Caddy
+3. Write `justfile` recipes (`just register-project <server> <project>`,
+   `just deploy-server <server> [branch]`)
+4. Bootstrap acerpepe: install Caddy + Docker Compose plugin, create dirs,
+   enable linger, start Caddy
 5. Bootstrap liedelpi when it's online
 6. Test with a static project (brussel-jeu)
-7. Test with a Node server project (nursultan-web)
-8. Test with a Docker project (pokemon-felix or agentq)
+7. Test with a Node server project (test-node-server)
+8. Test with a Docker project (agentq or a minimal nginx)
 9. Write rollback + troubleshooting docs
