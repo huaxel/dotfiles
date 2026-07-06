@@ -50,6 +50,30 @@ get_server_name() {
   hostname -s
 }
 
+get_server_hostname() {
+  echo "$(hostname -s).bonobo-fort.ts.net"
+}
+
+get_tailscale_cert_dir() {
+  echo "$HOME/.config/tailscale/certs"
+}
+
+get_tailscale_cert_path() {
+  local hostname
+  hostname=$(get_server_hostname)
+  echo "$(get_tailscale_cert_dir)/$hostname.crt"
+}
+
+get_tailscale_key_path() {
+  local hostname
+  hostname=$(get_server_hostname)
+  echo "$(get_tailscale_cert_dir)/$hostname.key"
+}
+
+tailscale_cert_available() {
+  [ -f "$(get_tailscale_cert_path)" ] && [ -f "$(get_tailscale_key_path)" ]
+}
+
 ensure_port_registry() {
   if [ ! -f "$PORT_REGISTRY" ]; then
     mkdir -p "$(dirname "$PORT_REGISTRY")"
@@ -412,12 +436,22 @@ write_caddy_snippet() {
   local external_port="$3"
   local internal_port="$4"
   local release="$5"
-  local server_ip
+  local server_ip server_hostname site_address tls_directive scheme
 
   server_ip=$(get_server_ip)
+  server_hostname=$(get_server_hostname)
   local current_dir="$APPS_DIR/$project/current"
   local snippet="$release/Caddyfile"
-  local site_address="$server_ip:$external_port"
+
+  if tailscale_cert_available; then
+    scheme="https"
+    site_address="$server_hostname:$external_port"
+    tls_directive="    tls $(get_tailscale_cert_path) $(get_tailscale_key_path)"
+  else
+    scheme="http"
+    site_address="$server_ip:$external_port"
+    tls_directive=""
+  fi
 
   case "$type" in
     node-static|static)
@@ -428,8 +462,9 @@ write_caddy_snippet() {
         root_dir="$current_dir"
       fi
       cat > "$snippet" <<EOF
-http://$site_address {
+$scheme://$site_address {
     bind $server_ip
+$tls_directive
     root * $root_dir
     file_server
     encode gzip
@@ -438,8 +473,9 @@ EOF
       ;;
     node-server|python)
       cat > "$snippet" <<EOF
-http://$site_address {
+$scheme://$site_address {
     bind $server_ip
+$tls_directive
     reverse_proxy localhost:$internal_port
     encode gzip
 }
@@ -447,8 +483,9 @@ EOF
       ;;
     docker|docker-compose)
       cat > "$snippet" <<EOF
-http://$site_address {
+$scheme://$site_address {
     bind $server_ip
+$tls_directive
     reverse_proxy localhost:$external_port
     encode gzip
 }
@@ -572,7 +609,11 @@ main() {
   # 10. Cleanup
   rm -rf "$tmp_worktree"
 
-  log "Deploy of $project complete. Access at http://$(get_server_ip):$external_port"
+  if tailscale_cert_available; then
+    log "Deploy of $project complete. Access at https://$(get_server_hostname):$external_port"
+  else
+    log "Deploy of $project complete. Access at http://$(get_server_ip):$external_port"
+  fi
 }
 
 main
