@@ -1,0 +1,146 @@
+#!/usr/bin/env bash
+# Bootstrap a home server for git-push deployments.
+# Run on the target server via SSH (or locally with sudo access).
+
+set -euo pipefail
+
+log() { echo "[bootstrap] $*"; }
+fail() { echo "[bootstrap] ERROR: $*" >&2; exit 1; }
+
+log "Bootstrapping home deploy server: $(hostname -s)"
+
+# --- Install Caddy ---
+if ! command -v caddy >/dev/null 2>&1; then
+  log "Installing Caddy..."
+  sudo apt-get update
+  sudo apt-get install -y debian-keyring debian-archive-keyring apt-transport-https
+  curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+  curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list >/dev/null
+  sudo apt-get update
+  sudo apt-get install -y caddy
+else
+  log "Caddy already installed: $(caddy version)"
+fi
+
+log "Setting capabilities on /usr/bin/caddy..."
+sudo setcap cap_net_bind_service=+ep /usr/bin/caddy
+
+# --- Install Docker Compose plugin if docker is present ---
+if command -v docker >/dev/null 2>&1; then
+  if ! docker compose version >/dev/null 2>&1; then
+    log "Installing Docker Compose plugin..."
+    mkdir -p ~/.docker/cli-plugins
+    curl -fsSL https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-linux-x86_64 \
+      -o ~/.docker/cli-plugins/docker-compose
+    chmod +x ~/.docker/cli-plugins/docker-compose
+  else
+    log "Docker Compose plugin already installed: $(docker compose version)"
+  fi
+
+  BUILDX_VERSION=$(docker buildx version 2>/dev/null | awk '{print $2}' | sed 's/^v//' || echo "0.0.0")
+  if [ "$(printf '%s\n' "0.17.0" "$BUILDX_VERSION" | sort -V | head -n1)" != "0.17.0" ]; then
+    log "Updating Docker Buildx..."
+    mkdir -p ~/.docker/cli-plugins
+    curl -fsSL https://github.com/docker/buildx/releases/download/v0.21.3/buildx-v0.21.3.linux-amd64 \
+      -o ~/.docker/cli-plugins/docker-buildx
+    chmod +x ~/.docker/cli-plugins/docker-buildx
+  else
+    log "Buildx already up to date: $(docker buildx version)"
+  fi
+fi
+
+# --- Native build deps for npm/python ---
+log "Installing native build dependencies..."
+sudo apt-get install -y build-essential pkg-config libcairo2-dev libpango1.0-dev \
+  libjpeg-dev libgif-dev librsvg2-dev libpixman-1-dev
+
+# --- Enable linger for user services ---
+log "Enabling linger for user systemd services..."
+sudo loginctl enable-linger "$(whoami)"
+
+# --- Create directory structure ---
+log "Creating directories..."
+mkdir -p ~/repos ~/apps ~/deploy-hooks
+
+# --- Tailscale cert ---
+TAILSCALE_HOST="$(hostname -s).bonobo-fort.ts.net"
+CERT_DIR="$HOME/.config/tailscale/certs"
+mkdir -p "$CERT_DIR"
+
+if ! sudo tailscale set --operator="$(whoami)" 2>/dev/null; then
+  log "Could not set Tailscale operator; cert step may require sudo."
+fi
+
+if command -v tailscale >/dev/null 2>&1; then
+  log "Obtaining Tailscale certificate for $TAILSCALE_HOST..."
+  tailscale cert \
+    --cert-file "$CERT_DIR/$TAILSCALE_HOST.crt" \
+    --key-file "$CERT_DIR/$TAILSCALE_HOST.key" \
+    "$TAILSCALE_HOST" || log "Tailscale cert not available (DNS/ACL issue). HTTP fallback will be used."
+else
+  log "Tailscale not installed; skipping HTTPS cert."
+fi
+
+# --- Caddy config ---
+TAILSCALE_IP=$(tailscale ip -4 2>/dev/null || hostname -I | awk '{print $1}')
+log "Tailscale IP: $TAILSCALE_IP"
+
+cat > ~/Caddyfile <<EOF
+{
+	admin 127.0.0.1:2019
+	auto_https off
+}
+
+import /home/juan/apps/*/current/Caddyfile
+EOF
+
+# --- Caddy user service ---
+log "Creating Caddy user systemd service..."
+mkdir -p ~/.config/systemd/user
+cat > ~/.config/systemd/user/caddy.service <<EOF
+[Unit]
+Description=Caddy reverse proxy
+After=network.target tailscaled.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/caddy run --config /home/juan/Caddyfile
+ExecReload=/usr/bin/caddy reload --config /home/juan/Caddyfile
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65536
+
+[Install]
+WantedBy=default.target
+EOF
+
+# --- Cert renewal timer ---
+log "Creating Tailscale cert renewal timer..."
+cat > ~/.config/systemd/user/tailscale-cert-renew.service <<EOF
+[Unit]
+Description=Renew Tailscale HTTPS certificate
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/tailscale cert --cert-file $CERT_DIR/$TAILSCALE_HOST.crt --key-file $CERT_DIR/$TAILSCALE_HOST.key $TAILSCALE_HOST
+ExecStartPost=/usr/bin/caddy reload --config /home/juan/Caddyfile
+EOF
+
+cat > ~/.config/systemd/user/tailscale-cert-renew.timer <<EOF
+[Unit]
+Description=Weekly renewal of Tailscale HTTPS certificate
+
+[Timer]
+OnCalendar=weekly
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+
+systemctl --user daemon-reload
+systemctl --user enable --now caddy
+systemctl --user enable --now tailscale-cert-renew.timer
+
+log "Bootstrap complete."
+log "Next: rsync ~/deploy-hooks/post-receive and register-project from acerpepe, or copy them here."
