@@ -57,26 +57,49 @@ ensure_port_registry() {
   fi
 }
 
-# Assign a port in the given range to the project. Reuse if already assigned.
-assign_port() {
-  local project="$1"
-  local range_low="$2"
-  local range_high="$3"
-  local assigned
-
+# Read/write the port registry. Each project entry is an object:
+#   { "external": 8081, "internal": 3001 }
+read_registry() {
   ensure_port_registry
-  assigned=$(python3 - "$project" "$range_low" "$range_high" "$PORT_REGISTRY" <<'PY'
+  python3 - "$PORT_REGISTRY" <<'PY'
 import json, sys
-project, low, high, path = sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), sys.argv[4]
-with open(path) as f:
-    registry = json.load(f)
-if project in registry:
-    print(registry[project])
+with open(sys.argv[1]) as f:
+    print(json.dumps(json.load(f)))
+PY
+}
+
+write_registry() {
+  local data="$1"
+  python3 - "$PORT_REGISTRY" "$data" <<'PY'
+import json, sys
+path, data = sys.argv[1], json.loads(sys.argv[2])
+with open(path, "w") as f:
+    json.dump(data, f, indent=2)
+PY
+}
+
+# Assign an external port (Caddy listens on Tailscale IP) for the project.
+assign_external_port() {
+  local project="$1"
+  local assigned
+  assigned=$(python3 - "$project" "$PORT_REGISTRY" <<'PY'
+import json, sys
+project, path = sys.argv[1], sys.argv[2]
+try:
+    with open(path) as f:
+        registry = json.load(f)
+except (FileNotFoundError, json.JSONDecodeError):
+    registry = {}
+entry = registry.get(project, {})
+if "external" in entry:
+    print(entry["external"])
     sys.exit(0)
-used = set(registry.values())
-for port in range(low, high + 1):
+used = {e.get("external") for e in registry.values() if isinstance(e, dict) and e.get("external")}
+used.update({e for e in registry.values() if isinstance(e, int)})
+for port in range(8080, 9000):
     if port not in used:
-        registry[project] = port
+        entry["external"] = port
+        registry[project] = entry
         with open(path, "w") as f:
             json.dump(registry, f, indent=2)
         print(port)
@@ -86,7 +109,42 @@ sys.exit(1)
 PY
   )
   if [ "$assigned" = "NO_FREE_PORT" ]; then
-    fail "No free port available in range $range_low-$range_high"
+    fail "No free external port available in range 8080-8999"
+  fi
+  echo "$assigned"
+}
+
+# Assign an internal port (localhost, for Node/Python server apps).
+assign_internal_port() {
+  local project="$1"
+  local assigned
+  assigned=$(python3 - "$project" "$PORT_REGISTRY" <<'PY'
+import json, sys
+project, path = sys.argv[1], sys.argv[2]
+try:
+    with open(path) as f:
+        registry = json.load(f)
+except (FileNotFoundError, json.JSONDecodeError):
+    registry = {}
+entry = registry.get(project, {})
+if "internal" in entry:
+    print(entry["internal"])
+    sys.exit(0)
+used = {e.get("internal") for e in registry.values() if isinstance(e, dict) and e.get("internal")}
+for port in range(3000, 4000):
+    if port not in used:
+        entry["internal"] = port
+        registry[project] = entry
+        with open(path, "w") as f:
+            json.dump(registry, f, indent=2)
+        print(port)
+        sys.exit(0)
+print("NO_FREE_PORT", flush=True)
+sys.exit(1)
+PY
+  )
+  if [ "$assigned" = "NO_FREE_PORT" ]; then
+    fail "No free internal port available in range 3000-3999"
   fi
   echo "$assigned"
 }
@@ -106,8 +164,30 @@ detect_project_type() {
     return
   fi
   if [ -f "$dir/package.json" ]; then
-    if grep -qE '"vite"\s*:|"svelte"\s*:|"astro"\s*:|"next"\s*:|"@sveltejs/vite-plugin"' "$dir/package.json" 2>/dev/null; then
-      echo "node-static"
+    local has_vite_static has_build_script
+    has_vite_static=$(node -e "
+      const p = require('$dir/package.json');
+      const deps = {...(p.dependencies || {}), ...(p.devDependencies || {})};
+      const markers = ['vite', 'svelte', 'astro', 'next', '@sveltejs/vite-plugin'];
+      process.exit(markers.some(m => deps[m]) ? 0 : 1);
+    " 2>/dev/null && echo yes || echo no)
+    has_build_script=$(node -e "
+      const p = require('$dir/package.json');
+      process.exit(p.scripts && p.scripts.build ? 0 : 1);
+    " 2>/dev/null && echo yes || echo no)
+
+    if [ "$has_vite_static" = "yes" ] || [ "$has_build_script" = "yes" ]; then
+      # If there's a start/serve script alongside a build, it's likely a server
+      local has_start_script
+      has_start_script=$(node -e "
+        const p = require('$dir/package.json');
+        process.exit(p.scripts && (p.scripts.start || p.scripts.serve) ? 0 : 1);
+      " 2>/dev/null && echo yes || echo no)
+      if [ "$has_vite_static" = "yes" ] && [ "$has_start_script" = "no" ]; then
+        echo "node-static"
+      else
+        echo "node-server"
+      fi
     else
       echo "node-server"
     fi
@@ -156,10 +236,12 @@ build_node_static() {
 
   if [ -n "$build_cmd" ]; then
     eval "$build_cmd"
-  elif [ -f "pnpm-lock.yaml" ] && pnpm run | grep -qE '^\s*build\s+'; then
-    pnpm run build
-  elif npm run | grep -qE '^\s*build\s+'; then
-    npm run build
+  elif node -e "process.exit(require('./package.json').scripts && require('./package.json').scripts.build ? 0 : 1)" 2>/dev/null; then
+    if [ -f "pnpm-lock.yaml" ]; then
+      pnpm run build
+    else
+      npm run build
+    fi
   else
     log "No 'build' script in package.json; serving source files"
   fi
@@ -193,10 +275,12 @@ build_node_server() {
   build_cmd=$(read_procfile "$src" "build")
   if [ -n "$build_cmd" ]; then
     eval "$build_cmd"
-  elif [ -f "pnpm-lock.yaml" ] && pnpm run | grep -qE '^\s*build\s+'; then
-    pnpm run build
-  elif npm run | grep -qE '^\s*build\s+'; then
-    npm run build
+  elif node -e "process.exit(require('./package.json').scripts && require('./package.json').scripts.build ? 0 : 1)" 2>/dev/null; then
+    if [ -f "pnpm-lock.yaml" ]; then
+      pnpm run build
+    else
+      npm run build
+    fi
   fi
   cd - >/dev/null
   cp -a "$src/." "$release/"
@@ -295,25 +379,26 @@ EOF
 
 run_docker() {
   local project="$1"
-  local port="$2"
+  local external_port="$2"
   local release="$3"
   local tag="home-deploy/$project:latest"
 
   docker build -t "$tag" "$release"
   docker rm -f "$project" 2>/dev/null || true
   docker run -d --name "$project" \
-    -p "$port:80" \
+    -p "127.0.0.1:$external_port:80" \
     --restart unless-stopped \
     "$tag"
 }
 
 run_docker_compose() {
   local project="$1"
-  local release="$2"
+  local external_port="$2"
+  local release="$3"
   cd "$release"
   # Stop any previous compose project with the same name
   docker compose down 2>/dev/null || true
-  docker compose up -d --build
+  EXTERNAL_PORT="$external_port" docker compose up -d --build
   cd - >/dev/null
 }
 
@@ -324,25 +409,26 @@ run_docker_compose() {
 write_caddy_snippet() {
   local project="$1"
   local type="$2"
-  local port="$3"
-  local release="$4"
-  local server_name server_ip hostname
+  local external_port="$3"
+  local internal_port="$4"
+  local release="$5"
+  local server_ip
 
-  server_name=$(get_server_name)
   server_ip=$(get_server_ip)
-  hostname="$project.$server_name.bonobo-fort.ts.net"
+  local current_dir="$APPS_DIR/$project/current"
   local snippet="$release/Caddyfile"
+  local site_address="$server_ip:$external_port"
 
   case "$type" in
     node-static|static)
       local root_dir
       if [ -d "$release/dist" ]; then
-        root_dir="$release/dist"
+        root_dir="$current_dir/dist"
       else
-        root_dir="$release"
+        root_dir="$current_dir"
       fi
       cat > "$snippet" <<EOF
-$hostname {
+http://$site_address {
     bind $server_ip
     root * $root_dir
     file_server
@@ -352,29 +438,18 @@ EOF
       ;;
     node-server|python)
       cat > "$snippet" <<EOF
-$hostname {
+http://$site_address {
     bind $server_ip
-    reverse_proxy localhost:$port
+    reverse_proxy localhost:$internal_port
     encode gzip
 }
 EOF
       ;;
-    docker)
+    docker|docker-compose)
       cat > "$snippet" <<EOF
-$hostname {
+http://$site_address {
     bind $server_ip
-    reverse_proxy localhost:$port
-    encode gzip
-}
-EOF
-      ;;
-    docker-compose)
-      # For docker compose, the project is expected to expose its own port.
-      # We use the port assigned by the registry and assume the compose maps it.
-      cat > "$snippet" <<EOF
-$hostname {
-    bind $server_ip
-    reverse_proxy localhost:$port
+    reverse_proxy localhost:$external_port
     encode gzip
 }
 EOF
@@ -429,16 +504,14 @@ main() {
   project_type=$(detect_project_type "$tmp_worktree")
   log "Detected project type: $project_type"
 
-  # 3. Assign port if needed
-  local port=""
+  # 3. Assign ports
+  local external_port internal_port=""
+  external_port=$(assign_external_port "$project")
+  log "Assigned external port: $external_port"
   case "$project_type" in
-    node-server|python|docker)
-      port=$(assign_port "$project" 3000 3999)
-      log "Assigned port: $port"
-      ;;
-    docker-compose)
-      port=$(assign_port "$project" 4000 4999)
-      log "Assigned compose port: $port"
+    node-server|python)
+      internal_port=$(assign_internal_port "$project")
+      log "Assigned internal port: $internal_port"
       ;;
   esac
 
@@ -449,14 +522,15 @@ main() {
     node-static) build_node_static "$tmp_worktree" "$release_dir" ;;
     node-server) build_node_server "$tmp_worktree" "$release_dir" ;;
     python) build_python "$tmp_worktree" "$release_dir" ;;
-    docker) build_docker "$tmp_worktree" "$release_dir" "$project" ;;
-    docker-compose) build_docker_compose "$tmp_worktree" "$release_dir" ;;
+    docker) build_docker "$tmp_worktree" "$release_dir" "$project" "$external_port" ;;
+    docker-compose) build_docker_compose "$tmp_worktree" "$release_dir" "$project" "$external_port" ;;
   esac
 
-  # 5. Write .env with port if needed
-  if [ -n "$port" ]; then
-    echo "PORT=$port" >> "$release_dir/.env"
+  # 5. Write .env with port(s) if needed
+  if [ -n "$internal_port" ]; then
+    echo "PORT=$internal_port" >> "$release_dir/.env"
   fi
+  echo "EXTERNAL_PORT=$external_port" >> "$release_dir/.env"
 
   # 6. Install release and swap symlink
   # Ensure parent directory exists before symlinking
@@ -467,16 +541,13 @@ main() {
   # 7. Start/restart process
   case "$project_type" in
     node-server|python)
-      write_systemd_service "$project" "$service_name" "$port" "$project_type" "$release_dir"
+      write_systemd_service "$project" "$service_name" "$internal_port" "$project_type" "$release_dir"
       ;;
     docker)
-      run_docker "$project" "$port" "$release_dir"
+      run_docker "$project" "$external_port" "$release_dir"
       ;;
     docker-compose)
-      run_docker_compose "$project" "$release_dir"
-      # If the compose exposes a port, ensure it matches the assigned one.
-      # This is project-dependent; we assume the compose file is authored
-      # to use the env var PORT or a fixed port.
+      run_docker_compose "$project" "$external_port" "$release_dir"
       ;;
     *)
       log "No process to start for static project"
@@ -484,7 +555,7 @@ main() {
   esac
 
   # 8. Write Caddy snippet and reload
-  write_caddy_snippet "$project" "$project_type" "$port" "$release_dir"
+  write_caddy_snippet "$project" "$project_type" "$external_port" "$internal_port" "$release_dir"
   reload_caddy
 
   # 9. Prune old releases
@@ -501,7 +572,7 @@ main() {
   # 10. Cleanup
   rm -rf "$tmp_worktree"
 
-  log "Deploy of $project complete. Access at https://$project.$(get_server_name).bonobo-fort.ts.net"
+  log "Deploy of $project complete. Access at http://$(get_server_ip):$external_port"
 }
 
 main
