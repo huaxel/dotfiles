@@ -2,8 +2,8 @@
 
 # Theme
 theme = "TokyoNight"
-background =         #1a1b26
-foreground =         #c0caf5
+background = #1a1b26
+foreground = #c0caf5
 
 # Font
 font-family = "JetBrainsMono Nerd Font Mono"
@@ -26,11 +26,11 @@ background-opacity = 0.86
 # Keybindings
 keybind = ctrl+shift+c=copy_to_clipboard
 keybind = ctrl+shift+v=paste_from_clipboard
-keybind = cmd+d=new_split:right
-keybind = cmd+shift+d=new_split:down
-keybind = cmd+w=close_surface
-keybind = cmd+t=new_tab
-keybind = cmd+shift+right=goto_tab:next
-keybind = cmd+shift+left=goto_tab:previous
-keybind = cmd+right=goto_split:next
-keybind = cmd+left=goto_split:previous
+keybind = super+d=new_split:right
+keybind = super+shift+d=new_split:down
+keybind = super+w=close_surface
+keybind = super+t=new_tab
+keybind = super+shift+right=goto_tab:next
+keybind = super+shift+left=goto_tab:previous
+keybind = super+right=goto_split:next
+keybind = super+left=goto_split:previous
