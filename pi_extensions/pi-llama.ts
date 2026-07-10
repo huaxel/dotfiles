@@ -10,7 +10,7 @@ const API_BASE_URL = `http://${HOST}:${PORT}/v1`;
 const ROOT_URL = `http://${HOST}:${PORT}`; // load/unload at root, not /v1
 
 const DISCOVERY_TIMEOUT_MS =
-  Number(process.env.PI_LLAMA_TIMEOUT_MS) || 5000;
+  Number(process.env.PI_LLAMA_TIMEOUT_MS) || 30000;
 
 // ── Types ────────────────────────────────────────────────────────────────
 
