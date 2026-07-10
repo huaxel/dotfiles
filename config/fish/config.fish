@@ -66,20 +66,20 @@ alias pi-sudo='sudo -iu pi-agent PI_CODING_AGENT_DIR=$HOME/.pi/agent -- pi'
 set -x FZF_DEFAULT_OPTS "--height 40% --layout=reverse --border --preview 'bat --color=always --style=numbers --line-range=:500 {}' --preview-window=right:60%"
 set -x FZF_CTRL_T_OPTS "--preview 'bat --color=always --style=numbers --line-range=:500 {}' --preview-window=right:60%"
 set -x FZF_CTRL_R_OPTS "--preview 'echo {}' --preview-window=up:3:hidden:wrap --bind 'ctrl-/:toggle-preview'"
-set -x FZF_ALT_C_OPTS "--preview 'eza --tree --color=always --icons {} | head -200' --preview-window=right:60%"
+set -x FZF_ALT_C_OPTS "--preview 'eza --tree --color=always --icons=always {} | head -200' --preview-window=right:60%"
 
 # Bat as man pager
 set -x MANPAGER "sh -c 'col -bx | bat -l man -p --theme=tokyonight_night'"
 
 # Aliases
-alias ls='eza -la --icons'
+alias ls='eza -la --icons=always'
 if not test (uname) = Darwin
     alias open='xdg-open' 2>/dev/null || true
 end
 
-alias ll='eza -la --icons'
-alias la='eza -a --icons'
-alias lt='eza --tree --icons'
+alias ll='eza -la --icons=always'
+alias la='eza -a --icons=always'
+alias lt='eza --tree --icons=always'
 alias cat='bat --style=numbers,changes --theme=tokyonight_night'
 alias grep='rg'
 alias watch='eza --onelines'
