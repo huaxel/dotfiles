@@ -8,8 +8,8 @@ include ~/.config/sway/config.d/*
 bindsym $mod+b exec ~/.config/sway/scripts/wofi-bluetooth.sh
 
 # Status Bar (use Waybar as swaybar replacement)
-exec systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP
-exec dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP
+exec systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP DISPLAY XDG_SESSION_TYPE
+exec dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP DISPLAY XDG_SESSION_TYPE
 
 # Toggle keyboard layout using external script (using the working $mod+k binding from keybindings.conf)
 # To toggle keyboard layout, press Mod+K instead of Mod+Shift+L
