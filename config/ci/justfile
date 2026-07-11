@@ -1,3 +1,0 @@
-# Repo-local justfile: run the local gate checks
-ci:
-	cd python && make check
