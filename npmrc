@@ -1,2 +1,4 @@
 prefix=/home/juan/.npm-global
 ignore-scripts=false
+allow-git=all
+allow-remote=all
