@@ -1,26 +1,23 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { complete } from "@earendil-works/pi-ai";
 
-const NAMING_PROMPT = `You are a session naming assistant. Given a user request and the project name, generate a descriptive session name that INCLUDES the project.
+const NAMING_PROMPT = `You are a session naming assistant. Given what the user ASKED and what was actually DONE, generate a descriptive session name that captures the REAL work.
 
 Rules:
-- 3-8 words, Title Case (e.g. "Dotfiles: Review Changes")
+- 3-8 words, Title Case (e.g. "Dotfiles: Review PR Feedback")
 - START with the project name followed by a colon and space, then the specific task
-- Include the SPECIFIC task or topic — not just the action. "Review" → "Review PR Feedback"
+- Base the name on the "Done" part — the actual outcome, not just the initial ask
+- Include specifics: which model, API, framework, or file was involved
 - No punctuation, no quotation marks, no trailing period
-- Prefer concrete nouns over filler: which model, which API, which feature
-- If the request mentions a specific tool, framework, or file, include it
 - Only the name, nothing else
 
 Examples:
-- project: "dotfiles", request: "review my pull request and give feedback" → "Dotfiles: Review PR Feedback"
-- project: "project-atom", request: "fix login redirect loop bug" → "Atom: Fix Login Auth Redirect"
-- project: "tourmanager", request: "refactor database to Prisma ORM" → "Tourmanager: Refactor DB Prisma"
-- project: "belpolsim", request: "implement OAuth for billing features" → "Belpolsim: Implement OAuth Billing"
-- project: "ai-inference-bench", request: "benchmark hipfire vs llamacpp" → "Bench: Hipfire Vs Llamacpp"
+- project: "Dotfiles", asked: "can you review the changes", done: "reviewed the diff, caught a bug in the npmrc, cleaned up pi_settings" → "Dotfiles: Review Config Changes"
+- project: "Ai Inference Bench", asked: "try this hipfire thing", done: "cloned hipfire, ran benchmarks against llamacpp Vulkan, compared t/s on Strix Halo" → "Ai Inference Bench: Benchmark Hipfire vs Llamacpp"
+- project: "Project Atom", asked: "set the atom data root", done: "configured ATOM_DATA_ROOT env var in bashrc, sourced it, verified with atom info" → "Project Atom: Set Atom Data Root"
 
 Project: PROJECT_NAME
-User request:`;
+Context:`;
 
 /** Fallback: extract a descriptive title from the prompt text without an LLM call. */
 function heuristicName(text: string): string {
@@ -81,7 +78,7 @@ export default function (pi: ExtensionAPI) {
     }
   });
 
-  pi.on("turn_start", async (_event, ctx) => {
+  pi.on("turn_end", async (_event, ctx) => {
     if (hasNamed || ctx.mode !== "tui") return;
 
     // Derive project label from cwd (Title Case)
@@ -93,20 +90,34 @@ export default function (pi: ExtensionAPI) {
       ?.replace(/[-_]/g, " ")
       ?.replace(/\w+/g, (w) => w[0].toUpperCase() + w.slice(1).toLowerCase()) || "";
 
-    // Grab the first user message in the current branch
+    // Get first user message + first assistant response for richer context
     const branch = ctx.sessionManager.getBranch();
-    const firstUser = branch.find(
-      (e) => e.type === "message" && e.message.role === "user",
+    const msgs = branch.filter(
+      (e) => e.type === "message" &&
+        (e.message.role === "user" || e.message.role === "assistant"),
     );
-    if (!firstUser) return;
 
-    const text = firstUser.message.content
+    const userMsg = msgs.find((e) => e.message.role === "user");
+    const asstMsg = msgs.find((e) => e.message.role === "assistant");
+    if (!userMsg) return;
+
+    const userText = userMsg.message.content
       .filter((c): c is { type: "text"; text: string } => c.type === "text")
       .map((c) => c.text)
-      .join(" ")
-      .slice(0, 300);
+      .join(" ");
 
-    if (!text.trim()) return;
+    // Build a compact summary of what was asked AND what was done
+    let nameContext = "Asked: " + userText.slice(0, 200);
+    if (asstMsg) {
+      const reply = asstMsg.message.content
+        .filter((c): c is { type: "text"; text: string } => c.type === "text")
+        .map((c) => c.text)
+        .join(" ")
+        .slice(0, 300);
+      nameContext += "\nDone: " + reply;
+    }
+
+    if (!userText.trim()) return;
 
     // ── Try cheap/free models in order ──────────────────────────
     const cheapModels = [
@@ -122,7 +133,7 @@ export default function (pi: ExtensionAPI) {
         if (!auth.ok || !auth.apiKey) continue;
 
         const fullPrompt = NAMING_PROMPT.replace("PROJECT_NAME", projectLabel)
-          + "\n" + text;
+          + "\n" + nameContext;
 
         const response = await complete(
           model!,
@@ -131,7 +142,7 @@ export default function (pi: ExtensionAPI) {
             messages: [
               {
                 role: "user",
-                content: [{ type: "text", text }],
+                content: [{ type: "text", text: nameContext }],
                 timestamp: Date.now(),
               },
             ],
@@ -161,8 +172,8 @@ export default function (pi: ExtensionAPI) {
 
     // ── Fallback: pure heuristic ────────────────────────────────
     const fallback = projectLabel
-      ? projectLabel + ": " + heuristicName(text)
-      : heuristicName(text);
+      ? projectLabel + ": " + heuristicName(userText)
+      : heuristicName(userText);
     if (fallback) {
       pi.setSessionName(fallback);
       hasNamed = true;
