@@ -1,26 +1,25 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { complete } from "@earendil-works/pi-ai";
 
-const NAMING_PROMPT = `You are a session naming assistant. Given a user request, generate a descriptive session name.
+const NAMING_PROMPT = `You are a session naming assistant. Given a user request and the project name, generate a descriptive session name that INCLUDES the project.
 
 Rules:
-- 3-8 words, Title Case (e.g. "Fix Login Auth Redirect", never kebab-case)
-- Include the SPECIFIC task or topic — not just the action. "Review PR" → "Review PR Feedback". "Add auth" → "Add OAuth JWT Auth".
+- 3-8 words, Title Case (e.g. "Dotfiles: Review Changes")
+- START with the project name followed by a colon and space, then the specific task
+- Include the SPECIFIC task or topic — not just the action. "Review" → "Review PR Feedback"
 - No punctuation, no quotation marks, no trailing period
 - Prefer concrete nouns over filler: which model, which API, which feature
 - If the request mentions a specific tool, framework, or file, include it
 - Only the name, nothing else
 
 Examples:
-- "review my pull request and give feedback" → "Review PR Feedback"
-- "fix the login authentication bug with redirect loop" → "Fix Login Auth Redirect"
-- "refactor the database layer to use Prisma ORM" → "Refactor Database To Prisma Orm"
-- "implement OAuth authentication for team billing features" → "Implement OAuth Team Billing"
-- "write unit tests for the Stripe payment API endpoint" → "Write Stripe Payment Api Tests"
-- "investigate why the USB mount keeps failing on boot" → "Debug Usb Mount Boot Failure"
-- "help me review and improve the agents md for this repo" → "Improve Agents Md Setup"
-- "compare hipfire vs llamacpp benchmark results on strix halo" → "Benchmark Hipfire Vs Llamacpp"
+- project: "dotfiles", request: "review my pull request and give feedback" → "Dotfiles: Review PR Feedback"
+- project: "project-atom", request: "fix login redirect loop bug" → "Atom: Fix Login Auth Redirect"
+- project: "tourmanager", request: "refactor database to Prisma ORM" → "Tourmanager: Refactor DB Prisma"
+- project: "belpolsim", request: "implement OAuth for billing features" → "Belpolsim: Implement OAuth Billing"
+- project: "ai-inference-bench", request: "benchmark hipfire vs llamacpp" → "Bench: Hipfire Vs Llamacpp"
 
+Project: PROJECT_NAME
 User request:`;
 
 /** Fallback: extract a descriptive title from the prompt text without an LLM call. */
@@ -85,6 +84,15 @@ export default function (pi: ExtensionAPI) {
   pi.on("turn_start", async (_event, ctx) => {
     if (hasNamed || ctx.mode !== "tui") return;
 
+    // Derive project label from cwd (Title Case)
+    const projectLabel = ctx.cwd
+      .split("/")
+      .filter(Boolean)
+      .pop()
+      ?.replace(/^--|--$/g, "")
+      ?.replace(/[-_]/g, " ")
+      ?.replace(/\w+/g, (w) => w[0].toUpperCase() + w.slice(1).toLowerCase()) || "";
+
     // Grab the first user message in the current branch
     const branch = ctx.sessionManager.getBranch();
     const firstUser = branch.find(
@@ -113,10 +121,13 @@ export default function (pi: ExtensionAPI) {
         const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model!);
         if (!auth.ok || !auth.apiKey) continue;
 
+        const fullPrompt = NAMING_PROMPT.replace("PROJECT_NAME", projectLabel)
+          + "\n" + text;
+
         const response = await complete(
           model!,
           {
-            systemPrompt: NAMING_PROMPT,
+            systemPrompt: fullPrompt,
             messages: [
               {
                 role: "user",
@@ -149,7 +160,9 @@ export default function (pi: ExtensionAPI) {
     }
 
     // ── Fallback: pure heuristic ────────────────────────────────
-    const fallback = heuristicName(text);
+    const fallback = projectLabel
+      ? projectLabel + ": " + heuristicName(text)
+      : heuristicName(text);
     if (fallback) {
       pi.setSessionName(fallback);
       hasNamed = true;
