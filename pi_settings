@@ -39,6 +39,16 @@
     "git:github.com/nicobailon/visual-explainer",
     "npm:pi-provider-umans",
     "npm:@juicesharp/rpiv-ask-user-question",
-    "npm:@juicesharp/rpiv-todo"
+    "npm:@juicesharp/rpiv-todo",
+    "npm:pi-subagents",
+    "npm:pi-web-access",
+    "npm:pi-review-loop",
+    "npm:@mjfuertesf/pi-quota-status",
+    "npm:@ff-labs/pi-fff",
+    "npm:pi-jules",
+    "npm:context-mode",
+    "npm:pi-intercom",
+    "npm:@narumitw/pi-goal",
+    "npm:pi-autoresearch"
   ]
 }
