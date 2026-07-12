@@ -1,58 +1,73 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { complete } from "@earendil-works/pi-ai";
 
-const NAMING_PROMPT = `You are a session naming assistant. Given a user request, generate a short, descriptive name for the session.
+const NAMING_PROMPT = `You are a session naming assistant. Given a user request, generate a descriptive session name.
 
 Rules:
-- 2-6 words
-- Sentence-like, Title Case (e.g. "Fix Login Auth Bug", never "fix-login-auth")
-- Describe the main task or topic — favour specifics over generic words
+- 3-8 words, Title Case (e.g. "Fix Login Auth Redirect", never kebab-case)
+- Include the SPECIFIC task or topic — not just the action. "Review PR" → "Review PR Feedback". "Add auth" → "Add OAuth JWT Auth".
 - No punctuation, no quotation marks, no trailing period
-- Be concise but descriptive — prefer specific nouns over filler
+- Prefer concrete nouns over filler: which model, which API, which feature
+- If the request mentions a specific tool, framework, or file, include it
+- Only the name, nothing else
 
 Examples:
-- "fix the login authentication bug" → "Fix Login Auth Bug"
-- "refactor database layer to Prisma" → "Refactor DB to Prisma"
-- "implement OAuth for team features" → "Implement OAuth for Teams"
-- "review my pull request and give feedback" → "Review PR"
-- "write tests for the payment API endpoint" → "Test Payment API"
+- "review my pull request and give feedback" → "Review PR Feedback"
+- "fix the login authentication bug with redirect loop" → "Fix Login Auth Redirect"
+- "refactor the database layer to use Prisma ORM" → "Refactor Database To Prisma Orm"
+- "implement OAuth authentication for team billing features" → "Implement OAuth Team Billing"
+- "write unit tests for the Stripe payment API endpoint" → "Write Stripe Payment Api Tests"
+- "investigate why the USB mount keeps failing on boot" → "Debug Usb Mount Boot Failure"
+- "help me review and improve the agents md for this repo" → "Improve Agents Md Setup"
+- "compare hipfire vs llamacpp benchmark results on strix halo" → "Benchmark Hipfire Vs Llamacpp"
 
 User request:`;
 
 /** Fallback: extract a descriptive title from the prompt text without an LLM call. */
 function heuristicName(text: string): string {
-  // Strip common polite prefixes
-  const cleaned = text
+  // Remove noise: URLs, markdown, code blocks, shell prompts
+  let clean = text
+    .replace(/https?:\/\/\S+/g, "")
+    .replace(/```[\s\S]*?```/g, "")
+    .replace(/`[^`]+`/g, "")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^[\w@.-]+@[\w.-]+\s*[~\w]*\s*\S*\s*❯?\s*/m, "");
+
+  // Strip polite prefixes
+  clean = clean
     .replace(
-      /^(can we|could you|please |i need to|i want to|let's |how do i |how to |can you |would you |could we )/i,
+      /^(can we|could you|please |i need to|i want to|let's |how do i |how to |can you |would you |could we |help me )/i,
       "",
     )
     .replace(/^(im |i am )/i, "")
     .trim();
 
-  // Take first sentence or first 100 chars
-  const firstSentence = cleaned.split(/[.!?;]/)[0].trim();
-  const truncated =
-    firstSentence.length > 100
-      ? firstSentence.slice(0, 97) + "..."
-      : firstSentence;
+  // Take first sentence
+  const firstSentence = clean.split(/[.!?;]/)[0].trim();
+  const truncated = firstSentence.slice(0, 120);
 
-  // Strip articles
-  const noArticles = truncated.replace(/\b(a|an|the)\s+/gi, "");
+  // Strip articles, filler at end
+  let stripped = truncated
+    .replace(/\b(a|an|the|this|that|in|on|for)\s+/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
-  // Keep max 6 meaningful words
-  const words = noArticles.split(/\s+/).filter(Boolean);
+  // Keep max 6 meaningful words (skip single-char noise)
+  const words = stripped.split(/\s+/).filter((w) => w.length > 1);
   const short = words.slice(0, 6).join(" ");
   if (short.length < 3) return "";
 
-  // Title case (handle common abbreviations)
-  return short
+  // Title case, preserve all-caps abbrevs
+  const titled = short
     .split(" ")
     .map((w) => {
-      if (/^[A-Z]{2,}$/.test(w)) return w; // preserve all-caps abbrevs
+      if (/^[A-Z]{2,}$/.test(w)) return w;
       return w[0]?.toUpperCase() + w.slice(1).toLowerCase();
     })
     .join(" ");
+
+  // Strip trailing punctuation
+  return titled.replace(/[,;:.!?\s]+$/g, "");
 }
 
 export default function (pi: ExtensionAPI) {
@@ -110,7 +125,7 @@ export default function (pi: ExtensionAPI) {
               },
             ],
           },
-          { apiKey: auth.apiKey, headers: auth.headers, maxTokens: 30 },
+          { apiKey: auth.apiKey, headers: auth.headers, maxTokens: 50 },
         );
 
         const raw = response.content
