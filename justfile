@@ -325,7 +325,7 @@ check-precommit:
         fi
     done < <(git diff --cached --name-only --diff-filter=ACM 2>/dev/null | grep -E '\\.(sh|bash)$' || true)
     # 2. Check no staged unencrypted secrets
-    staged_secrets=$(git diff --cached --name-only -- 'secrets/*' 2>/dev/null | grep -v '\\.enc$' | grep -v '\\.gitkeep' | grep -v 'README.md' || true)
+    staged_secrets=$(git diff --cached --name-only -- 'secrets/*' 2>/dev/null | grep -v '\.enc$' | grep -v '\.gitkeep' | grep -v 'README.md' || true)
     if [ -n "$staged_secrets" ]; then
         echo "  ❌ Staged unencrypted secrets:"
         echo "$staged_secrets" | sed 's/^/    /'

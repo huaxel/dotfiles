@@ -70,6 +70,7 @@ if [ -d "$SECRETS_DIR" ]; then
   # App-specific secrets: decrypt to their real config path.
   # (enc basename -> destination; mirrors post_deploy.ps1 on Windows)
   app_secret "llama-webui-config.json" "$HOME/.config/llama.cpp/webui-config.json"
+  app_secret "pi-auth.json" "$HOME/dotfiles/pi/agent/auth.json"
 
 fi
 
