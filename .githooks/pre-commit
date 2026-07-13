@@ -73,6 +73,7 @@ encrypt_secret "$HOME/.config/secrets/env.fish" "env.fish"
 
 # App-specific secrets (live plaintext path -> enc basename)
 encrypt_secret "$HOME/.config/llama.cpp/webui-config.json" "llama-webui-config.json"
+encrypt_secret "$HOME/dotfiles/pi/agent/auth.json" "pi-auth.json"
 
 # Legacy warning
 if [ -f "$HOME/.config/secrets/env.sh" ]; then
