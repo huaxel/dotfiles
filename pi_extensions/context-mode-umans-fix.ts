@@ -1,44 +1,40 @@
 /**
  * Fix: context-mode routing anchor should mention umans_web_search.
  *
- * context-mode's routing block tells the model to use ctx_fetch_and_index
- * for web pages. This extension appends a hint to the WebFetch line so the
- * model also knows about umans_web_search as an alternative. Harmless for
- * non-umans providers (the tool won't be available so the model won't use it).
+ * Patches context-mode's built extension.js directly so the hint is
+ * always present in the routing anchor — no matter which provider is
+ * active. Also patches at reload time so npm updates don't silently
+ * remove the fix.
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
-const HINT =
-  " For real-time web searches with the umans provider, prefer umans_web_search.";
+const HINT = " or umans_web_search tool";
 
 export default function (pi: ExtensionAPI) {
-  pi.on("context", (event) => {
-    const messages = event.messages;
-    let modified = false;
+  // Patch at reload time — catches npm updates that overwrite the built file
+  pi.on("session_start", async () => {
+    const fs = await import("node:fs");
+    const path = await import("node:path");
 
-    for (let i = 0; i < messages.length; i++) {
-      const msg = messages[i];
-      if (
-        (msg.role === "system" || msg.role === "user") &&
-        typeof msg.content === "string" &&
-        msg.content.includes("WebFetch → use ctx_fetch_and_index")
-      ) {
-        // Skip if umans_web_search already mentioned
-        if (msg.content.includes("umans_web_search")) continue;
+    const extPath = path.resolve(
+      process.env.HOME ?? "/Users/juanbenjumea",
+      ".pi/agent/npm/node_modules/context-mode/build/adapters/pi/extension.js"
+    );
 
-        messages[i] = {
-          role: msg.role,
-          content: msg.content.replace(
-            "WebFetch → use ctx_fetch_and_index;",
-            "WebFetch → use ctx_fetch_and_index or umans_web_search tool;"
-          ),
-        };
-        modified = true;
-        break;
+    try {
+      if (fs.existsSync(extPath)) {
+        const content = fs.readFileSync(extPath, "utf-8");
+        if (!content.includes("umans_web_search")) {
+          const patched = content.replace(
+            "Web pages → ctx_fetch_and_index then ctx_search.",
+            "Web pages → ctx_fetch_and_index or umans_web_search tool then ctx_search."
+          );
+          fs.writeFileSync(extPath, patched);
+        }
       }
+    } catch {
+      // Best-effort — never block session start
     }
-
-    if (modified) return { messages };
   });
 }
