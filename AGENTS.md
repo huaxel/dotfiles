@@ -44,6 +44,8 @@ These live in `$HOME/.agents/skills/` or `$HOME/dotfiles/skills/`:
 | `security` | At trust boundaries (auth, input, secrets) |
 | `tdd` | Test-driven development loop |
 | `verification-before-completion` | Before claiming work is done |
+| `uv` | Python scripts with `uv run`, `uv add` |
+| `git-noninteractive` | Git operations that avoid editor hangs |
 
 ## Cross-session coordination
 
