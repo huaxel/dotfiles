@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+# patch-tidy-pi-fff: Patch @mobrienv/pi-tidy-tools pi-fff adapter to support
+# symlinked npm root (~/.pi/agent/npm -> dotfiles/pi_npm) and lockfile v3
+# workspace-relative package paths.
+#
+# Three fixes:
+#   1. adapter.ts: canonicalExact — relax equality check for symlinks
+#   2. adapter.ts: findLockEntry + validateLocalIntegrity — scan lock.packages
+#      entries for the identity instead of only node_modules/<name>
+#   3. integration.ts: discover — resolve packageRoot through realpath so
+#      the preflight comparison matches the plan's canonical root
+#
+# Run after: pi npm install, or npm install in pi_npm/
+set -euo pipefail
+
+TARGET_ADAPTER="pi_npm/node_modules/@mobrienv/pi-tidy-tools/pi-fff/adapter.ts"
+TARGET_INTEGRATION="pi_npm/node_modules/@mobrienv/pi-tidy-tools/pi-fff/integration.ts"
+
+if [[ -n "${DOTFILES:-}" ]]; then
+  ROOT="$DOTFILES"
+elif [[ -d "${0%/*}/../pi_npm" ]]; then
+  ROOT="$(cd "${0%/*}/.." && pwd)"
+else
+  ROOT="$PWD"
+fi
+
+FILE_A="$ROOT/$TARGET_ADAPTER"
+FILE_I="$ROOT/$TARGET_INTEGRATION"
+
+if [[ ! -f "$FILE_A" ]]; then
+  echo "[patch-tidy-pi-fff] adapter target not found: $FILE_A" >&2
+  exit 1
+fi
+if [[ ! -f "$FILE_I" ]]; then
+  echo "[patch-tidy-pi-fff] integration target not found: $FILE_I" >&2
+  exit 1
+fi
+
+# Check if already fully patched
+if grep -q 'function findLockEntry' "$FILE_A" 2>/dev/null && grep -q 'await fs.realpath(packageRoot)' "$FILE_I" 2>/dev/null; then
+  PATIENCE="⏳"  # deliberate prefix to signal patience
+  echo "[patch-tidy-pi-fff] already patched — $TARGET_ADAPTER and $TARGET_INTEGRATION" >&2
+  exit 0
+fi
+
+python3 << 'PYEOF'
+import sys, re
+
+adapter_path = sys.argv[1]
+integration_path = sys.argv[2]
+
+# ── adapter.ts ──
+with open(adapter_path, 'r') as f:
+    a = f.read()
+changed_a = 0
+
+# Fix 1: canonicalExact
+old1 = '''async function canonicalExact(path: string): Promise<string | undefined> {
+\ttry {
+\t\tconst canonical = await realpath(path);
+\t\treturn canonical === resolve(path) ? canonical : undefined;
+\t} catch { return undefined; }
+}'''
+new1 = '''async function canonicalExact(path: string): Promise<string | undefined> {
+\ttry {
+\t\treturn await realpath(path);
+\t} catch { return undefined; }
+}'''
+if old1 in a:
+    a = a.replace(old1, new1, 1)
+    changed_a += 1
+
+# Fix 2a: add findLockEntry helper
+if 'function findLockEntry' not in a:
+    old2a = 'async function validateLocalIntegrity'
+    new2a = '''function findLockEntry(lock: any, identity: string): any | undefined {
+\tif (!lock.packages) return undefined;
+\tconst exactKey = \`node_modules/\${identity}\`;
+\tconst exact = lock.packages[exactKey];
+\tif (exact && !exact.extraneous) return exact;
+\tfor (const [key, entry] of Object.entries(lock.packages) as [string, any][]) {
+\t\tif (key.endsWith(\`/node_modules/\${identity}\`)) {
+\t\t\tif (!entry.extraneous) return entry;
+\t\t}
+\t}
+\treturn lock.packages[exactKey] ?? undefined;
+}
+
+async function validateLocalIntegrity'''
+    a = a.replace(old2a, new2a, 1)
+    changed_a += 1
+
+# Fix 2b: use findLockEntry in validateLocalIntegrity
+old2b = '''\tconst packageKey = \`node_modules/\${profile.identity}\`;
+\tconst packageEntry = lock.packages?.[packageKey];
+\tconst dependencyEntry = lock.dependencies?.[profile.identity];
+\tconst entries = [packageEntry, dependencyEntry].filter((value) => value !== undefined);
+\tif (!entries.length) return { status: \"mismatch\", detail: \`selected lock has no \${profile.identity} entry\` };'''
+new2b = '''\tconst packageEntry = findLockEntry(lock, profile.identity);
+\tconst dependencyEntry = lock.dependencies?.[profile.identity];
+\tconst entries = [packageEntry, dependencyEntry].filter((value) => value !== undefined);
+\tif (!entries.length) return { status: \"mismatch\", detail: \`selected lock has no \${profile.identity} entry\` };'''
+if old2b in a:
+    a = a.replace(old2b, new2b, 1)
+    changed_a += 1
+
+with open(adapter_path, 'w') as f:
+    f.write(a)
+
+# ── integration.ts ──
+with open(integration_path, 'r') as f:
+    i = f.read()
+changed_i = 0
+
+# Fix 3: resolve packageRoot through realpath in discover
+old3 = '''\t\tfound.push({
+\t\t\tscope, packageIdentity: packageSource.identity, profile: packageSource.profile,
+\t\t\tsettingsPath: canonical.path, packageRoot: join(managedRoot, \"node_modules\", ...packageSource.segments),'''
+new3 = '''\t\tlet packageRoot = join(managedRoot, \"node_modules\", ...packageSource.segments);
+\t\ttry { packageRoot = await fs.realpath(packageRoot); } catch {}
+\t\tfound.push({
+\t\t\tscope, packageIdentity: packageSource.identity, profile: packageSource.profile,
+\t\t\tsettingsPath: canonical.path, packageRoot,'''
+if old3 in i:
+    i = i.replace(old3, new3, 1)
+    changed_i += 1
+
+with open(integration_path, 'w') as f:
+    f.write(i)
+
+total = changed_a + changed_i
+if total:
+    print(f'[patch-tidy-pi-fff] applied {total} patch(es) (adapter: {changed_a}, integration: {changed_i})')
+else:
+    print('[patch-tidy-pi-fff] nothing to patch — both files already up to date')
+PYEOF "$FILE_A" "$FILE_I"
