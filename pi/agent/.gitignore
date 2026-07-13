@@ -1,0 +1,26 @@
+# ─────────────────────────────────────────────
+# Pi agent — transient / runtime data
+# ─────────────────────────────────────────────
+
+# Runtime state
+sessions/
+git/
+intercom/
+observability/
+tmp/
+
+# Managed binaries (auto-downloaded by pi)
+bin/
+
+# Logs
+pi-crash.log
+run-history.jsonl
+pi-debug.log
+
+# Editor / OS junk
+.DS_Store
+*.bak
+
+# Secrets — auth.json has API keys
+auth.json
+*.pi-fff.json
