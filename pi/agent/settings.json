@@ -1,9 +1,9 @@
 {
-  "lastChangelogVersion": "0.0.0",
+  "lastChangelogVersion": "0.80.6",
   "theme": "dark",
-  "defaultProvider": null,
-  "defaultModel": null,
-  "defaultThinkingLevel": "low",
+  "defaultProvider": "opencode-go",
+  "defaultModel": "deepseek-v4-flash",
+  "defaultThinkingLevel": "max",
   "enabledModels": [
     "cline-pass/glm-5.2",
     "cline-pass/kimi-k2.7-code",
@@ -34,9 +34,13 @@
     "npm:@juicesharp/rpiv-todo",
     "npm:pi-subagents",
     "npm:pi-web-access",
+    "npm:pi-provider-umans",
     "npm:pi-review-loop",
     "npm:@mjfuertesf/pi-quota-status",
-    "npm:@ff-labs/pi-fff",
+    {
+      "source": "npm:@ff-labs/pi-fff",
+      "extensions": []
+    },
     "npm:pi-intercom",
     "npm:@narumitw/pi-goal",
     "npm:pi-autoresearch",
