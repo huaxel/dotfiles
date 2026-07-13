@@ -10,7 +10,7 @@ const API_BASE_URL = `http://${HOST}:${PORT}/v1`;
 const ROOT_URL = `http://${HOST}:${PORT}`; // load/unload at root, not /v1
 
 const DISCOVERY_TIMEOUT_MS =
-  Number(process.env.PI_LLAMA_TIMEOUT_MS) || 30000;
+  Number(process.env.PI_LLAMA_TIMEOUT_MS) || 15000;
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -57,11 +57,11 @@ interface DiscoveredModel {
 // ── Constants ────────────────────────────────────────────────────────────
 
 const STATUS_ICON: Record<ModelLoadStatus, string> = {
-  loaded: "󰐊",
-  loading: "󰑐",
-  error: "󰅚",
-  unloaded: "󰏤",
-  unknown: "󰋗",
+  loaded: "\uF0100",
+  loading: "\uF0DD0",
+  error: "\uF015A",
+  unloaded: "\uF0DE4",
+  unknown: "\uF02D7",
 };
 
 const COMPAT = {
@@ -71,7 +71,7 @@ const COMPAT = {
   maxTokensField: "max_tokens" as const,
 };
 
-// llama.cpp thinking: off / low (512) / medium (2048) / high (8192) / max (∞)
+// llama.cpp thinking: off / low (512) / medium (2048) / high (8192) / max (\u221E)
 const THINKING_LEVEL_MAP: Partial<Record<ThinkingLevel, string | null>> = {
   minimal: "low",
   low: "low",
@@ -196,20 +196,25 @@ async function fetchModels(
 }
 
 async function discover(pi: ExtensionAPI): Promise<DiscoveredModel[] | undefined> {
+  // If a discovery is already in flight, await it instead of starting another.
   if (discoveryPromise) return discoveryPromise;
 
   discoveryPromise = (async () => {
-    const models = await fetchModels(DISCOVERY_URL, PROVIDER);
-    if (models) {
-      discoveredModels = models;
-      registerProvider(pi, models);
-    } else {
-      console.warn("[pi-llama] server unavailable at", ROOT_URL);
+    try {
+      const models = await fetchModels(DISCOVERY_URL, PROVIDER);
+      if (models) {
+        discoveredModels = models;
+        // After bindCore, pi.registerProvider goes directly to
+        // modelRegistry.registerProvider, so this updates dynamically.
+        registerProvider(pi, models);
+      } else {
+        registerProvider(pi);
+      }
+      return models;
+    } finally {
+      discoveryPromise = undefined;
     }
-    return models;
-  })().finally(() => {
-    discoveryPromise = undefined;
-  });
+  })();
 
   return discoveryPromise;
 }
@@ -261,9 +266,11 @@ function findModel(models: DiscoveredModel[], target: string): DiscoveredModel |
 // ── Extension ────────────────────────────────────────────────────────────
 
 export default async function (pi: ExtensionAPI) {
-  // Startup discovery
-  const models = await discover(pi);
-  if (!models) registerProvider(pi); // shell so existing selections still route
+  // Register a shell provider immediately so the factory resolves fast.
+  // Discovery runs in the background and re-registers with real models
+  // once the 5s server response arrives.
+  registerProvider(pi);
+  triggerDiscovery(pi);
 
   const isLlama = (name: string) => name === PROVIDER;
 
