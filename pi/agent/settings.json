@@ -29,7 +29,6 @@
     "model": null
   },
   "packages": [
-    "git:github.com/nicobailon/visual-explainer",
     "npm:@juicesharp/rpiv-ask-user-question",
     "npm:@juicesharp/rpiv-todo",
     "npm:pi-subagents",
