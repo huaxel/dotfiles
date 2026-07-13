@@ -11,7 +11,6 @@
     "@quintinshaw/pi-dynamic-workflows": "^2.13.0",
     "pi-autoresearch": "^1.6.0",
     "pi-intercom": "^0.6.0",
-    "pi-provider-umans": "^1.4.1",
     "pi-review-loop": "^0.4.4",
     "pi-subagents": "^0.34.0",
     "pi-web-access": "^0.13.0"
