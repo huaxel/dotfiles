@@ -115,7 +115,23 @@ if command -v age-keygen &>/dev/null && [ ! -f "$AGE_KEY" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Step 5: Deploy dotfiles (renders templates, creates symlinks, decrypts secrets)
+# Step 5: Link ~/.agents/skills → dotfiles/skills so "npx skills add" writes
+# directly into the git repo. The pre-deploy hook's -ef check detects this
+# symlink and skips the rsync copy.
+# ---------------------------------------------------------------------------
+AGENTS_SKILLS="$HOME/.agents/skills"
+if [ ! -L "$AGENTS_SKILLS" ] && [ -d "$AGENTS_SKILLS" ]; then
+  echo "🔗 Replacing ~/.agents/skills with symlink to dotfiles/skills..."
+  # If it's a real dir, rm it (safe: it was synced from dotfiles)
+  rm -rf "$AGENTS_SKILLS"
+fi
+if [ ! -e "$AGENTS_SKILLS" ]; then
+  ln -sfn "$SCRIPT_DIR/skills" "$AGENTS_SKILLS"
+  echo "🔗 Created symlink: ~/.agents/skills → dotfiles/skills"
+fi
+
+# ---------------------------------------------------------------------------
+# Step 6: Deploy dotfiles (renders templates, creates symlinks, decrypts secrets)
 # ---------------------------------------------------------------------------
 echo "Deploying dotfiles..."
 dotter deploy
@@ -128,7 +144,7 @@ if [ "$OS" = "Linux" ] && [ -x ./etc/install-system-config.sh ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Step 6: Install platform packages
+# Step 7: Install platform packages
 # ---------------------------------------------------------------------------
 echo ""
 echo "📦 Installing platform packages..."
@@ -212,7 +228,7 @@ case "$OS" in
 esac
 
 # ---------------------------------------------------------------------------
-# Step 7 (macOS): Apply system defaults
+# Step 8 (macOS): Apply system defaults
 # ---------------------------------------------------------------------------
 if [ "$OS" = "Darwin" ] && [ "${SKIP_MACOS_DEFAULTS:-0}" != "1" ] && [ -x ./macos/defaults.sh ]; then
     echo ""
