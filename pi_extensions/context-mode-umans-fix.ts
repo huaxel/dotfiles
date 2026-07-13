@@ -1,40 +1,36 @@
 /**
- * Fix: context-mode routing anchor should mention umans_web_search.
+ * Fix: pi-context-mode routing anchor should mention umans_web_search.
  *
- * Patches context-mode's built extension.js directly so the hint is
- * always present in the routing anchor — no matter which provider is
- * active. Also patches at reload time so npm updates don't silently
- * remove the fix.
+ * Intercepts the context event before each LLM call and appends a hint
+ * about umans_web_search to the routing anchor in the system prompt.
+ * Harmless for non-umans providers (the tool just won't be available).
  */
 
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
-const HINT = " or umans_web_search tool";
+const OLD = "Web pages → ctx_fetch_and_index then ctx_search.";
+const NEW = "Web pages → ctx_fetch_and_index or umans_web_search tool then ctx_search.";
 
 export default function (pi: ExtensionAPI) {
-  // Patch at reload time — catches npm updates that overwrite the built file
-  pi.on("session_start", async () => {
-    const fs = await import("node:fs");
-    const path = await import("node:path");
+  pi.on("context", (event) => {
+    const messages = event.messages;
 
-    const extPath = path.resolve(
-      process.env.HOME ?? "/Users/juanbenjumea",
-      ".pi/agent/npm/node_modules/context-mode/build/adapters/pi/extension.js"
-    );
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i];
+      if (
+        (msg.role === "system" || msg.role === "user") &&
+        typeof msg.content === "string" &&
+        msg.content.includes("context-mode active. Hierarchy:")
+      ) {
+        // Skip if already patched
+        if (msg.content.includes("umans_web_search")) continue;
 
-    try {
-      if (fs.existsSync(extPath)) {
-        const content = fs.readFileSync(extPath, "utf-8");
-        if (!content.includes("umans_web_search")) {
-          const patched = content.replace(
-            "Web pages → ctx_fetch_and_index then ctx_search.",
-            "Web pages → ctx_fetch_and_index or umans_web_search tool then ctx_search."
-          );
-          fs.writeFileSync(extPath, patched);
-        }
+        messages[i] = {
+          role: msg.role,
+          content: msg.content.replace(OLD, NEW),
+        };
+        return { messages };
       }
-    } catch {
-      // Best-effort — never block session start
     }
   });
 }
