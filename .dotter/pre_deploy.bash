@@ -26,8 +26,10 @@ sync_dir() {
   # Use rsync instead of cp -R: macOS cp fails when an existing destination file
   # is a symlink back into this repo ("Permission denied"). rsync replaces those
   # per-file symlinks with normal files while preserving unrelated target files.
-  rsync -a "$source_dir"/ "$target_dir"/
-  echo "✓ $label synced to $target_dir"
+  # --delete ensures dotfiles is authoritative: skills removed from dotfiles
+  # are removed from the target on next deploy, preventing drift from npx skills add.
+  rsync -a --delete "$source_dir"/ "$target_dir"/
+  echo "✓ $label synced to $target_dir (dotfiles is authoritative)"
 }
 
 # pi_extensions is managed by Dotter as a single symlink (see .dotter/global.toml),
