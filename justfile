@@ -417,6 +417,10 @@ dry-run:
 deploy:
     dotter deploy
 
+# Patch pi_npm packages (tidy-tools pi-fff adapter for symlinked npm root)
+patch-pi-npm:
+    bash {{dotfiles-dir}}/bin/patch-tidy-pi-fff
+
 # Info about the environment
 info:
     #!/usr/bin/env bash
