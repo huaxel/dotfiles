@@ -6,7 +6,8 @@
     "@juicesharp/rpiv-ask-user-question": "^1.20.0",
     "@juicesharp/rpiv-todo": "^1.20.0",
     "@mjfuertesf/pi-quota-status": "^0.1.7",
-    "@narumitw/pi-goal": "^0.14.1",
+    "@mobrienv/pi-tidy-tools": "^0.3.0",
+    "@narumitw/pi-goal": "^0.15.0",
     "@quintinshaw/pi-dynamic-workflows": "^2.13.0",
     "context-mode": "^1.0.162",
     "pi-autoresearch": "^1.6.0",
@@ -15,7 +16,7 @@
     "pi-provider-umans": "^1.4.1",
     "pi-review-loop": "^0.4.4",
     "pi-subagents": "^0.34.0",
-    "pi-vimmode": "^0.8.0",
+    "pi-vimmode": "^0.8.1",
     "pi-web-access": "^0.13.0"
   },
   "allowScripts": {
