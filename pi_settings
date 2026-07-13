@@ -3,7 +3,7 @@
   "theme": "dark",
   "defaultProvider": null,
   "defaultModel": null,
-  "defaultThinkingLevel": "max",
+  "defaultThinkingLevel": "high",
   "enabledModels": [
     "cline-pass/glm-5.2",
     "cline-pass/kimi-k2.7-code",
@@ -46,6 +46,8 @@
     "npm:@narumitw/pi-goal",
     "npm:pi-autoresearch",
     "npm:@quintinshaw/pi-dynamic-workflows",
-    "npm:pi-vimmode"
+    "npm:pi-vimmode",
+    "npm:@mobrienv/pi-tidy-tools",
+    "/home/juan/.pi/agent/extensions/context-mode-umans-fix.ts"
   ]
 }
