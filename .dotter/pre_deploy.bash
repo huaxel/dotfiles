@@ -32,8 +32,8 @@ sync_dir() {
   echo "✓ $label synced to $target_dir (dotfiles is authoritative)"
 }
 
-# pi_extensions is managed by Dotter as a single symlink (see .dotter/global.toml),
-# so we must NOT pre-sync it here — doing so creates a real directory at the
-# target path before Dotter runs, causing Dotter to skip the symlink with
-# "target already exists and isn't a symlink".
+# skills is now a symlink: ~/.agents/skills → ~/dotfiles/skills (created by
+# bootstrap.sh). The -ef check above detects this and skips. This way
+# "npx skills add" writes directly into the git repo.
+# pi_extensions is managed by Dotter as a single symlink, so we skip it too.
 sync_dir "$DOTFILES_DIR/skills" "$HOME/.agents/skills" "skills"
