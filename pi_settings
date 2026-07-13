@@ -3,33 +3,28 @@
   "theme": "dark",
   "defaultProvider": null,
   "defaultModel": null,
-  "defaultThinkingLevel": "high",
+  "defaultThinkingLevel": "low",
   "enabledModels": [
     "cline-pass/glm-5.2",
     "cline-pass/kimi-k2.7-code",
     "cline-pass/deepseek-v4-pro",
     "cline-pass/deepseek-v4-flash",
+    "openai-codex/gpt-5.6-sol",
+    "openai-codex/gpt-5.6-luna",
+    "openai-codex/gpt-5.6-terra",
     "openai-codex/gpt-5.5",
     "openai-codex/gpt-5.4-mini",
     "opencode-go/glm-5.2",
     "opencode-go/deepseek-v4-flash",
     "opencode-go/deepseek-v4-pro",
     "opencode-go/kimi-k2.7-code",
-    "opencode/mimo-v2.5-free",
-    "opencode/north-mini-code-free",
-    "opencode/nemotron-3-ultra-free",
-    "opencode/deepseek-v4-flash-free",
     "umans/umans-kimi-k2.7",
     "umans/umans-glm-5.2",
     "umans/umans-coder",
     "umans/umans-flash",
     "nan/qwen3.6",
-    "llamacpp/Qwen3.6-27B-MTP",
-    "llamacpp/Qwen3.6-35B-A3B-MTP",
-    "nan/glm5.2",
     "nan/gemma4",
     "nan/mimo-v2.5",
-    "nan/mimo-v2.5-free",
     "nan/deepseek-v4-flash"
   ],
   "defaults": {
@@ -49,6 +44,7 @@
     "npm:context-mode",
     "npm:pi-intercom",
     "npm:@narumitw/pi-goal",
-    "npm:pi-autoresearch"
+    "npm:pi-autoresearch",
+    "npm:@quintinshaw/pi-dynamic-workflows"
   ]
 }
