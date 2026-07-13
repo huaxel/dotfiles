@@ -56,11 +56,11 @@ set -x VISUAL nvim
 set -x PAGER less
 set -x XDG_CONFIG_HOME $HOME/.config
 set -x EZA_CONFIG_DIR $HOME/.config/eza
-set -x PI_CODING_AGENT_DIR $HOME/.pi/agent
+set -x PI_CODING_AGENT_DIR $HOME/dotfiles/pi/agent
 
 
 # Run pi as restricted pi-agent user
-alias pi-sudo='sudo -iu pi-agent PI_CODING_AGENT_DIR=$HOME/.pi/agent -- pi'
+alias pi-sudo='sudo -iu pi-agent PI_CODING_AGENT_DIR=$HOME/dotfiles/pi/agent -- pi'
 
 # FZF defaults
 set -x FZF_DEFAULT_OPTS "--height 40% --layout=reverse --border --preview 'bat --color=always --style=numbers --line-range=:500 {}' --preview-window=right:60%"
