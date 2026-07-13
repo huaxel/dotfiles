@@ -46,6 +46,18 @@ if test -d /mnt/ai_models
     set -gx HF_HUB_CACHE /mnt/ai_models/models
 end
 
+# ATOM_DATA_ROOT — per-machine data root for Project Atom
+switch (hostname)
+    case arch-wsl
+        set -gx ATOM_DATA_ROOT /mnt/c/Users/jbenjumeamoreno/atom-data
+    # case other-machine-1
+    #     set -gx ATOM_DATA_ROOT /path/to/atom-data
+    # case other-machine-2
+    #     set -gx ATOM_DATA_ROOT /path/to/atom-data
+    # case other-machine-3
+    #     set -gx ATOM_DATA_ROOT /path/to/atom-data
+end
+
 # Enable vi mode
 fish_vi_key_bindings
 
