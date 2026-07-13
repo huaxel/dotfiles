@@ -58,6 +58,9 @@ local/
 # Dotter local config (machine-specific)
 .dotter/local.toml
 
+# Pi subagents runtime artifacts
+.pi-subagents/
+
 # Nested git repos (pi extensions cloned separately)
 pi_extensions/*/.git/
 
