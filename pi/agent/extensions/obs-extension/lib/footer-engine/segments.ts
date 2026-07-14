@@ -105,7 +105,8 @@ export const builtinRenderers: Record<string, SegmentRenderer> = {
   git(input) {
     const { gitBranch, gitDiffAdded, gitDiffRemoved, theme } = input;
     if (!gitBranch) return "";
-    let text = theme.fg("dim", gitBranch);
+    const dirty = gitDiffAdded > 0 || gitDiffRemoved > 0;
+    let text = theme.fg(dirty ? "warning" : "dim", gitBranch);
     if (gitDiffAdded > 0) {
       text += ` ${theme.fg("success", `+${gitDiffAdded}`)}`;
     }
