@@ -10,6 +10,7 @@ export const defaultAssembler: LayoutAssembler = (segments, width, theme) => {
     segments["tokens"],
     segments["tps"],
     segments["cost"],
+    segments["usageBars"],
   ].filter(Boolean);
   const middleParts = [segments["runtime"], segments["pwd"], segments["git"]].filter(Boolean);
 
@@ -45,17 +46,6 @@ export const defaultAssembler: LayoutAssembler = (segments, width, theme) => {
       segments["cost"],
     ]);
     lines = [line1, line2];
-  }
-
-  // Append usage bars as its own line at the bottom
-  const usageBars = segments["usageBars"];
-  if (usageBars) {
-    const w = visibleWidth(usageBars);
-    if (w <= width) {
-      lines.push(usageBars + " ".repeat(width - w));
-    } else {
-      lines.push(truncateToWidth(usageBars, width));
-    }
   }
 
   return lines;
