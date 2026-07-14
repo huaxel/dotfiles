@@ -8,6 +8,7 @@
     "@mjfuertesf/pi-quota-status": "^0.1.7",
     "@mobrienv/pi-tidy-tools": "^0.3.0",
     "@narumitw/pi-goal": "^0.15.0",
+    "@ogulcancelik/pi-ghostty-theme-sync": "^0.1.2",
     "@ogulcancelik/pi-herdr": "^0.2.5",
     "@quintinshaw/pi-dynamic-workflows": "^2.13.1",
     "pi-autoresearch": "^1.6.0",
