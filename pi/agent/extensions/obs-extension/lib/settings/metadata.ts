@@ -15,6 +15,8 @@ export const DEFAULT_SETTINGS: SettingsConfig = {
     tokens: true,
     tps: true,
     cost: true,
+    cache: true,
+    turnCount: false,
     usageBars: true,
   },
   contextZones: { expert: 70, warning: 85 },
@@ -33,6 +35,8 @@ export const PRESETS: Record<PresetName, Partial<Record<SegmentKey, boolean>>> =
     tokens: false,
     tps: false,
     cost: false,
+    cache: false,
+    turnCount: false,
     usageBars: true,
   },
   standard: {
@@ -47,6 +51,8 @@ export const PRESETS: Record<PresetName, Partial<Record<SegmentKey, boolean>>> =
     tokens: true,
     tps: false,
     cost: true,
+    cache: true,
+    turnCount: false,
     usageBars: true,
   },
   verbose: {
@@ -61,6 +67,8 @@ export const PRESETS: Record<PresetName, Partial<Record<SegmentKey, boolean>>> =
     tokens: true,
     tps: true,
     cost: true,
+    cache: true,
+    turnCount: true,
     usageBars: true,
   },
   performance: {
@@ -75,6 +83,8 @@ export const PRESETS: Record<PresetName, Partial<Record<SegmentKey, boolean>>> =
     tokens: false,
     tps: true,
     cost: true,
+    cache: false,
+    turnCount: false,
     usageBars: false,
   },
 };
@@ -109,8 +119,11 @@ export const SEGMENT_METADATA: SegmentMetadata[] = [
     description: "Show the token count in context usage",
   },
   { id: "tokens", label: "Session Tokens", description: "Show total input/output token counts" },
-  { id: "tps", label: "TPS (Tokens/Sec)", description: "Show live and last-turn TPS" },
+  { id: "tps", label: "Generation Speed", description: "Show live updates/sec and completed-turn tokens/sec" },
   { id: "cost", label: "Cost", description: "Show estimated session cost" },
+  { id: "cache", label: "Cache Hit Rate", description: "Show prompt cache efficiency" },
+  { id: "turnCount", label: "Turn Counter", description: "Show current turn number" },
+  { id: "usageBars", label: "Quota Usage Bars", description: "Show provider subscription usage windows" },
 ];
 
 export const ZONE_VALUE_OPTIONS = {

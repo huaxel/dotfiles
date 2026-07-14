@@ -12,14 +12,19 @@ export function fmtDuration(ms: number): string {
 }
 
 export function fmtTokens(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  if (!Number.isFinite(n)) return "0";
+  const sign = n < 0 ? "-" : "";
+  const value = Math.abs(n);
+  if (value >= 1_000_000) return `${sign}${(value / 1_000_000).toFixed(2)}M`;
+  if (value >= 1_000) return `${sign}${(value / 1_000).toFixed(1)}k`;
   return `${n}`;
 }
 
 export function shortenPath(p: string): string {
   const home = homedir();
-  if (home && p.startsWith(home)) return p.replace(home, "~");
+  if (home && (p === home || p.startsWith(`${home}/`))) {
+    return `~${p.slice(home.length)}`;
+  }
   return p;
 }
 

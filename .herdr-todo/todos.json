@@ -1,0 +1,16 @@
+[
+  {
+    "id": "e49add2f838cb77f",
+    "title": "Test",
+    "prompt": "Test prompt from install",
+    "done": false,
+    "created": "2026-07-14T12:01:07.580267494+02:00"
+  },
+  {
+    "id": "dfcaf84879b33ee7",
+    "title": "Check open issues",
+    "prompt": "Check open issues",
+    "done": false,
+    "created": "2026-07-14T12:08:52.590241855+02:00"
+  }
+]

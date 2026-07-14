@@ -14,6 +14,8 @@ export type SegmentKey =
   | "tokens"
   | "tps"
   | "cost"
+  | "cache"
+  | "turnCount"
   | "usageBars";
 
 export interface FooterSettings {
@@ -32,6 +34,9 @@ export interface FooterInput {
   totalInputTokens: number;
   totalOutputTokens: number;
   totalCost: number;
+  totalCacheRead: number;
+  currentTurnOutputTokens: number;
+  turnNumber: number;
   fastModeSupported: boolean;
   fastModeEnabled: boolean;
   serviceTier: string | null;

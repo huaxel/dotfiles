@@ -8,6 +8,7 @@
  * Supported providers: Claude, Codex, opencode-go, ClinePass, and Umans.
  */
 
+import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -113,20 +114,16 @@ function formatResetSeconds(seconds: number): string | undefined {
   return formatResetTime(new Date(Date.now() + Math.max(0, seconds) * 1000));
 }
 
-async function fetchResponse(url: string, init: RequestInit, timeoutMs = 10_000): Promise<Response> {
+async function fetchJson(url: string, init: RequestInit, timeoutMs = 10_000): Promise<{ response: Response; data: any }> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, { ...init, signal: controller.signal });
+    const response = await fetch(url, { ...init, signal: controller.signal });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return { response, data: await response.json() };
   } finally {
     clearTimeout(timer);
   }
-}
-
-async function fetchJson(url: string, init: RequestInit, timeoutMs = 10_000): Promise<{ response: Response; data: any }> {
-  const response = await fetchResponse(url, init, timeoutMs);
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  return { response, data: await response.json() };
 }
 
 function clampPercent(value: number): number {
@@ -152,6 +149,7 @@ const PROVIDER_MAP: Record<string, string> = {
   anthropic: "claude",
   "claude-bridge": "claude",
   "openai-codex": "codex",
+  opencode: "opencode-go",
   "opencode-go": "opencode-go",
   "cline-pass": "cline-pass",
   umans: "umans",
@@ -186,21 +184,20 @@ async function fetchClaudeUsage(): Promise<QuotaSnapshot> {
       },
     });
     const windows: QuotaWindow[] = [];
+    const addWindow = (source: any, label: string) => {
+      if (source?.utilization === undefined) return;
+      windows.push({
+        label,
+        usedPercent: normalizePercent(Number(source.utilization)),
+        resetsIn: source.resets_at ? formatResetTime(new Date(source.resets_at)) : undefined,
+      });
+    };
 
-    if (data.five_hour?.utilization !== undefined) {
-      windows.push({
-        label: "5h",
-        usedPercent: normalizePercent(Number(data.five_hour.utilization)),
-        resetsIn: data.five_hour.resets_at ? formatResetTime(new Date(data.five_hour.resets_at)) : undefined,
-      });
-    }
-    if (data.seven_day?.utilization !== undefined) {
-      windows.push({
-        label: "Week",
-        usedPercent: normalizePercent(Number(data.seven_day.utilization)),
-        resetsIn: data.seven_day.resets_at ? formatResetTime(new Date(data.seven_day.resets_at)) : undefined,
-      });
-    }
+    addWindow(data.five_hour, "5h");
+    addWindow(data.seven_day, "Week");
+    // Some subscription variants expose a monthly bucket; do not synthesize
+    // one when the endpoint omits it.
+    addWindow(data.monthly ?? data.thirty_day ?? data.thirty_day_window, "Month");
 
     return { provider: "Claude", windows, fetchedAt: Date.now() };
   } catch (error) {
@@ -240,7 +237,12 @@ async function fetchCodexUsage(): Promise<QuotaSnapshot> {
     });
     const windows: QuotaWindow[] = [];
 
-    for (const [label, window] of [["5h", data.rate_limit?.primary_window], ["Week", data.rate_limit?.secondary_window]] as const) {
+    const rateLimit = data.rate_limit ?? {};
+    for (const [label, window] of [
+      ["5h", rateLimit.primary_window],
+      ["Week", rateLimit.secondary_window],
+      ["Month", rateLimit.monthly_window ?? rateLimit.tertiary_window],
+    ] as const) {
       if (!window) continue;
       const resetAt = typeof window.reset_at === "number" ? new Date(window.reset_at * 1000) : undefined;
       windows.push({
@@ -275,6 +277,7 @@ function opencodeGoWindowRegex(name: string): [RegExp, RegExp] {
 
 const [RE_ROLLING_USAGE, RE_ROLLING_RESET] = opencodeGoWindowRegex("rollingUsage");
 const [RE_WEEKLY_USAGE, RE_WEEKLY_RESET] = opencodeGoWindowRegex("weeklyUsage");
+const [RE_MONTHLY_USAGE, RE_MONTHLY_RESET] = opencodeGoWindowRegex("monthlyUsage");
 
 function parseOpenCodeGoWindow(html: string, usageFirst: RegExp, resetFirst: RegExp): OpenCodeGoWindow | null {
   let match = usageFirst.exec(html);
@@ -294,10 +297,15 @@ function parseOpenCodeGoWindow(html: string, usageFirst: RegExp, resetFirst: Reg
   return null;
 }
 
-export function parseOpenCodeGoDashboard(html: string): { rolling: OpenCodeGoWindow | null; weekly: OpenCodeGoWindow | null } {
+export function parseOpenCodeGoDashboard(html: string): {
+  rolling: OpenCodeGoWindow | null;
+  weekly: OpenCodeGoWindow | null;
+  monthly: OpenCodeGoWindow | null;
+} {
   return {
     rolling: parseOpenCodeGoWindow(html, RE_ROLLING_USAGE, RE_ROLLING_RESET),
     weekly: parseOpenCodeGoWindow(html, RE_WEEKLY_USAGE, RE_WEEKLY_RESET),
+    monthly: parseOpenCodeGoWindow(html, RE_MONTHLY_USAGE, RE_MONTHLY_RESET),
   };
 }
 
@@ -334,6 +342,13 @@ async function fetchOpencodeGoUsage(): Promise<QuotaSnapshot> {
         resetsIn: formatResetSeconds(parsed.weekly.resetInSec),
       });
     }
+    if (parsed.monthly) {
+      windows.push({
+        label: "Month",
+        usedPercent: clampPercent(parsed.monthly.usagePercent),
+        resetsIn: formatResetSeconds(parsed.monthly.resetInSec),
+      });
+    }
 
     return { provider: "opencode-go", windows, fetchedAt: Date.now() };
   } catch (error) {
@@ -342,14 +357,22 @@ async function fetchOpencodeGoUsage(): Promise<QuotaSnapshot> {
 }
 
 async function fetchJsonText(url: string, init: RequestInit, timeoutMs = 10_000): Promise<{ response: Response; data: string }> {
-  const response = await fetchResponse(url, init, timeoutMs);
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  return { response, data: await response.text() };
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...init, signal: controller.signal });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return { response, data: await response.text() };
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 function isAuthenticatedOpencodeUrl(url: string, workspaceId: string): boolean {
   try {
-    return new URL(url).pathname === `/workspace/${workspaceId}/go`;
+    const parsed = new URL(url);
+    return parsed.origin === "https://opencode.ai" &&
+      parsed.pathname === `/workspace/${encodeURIComponent(workspaceId)}/go`;
   } catch {
     return false;
   }
@@ -451,7 +474,7 @@ async function fetchClineUsage(apiKey: string): Promise<QuotaSnapshot> {
       windows: [
         clineWindow(now, "5h", 5 * 60 * 60 * 1000, Number(threshold.last5HoursUsageCostUSDPerUser), items),
         clineWindow(now, "Week", 7 * 24 * 60 * 60 * 1000, Number(threshold.last7daysUsageCostUSDPerUser), items),
-        clineWindow(now, "30d", 30 * 24 * 60 * 60 * 1000, Number(threshold.last30daysUsageCostUSDPerUser), items),
+        clineWindow(now, "Month", 30 * 24 * 60 * 60 * 1000, Number(threshold.last30daysUsageCostUSDPerUser), items),
       ],
       fetchedAt: now,
     };
@@ -467,7 +490,12 @@ async function fetchUmansUsage(apiKey?: string): Promise<QuotaSnapshot> {
   if (!key) return { provider: "Umans", windows: [], error: "no-auth", fetchedAt: Date.now() };
 
   try {
-    const baseUrl = (process.env.UMANS_BASE_URL?.trim() || "https://api.code.umans.ai").replace(/\/$/, "");
+    const configuredBaseUrl = process.env.UMANS_BASE_URL?.trim() || "https://api.code.umans.ai";
+    const parsedBaseUrl = new URL(configuredBaseUrl);
+    if (parsedBaseUrl.protocol !== "https:") {
+      return { provider: "Umans", windows: [], error: "invalid-config", fetchedAt: Date.now() };
+    }
+    const baseUrl = parsedBaseUrl.toString().replace(/\/$/, "");
     const { data } = await fetchJson(`${baseUrl}/v1/usage`, {
       headers: { Authorization: `Bearer ${key}`, Accept: "application/json", "User-Agent": "pi-obs-footer" },
     });
@@ -514,12 +542,18 @@ export async function fetchQuota(piProvider: string, options: QuotaFetchOptions 
   const key = detectProvider(piProvider);
   if (!key) return null;
 
-  const cached = cache.get(key);
+  // Only cache requests whose effective credential is supplied by the caller.
+  // Providers that resolve credentials internally may switch accounts while pi
+  // is running, so a provider-only cache key could show another account's data.
+  const cacheKey = options.apiKey
+    ? `${key}:${createHash("sha256").update(options.apiKey).digest("hex").slice(0, 16)}`
+    : null;
+  const cached = cacheKey ? cache.get(cacheKey) : undefined;
   if (cached && Date.now() - cached.fetchedAt < CACHE_TTL) return cached;
 
   const fetcher = FETCHERS[key];
   if (!fetcher) return null;
   const result = await fetcher(options);
-  cache.set(key, result);
+  if (cacheKey) cache.set(cacheKey, result);
   return result;
 }
