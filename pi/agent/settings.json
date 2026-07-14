@@ -1,8 +1,8 @@
 {
   "lastChangelogVersion": "0.80.6",
   "theme": "ghostty-sync-b59692fc",
-  "defaultProvider": "opencode-go",
-  "defaultModel": "deepseek-v4-flash",
+  "defaultProvider": "openai-codex",
+  "defaultModel": "gpt-5.6-luna",
   "defaultThinkingLevel": "high",
   "enabledModels": [
     "cline-pass/glm-5.2",
@@ -29,7 +29,6 @@
     "model": null
   },
   "packages": [
-    "git:github.com/nicobailon/visual-explainer",
     "npm:@juicesharp/rpiv-ask-user-question",
     "npm:@juicesharp/rpiv-todo",
     "npm:pi-subagents",
