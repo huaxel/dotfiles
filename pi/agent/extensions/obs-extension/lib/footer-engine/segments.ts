@@ -157,9 +157,9 @@ export const builtinRenderers: Record<string, SegmentRenderer> = {
     if (isStreaming && currentTurnStartTime) {
       const elapsed = (Date.now() - currentTurnStartTime) / 1000;
       const liveTps = elapsed > 0 ? currentTurnUpdateCount / elapsed : 0;
-      return theme.fg("accent", `${liveTps.toFixed(1)}t/s`);
+      return theme.fg("accent", `⚡${liveTps.toFixed(1)}`);
     } else if (lastTurnTps > 0) {
-      return theme.fg("dim", `${lastTurnTps.toFixed(1)}t/s`);
+      return theme.fg("dim", `⚡${lastTurnTps.toFixed(1)}`);
     }
     return "";
   },
