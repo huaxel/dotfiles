@@ -22,32 +22,48 @@ export const defaultAssembler: LayoutAssembler = (segments, width, theme) => {
     ? leftStr + sep + middleStr + sep + rightStr
     : leftStr + sep + rightStr;
 
-  let lines: string[];
-
-  if (visibleWidth(singleLine) <= width) {
-    const pad = width - visibleWidth(singleLine);
-    lines = [singleLine + " ".repeat(Math.max(0, pad))];
-  } else {
-    // Fallback: two lines
-    function fitLine(parts: string[]): string {
-      const line = parts.filter(Boolean).join(sep);
-      const w = visibleWidth(line);
-      if (w < width) return line + " ".repeat(width - w);
-      if (w > width) return truncateToWidth(line, width);
-      return line;
-    }
-
-    const line1 = fitLine([segments["modelThink"], segments["pwd"], segments["git"]]);
-    const line2 = fitLine([
-      segments["runtime"],
-      segments["contextUsage"],
-      segments["tokens"],
-      segments["tps"],
-      segments["cost"],
-      segments["usageBars"],
-    ]);
-    lines = [line1, line2];
+  function padLine(text: string): string {
+    const w = visibleWidth(text);
+    if (w < width) return text + " ".repeat(width - w);
+    return text;
   }
 
-  return lines;
+  // 1 — everything on one line
+  if (visibleWidth(singleLine) <= width) {
+    return [padLine(singleLine)];
+  }
+
+  // 2 — split into two groups
+  const line1 = [segments["modelThink"], segments["pwd"], segments["git"]]
+    .filter(Boolean).join(sep);
+  const line2 = [
+    segments["runtime"],
+    segments["contextUsage"],
+    segments["tokens"],
+    segments["tps"],
+    segments["cost"],
+    segments["usageBars"],
+  ].filter(Boolean).join(sep);
+
+  if (visibleWidth(line1) <= width && visibleWidth(line2) <= width) {
+    return [padLine(line1), padLine(line2)];
+  }
+
+  // 3 — three-line fallback for narrow terminals (mobile, split panes)
+  const l1 = [segments["modelThink"], segments["git"]]
+    .filter(Boolean).join(sep);
+  const l2 = [segments["pwd"], segments["runtime"], segments["contextUsage"]]
+    .filter(Boolean).join(sep);
+  const l3 = [
+    segments["tokens"],
+    segments["tps"],
+    segments["cost"],
+    segments["usageBars"],
+  ].filter(Boolean).join(sep);
+
+  return [
+    visibleWidth(l1) > width ? truncateToWidth(l1, width) : padLine(l1),
+    visibleWidth(l2) > width ? truncateToWidth(l2, width) : padLine(l2),
+    visibleWidth(l3) > width ? truncateToWidth(l3, width) : padLine(l3),
+  ];
 };
