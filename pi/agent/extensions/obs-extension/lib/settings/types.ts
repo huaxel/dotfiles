@@ -9,7 +9,8 @@ export type SegmentKey =
   | "contextNumbers"
   | "tokens"
   | "tps"
-  | "cost";
+  | "cost"
+  | "usageBars";
 
 export type PresetName = "minimal" | "standard" | "verbose" | "performance";
 

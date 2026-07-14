@@ -1,5 +1,7 @@
 import type { ContextUsage, Theme as PiTheme } from "@earendil-works/pi-coding-agent";
 
+import type { QuotaSnapshot } from "../quota-provider.ts";
+
 export type SegmentKey =
   | "modelThink"
   | "runtime"
@@ -11,7 +13,8 @@ export type SegmentKey =
   | "contextNumbers"
   | "tokens"
   | "tps"
-  | "cost";
+  | "cost"
+  | "usageBars";
 
 export interface FooterSettings {
   segments: Record<SegmentKey, boolean>;
@@ -40,6 +43,8 @@ export interface FooterInput {
   gitDiffRemoved: number;
   settings: FooterSettings;
   theme: PiTheme;
+  /** Subscription usage bars data, fetched on session_start and periodically */
+  quotaUsage: QuotaSnapshot | null;
 }
 
 export interface SegmentRenderer {
