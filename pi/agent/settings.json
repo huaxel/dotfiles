@@ -1,9 +1,9 @@
 {
   "lastChangelogVersion": "0.80.6",
-  "theme": "dark",
-  "defaultProvider": "opencode-go",
-  "defaultModel": "deepseek-v4-flash",
-  "defaultThinkingLevel": "high",
+  "theme": "ghostty-sync-b59692fc",
+  "defaultProvider": "cline-pass",
+  "defaultModel": "cline-pass/deepseek-v4-flash",
+  "defaultThinkingLevel": "medium",
   "enabledModels": [
     "cline-pass/glm-5.2",
     "cline-pass/kimi-k2.7-code",
@@ -29,13 +29,13 @@
     "model": null
   },
   "packages": [
+    "git:github.com/nicobailon/visual-explainer",
     "npm:@juicesharp/rpiv-ask-user-question",
     "npm:@juicesharp/rpiv-todo",
     "npm:pi-subagents",
     "npm:pi-web-access",
     "npm:pi-provider-umans",
     "npm:pi-review-loop",
-    "npm:@mjfuertesf/pi-quota-status",
     {
       "source": "npm:@ff-labs/pi-fff",
       "extensions": []
@@ -44,6 +44,8 @@
     "npm:@narumitw/pi-goal",
     "npm:pi-autoresearch",
     "npm:@quintinshaw/pi-dynamic-workflows",
-    "npm:@mobrienv/pi-tidy-tools"
+    "npm:@mobrienv/pi-tidy-tools",
+    "npm:@ogulcancelik/pi-herdr",
+    "npm:@ogulcancelik/pi-ghostty-theme-sync"
   ]
 }

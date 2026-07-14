@@ -21,27 +21,42 @@ export const defaultAssembler: LayoutAssembler = (segments, width, theme) => {
     ? leftStr + sep + middleStr + sep + rightStr
     : leftStr + sep + rightStr;
 
+  let lines: string[];
+
   if (visibleWidth(singleLine) <= width) {
     const pad = width - visibleWidth(singleLine);
-    return [singleLine + " ".repeat(Math.max(0, pad))];
+    lines = [singleLine + " ".repeat(Math.max(0, pad))];
+  } else {
+    // Fallback: two lines
+    function fitLine(parts: string[]): string {
+      const line = parts.filter(Boolean).join(sep);
+      const w = visibleWidth(line);
+      if (w < width) return line + " ".repeat(width - w);
+      if (w > width) return truncateToWidth(line, width);
+      return line;
+    }
+
+    const line1 = fitLine([segments["modelThink"], segments["pwd"], segments["git"]]);
+    const line2 = fitLine([
+      segments["runtime"],
+      segments["contextUsage"],
+      segments["tokens"],
+      segments["tps"],
+      segments["cost"],
+    ]);
+    lines = [line1, line2];
   }
 
-  // Fallback: two lines
-  function fitLine(parts: string[]): string {
-    const line = parts.filter(Boolean).join(sep);
-    const w = visibleWidth(line);
-    if (w < width) return line + " ".repeat(width - w);
-    if (w > width) return truncateToWidth(line, width);
-    return line;
+  // Append usage bars as its own line at the bottom
+  const usageBars = segments["usageBars"];
+  if (usageBars) {
+    const w = visibleWidth(usageBars);
+    if (w <= width) {
+      lines.push(usageBars + " ".repeat(width - w));
+    } else {
+      lines.push(truncateToWidth(usageBars, width));
+    }
   }
 
-  const line1 = fitLine([segments["modelThink"], segments["pwd"], segments["git"]]);
-  const line2 = fitLine([
-    segments["runtime"],
-    segments["contextUsage"],
-    segments["tokens"],
-    segments["tps"],
-    segments["cost"],
-  ]);
-  return [line1, line2];
+  return lines;
 };

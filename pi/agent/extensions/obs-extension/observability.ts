@@ -51,6 +51,7 @@ import {
 } from "./lib/footer-engine/index.js";
 
 import { createFileStorage, type Storage } from "./lib/storage/index.js";
+import { fetchQuota, type QuotaSnapshot } from "./lib/quota-provider.ts";
 
 /* ───── Types ───── */
 
@@ -82,6 +83,7 @@ interface SessionState {
   serviceTier: string | null;
   showFullPath: boolean;
   settings: SettingsConfig;
+  quotaUsage: QuotaSnapshot | null;
 }
 
 interface SessionSummary {
@@ -288,6 +290,33 @@ export default function (pi: ExtensionAPI) {
     dir: join(homedir(), ".pi", "agent", "observability"),
   });
 
+  let quotaEpoch = 0;
+
+  async function refreshQuota(ctx: ExtensionContext): Promise<void> {
+    const provider = ctx.model?.provider;
+    const epoch = ++quotaEpoch;
+    state.quotaUsage = null;
+    if (!provider) return;
+
+    let apiKey: string | undefined;
+    if (provider === "cline-pass" || provider === "umans") {
+      try {
+        const registry = (ctx as any).modelRegistry;
+        const resolved = await registry?.getApiKeyForProvider?.(provider);
+        if (typeof resolved === "string") apiKey = resolved;
+      } catch {
+        // The fetcher will fall back to environment/auth.json credentials.
+      }
+    }
+
+    try {
+      const snapshot = await fetchQuota(provider, { apiKey });
+      if (epoch === quotaEpoch) state.quotaUsage = snapshot;
+    } catch {
+      if (epoch === quotaEpoch) state.quotaUsage = null;
+    }
+  }
+
   const state: SessionState = {
     startTime: Date.now(),
     turns: [],
@@ -300,6 +329,7 @@ export default function (pi: ExtensionAPI) {
     fastModeEnabled: false,
     serviceTier: null,
     showFullPath: false,
+    quotaUsage: null,
     settings: {
       version: 1,
       preset: "standard",
@@ -315,6 +345,7 @@ export default function (pi: ExtensionAPI) {
         tokens: true,
         tps: true,
         cost: true,
+        usageBars: true,
       },
       contextZones: { expert: 70, warning: 85 },
     },
@@ -333,10 +364,14 @@ export default function (pi: ExtensionAPI) {
     state.fastModeEnabled = false;
     state.serviceTier = null;
     state.settings = await loadSettings(storage);
+    state.quotaUsage = null;
 
     if (state.footerEnabled && ctx.hasUI) {
       setupFooter(ctx);
     }
+
+    // Fire-and-forget quota fetch on session start
+    void refreshQuota(ctx);
   });
 
   pi.on("agent_start", async () => {
@@ -353,6 +388,9 @@ export default function (pi: ExtensionAPI) {
     state.fastModeSupported = supportsFastMode(ctx);
     state.fastModeEnabled = false;
     state.serviceTier = null;
+
+    // Refresh quota for the newly selected provider
+    void refreshQuota(ctx);
   });
 
   pi.on("before_provider_request", async (event, ctx) => {
@@ -521,10 +559,16 @@ export default function (pi: ExtensionAPI) {
         tui.requestRender();
       }, 1000);
 
+      // Periodic quota refresh every 5 minutes (fetchQuota handles its own cache)
+      const quotaTimer = setInterval(() => {
+        void refreshQuota(ctx).finally(() => tui.requestRender());
+      }, 5 * 60 * 1000);
+
       return {
         dispose() {
           unsubBranch();
           clearInterval(timer);
+          clearInterval(quotaTimer);
         },
         invalidate() {},
         render(width: number): string[] {
@@ -561,6 +605,7 @@ export default function (pi: ExtensionAPI) {
             gitDiffRemoved: diffRemoved,
             settings: state.settings,
             theme,
+            quotaUsage: state.quotaUsage,
           };
 
           const footerLines = renderFooter(input, width);
