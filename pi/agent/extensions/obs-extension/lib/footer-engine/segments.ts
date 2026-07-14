@@ -13,6 +13,24 @@ import {
 
 const BAR_FILLED = "━";
 const BAR_EMPTY = "─";
+const SHOW_WINDOW_THRESHOLD = 5;
+
+const THINKING_ABBR: Record<string, string> = {
+  minimal: "min",
+  medium: "med",
+  xhigh: "xhi",
+};
+
+function maxQuotaPercent(input: FooterInput): number {
+  if (!input.quotaUsage?.windows?.length) return 0;
+  return Math.max(...input.quotaUsage.windows.map((w) => w.usedPercent));
+}
+
+function quotaColor(usedPercent: number): string | null {
+  if (usedPercent >= 92) return "error";
+  if (usedPercent >= 85) return "warning";
+  return null;
+}
 
 function renderUsageBar(usedPercent: number, barWidth: number, theme: FooterInput["theme"]): string {
   const clamped = Math.max(0, Math.min(100, usedPercent));
@@ -40,28 +58,33 @@ function renderUsageWindow(
 
 export const builtinRenderers: Record<string, SegmentRenderer> = {
   modelThink(input) {
-    const { model, thinkingLevel, fastModeEnabled, serviceTier, theme } = input;
-    const text = `${model}:${thinkingLevel}`;
+    const { model, thinkingLevel, fastModeEnabled, serviceTier, theme, quotaUsage } = input;
+    const shortLevel = THINKING_ABBR[thinkingLevel] ?? thinkingLevel;
+    const text = `${model}:${shortLevel}`;
     const tier = fastModeEnabled ? theme.fg("accent", ` ⚡${serviceTier ?? "fast"}`) : "";
     if (thinkingLevel === "xhigh" || thinkingLevel === "max") {
       return rainbowText(text) + tier;
     }
-    return theme.fg(thinkingColor(thinkingLevel), text) + tier;
+    // Override color with quota alert when usage is high
+    const maxPct = maxQuotaPercent(input);
+    const qColor = quotaColor(maxPct);
+    const color = qColor ?? thinkingColor(thinkingLevel);
+    return theme.fg(color, text) + tier;
   },
 
   runtime(input) {
-    return input.theme.fg("dim", `⏱ ${fmtDuration(input.runtimeMs)}`);
+    return input.theme.fg("dim", fmtDuration(input.runtimeMs));
   },
 
   pwd(input) {
     const path = input.showFullPath ? shortenPath(input.cwd) : basename(input.cwd);
-    return input.theme.fg("dim", `📁 ${path}`);
+    return input.theme.fg("dim", path);
   },
 
   git(input) {
     const { gitBranch, gitDiffAdded, gitDiffRemoved, theme } = input;
     if (!gitBranch) return "";
-    let text = theme.fg("dim", ` ${gitBranch}`);
+    let text = theme.fg("dim", gitBranch);
     if (gitDiffAdded > 0 || gitDiffRemoved > 0) {
       text += ` ${theme.fg("success", `+${gitDiffAdded}`)} ${theme.fg("error", `-${gitDiffRemoved}`)}`;
     }
@@ -119,7 +142,7 @@ export const builtinRenderers: Record<string, SegmentRenderer> = {
 
   cost(input) {
     const { totalCost, theme } = input;
-    return theme.fg("dim", `$${totalCost.toFixed(4)}`);
+    return theme.fg("dim", `$${totalCost.toFixed(2)}`);
   },
 
   usageBars(input) {
@@ -127,7 +150,11 @@ export const builtinRenderers: Record<string, SegmentRenderer> = {
     if (!quotaUsage || quotaUsage.windows.length === 0) return "";
 
     const dim = (s: string) => theme.fg("dim", s);
-    return quotaUsage.windows.map((w) =>
+    const shown = quotaUsage.windows.filter((w) => w.usedPercent >= SHOW_WINDOW_THRESHOLD);
+    if (shown.length === 0) return "";
+
+    const sep = " " + dim("▸") + " ";
+    return sep + shown.map((w) =>
       renderUsageWindow(w.label, w.usedPercent, theme),
     ).join(dim(" "));
   },
