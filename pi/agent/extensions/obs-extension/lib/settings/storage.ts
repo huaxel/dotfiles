@@ -23,13 +23,9 @@ export function createMemorySettingsStorage(): Storage {
 }
 
 export async function loadSettings(storage: Storage): Promise<SettingsConfig> {
-  const store = storage.json<SettingsConfig>("settings", { defaults: undefined });
-  try {
-    const raw = await store.load();
-    return migrateSettings(raw);
-  } catch {
-    return migrateSettings(undefined);
-  }
+  const defaults = migrateSettings(undefined);
+  const store = storage.json<SettingsConfig>("settings", { defaults });
+  return migrateSettings(await store.load());
 }
 
 export async function saveSettings(config: SettingsConfig, storage: Storage): Promise<void> {

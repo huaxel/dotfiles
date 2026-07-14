@@ -35,6 +35,7 @@ import {
 } from "@earendil-works/pi-tui";
 
 import {
+  createDefaultSettings,
   loadSettings,
   saveSettings,
   updateSetting,
@@ -75,6 +76,9 @@ interface SessionState {
   turns: TurnRecord[];
   currentTurnStartTime: number | null;
   currentTurnUpdateCount: number;
+  currentTurnOutputTokens: number;
+  totalCacheRead: number;
+  turnNumber: number;
   agentStartTime: number | null;
   isStreaming: boolean;
   footerEnabled: boolean;
@@ -100,12 +104,38 @@ interface SessionSummary {
 
 /* ───── Helpers ───── */
 
+function normalizeTurnRecord(value: unknown): TurnRecord | null {
+  if (!value || typeof value !== "object") return null;
+  const record = value as Partial<TurnRecord>;
+  const numbers = [
+    record.turnIndex,
+    record.inputTokens,
+    record.outputTokens,
+    record.cost,
+    record.durationMs,
+    record.tps,
+  ];
+  if (!numbers.every((number) => typeof number === "number" && Number.isFinite(number))) {
+    return null;
+  }
+  if (typeof record.model !== "string") return null;
+  return {
+    turnIndex: record.turnIndex!,
+    inputTokens: Math.max(0, record.inputTokens!),
+    outputTokens: Math.max(0, record.outputTokens!),
+    cost: Math.max(0, record.cost!),
+    durationMs: Math.max(0, record.durationMs!),
+    tps: Math.max(0, record.tps!),
+    model: record.model,
+  };
+}
+
 function scanHistoricalTurns(ctx: ExtensionContext): TurnRecord[] {
   const turns: TurnRecord[] = [];
   for (const entry of ctx.sessionManager.getBranch()) {
-    if (entry.type === "custom" && entry.customType === "obs-turn") {
-      turns.push((entry as unknown as PersistedTurn).data);
-    }
+    if (entry.type !== "custom" || entry.customType !== "obs-turn") continue;
+    const record = normalizeTurnRecord((entry as unknown as PersistedTurn).data);
+    if (record) turns.push(record);
   }
   return turns;
 }
@@ -131,6 +161,24 @@ function getStringProp(value: unknown, key: string): string | undefined {
   if (!value || typeof value !== "object") return undefined;
   const prop = (value as Record<string, unknown>)[key];
   return typeof prop === "string" ? prop : undefined;
+}
+
+function fitColumnWidths(headers: string[], rows: string[][], termWidth: number): number[] {
+  const widths = headers.map((header, index) =>
+    Math.max(1, visibleWidth(header), ...rows.map((row) => visibleWidth(row[index] ?? ""))),
+  );
+  const available = Math.max(1, termWidth - 2 - 2 * (widths.length - 1));
+  let total = widths.reduce((sum, width) => sum + width, 0);
+  while (total > available) {
+    let widest = -1;
+    for (let i = 0; i < widths.length; i++) {
+      if (widths[i]! > 1 && (widest < 0 || widths[i]! > widths[widest]!)) widest = i;
+    }
+    if (widest < 0) break;
+    widths[widest]!--;
+    total--;
+  }
+  return widths;
 }
 
 function getServiceTierFromPayload(payload: unknown): string | null {
@@ -164,6 +212,11 @@ function buildDashboard(
   theme: DashboardTheme,
 ): string[] {
   const runtime = Date.now() - state.startTime;
+  const safeTermWidth = Math.max(1, Math.floor(termWidth));
+  if (safeTermWidth < 24) {
+    return [truncateToWidth("Obs", safeTermWidth)];
+  }
+
   const totalIn = state.turns.reduce((s, t) => s + t.inputTokens, 0);
   const totalOut = state.turns.reduce((s, t) => s + t.outputTokens, 0);
   const totalCost = state.turns.reduce((s, t) => s + t.cost, 0);
@@ -184,7 +237,10 @@ function buildDashboard(
     `Tokens: ↑${fmtTokens(totalIn)} ↓${fmtTokens(totalOut)}`,
     `Cost: $${totalCost.toFixed(6)}`,
   ];
-  const summaryW = Math.min(Math.max(...summaryLines.map((c) => visibleWidth(c))) + 4, termWidth);
+  const summaryW = Math.max(
+    4,
+    Math.min(Math.max(...summaryLines.map((c) => visibleWidth(c))) + 4, safeTermWidth),
+  );
   const inner = summaryW - 4;
   const padSummary = (text: string) => {
     const safe = truncateToWidth(text, inner);
@@ -217,13 +273,7 @@ function buildDashboard(
       t.model,
     ]);
 
-    const colW = headers.map((h, i) =>
-      Math.max(visibleWidth(h), ...rows.map((r) => visibleWidth(r[i]))),
-    );
-    const tableW = colW.reduce((a, b) => a + b, 0) + 2 * (colW.length - 1) + 2;
-    if (tableW > termWidth && colW[colW.length - 1]! > 10) {
-      colW[colW.length - 1] = Math.max(10, colW[colW.length - 1]! - (tableW - termWidth));
-    }
+    const colW = fitColumnWidths(headers, rows, safeTermWidth);
 
     const pad = "  ";
     const hdr = `  ${headers.map((h, i) => alignCell(h, colW[i]!)).join(pad)}`;
@@ -262,13 +312,7 @@ function buildDashboard(
         ];
       });
 
-    const colW = headers.map((h, i) =>
-      Math.max(visibleWidth(h), ...rows.map((r) => visibleWidth(r[i]))),
-    );
-    const tableW = colW.reduce((a, b) => a + b, 0) + 2 * (colW.length - 1) + 2;
-    if (tableW > termWidth && colW[colW.length - 1]! > 10) {
-      colW[colW.length - 1] = Math.max(10, colW[colW.length - 1]! - (tableW - termWidth));
-    }
+    const colW = fitColumnWidths(headers, rows, safeTermWidth);
 
     const pad = "  ";
     const hdr = `  ${headers.map((h, i) => alignCell(h, colW[i]!)).join(pad)}`;
@@ -322,6 +366,9 @@ export default function (pi: ExtensionAPI) {
     turns: [],
     currentTurnStartTime: null,
     currentTurnUpdateCount: 0,
+    currentTurnOutputTokens: 0,
+    totalCacheRead: 0,
+    turnNumber: 0,
     agentStartTime: null,
     isStreaming: false,
     footerEnabled: true,
@@ -345,6 +392,8 @@ export default function (pi: ExtensionAPI) {
         tokens: true,
         tps: true,
         cost: true,
+        cache: true,
+        turnCount: false,
         usageBars: true,
       },
       contextZones: { expert: 70, warning: 85 },
@@ -358,12 +407,20 @@ export default function (pi: ExtensionAPI) {
     state.turns = scanHistoricalTurns(ctx);
     state.currentTurnStartTime = null;
     state.currentTurnUpdateCount = 0;
+    state.currentTurnOutputTokens = 0;
+    state.totalCacheRead = 0;
+    state.turnNumber = 0;
     state.agentStartTime = null;
     state.isStreaming = false;
     state.fastModeSupported = supportsFastMode(ctx);
     state.fastModeEnabled = false;
     state.serviceTier = null;
-    state.settings = await loadSettings(storage);
+    try {
+      state.settings = await loadSettings(storage);
+    } catch {
+      state.settings = createDefaultSettings();
+      if (ctx.hasUI) ctx.ui.notify("Observability settings unavailable; using defaults", "warning");
+    }
     state.quotaUsage = null;
 
     if (state.footerEnabled && ctx.hasUI) {
@@ -381,6 +438,8 @@ export default function (pi: ExtensionAPI) {
   pi.on("turn_start", async (_event, _ctx) => {
     state.currentTurnStartTime = Date.now();
     state.currentTurnUpdateCount = 0;
+    state.currentTurnOutputTokens = 0;
+    state.turnNumber++;
     state.isStreaming = true;
   });
 
@@ -399,8 +458,18 @@ export default function (pi: ExtensionAPI) {
     state.fastModeSupported = supportsFastMode(ctx) || state.fastModeEnabled;
   });
 
-  pi.on("message_update", async (_event, _ctx) => {
+  pi.on("message_update", async (event, _ctx) => {
     state.currentTurnUpdateCount++;
+
+    // Track actual output token count during streaming for live tok/s.
+    // The event may carry partial usage from the accumulating assistant message.
+    const msg = (event as any).message as AssistantMessage | undefined;
+    if (msg?.usage?.output !== undefined && Number.isFinite(msg.usage.output)) {
+      state.currentTurnOutputTokens = Math.max(
+        state.currentTurnOutputTokens,
+        msg.usage.output,
+      );
+    }
   });
 
   pi.on("turn_end", async (event, ctx) => {
@@ -410,28 +479,36 @@ export default function (pi: ExtensionAPI) {
     let outputTokens = 0;
     let cost = 0;
 
-    const branch = ctx.sessionManager.getBranch();
-    for (let i = branch.length - 1; i >= 0; i--) {
-      const entry = branch[i];
-      if (entry.type === "message" && entry.message.role === "assistant") {
-        const m = entry.message as AssistantMessage;
-        inputTokens = m.usage?.input ?? 0;
-        outputTokens = m.usage?.output ?? 0;
-        cost = m.usage?.cost?.total ?? 0;
-        break;
-      }
+    const completedMessage = event.message as AssistantMessage | undefined;
+    if (completedMessage?.role !== "assistant" || !completedMessage.usage) {
+      state.isStreaming = false;
+      state.currentTurnStartTime = null;
+      state.currentTurnUpdateCount = 0;
+      return;
     }
 
-    const tps = duration > 0 && outputTokens >= 0 ? outputTokens / (duration / 1000) : 0;
+    inputTokens = completedMessage.usage.input ?? 0;
+    outputTokens = completedMessage.usage.output ?? 0;
+    cost = completedMessage.usage.cost?.total ?? 0;
+
+    const cacheRead = completedMessage.usage.cacheRead ?? 0;
+    const safeCacheRead = Number.isFinite(cacheRead) ? Math.max(0, cacheRead) : 0;
+    state.totalCacheRead += safeCacheRead;
+
+    const safeInputTokens = Number.isFinite(inputTokens) ? Math.max(0, inputTokens) : 0;
+    const safeOutputTokens = Number.isFinite(outputTokens) ? Math.max(0, outputTokens) : 0;
+    const safeCost = Number.isFinite(cost) ? Math.max(0, cost) : 0;
+    const safeDuration = Number.isFinite(duration) ? Math.max(0, duration) : 0;
+    const tps = safeDuration > 0 ? safeOutputTokens / (safeDuration / 1000) : 0;
 
     const record: TurnRecord = {
       turnIndex: event.turnIndex,
-      inputTokens,
-      outputTokens,
-      cost,
-      durationMs: duration,
+      inputTokens: safeInputTokens,
+      outputTokens: safeOutputTokens,
+      cost: safeCost,
+      durationMs: safeDuration,
       tps,
-      model: ctx.model?.id ?? "unknown",
+      model: ctx.model?.id ?? completedMessage?.model ?? "unknown",
     };
 
     state.turns.push(record);
@@ -480,6 +557,8 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.on("session_shutdown", async (_event, ctx) => {
+    if (ctx.hasUI) teardownFooter(ctx);
+
     const totalIn = state.turns.reduce((s, t) => s + t.inputTokens, 0);
     const totalOut = state.turns.reduce((s, t) => s + t.outputTokens, 0);
     const totalCost = state.turns.reduce((s, t) => s + t.cost, 0);
@@ -508,8 +587,12 @@ export default function (pi: ExtensionAPI) {
     };
 
     const historyStore = storage.jsonl<SessionSummary>("history");
-    await historyStore.append(summary);
-    await historyStore.trim({ keepLast: 10 });
+    try {
+      await historyStore.append(summary);
+      await historyStore.trim({ keepLast: 10 });
+    } catch {
+      if (ctx.hasUI) ctx.ui.notify("Could not save observability session history", "warning");
+    }
   });
 
   /* ─── Footer ─── */
@@ -519,9 +602,12 @@ export default function (pi: ExtensionAPI) {
       let diffAdded = 0;
       let diffRemoved = 0;
 
+      let diffRefreshInFlight = false;
       async function refreshDiff() {
+        if (diffRefreshInFlight) return;
+        diffRefreshInFlight = true;
         try {
-          const result = await pi.exec("git", ["diff", "--numstat"], {
+          const result = await pi.exec("git", ["diff", "HEAD", "--numstat"], {
             cwd: ctx.cwd,
           });
           if (result.code === 0 && result.stdout) {
@@ -532,31 +618,33 @@ export default function (pi: ExtensionAPI) {
               if (parts.length >= 2) {
                 const a = parseInt(parts[0], 10);
                 const b = parseInt(parts[1], 10);
-                if (!Number.isNaN(a)) added += a;
-                if (!Number.isNaN(b)) removed += b;
+                if (Number.isFinite(a)) added += a;
+                if (Number.isFinite(b)) removed += b;
               }
             }
             diffAdded = added;
             diffRemoved = removed;
-            return;
+          } else {
+            diffAdded = 0;
+            diffRemoved = 0;
           }
         } catch {
-          /* ignore */
+          diffAdded = 0;
+          diffRemoved = 0;
+        } finally {
+          diffRefreshInFlight = false;
+          tui.requestRender();
         }
-        diffAdded = 0;
-        diffRemoved = 0;
       }
 
-      refreshDiff();
+      void refreshDiff();
 
       const unsubBranch = footerData.onBranchChange(() => {
-        refreshDiff();
-        tui.requestRender();
+        void refreshDiff();
       });
 
       const timer = setInterval(() => {
-        refreshDiff();
-        tui.requestRender();
+        void refreshDiff();
       }, 1000);
 
       // Periodic quota refresh every 5 minutes (fetchQuota handles its own cache)
@@ -590,6 +678,9 @@ export default function (pi: ExtensionAPI) {
             isStreaming: state.isStreaming,
             currentTurnStartTime: state.currentTurnStartTime,
             currentTurnUpdateCount: state.currentTurnUpdateCount,
+            currentTurnOutputTokens: state.currentTurnOutputTokens,
+            totalCacheRead: state.totalCacheRead,
+            turnNumber: state.turnNumber,
             lastTurnTps,
             totalInputTokens: totalIn,
             totalOutputTokens: totalOut,
@@ -737,7 +828,11 @@ export default function (pi: ExtensionAPI) {
                 settingsList?.updateValue(u.id, u.value);
               }
 
-              await saveSettings(config, storage);
+              try {
+                await saveSettings(config, storage);
+              } catch {
+                ctx.ui.notify("Could not save observability settings", "warning");
+              }
               tui.requestRender();
             },
             done,

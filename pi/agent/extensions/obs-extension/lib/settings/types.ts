@@ -10,6 +10,8 @@ export type SegmentKey =
   | "tokens"
   | "tps"
   | "cost"
+  | "cache"
+  | "turnCount"
   | "usageBars";
 
 export type PresetName = "minimal" | "standard" | "verbose" | "performance";

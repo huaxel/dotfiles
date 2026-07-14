@@ -37,7 +37,9 @@ export function setZone(
   value: number,
 ): SettingsConfig {
   const next = structuredClone(config);
-  next.contextZones[key] = Math.max(0, Math.min(100, value));
+  if (Number.isFinite(value)) {
+    next.contextZones[key] = Math.max(0, Math.min(100, value));
+  }
   // Ensure expert <= warning
   if (next.contextZones.expert > next.contextZones.warning) {
     if (key === "expert") {
@@ -97,6 +99,8 @@ export function updateSetting(
     case "tokens":
     case "tps":
     case "cost":
+    case "cache":
+    case "turnCount":
     case "usageBars": {
       next = setSegment(next, id, value === "true");
       // Context sub-toggle dependency: if contextUsage is turned off, children are hidden
@@ -106,6 +110,7 @@ export function updateSetting(
           "contextPercentage",
           "contextNumbers",
         ] as SegmentKey[]) {
+          next.segments[child] = false;
           derivedUpdates.push({ id: child, value: "false" });
         }
       }
@@ -144,8 +149,12 @@ function validateZones(raw: unknown): { expert: number; warning: number } {
   if (!raw || typeof raw !== "object") return zones;
   const r = raw as Record<string, unknown>;
 
-  if (typeof r.expert === "number") zones.expert = clamp(0, r.expert, 100);
-  if (typeof r.warning === "number") zones.warning = clamp(0, r.warning, 100);
+  if (typeof r.expert === "number" && Number.isFinite(r.expert)) {
+    zones.expert = clamp(0, r.expert, 100);
+  }
+  if (typeof r.warning === "number" && Number.isFinite(r.warning)) {
+    zones.warning = clamp(0, r.warning, 100);
+  }
 
   // Ensure expert <= warning
   if (zones.expert > zones.warning) {
