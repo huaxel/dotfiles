@@ -44,6 +44,7 @@ export const defaultAssembler: LayoutAssembler = (segments, width, theme) => {
       segments["tokens"],
       segments["tps"],
       segments["cost"],
+      segments["usageBars"],
     ]);
     lines = [line1, line2];
   }
