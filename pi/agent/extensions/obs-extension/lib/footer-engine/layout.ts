@@ -34,13 +34,15 @@ export const defaultAssembler: LayoutAssembler = (segments, width, theme) => {
   }
 
   // 2 — split into two groups
-  const line1 = [segments["modelThink"], segments["pwd"], segments["git"]]
+  //   [1] model + tps + ctx  — current generation state
+  //   [2] runtime + pwd + git + tokens + cost + bars  — session + accounting
+  const line1 = [segments["modelThink"], segments["tps"], segments["contextUsage"]]
     .filter(Boolean).join(sep);
   const line2 = [
     segments["runtime"],
-    segments["contextUsage"],
+    segments["pwd"],
+    segments["git"],
     segments["tokens"],
-    segments["tps"],
     segments["cost"],
     segments["usageBars"],
   ].filter(Boolean).join(sep);
@@ -50,13 +52,15 @@ export const defaultAssembler: LayoutAssembler = (segments, width, theme) => {
   }
 
   // 3 — three-line fallback for narrow terminals (mobile, split panes)
-  const l1 = [segments["modelThink"], segments["git"]]
+  //   [1] model + tps + ctx — current generation state
+  //   [2] runtime + pwd + git — session / context
+  //   [3] tokens + cost + bars — accounting
+  const l1 = [segments["modelThink"], segments["tps"], segments["contextUsage"]]
     .filter(Boolean).join(sep);
-  const l2 = [segments["pwd"], segments["runtime"], segments["contextUsage"]]
+  const l2 = [segments["runtime"], segments["pwd"], segments["git"]]
     .filter(Boolean).join(sep);
   const l3 = [
     segments["tokens"],
-    segments["tps"],
     segments["cost"],
     segments["usageBars"],
   ].filter(Boolean).join(sep);
