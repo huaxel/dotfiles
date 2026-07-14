@@ -1,5 +1,5 @@
 import { basename } from "node:path";
-import type { SegmentRenderer } from "./types.js";
+import type { SegmentRenderer, FooterInput } from "./types.js";
 import {
   fmtDuration,
   fmtTokens,
@@ -8,6 +8,37 @@ import {
   contextUsageColor,
   rainbowText,
 } from "./format.js";
+
+/* ───── Usage bar helpers ───── */
+
+const BAR_FILLED = "━";
+const BAR_EMPTY = "─";
+
+function renderUsageBar(usedPercent: number, barWidth: number, theme: FooterInput["theme"]): string {
+  const clamped = Math.max(0, Math.min(100, usedPercent));
+  const filled = Math.round((clamped / 100) * barWidth);
+  const empty = barWidth - filled;
+
+  let color: string;
+  if (clamped >= 92) color = "error";
+  else if (clamped >= 85) color = "warning";
+  else color = "success";
+
+  return theme.fg(color, BAR_FILLED.repeat(filled)) + theme.fg("dim", BAR_EMPTY.repeat(empty));
+}
+
+function renderUsageWindow(
+  label: string,
+  usedPercent: number,
+  theme: FooterInput["theme"],
+  resetsIn?: string,
+): string {
+  const dim = (s: string) => theme.fg("dim", s);
+  const bar = renderUsageBar(usedPercent, 10, theme);
+  const pct = dim(`${Math.round(usedPercent)}%`);
+  const timeStr = resetsIn ? " " + dim(resetsIn) : "";
+  return `${dim(label)} ${bar} ${pct}${timeStr}`;
+}
 
 export const builtinRenderers: Record<string, SegmentRenderer> = {
   modelThink(input) {
@@ -91,5 +122,20 @@ export const builtinRenderers: Record<string, SegmentRenderer> = {
   cost(input) {
     const { totalCost, theme } = input;
     return theme.fg("dim", `$${totalCost.toFixed(4)}`);
+  },
+
+  usageBars(input) {
+    const { quotaUsage, theme } = input;
+    if (!quotaUsage || quotaUsage.windows.length === 0) return "";
+
+    const dim = (s: string) => theme.fg("dim", s);
+    const sep = " " + dim(">") + " ";
+
+    const parts: string[] = [theme.fg("accent", quotaUsage.provider)];
+    for (const w of quotaUsage.windows) {
+      parts.push(renderUsageWindow(w.label, w.usedPercent, theme, w.resetsIn));
+    }
+
+    return parts.join(sep);
   },
 };

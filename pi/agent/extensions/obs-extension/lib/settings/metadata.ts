@@ -15,6 +15,7 @@ export const DEFAULT_SETTINGS: SettingsConfig = {
     tokens: true,
     tps: true,
     cost: true,
+    usageBars: true,
   },
   contextZones: { expert: 70, warning: 85 },
 };
@@ -32,6 +33,7 @@ export const PRESETS: Record<PresetName, Partial<Record<SegmentKey, boolean>>> =
     tokens: false,
     tps: false,
     cost: false,
+    usageBars: true,
   },
   standard: {
     modelThink: true,
@@ -45,6 +47,7 @@ export const PRESETS: Record<PresetName, Partial<Record<SegmentKey, boolean>>> =
     tokens: true,
     tps: false,
     cost: true,
+    usageBars: true,
   },
   verbose: {
     modelThink: true,
@@ -58,6 +61,7 @@ export const PRESETS: Record<PresetName, Partial<Record<SegmentKey, boolean>>> =
     tokens: true,
     tps: true,
     cost: true,
+    usageBars: true,
   },
   performance: {
     modelThink: true,
@@ -71,6 +75,7 @@ export const PRESETS: Record<PresetName, Partial<Record<SegmentKey, boolean>>> =
     tokens: false,
     tps: true,
     cost: true,
+    usageBars: false,
   },
 };
 
