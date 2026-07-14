@@ -4,36 +4,13 @@ import type { LayoutAssembler } from "./types.js";
 export const defaultAssembler: LayoutAssembler = (segments, width, theme) => {
   const sep = " " + theme.fg("dim", "▸") + " ";
 
-  const leftParts = [segments["modelThink"]].filter(Boolean);
-  const rightParts = [
-    segments["contextUsage"],
-    segments["tokens"],
-    segments["tps"],
-    segments["cost"],
-    segments["usageBars"],
-  ].filter(Boolean);
-  const middleParts = [segments["runtime"], segments["pwd"], segments["git"]].filter(Boolean);
-
-  const leftStr = leftParts.join(sep);
-  const rightStr = rightParts.join(sep);
-  const middleStr = middleParts.join(sep);
-
-  const singleLine = middleStr
-    ? leftStr + sep + middleStr + sep + rightStr
-    : leftStr + sep + rightStr;
-
   function padLine(text: string): string {
     const w = visibleWidth(text);
     if (w < width) return text + " ".repeat(width - w);
     return text;
   }
 
-  // 1 — everything on one line
-  if (visibleWidth(singleLine) <= width) {
-    return [padLine(singleLine)];
-  }
-
-  // 2 — split into two groups
+  // 2 — split into two groups (always, single-line is too wide for most terminals)
   //   [1] model + tps + ctx  — current generation state
   //   [2] runtime + pwd + git + tokens + cost + bars  — session + accounting
   const line1 = [segments["modelThink"], segments["tps"], segments["contextUsage"]]
