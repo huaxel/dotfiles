@@ -21,6 +21,27 @@ const THINKING_ABBR: Record<string, string> = {
   xhigh: "xhi",
 };
 
+const PROVIDER_SHORT: Record<string, string> = {
+  "cline-pass": "cp",
+  "opencode-go": "og",
+  "opencode": "og",
+  codex: "cx",
+  claude: "cl",
+  umans: "um",
+  openai: "oa",
+  google: "gl",
+  nan: "na",
+};
+
+function stripProvider(modelId: string): string {
+  const m = modelId.match(/^([a-z][a-z0-9._-]+)[:\/]/);
+  if (m) {
+    const short = PROVIDER_SHORT[m[1]];
+    if (short) return short + ":" + modelId.slice(m[0].length);
+  }
+  return modelId;
+}
+
 function maxQuotaPercent(input: FooterInput): number {
   if (!input.quotaUsage?.windows?.length) return 0;
   return Math.max(...input.quotaUsage.windows.map((w) => w.usedPercent));
@@ -60,7 +81,7 @@ export const builtinRenderers: Record<string, SegmentRenderer> = {
   modelThink(input) {
     const { model, thinkingLevel, fastModeEnabled, serviceTier, theme, quotaUsage } = input;
     const shortLevel = THINKING_ABBR[thinkingLevel] ?? thinkingLevel;
-    const text = `${model}:${shortLevel}`;
+    const text = `${stripProvider(model)}:${shortLevel}`;
     const tier = fastModeEnabled ? theme.fg("accent", ` ⚡${serviceTier ?? "fast"}`) : "";
     if (thinkingLevel === "xhigh" || thinkingLevel === "max") {
       return rainbowText(text) + tier;
@@ -85,8 +106,11 @@ export const builtinRenderers: Record<string, SegmentRenderer> = {
     const { gitBranch, gitDiffAdded, gitDiffRemoved, theme } = input;
     if (!gitBranch) return "";
     let text = theme.fg("dim", gitBranch);
-    if (gitDiffAdded > 0 || gitDiffRemoved > 0) {
-      text += ` ${theme.fg("success", `+${gitDiffAdded}`)} ${theme.fg("error", `-${gitDiffRemoved}`)}`;
+    if (gitDiffAdded > 0) {
+      text += ` ${theme.fg("success", `+${gitDiffAdded}`)}`;
+    }
+    if (gitDiffRemoved > 0) {
+      text += ` ${theme.fg("error", `-${gitDiffRemoved}`)}`;
     }
     return text;
   },
@@ -133,9 +157,9 @@ export const builtinRenderers: Record<string, SegmentRenderer> = {
     if (isStreaming && currentTurnStartTime) {
       const elapsed = (Date.now() - currentTurnStartTime) / 1000;
       const liveTps = elapsed > 0 ? currentTurnUpdateCount / elapsed : 0;
-      return theme.fg("accent", `⚡${liveTps.toFixed(1)}`);
+      return theme.fg("accent", `${liveTps.toFixed(1)}t/s`);
     } else if (lastTurnTps > 0) {
-      return theme.fg("dim", `⚡${lastTurnTps.toFixed(1)}`);
+      return theme.fg("dim", `${lastTurnTps.toFixed(1)}t/s`);
     }
     return "";
   },
@@ -153,8 +177,7 @@ export const builtinRenderers: Record<string, SegmentRenderer> = {
     const shown = quotaUsage.windows.filter((w) => w.usedPercent >= SHOW_WINDOW_THRESHOLD);
     if (shown.length === 0) return "";
 
-    const sep = " " + dim("▸") + " ";
-    return sep + shown.map((w) =>
+    return shown.map((w) =>
       renderUsageWindow(w.label, w.usedPercent, theme),
     ).join(dim(" "));
   },
