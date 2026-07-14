@@ -6,6 +6,7 @@ export type {
   LayoutAssembler,
   FooterEngineOptions,
 } from "./types.js";
+export type { QuotaSnapshot } from "../quota-provider.ts";
 
 export {
   fmtDuration,

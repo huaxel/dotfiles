@@ -13,8 +13,6 @@ import {
 
 const BAR_FILLED = "━";
 const BAR_EMPTY = "─";
-const SHOW_WINDOW_THRESHOLD = 5;
-
 const THINKING_ABBR: Record<string, string> = {
   minimal: "min",
   medium: "med",
@@ -44,7 +42,10 @@ function stripProvider(modelId: string): string {
 
 function maxQuotaPercent(input: FooterInput): number {
   if (!input.quotaUsage?.windows?.length) return 0;
-  return Math.max(...input.quotaUsage.windows.map((w) => w.usedPercent));
+  const values = input.quotaUsage.windows
+    .map((window) => window.usedPercent)
+    .filter((value) => Number.isFinite(value));
+  return values.length > 0 ? Math.max(...values) : 0;
 }
 
 function quotaColor(usedPercent: number): string | null {
@@ -54,9 +55,11 @@ function quotaColor(usedPercent: number): string | null {
 }
 
 function renderUsageBar(usedPercent: number, barWidth: number, theme: FooterInput["theme"]): string {
-  const clamped = Math.max(0, Math.min(100, usedPercent));
-  const filled = Math.round((clamped / 100) * barWidth);
-  const empty = barWidth - filled;
+  const safePercent = Number.isFinite(usedPercent) ? usedPercent : 0;
+  const safeWidth = Math.max(0, Math.floor(barWidth));
+  const clamped = Math.max(0, Math.min(100, safePercent));
+  const filled = Math.round((clamped / 100) * safeWidth);
+  const empty = safeWidth - filled;
 
   let color: string;
   if (clamped >= 92) color = "error";
@@ -69,12 +72,14 @@ function renderUsageBar(usedPercent: number, barWidth: number, theme: FooterInpu
 function renderUsageWindow(
   label: string,
   usedPercent: number,
+  resetsIn: string | undefined,
   theme: FooterInput["theme"],
 ): string {
   const dim = (s: string) => theme.fg("dim", s);
-  const bar = renderUsageBar(usedPercent, 4, theme);
-  const pct = dim(`${Math.round(usedPercent)}%`);
-  return `${dim(label)}${bar}${pct}`;
+  const bar = renderUsageBar(usedPercent, 3, theme);
+  const pct = usedPercent > 0 ? dim(`${Math.round(usedPercent)}%`) : "";
+  const reset = usedPercent > 30 && resetsIn ? dim(` ↻ ${resetsIn}`) : "";
+  return `${dim(label)}${bar}${pct}${reset}`;
 }
 
 export const builtinRenderers: Record<string, SegmentRenderer> = {
@@ -120,8 +125,9 @@ export const builtinRenderers: Record<string, SegmentRenderer> = {
     const { contextUsage, theme, settings } = input;
     if (!contextUsage || !contextUsage.contextWindow) return "";
 
-    const tokens = contextUsage.tokens || 0;
+    const tokens = Number.isFinite(contextUsage.tokens) ? Math.max(0, contextUsage.tokens) : 0;
     const max = contextUsage.contextWindow;
+    if (!Number.isFinite(max) || max <= 0) return "";
     const pct = Math.min(100, Math.max(0, Math.round((tokens / max) * 100)));
 
     let text = "c";
@@ -150,13 +156,20 @@ export const builtinRenderers: Record<string, SegmentRenderer> = {
   },
 
   tps(input) {
-    const { isStreaming, currentTurnStartTime, currentTurnUpdateCount, lastTurnTps, theme } = input;
+    const { isStreaming, currentTurnStartTime, currentTurnOutputTokens, lastTurnTps, theme } = input;
     if (isStreaming && currentTurnStartTime) {
       const elapsed = (Date.now() - currentTurnStartTime) / 1000;
-      const liveTps = elapsed > 0 ? currentTurnUpdateCount / elapsed : 0;
-      return theme.fg("accent", `⚡${liveTps.toFixed(1)}`);
+      const liveTok = elapsed > 0 && currentTurnOutputTokens > 0
+        ? currentTurnOutputTokens / elapsed
+        : 0;
+      if (liveTok > 0) {
+        return theme.fg("accent", `⚡${liveTok.toFixed(0)} tok/s`);
+      }
+      // Fall back to update-rate when no token data available
+      const upd = elapsed > 0 ? input.currentTurnUpdateCount / elapsed : 0;
+      return theme.fg("accent", `⚡${upd.toFixed(1)} upd/s`);
     } else if (lastTurnTps > 0) {
-      return theme.fg("dim", `⚡${lastTurnTps.toFixed(1)}`);
+      return theme.fg("dim", `⚡${lastTurnTps.toFixed(1)} tok/s`);
     }
     return "";
   },
@@ -166,16 +179,30 @@ export const builtinRenderers: Record<string, SegmentRenderer> = {
     return theme.fg("dim", `$${totalCost.toFixed(2)}`);
   },
 
+  cache(input) {
+    const { totalCacheRead, totalOutputTokens, theme } = input;
+    if (totalCacheRead <= 0) return "";
+    const total = totalCacheRead + totalOutputTokens;
+    if (total <= 0) return "";
+    const pct = Math.round((totalCacheRead / total) * 100);
+    const color = pct >= 70 ? "success" : pct >= 40 ? "dim" : "warning";
+    return theme.fg(color as any, `cache ${pct}%`);
+  },
+
+  turnCount(input) {
+    const { turnNumber, theme } = input;
+    return theme.fg("dim", `#${turnNumber}`);
+  },
+
   usageBars(input) {
     const { quotaUsage, theme } = input;
     if (!quotaUsage || quotaUsage.windows.length === 0) return "";
 
     const dim = (s: string) => theme.fg("dim", s);
-    const shown = quotaUsage.windows.filter((w) => w.usedPercent >= SHOW_WINDOW_THRESHOLD);
-    if (shown.length === 0) return "";
-
-    return shown.map((w) =>
-      renderUsageWindow(w.label, w.usedPercent, theme),
-    ).join(dim(" "));
+    const sep = " " + theme.fg("dim", "▸") + " ";
+    return quotaUsage.windows
+      .filter((window) => Number.isFinite(window.usedPercent))
+      .map((window) => renderUsageWindow(window.label, window.usedPercent, window.resetsIn, theme))
+      .join(sep);
   },
 };
