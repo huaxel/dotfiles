@@ -31,13 +31,11 @@ function renderUsageWindow(
   label: string,
   usedPercent: number,
   theme: FooterInput["theme"],
-  resetsIn?: string,
 ): string {
   const dim = (s: string) => theme.fg("dim", s);
-  const bar = renderUsageBar(usedPercent, 10, theme);
+  const bar = renderUsageBar(usedPercent, 4, theme);
   const pct = dim(`${Math.round(usedPercent)}%`);
-  const timeStr = resetsIn ? " " + dim(resetsIn) : "";
-  return `${dim(label)} ${bar} ${pct}${timeStr}`;
+  return `${dim(label)}${bar}${pct}`;
 }
 
 export const builtinRenderers: Record<string, SegmentRenderer> = {
@@ -129,13 +127,8 @@ export const builtinRenderers: Record<string, SegmentRenderer> = {
     if (!quotaUsage || quotaUsage.windows.length === 0) return "";
 
     const dim = (s: string) => theme.fg("dim", s);
-    const sep = " " + dim(">") + " ";
-
-    const parts: string[] = [theme.fg("accent", quotaUsage.provider)];
-    for (const w of quotaUsage.windows) {
-      parts.push(renderUsageWindow(w.label, w.usedPercent, theme, w.resetsIn));
-    }
-
-    return parts.join(sep);
+    return quotaUsage.windows.map((w) =>
+      renderUsageWindow(w.label, w.usedPercent, theme),
+    ).join(dim(" "));
   },
 };
