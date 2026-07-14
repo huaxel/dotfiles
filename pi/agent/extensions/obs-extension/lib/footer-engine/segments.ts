@@ -124,18 +124,14 @@ export const builtinRenderers: Record<string, SegmentRenderer> = {
     const max = contextUsage.contextWindow;
     const pct = Math.min(100, Math.max(0, Math.round((tokens / max) * 100)));
 
-    let text = "ctx";
+    let text = "c";
 
     if (settings.segments.contextProgress) {
-      const barWidth = 10;
-      const filled = Math.round((pct / 100) * barWidth);
-      const empty = barWidth - filled;
-      const bar = "█".repeat(filled) + "░".repeat(empty);
-      text += ` [${bar}]`;
+      text += renderUsageBar(pct, 4, theme);
     }
 
     if (settings.segments.contextPercentage) {
-      text += ` ${pct}%`;
+      text += `${pct}%`;
     }
 
     if (settings.segments.contextNumbers) {
