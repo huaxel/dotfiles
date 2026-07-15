@@ -1,9 +1,9 @@
 {
-  "lastChangelogVersion": "0.80.7",
+  "lastChangelogVersion": "0.0.0",
   "theme": "ghostty-sync-b59692fc",
-  "defaultProvider": "opencode-go",
-  "defaultModel": "deepseek-v4-flash"
-  "defaultThinkingLevel": "high",
+  "defaultProvider": null,
+  "defaultModel": null,
+  "defaultThinkingLevel": "low",
   "enabledModels": [
     "cline-pass/glm-5.2",
     "cline-pass/kimi-k2.7-code",
