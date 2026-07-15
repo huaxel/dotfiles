@@ -285,6 +285,20 @@ cd ~/dotfiles && ./bootstrap.sh
 | **Grok** | `~/.grok/` | 8 KB | Config |
 | **Orca** | `~/.orca/` | 52 KB | Config + workspace state |
 
+### 🟡 App-specific data (NOT captured by brew cask install)
+
+| App | Path | Size | Why you need it |
+|---|---|---|---|
+| **Alfred** | `~/Library/Application Support/Alfred/` | 17 MB | Workflows, snippets, clipboard history, **Powerpack license** |
+| **Itsycal** | `~/Library/Preferences/com.mowglii.ItsycalApp.plist` | 4 KB | Calendar preferences |
+| **Logi Options+** | `~/Library/Application Support/LogiOptionsPlus/` | varies | Mouse button config, MX Keys customizations |
+| **DisplayLink** | `~/Library/Preferences/com.displaylink.*.plist` | 4 KB | DisplayLink driver preferences |
+
+> Installing a cask via brew gives you the **app binary**, not your user data.
+> Alfred workflows, Powerpack license, mouse configs — these live in
+> `~/Library/Application Support/` and `~/Library/Preferences/` and must
+> be copied separately.
+
 #### 🔴 Large state (copy after bootstrap, optional)
 
 | Agent | Path | Size | What's in it |
