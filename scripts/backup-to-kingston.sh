@@ -18,7 +18,20 @@ info()  { echo "  $*"; }
 ok()    { echo "  ✅ $*"; }
 warn()  { echo "  ⚠️  $*"; }
 backup() { cp -R "$1" "$DEST/$2" 2>/dev/null && ok "$3" || warn "Failed: $3"; true; }
-backup_dir() { mkdir -p "$(dirname "$DEST/$2")" 2>/dev/null; rsync -a "$1"/ "$DEST/$2"/ 2>/dev/null && ok "$3" || warn "Failed: $3"; true; }
+backup_dir() {
+  mkdir -p "$(dirname "$DEST/$2")" 2>/dev/null
+  if rsync -a --ignore-errors "$1"/ "$DEST/$2"/ 2>/dev/null; then
+    ok "$3"
+  else
+    rc=$?
+    if [ "$rc" -eq 23 ] || [ "$rc" -eq 24 ]; then
+      ok "$3"
+    else
+      warn "Failed: $3"
+    fi
+  fi
+  true
+}
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -62,11 +75,25 @@ backup_dir ~/".config/mise" mise "Mise config"
 # Claude Desktop (large — ~8 GB)
 if [ -d ~/"Library/Application Support/Claude" ]; then
     echo "  📦 Claude Desktop data (~8 GB)..."
-    rsync -a --info=progress2 ~/"Library/Application Support/Claude"/ "$DEST/claude-desktop"/ 2>/dev/null && ok "Claude Desktop" || warn "Claude Desktop backup skipped"
+    if rsync -a --info=progress2 ~/"Library/Application Support/Claude"/ "$DEST/claude-desktop"/ 2>/dev/null; then
+      ok "Claude Desktop"
+    else
+      rc=$?
+      if [ "$rc" -eq 23 ] || [ "$rc" -eq 24 ]; then
+        ok "Claude Desktop (partial — cache files changed during backup)"
+      else
+        warn "Claude Desktop backup skipped"
+      fi
+    fi
 fi
 
-# CodexBar
-backup_dir ~/".local/bin/opencodebar" opencodebar "OpenCodeBar"
+# OpenCodeBar (single binary) + CodexBar
+if [ -f ~/.local/bin/opencodebar ]; then
+    mkdir -p "$DEST/opencodebar" 2>/dev/null
+    cp ~/.local/bin/opencodebar "$DEST/opencodebar/opencodebar" 2>/dev/null && ok "OpenCodeBar" || warn "Failed: OpenCodeBar"
+elif [ -d ~/.local/bin/opencodebar ]; then
+    backup_dir ~/.local/bin/opencodebar opencodebar "OpenCodeBar"
+fi
 [ -d ~/"Library/Application Support/CodexBar" ] && backup_dir ~/"Library/Application Support/CodexBar" codexbar "CodexBar"
 
 # ── 3. App data ───────────────────────────────────────
@@ -74,7 +101,8 @@ echo "━━━ 3/5 — App data ───────────────�
 backup_dir ~/"Library/Application Support/Alfred" alfred "Alfred (workflows, license, snippets)"
 [ -f ~/Library/Preferences/com.mowglii.ItsycalApp.plist ] && backup ~/Library/Preferences/com.mowglii.ItsycalApp.plist itsycal.plist "Itsycal preferences"
 backup_dir ~/"Library/Application Support/LogiOptionsPlus" logioptionsplus "Logi Options+ config"
-ls ~/Library/Preferences/com.displaylink.*.plist 2>/dev/null | while read -r f; do
+for f in ~/Library/Preferences/com.displaylink.*.plist; do
+    [ -f "$f" ] || continue
     backup "$f" displaylink-preferences/ "$(basename "$f")"
 done
 
