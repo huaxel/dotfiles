@@ -11,7 +11,7 @@
 *.cmd text eol=crlf
 
 # Strip machine-specific fields from pi_settings on commit
-pi_settings filter=strip-pi-machine-config
+pi/agent/settings.json filter=strip-pi-machine-config
 
 # Encrypted secrets are opaque blobs — never rewrite line endings.
 # CRLF conversion on Windows would corrupt the sops JSON and break decryption.
