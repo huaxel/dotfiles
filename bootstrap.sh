@@ -232,15 +232,8 @@ if [ -n "$FISH_PATH" ] && [ "$OS" = "Darwin" ]; then
     fi
 fi
 
-# Sync Ghostty theme (requires Ghostty + pi to be installed)
-if command -v pi &>/dev/null; then
-    if [ -d "$HOME/.config/ghostty" ]; then
-        info "Syncing Ghostty theme..."
-        pi ghostty theme sync 2>/dev/null || warn "Ghostty theme sync failed — run: pi ghostty theme sync"
-    else
-        info "Ghostty config not yet deployed — theme sync deferred"
-    fi
-fi
+# Ghostty theme is auto-synced by the @ogulcancelik/pi-ghostty-theme-sync
+# package on every pi start. No manual command needed.
 
 # Install CLI extras (npm/pnpm/uv global packages)
 if [ -x "$SCRIPT_DIR/scripts/install-cli-extras.sh" ]; then
