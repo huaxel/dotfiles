@@ -121,6 +121,7 @@ brew "zoxide"
 
 # ─── Casks ─────────────────────────────────────────────────────────────────
 cask "aerospace"
+cask "antigravity-cli"
 cask "beid-token"
 cask "beid-viewer"
 cask "claude"
