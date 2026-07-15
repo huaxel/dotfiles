@@ -205,31 +205,37 @@ flowchart LR
 
 ### Copy method
 
-Use the KingstonPhotos volume as an intermediary for large data:
+The repo includes a backup script (`scripts/backup-to-kingston.sh`) and a restore
+script (`scripts/restore-from-kingston.sh`). Run the backup on the old machine,
+then the restore on the new one.
+
+**On the old machine — backup everything:**
 
 ```bash
-# On old machine — dump everything to the volume
-mkdir -p /Volumes/KingstonPhotos/migration
+# Clone the latest bootstrap changes first
+git -C ~/dotfiles pull
 
-# Critical keys
-cp ~/.config/sops/age/keys.txt /Volumes/KingstonPhotos/migration/
-cp -r ~/.ssh /Volumes/KingstonPhotos/migration/
-cp -r ~/.gnupg /Volumes/KingstonPhotos/migration/
-
-# Agent state
-cp -r ~/.codex /Volumes/KingstonPhotos/mission/
-cp -r ~/.gemini /Volumes/KingstonPhotos/mission/
-cp -r ~/.wakatime /Volumes/KingstonPhotos/mission/
-cp -r ~/.config/github-copilot /Volumes/KingstonPhotos/mission/
-
-# Session data
-cp -r ~/.claude /Volumes/KingstonPhotos/mission/
-cp -r ~/"Library/Application Support/Claude" /Volumes/KingstonPhotos/mission/ClaudeAppData
-cp -r ~/.local/share/atuin /Volumes/KingstonPhotos/mission/
-cp -r ~/.local/share/fish /Volumes/KingstonPhotos/mission/
+# Run the backup script
+~/dotfiles/scripts/backup-to-kingston.sh
 ```
 
-Then on the new machine, reverse the copy.
+This copies: age key, SSH keys, GPG keys, Claude CLI, Codex, all coding
+agents (Gemini, WakaTime, Cursor, Copilot, Orca, etc.), Alfred workflows +
+license, Itsycal prefs, Logi Options+ config, shell history, and your code
+projects.
+
+**On the new machine — restore:**
+
+```bash
+# 1. Restore keys + data from KingstonPhotos
+~/dotfiles/scripts/restore-from-kingston.sh
+
+# 2. Then run bootstrap
+exec ./bootstrap.sh
+```
+
+The restore script copies keys BEFORE bootstrap (so secrets decrypt),
+then agent state and app data after.
 
 ### Step 1: Copy keys from old machine (before bootstrap!)
 
