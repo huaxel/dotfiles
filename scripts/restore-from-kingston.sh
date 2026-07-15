@@ -5,7 +5,9 @@
 # Usage: ./scripts/restore-from-kingston.sh
 #
 # Looks for KingstonPhotos at /Volumes/KingstonPhotos and copies everything
-# into place. Safe to re-run — skips existing files with --ignore-existing.
+# into place. Authoritative: overwrites app-created defaults. Intended as a
+# one-shot restore on a fresh machine — re-running after you've made new local
+# changes will clobber them. Preference plists also flush cfprefsd.
 
 set -euo pipefail
 
@@ -43,8 +45,45 @@ info()  { echo "  $*"; }
 ok()    { echo "  ✅ $*"; }
 warn()  { echo "  ⚠️  $*"; }
 skip()  { echo "  ➖ $* (already exists)"; }
-restore_dir() { [ -d "$1" ] && rsync -a --ignore-existing "$1"/ "$2"/ 2>/dev/null && ok "$3" || [ -d "$1" ] && warn "Failed: $3"; }
-restore_file() { [ -f "$1" ] && cp -n "$1" "$2" 2>/dev/null && ok "$3" || [ -f "$1" ] && warn "Failed: $3"; }
+# Restore a directory tree, overwriting existing files (backup is authoritative
+# on a fresh machine). Idempotent re-runs will clobber local changes — intended
+# only as a one-shot restore right after a wipe/new machine.
+restore_dir() {
+    [ -d "$1" ] || return 0
+    mkdir -p "$2" 2>/dev/null || true
+    if rsync -a "$1"/ "$2"/ 2>/dev/null; then
+        ok "$3"
+    else
+        warn "Failed: $3"
+    fi
+}
+# Restore a single file, overwriting any existing dest.
+restore_file() {
+    [ -f "$1" ] || return 0
+    mkdir -p "$(dirname "$2")" 2>/dev/null || true
+    if cp -f "$1" "$2" 2>/dev/null; then
+        ok "$3"
+    else
+        warn "Failed: $3"
+    fi
+}
+# Restore a ~/Library/Preferences/*.plist. macOS caches these in cfprefsd,
+# which will write its in-memory copy back to disk and clobber ours. So: quit
+# the app, force-copy, then flush cfprefsd so the next launch reads from disk.
+restore_pref() {
+    [ -f "$1" ] || return 0
+    local app="$4"
+    mkdir -p "$(dirname "$2")" 2>/dev/null || true
+    killall "$app" 2>/dev/null || true
+    if cp -f "$1" "$2" 2>/dev/null; then
+        # Prime the cache from disk, then kill the daemon so it re-reads.
+        defaults read "$(basename "$2" .plist)" >/dev/null 2>&1 || true
+        killall cfprefsd 2>/dev/null || true
+        ok "$3"
+    else
+        warn "Failed: $3"
+    fi
+}
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -131,7 +170,7 @@ for src in "$BACKUP/alfred" "$AGENTS/Alfred"; do
 done
 
 for src in "$APP_DATA/itsycal.plist" "$AGENTS/com.mowglii.ItsycalApp.plist"; do
-    [ -f "$src" ] && restore_file "$src" ~/Library/Preferences/com.mowglii.ItsycalApp.plist "Itsycal preferences" && break
+    [ -f "$src" ] && restore_pref "$src" ~/Library/Preferences/com.mowglii.ItsycalApp.plist "Itsycal preferences" Itsycal && break
 done
 
 for src in "$BACKUP/logioptionsplus" "$AGENTS/LogiOptionsPlus"; do
