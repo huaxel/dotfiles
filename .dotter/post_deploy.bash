@@ -38,9 +38,9 @@ if [ -d "$SECRETS_DIR" ]; then
     decrypt_path="$DECRYPT_DIR/$filename"
 
     echo "🔐 Decrypting $filename..."
-    decrypt_err="$(sops --decrypt --output-type binary "$enc_file" >"$decrypt_path" 2>&1)" || {
+    decrypt_err="$(sops --decrypt --output-type binary "$enc_file" 2>&1 >"$decrypt_path")" || {
       echo "   ❌ Failed to decrypt $filename"
-      echo "      $(echo "$decrypt_err" | head -3)"
+      echo "      $decrypt_err" | head -5
       echo "      (age key: $HOME/.config/sops/age/keys.txt)"
       continue
     }
@@ -59,10 +59,10 @@ if [ -d "$SECRETS_DIR" ]; then
     # existing destination (which would clobber a good secret with an empty file).
     local tmp
     tmp="$(mktemp)"
-    decrypt_err="$(sops --decrypt --output-type binary "$enc" >"$tmp" 2>&1)" || {
+    decrypt_err="$(sops --decrypt --output-type binary "$enc" 2>&1 >"$tmp")" || {
       rm -f "$tmp"
       echo "❌ Failed to decrypt $name"
-      echo "   $(echo "$decrypt_err" | head -3)"
+      echo "   $decrypt_err" | head -5
       echo "   (age key: $HOME/.config/sops/age/keys.txt)"
       return 0
     }
