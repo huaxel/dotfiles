@@ -17,8 +17,8 @@ DEST="$VOL/projects/backup-$HOST-$DATE"
 info()  { echo "  $*"; }
 ok()    { echo "  ✅ $*"; }
 warn()  { echo "  ⚠️  $*"; }
-backup() { cp -R "$1" "$DEST/$2" 2>/dev/null && ok "$3" || warn "Failed: $3"; }
-backup_dir() { mkdir -p "$(dirname "$DEST/$2")" && rsync -a "$1"/ "$DEST/$2"/ 2>/dev/null && ok "$3" || warn "Failed: $3"; }
+backup() { cp -R "$1" "$DEST/$2" 2>/dev/null && ok "$3" || warn "Failed: $3"; true; }
+backup_dir() { mkdir -p "$(dirname "$DEST/$2")" 2>/dev/null; rsync -a "$1"/ "$DEST/$2"/ 2>/dev/null && ok "$3" || warn "Failed: $3"; true; }
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
