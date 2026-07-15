@@ -95,7 +95,7 @@ echo ""
 # 1. Core keys (needed before bootstrap)
 # ─────────────────────────────────────────────────────
 echo ""
-echo "━━━ 1/6 — Core keys ━━━"
+echo "━━━ 1/7 — Core keys ━━━"
 
 if [ -f "$KEYS/keys.txt" ]; then
     mkdir -p ~/.config/sops/age
@@ -133,7 +133,7 @@ done
 # 2. Coding agent state
 # ─────────────────────────────────────────────────────
 echo ""
-echo "━━━ 2/6 — Coding agents ━━━"
+echo "━━━ 2/7 — Coding agents ━━━"
 
 # New layout: flat names; Old layout: dot-prefixed or in agent-state/
 for src in "$BACKUP/claude" "$VOL/.claude"; do [ -d "$src" ] && restore_dir "$src" ~/.claude "Claude CLI" && break; done
@@ -163,7 +163,7 @@ done
 # 3. App data (Alfred, Itsycal, Logi Options+)
 # ─────────────────────────────────────────────────────
 echo ""
-echo "━━━ 3/6 — App data ━━━"
+echo "━━━ 3/7 — App data ━━━"
 
 for src in "$BACKUP/alfred" "$AGENTS/Alfred"; do
     [ -d "$src" ] && restore_dir "$src" ~/"Library/Application Support/Alfred" "Alfred (workflows, license)" && break
@@ -181,7 +181,7 @@ done
 # 4. Shell history
 # ─────────────────────────────────────────────────────
 echo ""
-echo "━━━ 4/6 — Shell history ━━━"
+echo "━━━ 4/7 — Shell history ━━━"
 
 for src in "$BACKUP/atuin" "$VOL/atuin"; do [ -d "$src" ] && restore_dir "$src" ~/.local/share/atuin "Atuin history" && break; done
 for src in "$BACKUP/fish" "$VOL/fish"; do [ -d "$src" ] && restore_dir "$src" ~/.local/share/fish "Fish history" && break; done
@@ -190,7 +190,7 @@ for src in "$BACKUP/fish" "$VOL/fish"; do [ -d "$src" ] && restore_dir "$src" ~/
 # 5. Projects (code repos)
 # ─────────────────────────────────────────────────────
 echo ""
-echo "━━━ 5/6 — Projects ━━━"
+echo "━━━ 5/7 — Projects ━━━"
 
 if [ -d "$PROJECTS_SRC" ]; then
     for dir in "$PROJECTS_SRC"/*/; do
@@ -212,10 +212,40 @@ fi
 # 6. Herdr + Mise configs
 # ─────────────────────────────────────────────────────
 echo ""
-echo "━━━ 6/6 — Config extras ━━━"
+echo "━━━ 6/7 — Config extras ━━━"
 
 for src in "$BACKUP/herdr" "$AGENTS/herdr"; do [ -d "$src" ] && restore_dir "$src" ~/.config/herdr "Herdr config" && break; done
 for src in "$BACKUP/mise" "$AGENTS/mise"; do [ -d "$src" ] && restore_dir "$src" ~/.config/mise "Mise config" && break; done
+
+# ─────────────────────────────────────────────────────
+# 7. Browser + game data
+# ─────────────────────────────────────────────────────
+echo ""
+echo "━━━ 7/7 — Browser + game data ━━━"
+
+# Zen browser profile
+if [ -d "$BACKUP/zen-profile" ]; then
+    ZEN_TARGET="$HOME/Library/Application Support/zen/Profiles/kmcqtbgb.Default (release)"
+    mkdir -p "$(dirname "$ZEN_TARGET")" 2>/dev/null
+    if [ -d "$ZEN_TARGET" ]; then
+        skip "Zen browser profile"
+    else
+        restore_dir "$BACKUP/zen-profile" "$ZEN_TARGET" "Zen browser profile"
+    fi
+fi
+
+# Minecraft worlds + config
+if [ -d "$BACKUP/minecraft" ]; then
+    MC_TARGET="$HOME/Library/Application Support/minecraft"
+    if [ -d "$MC_TARGET/saves" ]; then
+        skip "Minecraft worlds"
+    else
+        restore_dir "$BACKUP/minecraft/saves" "$MC_TARGET/saves" "Minecraft worlds"
+    fi
+    for cfg in launcher_accounts.json launcher_profiles.json options.txt servers.dat; do
+        [ -f "$BACKUP/minecraft/$cfg" ] && restore_file "$BACKUP/minecraft/$cfg" "$MC_TARGET/$cfg" "Minecraft $cfg"
+    done
+fi
 
 # ─────────────────────────────────────────────────────
 # Done
@@ -229,4 +259,6 @@ echo "  Next steps:"
 echo "    1. If age key was restored, run ./bootstrap.sh"
 echo "    2. Otherwise restore keys manually first"
 echo "    3. Restart Alfred/Itsycal to pick up prefs"
+echo "    4. Restart Zen browser to load restored profile"
+echo "    5. Launch Minecraft to see restored worlds"
 echo ""
