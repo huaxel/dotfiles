@@ -149,12 +149,19 @@ cask "the-unarchiver"
 cask "transmission"
 cask "whatsapp"
 cask "zed"
+cask "adobe-creative-cloud"
+cask "alfred"
+cask "displaylink"
+cask "emacs-app"
+cask "microsoft-office"
+cask "minecraft"
 
 # ─── Mac App Store (requires `mas` + signed into App Store) ────────────────
 mas "Amphetamine", id: 937984704
 mas "Connective Plugin", id: 1428740565
 mas "Day One", id: 1055511498
 mas "Flow", id: 1423210932
+mas "OneDrive", id: 823766827
 
 # ─── Non-brew tools ────────────────────────────────────────────────────────
 uv "osxphotos"
