@@ -11,7 +11,8 @@ set -euo pipefail
 VOL="/Volumes/KingstonPhotos"
 DATE=$(date +%Y%m%d-%H%M)
 HOST=$(hostname -s 2>/dev/null || echo "mac")
-DEST="$VOL/backup-$HOST-$DATE"
+# Write under projects/ because volume root is root-owned
+DEST="$VOL/projects/backup-$HOST-$DATE"
 
 info()  { echo "  $*"; }
 ok()    { echo "  ✅ $*"; }
