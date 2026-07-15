@@ -99,6 +99,17 @@ if command -v age-keygen &>/dev/null && [ ! -f "$AGE_KEY" ]; then
     echo ""
 fi
 
+# On macOS, SOPS 3.13+ looks for the key at a different default path.
+# Symlink so it's found automatically without setting SOPS_AGE_KEY_FILE.
+if [ "$OS" = "Darwin" ] && [ -f "$AGE_KEY" ]; then
+    new_sops_key="$HOME/Library/Application Support/sops/age/keys.txt"
+    if [ ! -f "$new_sops_key" ] && [ ! -L "$new_sops_key" ]; then
+        mkdir -p "$(dirname "$new_sops_key")"
+        ln -sf "$AGE_KEY" "$new_sops_key"
+        info "Symlinked SOPS key: $new_sops_key → $AGE_KEY"
+    fi
+fi
+
 step "4/8 — Link ~/.agents/skills → dotfiles/skills"
 
 AGENTS_DIR="$HOME/.agents"
@@ -138,6 +149,12 @@ case "$OS" in
         elif [ ! -f "$BREWFILE" ]; then
             warn "Brewfile not found at $BREWFILE"
         else
+            # Trust any taps in the Brewfile (e.g. steipete/tap for codexbar)
+            grep '^tap ' "$BREWFILE" 2>/dev/null | while IFS= read -r tap_line; do
+                tap="$(echo "$tap_line" | sed "s/^tap \"\(.*\)\"/\1/")"
+                brew trust "$tap" 2>/dev/null || true
+            done
+
             # Phase 1: taps + formulae (the bulk of packages)
             info "Installing formulae + casks (this will take a while)..."
             brew bundle --file="$BREWFILE" || \
