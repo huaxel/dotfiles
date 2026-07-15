@@ -71,6 +71,7 @@ backup_dir ~/.jules jules "Jules"
 backup_dir ~/.grok grok "Grok"
 backup_dir ~/".config/herdr" herdr "Herdr"
 backup_dir ~/".config/mise" mise "Mise config"
+backup_dir ~/.pi/agent pi "Pi agent (sessions, git caches)"
 
 # Claude Desktop (large — ~8 GB)
 if [ -d ~/"Library/Application Support/Claude" ]; then
