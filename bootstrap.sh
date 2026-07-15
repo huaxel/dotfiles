@@ -221,6 +221,12 @@ if command -v pi &>/dev/null; then
     pi ghostty theme sync 2>/dev/null || true
 fi
 
+# Install CLI extras (npm/pnpm/uv global packages)
+if [ -x "$SCRIPT_DIR/scripts/install-cli-extras.sh" ]; then
+    info "Installing CLI extras (npm/pnpm/uv)..."
+    "$SCRIPT_DIR/scripts/install-cli-extras.sh" || warn "Some CLI extras failed — run manually: scripts/install-cli-extras.sh"
+fi
+
 # ─────────────────────────────────────────────────────────────────
 # Done
 # ─────────────────────────────────────────────────────────────────
