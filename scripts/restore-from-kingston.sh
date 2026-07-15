@@ -216,6 +216,7 @@ echo "━━━ 6/7 — Config extras ━━━"
 
 for src in "$BACKUP/herdr" "$AGENTS/herdr"; do [ -d "$src" ] && restore_dir "$src" ~/.config/herdr "Herdr config" && break; done
 for src in "$BACKUP/mise" "$AGENTS/mise"; do [ -d "$src" ] && restore_dir "$src" ~/.config/mise "Mise config" && break; done
+for src in "$BACKUP/pi" "$AGENTS/pi"; do [ -d "$src" ] && restore_dir "$src" ~/.pi/agent "Pi agent data" && break; done
 
 # ─────────────────────────────────────────────────────
 # 7. Browser + game data
