@@ -1,6 +1,4 @@
 #!/bin/bash
-set -e
-
 # Bootstrap script for new machines.
 # Usage: git clone <repo> ~/dotfiles && cd ~/dotfiles && ./bootstrap.sh
 #
@@ -11,67 +9,57 @@ set -e
 #   SKIP_BREW_BUNDLE=1   don't install the full Brewfile
 #   SKIP_MACOS_DEFAULTS=1 don't apply macOS system defaults
 
-echo "🚀 Setting up dotfiles with dotter..."
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 OS="$(uname -s)"
 
-# ---------------------------------------------------------------------------
-# Step 0 (macOS): Homebrew + core prerequisites
-# A fresh Mac has no brew, no dotter, no sops/age. Bootstrap them here so the
-# rest of the script (deploy, secret decryption, brew bundle) just works.
-# ---------------------------------------------------------------------------
+# ─────────────────────────────────────────────────────────────────
+# Helper: fail gracefully instead of crashing
+# ─────────────────────────────────────────────────────────────────
+warn()  { echo "  ⚠️  $*"; }
+info()  { echo "  $*"; }
+step()  { echo ""; echo "━━━ $* ━━━"; }
+
+# ─────────────────────────────────────────────────────────────────
+# Sudo — ask upfront, keep alive for the whole run.
+# brew bundle and macos defaults both need it.
+# ─────────────────────────────────────────────────────────────────
+if [ "$OS" = "Darwin" ]; then
+    sudo -v
+    while true; do sudo -n true; sleep 60; kill -0 "$$" 2>/dev/null || exit; done 2>/dev/null &
+fi
+
+step "1/8 — Homebrew + core prerequisites"
+
 if [ "$OS" = "Darwin" ]; then
     if ! command -v brew &>/dev/null; then
-        echo "🍺 Installing Homebrew..."
+        info "Installing Homebrew..."
         NONINTERACTIVE=1 /bin/bash -c \
             "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     fi
-    # Make brew available in this shell session (Apple Silicon vs Intel paths).
+    # Make brew available (Apple Silicon vs Intel).
     if [ -x /opt/homebrew/bin/brew ]; then
         eval "$(/opt/homebrew/bin/brew shellenv)"
     elif [ -x /usr/local/bin/brew ]; then
         eval "$(/usr/local/bin/brew shellenv)"
     fi
 
-    echo "📥 Installing core prerequisites (dotter, git, age, sops, mas)..."
-    brew install dotter git age sops mas 2>/dev/null || \
-        brew install dotter git age sops mas
+    info "Installing core prerequisites (dotter, git, age, sops, mas)..."
+    brew install dotter git age sops mas 2>/dev/null || brew install dotter git age sops mas
 fi
 
-# ---------------------------------------------------------------------------
-# Step 1: Ensure dotter exists (non-macOS fallbacks)
-# ---------------------------------------------------------------------------
-if ! command -v dotter &>/dev/null; then
-    echo "Installing dotter..."
-    if command -v cargo &>/dev/null; then
-        cargo install dotter
-    else
-        echo "Rust not found. Install dotter from:"
-        echo "  https://github.com/SuperCuber/dotter/releases"
-        exit 1
-    fi
-fi
+step "2/8 — Enable git hooks + dotter config"
 
-# ---------------------------------------------------------------------------
-# Step 2: Enable tracked git hooks (auto-encrypt secrets, etc.)
-# ---------------------------------------------------------------------------
 if [ -d .githooks ]; then
     git config core.hooksPath .githooks
-    echo "🔗 Git hooks enabled from .githooks/"
+    info "Git hooks enabled from .githooks/"
 fi
 
-# Make the pi_settings smudge filter resilient: if its helper script isn't
-# present yet (e.g. fresh worktree checkout), pass content through unchanged
-# instead of aborting the checkout.
 git config filter.strip-pi-machine-config.smudge \
     'node scripts/strip-pi-machine-config.mjs 2>/dev/null || cat' 2>/dev/null || true
 
-# ---------------------------------------------------------------------------
-# Step 3: Create machine-local Dotter config on fresh clones
-# ---------------------------------------------------------------------------
+# Create .dotter/local.toml on first run
 if [ ! -f .dotter/local.toml ]; then
     case "$OS" in
         Darwin*) dotter_os="macos"; models_base_path="$HOME/.cache/huggingface/hub" ;;
@@ -81,8 +69,6 @@ if [ ! -f .dotter/local.toml ]; then
     git_name=$(git config --global user.name 2>/dev/null || printf '%s' "${USER:-Your Name}")
     git_email=$(git config --global user.email 2>/dev/null || printf '%s' "your@email.com")
 
-    # models_base_path is required by the llama-models.ini template; without it
-    # `dotter deploy` renders a broken llama.cpp config.
     cat > .dotter/local.toml <<EOF
 packages = ["default", "unix"]
 
@@ -93,188 +79,165 @@ email = "$git_email"
 hostname_color = "fg:#f7768e"
 models_base_path = "$models_base_path"
 EOF
-    echo "Created .dotter/local.toml for $dotter_os"
+    info "Created .dotter/local.toml for $dotter_os"
 fi
 
-# ---------------------------------------------------------------------------
-# Step 4: Secrets — ensure an age key exists before deploy decrypts secrets
-# ---------------------------------------------------------------------------
+step "3/8 — Age key (for secret decryption)"
+
 AGE_KEY="$HOME/.config/sops/age/keys.txt"
 if command -v age-keygen &>/dev/null && [ ! -f "$AGE_KEY" ]; then
     echo ""
-    echo "🔑 No age key found at $AGE_KEY"
+    echo "   No age key found at $AGE_KEY"
     echo "   If you have an existing key (1Password / backup), restore it there now."
     echo "   Otherwise generating a NEW machine key — note: existing secrets won't"
     echo "   decrypt until you authorize this key in .sops.yaml and rotate them."
     mkdir -p "$(dirname "$AGE_KEY")"
     age-keygen -o "$AGE_KEY"
     echo ""
-    echo "   👉 Public key (add to .sops.yaml, then re-encrypt secrets):"
+    echo "   👉 Public key (add to .sops.yaml, then re-encrypt all secrets):"
     age-keygen -y "$AGE_KEY" 2>/dev/null || true
     echo ""
 fi
 
-# ---------------------------------------------------------------------------
-# Step 5: Link ~/.agents/skills → dotfiles/skills so "npx skills add" writes
-# directly into the git repo. The pre-deploy hook's -ef check detects this
-# symlink and skips the rsync copy.
-# ---------------------------------------------------------------------------
-AGENTS_SKILLS="$HOME/.agents/skills"
+step "4/8 — Link ~/.agents/skills → dotfiles/skills"
+
+AGENTS_DIR="$HOME/.agents"
+AGENTS_SKILLS="$AGENTS_DIR/skills"
+
+# If it's a real directory (from a previous rsync-based setup), replace it
 if [ ! -L "$AGENTS_SKILLS" ] && [ -d "$AGENTS_SKILLS" ]; then
-  echo "🔗 Replacing ~/.agents/skills with symlink to dotfiles/skills..."
-  # If it's a real dir, rm it (safe: it was synced from dotfiles)
-  rm -rf "$AGENTS_SKILLS"
-fi
-if [ ! -e "$AGENTS_SKILLS" ]; then
-  ln -sfn "$SCRIPT_DIR/skills" "$AGENTS_SKILLS"
-  echo "🔗 Created symlink: ~/.agents/skills → dotfiles/skills"
+    info "Replacing ~/.agents/skills with symlink to dotfiles/skills..."
+    rm -rf "$AGENTS_SKILLS"
 fi
 
-# ---------------------------------------------------------------------------
-# Step 6: Deploy dotfiles (renders templates, creates symlinks, decrypts secrets)
-# ---------------------------------------------------------------------------
-echo "Deploying dotfiles..."
+# Create the symlink (parents may not exist on a fresh machine)
+if [ ! -e "$AGENTS_SKILLS" ]; then
+    mkdir -p "$AGENTS_DIR"
+    ln -sfn "$SCRIPT_DIR/skills" "$AGENTS_SKILLS"
+    info "Created symlink: ~/.agents/skills → dotfiles/skills"
+fi
+
+step "5/8 — Deploy dotfiles"
+
+info "Running: dotter deploy"
 dotter deploy
 
-# Install tracked system config (/etc/*) — root-owned, so outside dotter's
-# scope. Skipped automatically on non-Linux. Uses sudo; safe to re-run.
+# Linux /etc config (root-owned, needs sudo)
 if [ "$OS" = "Linux" ] && [ -x ./etc/install-system-config.sh ]; then
-    echo "Installing system config (/etc) — may prompt for sudo..."
-    ./etc/install-system-config.sh || echo "⚠️  system config install skipped/failed"
+    info "Installing system config (/etc)..."
+    sudo ./etc/install-system-config.sh || warn "system config install skipped/failed"
 fi
 
-# ---------------------------------------------------------------------------
-# Step 7: Install platform packages
-# ---------------------------------------------------------------------------
-echo ""
-echo "📦 Installing platform packages..."
+step "6/8 — Install packages"
+
 case "$OS" in
     Darwin)
         BREWFILE="$SCRIPT_DIR/config/Brewfile"
         if [ "${SKIP_BREW_BUNDLE:-0}" = "1" ]; then
-            echo "⏭️  SKIP_BREW_BUNDLE=1 — skipping brew bundle."
-        elif [ -f "$BREWFILE" ]; then
-            if ! mas account &>/dev/null; then
-                echo "⚠️  Not signed into the App Store — 'mas' apps will fail."
-                echo "   Sign in via App Store.app, then re-run, or ignore those lines."
-            fi
-            echo "Running brew bundle (this can take a while)..."
-            brew bundle --file="$BREWFILE" || \
-                echo "⚠️  brew bundle finished with some failures (often just mas/login). Review above."
+            info "SKIP_BREW_BUNDLE=1 — skipping."
+        elif [ ! -f "$BREWFILE" ]; then
+            warn "Brewfile not found at $BREWFILE"
         else
-            echo "Brewfile not found at $BREWFILE"
+            # Phase 1: taps + formulae (the bulk of packages)
+            info "Installing formulae + casks (this will take a while)..."
+            brew bundle --file="$BREWFILE" || \
+                warn "Some packages failed — review output above"
+
+            # Phase 2: mas (App Store) — only if signed in
+            if mas account &>/dev/null; then
+                info "Installing App Store apps..."
+                # Filter only mas lines and install them individually so one
+                # failure doesn't block the rest
+                grep '^mas "' "$BREWFILE" | while IFS= read -r line; do
+                    app_name=$(echo "$line" | sed -n 's/^mas "\(.*\)", id: \([0-9]*\)/\1/p')
+                    app_id=$(echo "$line" | sed -n 's/^mas "\(.*\)", id: \([0-9]*\)/\2/p')
+                    [ -n "$app_name" ] && [ -n "$app_id" ] || continue
+                    if ! mas list 2>/dev/null | grep -q "$app_id"; then
+                        info "  Installing $app_name..."
+                        mas install "$app_id" 2>/dev/null || warn "Failed to install $app_name"
+                    fi
+                done
+            else
+                warn "Not signed into the App Store — mas apps skipped."
+                warn "  Sign in to App Store.app, then run: brew bundle --file=$BREWFILE"
+            fi
         fi
         ;;
     Linux)
-        if command -v pacman &> /dev/null; then
-            # Arch Linux packages — mirrors Brewfile/Scoop tool set
+        if ! command -v pacman &>/dev/null; then
+            warn "No pacman found — install packages manually."
+        else
             packages=(
-                # Core tools
                 git neovim nodejs python rust
-                # Shell & prompt
                 starship zoxide atuin fzf
-                # Modern CLI replacements
                 eza bat fd ripgrep procs dust duf btop bottom fastfetch yazi
-                # Dev tools
                 github-cli jq glow lazygit uv just opencode pnpm
-                # Encryption
                 age gnupg sops
-                # Build
-                make
-                # Utilities
-                curl wget tree htop
+                make curl wget tree htop
             )
+            extra=($(pacman -Qi git-lfs &>/dev/null || echo "git-lfs"))
+            extra+=($(pacman -Qi usage &>/dev/null || echo "usage"))
 
-            # Extra packages (not always in official repos)
-            extra_packages=(
-                git-lfs knot-resolver usage
-            )
-            for pkg in "${extra_packages[@]}"; do
-                if ! pacman -Qi "$pkg" &> /dev/null; then
-                    sudo pacman -S --noconfirm "$pkg" 2>/dev/null || true
-                fi
-            done
-
-            # AUR packages (via paru or yay)
-            aur_packages=(
-                viddy llama.cpp pi-coding-agent
-            )
-
-            # Install official packages
             missing=()
-            for pkg in "${packages[@]}"; do
-                if ! pacman -Qi "$pkg" &> /dev/null; then
-                    missing+=("$pkg")
-                fi
+            for pkg in "${packages[@]}" "${extra[@]}"; do
+                pacman -Qi "$pkg" &>/dev/null || missing+=("$pkg")
             done
 
             if [ ${#missing[@]} -gt 0 ]; then
-                echo "Installing: ${missing[*]}"
+                info "Installing: ${missing[*]}"
                 sudo pacman -S --noconfirm "${missing[@]}"
-            else
-                echo "✅ All pacman packages installed"
             fi
 
-            # Install AUR packages
-            if command -v paru &> /dev/null || command -v yay &> /dev/null; then
+            # AUR
+            if command -v paru &>/dev/null || command -v yay &>/dev/null; then
                 aur_cmd=$(command -v paru || command -v yay)
-                aur_missing=()
-                for pkg in "${aur_packages[@]}"; do
-                    if ! pacman -Qi "$pkg" &> /dev/null; then
-                        aur_missing+=("$pkg")
-                    fi
+                for pkg in viddy llama.cpp pi-coding-agent; do
+                    pacman -Qi "$pkg" &>/dev/null || \
+                        $aur_cmd -S --noconfirm "$pkg" 2>/dev/null || \
+                        warn "Failed to install AUR package: $pkg"
                 done
-                if [ ${#aur_missing[@]} -gt 0 ]; then
-                    echo "Installing AUR: ${aur_missing[*]}"
-                    $aur_cmd -S --noconfirm "${aur_missing[@]}"
-                fi
-            else
-                echo "⚠️  No AUR helper found. Install paru or yay for AUR packages."
             fi
-        else
-            echo "Package manager not detected. Install packages manually."
         fi
         ;;
 esac
 
-# ---------------------------------------------------------------------------
-# Step 8 (macOS): Apply system defaults
-# ---------------------------------------------------------------------------
+step "7/8 — macOS system defaults"
+
 if [ "$OS" = "Darwin" ] && [ "${SKIP_MACOS_DEFAULTS:-0}" != "1" ] && [ -x ./macos/defaults.sh ]; then
-    echo ""
-    echo "⚙️  Applying macOS system defaults (may prompt for sudo)..."
-    ./macos/defaults.sh || echo "⚠️  macOS defaults step had issues — review above."
+    ./macos/defaults.sh || warn "macOS defaults step had issues"
 fi
 
-echo ""
-# ---------------------------------------------------------------------------
-# Step 9: Install mise tool versions
-# ---------------------------------------------------------------------------
+step "8/8 — Post-install setup"
+
+# Install mise tool versions (if mise was just installed)
 if command -v mise &>/dev/null && [ -f "$HOME/.config/mise/config.toml" ]; then
-    echo ""
-    echo "📦 Installing mise tool versions…"
-    mise install 2>/dev/null || echo "⚠️  mise install had issues — run 'mise install' manually"
+    info "Installing mise tool versions (node, python, go, rust)..."
+    mise install 2>/dev/null || warn "mise install had issues — run 'mise install' manually"
 fi
 
-# ---------------------------------------------------------------------------
-# Step 10: Sync Ghostty theme via pi (if pi is available)
-# ---------------------------------------------------------------------------
+# Sync Ghostty theme (if pi is available)
 if command -v pi &>/dev/null; then
-    echo ""
-    echo "🎨 Syncing Ghostty theme…"
-    pi ghostty theme sync 2>/dev/null || echo "⚠️  Ghostty theme sync skipped — run manually: pi ghostty theme sync"
+    info "Syncing Ghostty theme..."
+    pi ghostty theme sync 2>/dev/null || true
 fi
 
+# ─────────────────────────────────────────────────────────────────
+# Done
+# ─────────────────────────────────────────────────────────────────
 echo ""
-echo "✅ Dotfiles deployed successfully!"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "  ✅  Dotfiles deployed successfully!"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo "Next steps:"
-echo "  - Restart your shell (or log out/in for macOS defaults to fully apply)"
-echo "  - Sign into the App Store and re-run if 'mas' apps were skipped"
-echo "  - If secrets didn't decrypt: authorize this machine's age key in .sops.yaml,"
-echo "    rotate secrets, then run: dotter deploy"
+echo "  Next steps:"
+echo "    1. Restart your shell (or log out/in for defaults to apply)"
+echo "    2. Sign into the App Store to install mas apps:"
+echo "         brew bundle --file=$SCRIPT_DIR/config/Brewfile"
+echo "    3. If secrets didn't decrypt: add this machine's age key to"
+echo "       .sops.yaml, re-encrypt secrets, then run: dotter deploy"
 echo ""
-echo "🔑 Manual restore checklist (copy from old machine before using):"
-echo "    1. ~/.config/sops/age/keys.txt  — REQUIRED for secrets decryption"
-echo "    2. ~/.ssh/              — SSH keys (git, servers)"
-echo "    3. ~/.gnupg/            — GPG keys (commit signing)"
+echo "  🔑 Manual restore (copy from old machine if not done):"
+echo "     ~/.config/sops/age/keys.txt   ← decrypts secrets"
+echo "     ~/.ssh/                        ← git + server access"
+echo "     ~/.gnupg/                      ← commit signing"
+echo ""
