@@ -13,6 +13,12 @@ npmrc = "~/.npmrc"
 # llama.cpp models.ini — template because model paths are machine-specific
 "llama-models.ini" = "~/.config/llama.cpp/models.ini"
 
+# herdr config
+"config/herdr/config.toml" = "~/.config/herdr/config.toml"
+
+# mise tool versions
+"config/mise/config.toml" = "~/.config/mise/config.toml"
+
 [windows.files]
 # Zed
 "config/zed/keymap.json" = { target = "$LOCALAPPDATA\\Zed\\keymap.json", type = "symbolic" }

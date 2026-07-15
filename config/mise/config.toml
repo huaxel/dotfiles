@@ -1,0 +1,17 @@
+[settings]
+experimental = false
+
+[tools]
+# Default versions for global use
+node = "24"
+python = "3.13"
+go = "1.26"
+rust = "1.85"
+
+[tool_alias.node.versions]
+lts = "22"
+latest = "26"
+
+[tool_alias.python.versions]
+stable = "3.13"
+latest = "3.14"
