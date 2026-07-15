@@ -188,6 +188,124 @@ This is sourced at the end of the main zshrc.
 
 ---
 
+## New Machine Setup
+
+Setting up a new Mac (e.g., MacBook Air M5): bootstrap captures most things,
+but some state must be copied from the old machine.
+
+### Order of operations
+
+```mermaid
+flowchart LR
+    A[Copy keys from old machine] --> B[Clone dotfiles]
+    B --> C[bootstrap.sh]
+    C --> D[Sign into accounts]
+    D --> E[Copy coding agent state]
+```
+
+### Copy method
+
+Use the KingstonPhotos volume as an intermediary for large data:
+
+```bash
+# On old machine — dump everything to the volume
+mkdir -p /Volumes/KingstonPhotos/migration
+
+# Critical keys
+cp ~/.config/sops/age/keys.txt /Volumes/KingstonPhotos/migration/
+cp -r ~/.ssh /Volumes/KingstonPhotos/migration/
+cp -r ~/.gnupg /Volumes/KingstonPhotos/migration/
+
+# Agent state
+cp -r ~/.codex /Volumes/KingstonPhotos/mission/
+cp -r ~/.gemini /Volumes/KingstonPhotos/mission/
+cp -r ~/.wakatime /Volumes/KingstonPhotos/mission/
+cp -r ~/.config/github-copilot /Volumes/KingstonPhotos/mission/
+
+# Session data
+cp -r ~/.claude /Volumes/KingstonPhotos/mission/
+cp -r ~/"Library/Application Support/Claude" /Volumes/KingstonPhotos/mission/ClaudeAppData
+cp -r ~/.local/share/atuin /Volumes/KingstonPhotos/mission/
+cp -r ~/.local/share/fish /Volumes/KingstonPhotos/mission/
+```
+
+Then on the new machine, reverse the copy.
+
+### Step 1: Copy keys from old machine (before bootstrap!)
+
+These **must** exist before running bootstrap.sh or secrets won't decrypt:
+
+| What | Path | Why |
+|---|---|---|
+| **Age key** | `~/.config/sops/age/keys.txt` | Decrypts all encrypted secrets (API keys, pi auth, env vars) |
+| **SSH keys** | `~/.ssh/` | Git push, server access |
+| **GPG keys** | `~/.gnupg/` | Commit signing |
+
+Without the age key, bootstrap creates a *new* key and every secret stays
+encrypted — you'd have to add the new key to `.sops.yaml` and re-encrypt all
+secrets from this machine.
+
+### Step 2: Clone and bootstrap
+
+```bash
+git clone https://github.com/huaxel/dotfiles.git ~/dotfiles
+cd ~/dotfiles && ./bootstrap.sh
+```
+
+### Step 3: Sign into accounts
+
+| Service | How |
+|---|---|
+| **Apple ID** | System Settings → sign in (needed for mas App Store apps) |
+| **Claude Desktop** | Launches → re-auth via GitHub OAuth |
+| **Claude Code** | `claude` in terminal → re-auth |
+| **Codex** | Launches → re-auth |
+| **Tailscale** | Tailscale.app → re-auth |
+| **Atuin** | `atuin login` (cloud-syncs history) or copy local db |
+| **Zed** | Open → sign into GitHub Copilot / Claude ACP |
+| **Ghostty theme** | `pi ghostty theme sync` |
+| **Cursor** | Launches → sign in |
+| **WakaTime** | Copy `~/.wakatime/wakatime.cfg` for API key or paste fresh key |
+
+### Step 4: Copy coding agent state
+
+#### 🟢 Small / auth-only (copy after bootstrap)
+
+| Agent | Path | Size | What's in it |
+|---|---|---|---|
+| **Pi** | `~/dotfiles/pi/agent/auth.json` | 4 KB | Auto-decrypted from encrypted secrets. Already handled. |
+| **GitHub Copilot** | `~/.config/github-copilot/` | 524 KB | Auth tokens, hosts.json |
+| **Cursor** | `~/.cursor/` | 2.3 MB | Skills, hooks.json (re-creatable on sign-in) |
+| **Gemini CLI** | `~/.gemini/` | 26 MB | Auth, cache. Re-auth on first use. |
+| **WakaTime** | `~/.wakatime/` | 21 MB | WakaTime.cfg with API key. Copy or re-auth. |
+| **OpenCode** | `~/.config/opencode/` | 64 MB | Mostly re-installable `node_modules/`. Config is minimal. |
+| **Devin** | `~/.config/devin/` | 8 KB | Config — copy or recreate |
+| **Kimi Code** | `~/.kimi-code/` | 4 KB | Config |
+| **Jules** | `~/.jules/` | 4 KB | Config |
+| **Grok** | `~/.grok/` | 8 KB | Config |
+| **Orca** | `~/.orca/` | 52 KB | Config + workspace state |
+
+#### 🔴 Large state (copy after bootstrap, optional)
+
+| Agent | Path | Size | What's in it |
+|---|---|---|---|
+| **Codex CLI** | `~/.codex/` | **236 MB** | Auth, config, history, sessions, skills, plugins, DBs |
+| **Codex app** | `~/Library/Application Support/Codex/` | **122 MB** | Chromium cache (skip — re-creatable) |
+| **Claude Desktop** | `~/Library/Application Support/Claude/` | **~8 GB** | Conversations, MCP configs, claude-code sessions |
+| **Claude CLI** | `~/.claude/` | **~430 MB** | Projects (344 MB), plugins (17 MB), settings |
+| **Atuin history** | `~/.local/share/atuin/` | ~8 MB | Shell history (or cloud-sync via `atuin login`) |
+| **Fish history** | `~/.local/share/fish/` | ~1 MB | Shell history (small, easy to copy) |
+
+### What gets installed fresh (no copy needed)
+
+- **nvim plugins** — auto-installed on first `nvim` launch (Lazy.nvim)
+- **mise tools** — `mise install` re-downloads from config
+- **npm packages** — re-installed via `npm install`
+- **Docker images** — re-pulled
+- **Pi sessions** — re-created as you work (in `pi/agent/sessions/`)
+
+---
+
 ## Secrets Management (sops + age)
 
 Encrypted secrets live in the dotfiles repo and auto-decrypt on `dotter deploy`.

@@ -185,6 +185,16 @@ case "$OS" in
                 curl wget tree htop
             )
 
+            # Extra packages (not always in official repos)
+            extra_packages=(
+                git-lfs knot-resolver usage
+            )
+            for pkg in "${extra_packages[@]}"; do
+                if ! pacman -Qi "$pkg" &> /dev/null; then
+                    sudo pacman -S --noconfirm "$pkg" 2>/dev/null || true
+                fi
+            done
+
             # AUR packages (via paru or yay)
             aur_packages=(
                 viddy llama.cpp pi-coding-agent
@@ -237,6 +247,25 @@ if [ "$OS" = "Darwin" ] && [ "${SKIP_MACOS_DEFAULTS:-0}" != "1" ] && [ -x ./maco
 fi
 
 echo ""
+# ---------------------------------------------------------------------------
+# Step 9: Install mise tool versions
+# ---------------------------------------------------------------------------
+if command -v mise &>/dev/null && [ -f "$HOME/.config/mise/config.toml" ]; then
+    echo ""
+    echo "📦 Installing mise tool versions…"
+    mise install 2>/dev/null || echo "⚠️  mise install had issues — run 'mise install' manually"
+fi
+
+# ---------------------------------------------------------------------------
+# Step 10: Sync Ghostty theme via pi (if pi is available)
+# ---------------------------------------------------------------------------
+if command -v pi &>/dev/null; then
+    echo ""
+    echo "🎨 Syncing Ghostty theme…"
+    pi ghostty theme sync 2>/dev/null || echo "⚠️  Ghostty theme sync skipped — run manually: pi ghostty theme sync"
+fi
+
+echo ""
 echo "✅ Dotfiles deployed successfully!"
 echo ""
 echo "Next steps:"
@@ -244,3 +273,8 @@ echo "  - Restart your shell (or log out/in for macOS defaults to fully apply)"
 echo "  - Sign into the App Store and re-run if 'mas' apps were skipped"
 echo "  - If secrets didn't decrypt: authorize this machine's age key in .sops.yaml,"
 echo "    rotate secrets, then run: dotter deploy"
+echo ""
+echo "🔑 Manual restore checklist (copy from old machine before using):"
+echo "    1. ~/.config/sops/age/keys.txt  — REQUIRED for secrets decryption"
+echo "    2. ~/.ssh/              — SSH keys (git, servers)"
+echo "    3. ~/.gnupg/            — GPG keys (commit signing)"
