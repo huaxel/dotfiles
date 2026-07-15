@@ -49,13 +49,13 @@ fi
 mkdir -p "$DEST"
 
 # ── 1. Core keys ──────────────────────────────────────
-echo "━━━ 1/5 — Core keys ──────────────────────────────"
+echo "━━━ 1/6 — Core keys ──────────────────────────────"
 backup_dir ~/.config/sops/age keys "Age key"
 backup_dir ~/.ssh ssh "SSH keys"
 backup_dir ~/.gnupg gnupg "GPG keys"
 
 # ── 2. Coding agents ──────────────────────────────────
-echo "━━━ 2/5 — Coding agents ──────────────────────────"
+echo "━━━ 2/6 — Coding agents ──────────────────────────"
 backup_dir ~/.claude claude "Claude CLI"
 backup_dir ~/.codex codex "Codex CLI"
 backup_dir ~/".config/github-copilot" github-copilot "GitHub Copilot"
@@ -97,7 +97,7 @@ fi
 [ -d ~/"Library/Application Support/CodexBar" ] && backup_dir ~/"Library/Application Support/CodexBar" codexbar "CodexBar"
 
 # ── 3. App data ───────────────────────────────────────
-echo "━━━ 3/5 — App data ───────────────────────────────"
+echo "━━━ 3/6 — App data ───────────────────────────────"
 backup_dir ~/"Library/Application Support/Alfred" alfred "Alfred (workflows, license, snippets)"
 [ -f ~/Library/Preferences/com.mowglii.ItsycalApp.plist ] && backup ~/Library/Preferences/com.mowglii.ItsycalApp.plist itsycal.plist "Itsycal preferences"
 backup_dir ~/"Library/Application Support/LogiOptionsPlus" logioptionsplus "Logi Options+ config"
@@ -107,17 +107,56 @@ for f in ~/Library/Preferences/com.displaylink.*.plist; do
 done
 
 # ── 4. Shell history ──────────────────────────────────
-echo "━━━ 4/5 — Shell history ──────────────────────────"
+echo "━━━ 4/6 — Shell history ──────────────────────────"
 backup_dir ~/.local/share/atuin atuin "Atuin history"
 backup_dir ~/.local/share/fish fish "Fish history"
 
 # ── 5. Projects (code repos) ──────────────────────────
-echo "━━━ 5/5 — Projects ───────────────────────────────"
+echo "━━━ 5/6 — Projects ───────────────────────────────"
 for dir in ~/projects/*/ ~/coding/projects/*/; do
     [ -d "$dir/.git" ] || continue
     name=$(basename "$dir")
     backup_dir "$dir" "projects/$name" "projects/$name"
 done
+
+# ── 6. Browser + game data ──────────────────────────
+echo "━━━ 6/6 — Browser + game data ───────────────────"
+
+# Zen browser profile (main release profile)
+ZEN_PROFILE="$HOME/Library/Application Support/zen/Profiles/kmcqtbgb.Default (release)"
+if [ -d "$ZEN_PROFILE" ]; then
+    # Back up essential profile data (skip cache/temp)
+    ZEN_DEST="$DEST/zen-profile"
+    mkdir -p "$ZEN_DEST" 2>/dev/null
+    rsync -a --info=progress2 \
+        --exclude='/storage/' \
+        --exclude='/cache/' \
+        --exclude='/Cache/' \
+        --exclude='/startupCache/' \
+        --exclude='/cache2/' \
+        --exclude='*.sqlite-wal' \
+        --exclude='*.sqlite-shm' \
+        "$ZEN_PROFILE"/ "$ZEN_DEST"/ 2>/dev/null; rc=$?
+    if [ "$rc" -eq 0 ] || [ "$rc" -eq 23 ] || [ "$rc" -eq 24 ]; then
+        ok "Zen browser profile (bookmarks, logins, extensions)"
+    else
+        warn "Zen browser backup failed"
+    fi
+fi
+
+# Minecraft worlds + config
+MC_DIR="$HOME/Library/Application Support/minecraft"
+if [ -d "$MC_DIR/saves" ]; then
+    MC_DEST="$DEST/minecraft"
+    mkdir -p "$MC_DEST" 2>/dev/null
+    rsync -a "$MC_DIR/saves"/ "$MC_DEST/saves"/ 2>/dev/null; rc1=$?
+    [ "$rc1" -eq 0 ] || [ "$rc1" -eq 23 ] || [ "$rc1" -eq 24 ] && ok "Minecraft worlds ($(du -sh "$MC_DIR/saves" | cut -f1))" || warn "Minecraft worlds backup had issues"
+    
+    for cfg in launcher_accounts.json launcher_profiles.json options.txt servers.dat; do
+        [ -f "$MC_DIR/$cfg" ] && cp -n "$MC_DIR/$cfg" "$MC_DEST/$cfg" 2>/dev/null
+    done
+    ok "Minecraft config files"
+fi
 
 # ── Done ──────────────────────────────────────────────
 echo ""
