@@ -215,10 +215,31 @@ if command -v mise &>/dev/null && [ -f "$HOME/.config/mise/config.toml" ]; then
     mise install 2>/dev/null || warn "mise install had issues — run 'mise install' manually"
 fi
 
-# Sync Ghostty theme (if pi is available)
+# Set fish as default shell
+FISH_PATH=$(command -v fish 2>/dev/null)
+if [ -n "$FISH_PATH" ] && [ "$OS" = "Darwin" ]; then
+    CURRENT_SHELL=$(dscl . -read /Users/"$USER" UserShell 2>/dev/null | awk '{print $2}')
+    if [ "$CURRENT_SHELL" != "$FISH_PATH" ]; then
+        # Add to /etc/shells if not present (needed for chsh to accept it)
+        if ! grep -qF "$FISH_PATH" /etc/shells 2>/dev/null; then
+            echo "$FISH_PATH" | sudo tee -a /etc/shells >/dev/null
+            info "Added fish to /etc/shells"
+        fi
+        chsh -s "$FISH_PATH" 2>/dev/null || sudo chsh -s "$FISH_PATH" "$USER" 2>/dev/null || warn "Could not set fish as default shell — run: chsh -s $FISH_PATH"
+        info "Default shell changed to fish (log out/in to apply)"
+    else
+        info "Fish is already the default shell"
+    fi
+fi
+
+# Sync Ghostty theme (requires Ghostty + pi to be installed)
 if command -v pi &>/dev/null; then
-    info "Syncing Ghostty theme..."
-    pi ghostty theme sync 2>/dev/null || true
+    if [ -d "$HOME/.config/ghostty" ]; then
+        info "Syncing Ghostty theme..."
+        pi ghostty theme sync 2>/dev/null || warn "Ghostty theme sync failed — run: pi ghostty theme sync"
+    else
+        info "Ghostty config not yet deployed — theme sync deferred"
+    fi
 fi
 
 # Install CLI extras (npm/pnpm/uv global packages)
