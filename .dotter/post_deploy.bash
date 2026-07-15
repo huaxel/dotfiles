@@ -38,12 +38,14 @@ if [ -d "$SECRETS_DIR" ]; then
     decrypt_path="$DECRYPT_DIR/$filename"
 
     echo "🔐 Decrypting $filename..."
-    if sops --decrypt --output-type binary "$enc_file" >"$decrypt_path" 2>/dev/null; then
-      chmod 600 "$decrypt_path"
-      echo "   ✅ Decrypted to $decrypt_path"
-    else
-      echo "   ❌ Failed to decrypt $filename (wrong key or corrupt file)"
-    fi
+    decrypt_err="$(sops --decrypt --output-type binary "$enc_file" >"$decrypt_path" 2>&1)" || {
+      echo "   ❌ Failed to decrypt $filename"
+      echo "      $(echo "$decrypt_err" | head -3)"
+      echo "      (age key: $HOME/.config/sops/age/keys.txt)"
+      continue
+    }
+    chmod 600 "$decrypt_path"
+    echo "   ✅ Decrypted to $decrypt_path"
   done
 
   # App-specific secrets: decrypt to their real config path.
@@ -57,14 +59,16 @@ if [ -d "$SECRETS_DIR" ]; then
     # existing destination (which would clobber a good secret with an empty file).
     local tmp
     tmp="$(mktemp)"
-    if sops --decrypt --output-type binary "$enc" >"$tmp" 2>/dev/null; then
-      mv "$tmp" "$dest"
-      chmod 600 "$dest"
-      echo "🔐 Decrypted $name -> $dest"
-    else
+    decrypt_err="$(sops --decrypt --output-type binary "$enc" >"$tmp" 2>&1)" || {
       rm -f "$tmp"
-      echo "❌ Failed to decrypt $name (wrong key or corrupt file)"
-    fi
+      echo "❌ Failed to decrypt $name"
+      echo "   $(echo "$decrypt_err" | head -3)"
+      echo "   (age key: $HOME/.config/sops/age/keys.txt)"
+      return 0
+    }
+    mv "$tmp" "$dest"
+    chmod 600 "$dest"
+    echo "🔐 Decrypted $name -> $dest"
   }
 
   # App-specific secrets: decrypt to their real config path.
