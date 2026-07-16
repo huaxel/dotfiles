@@ -45,6 +45,7 @@
     "npm:@quintinshaw/pi-dynamic-workflows",
     "npm:@mobrienv/pi-tidy-tools",
     "npm:@ogulcancelik/pi-herdr",
-    "npm:@ogulcancelik/pi-ghostty-theme-sync"
+    "npm:@ogulcancelik/pi-ghostty-theme-sync",
+    "npm:pi-cursor-sdk"
   ]
 }

@@ -84,3 +84,4 @@ secrets/*
 # Python
 __pycache__/
 *.pyc
+pi/agent/models-store.json
