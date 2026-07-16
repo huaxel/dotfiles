@@ -12,6 +12,7 @@
     "@ogulcancelik/pi-herdr": "^0.3.0",
     "@quintinshaw/pi-dynamic-workflows": "^2.14.0",
     "pi-autoresearch": "^1.6.2",
+    "pi-cursor-sdk": "^0.1.58",
     "pi-intercom": "^0.6.0",
     "pi-provider-umans": "^1.4.1",
     "pi-review-loop": "^0.4.4",
