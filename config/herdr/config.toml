@@ -5,3 +5,61 @@ name = "tokyo-night"
 
 [ui.sound]
 enabled = false
+
+# ── Layout ─────────────────────────────────────────────────────────────────────
+
+[ui]
+show_agent_labels_on_pane_borders = true
+agent_panel_sort = "priority"
+
+# ── New workspace/agent keybindings ────────────────────────────────────────────
+
+[keys]
+# Workspace navigation (tmux-like)
+previous_workspace = "prefix+,"
+next_workspace = "prefix+."
+switch_workspace = "prefix+shift+1..9"
+last_pane = "prefix+;"
+
+# Agent navigation
+previous_agent = "prefix+shift+up"
+next_agent = "prefix+shift+down"
+focus_agent = "prefix+alt+1..9"
+
+# Worktree management
+open_worktree = "prefix+shift+o"
+remove_worktree = "prefix+d"
+
+# ── herdr-plus: projects ──────────────────────────────────────────────────────
+
+[[keys.command]]
+key = "prefix+up"
+type = "plugin_action"
+command = "cloudmanic.herdr-plus.projects"
+description = "herdr-plus: projects"
+
+[[keys.command]]
+key = "prefix+down"
+type = "plugin_action"
+command = "cloudmanic.herdr-plus.quick-actions"
+description = "herdr-plus: quick actions"
+
+# ── herdr-todo: prompt backlog ─────────────────────────────────────────────────
+
+[[keys.command]]
+key = "prefix+t"
+type = "plugin_action"
+command = "rohanthewiz.herdr-todo.todo"
+description = "herdr-todo: prompts"
+
+# ── herdr-file-viewer ─────────────────────────────────────────────────────────
+
+[[keys.command]]
+key = "prefix+f"
+type = "shell"
+command = "herdr plugin action invoke open-file-viewer --plugin herdr-file-viewer"
+
+[[keys.command]]
+key = "prefix+shift+f"
+type = "shell"
+command = "herdr plugin action invoke open-file-viewer-tab --plugin herdr-file-viewer"
