@@ -17,6 +17,9 @@ pi-crash.log
 run-history.jsonl
 pi-debug.log
 
+# Model cache (auto-generated)
+models-store.json
+
 # Editor / OS junk
 .DS_Store
 *.bak
