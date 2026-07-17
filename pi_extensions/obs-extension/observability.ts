@@ -335,6 +335,7 @@ export default function (pi: ExtensionAPI) {
   });
 
   let quotaEpoch = 0;
+  let requestFooterRender = () => {};
 
   async function refreshQuota(ctx: ExtensionContext): Promise<void> {
     const provider = ctx.model?.provider;
@@ -358,6 +359,8 @@ export default function (pi: ExtensionAPI) {
       if (epoch === quotaEpoch) state.quotaUsage = snapshot;
     } catch {
       if (epoch === quotaEpoch) state.quotaUsage = null;
+    } finally {
+      requestFooterRender();
     }
   }
 
@@ -599,6 +602,11 @@ export default function (pi: ExtensionAPI) {
 
   function setupFooter(ctx: ExtensionContext) {
     ctx.ui.setFooter((tui, theme, footerData) => {
+      requestFooterRender = () => tui.requestRender();
+      // Register re-fetch callback for failover account rotation.
+      (globalThis as any).__opencode_go_trigger_refresh = () => {
+        void refreshQuota(ctx).finally(() => tui.requestRender());
+      };
       let diffAdded = 0;
       let diffRemoved = 0;
 
@@ -654,9 +662,11 @@ export default function (pi: ExtensionAPI) {
 
       return {
         dispose() {
+          (globalThis as any).__opencode_go_trigger_refresh = undefined;
           unsubBranch();
           clearInterval(timer);
           clearInterval(quotaTimer);
+          requestFooterRender = () => {};
         },
         invalidate() {},
         render(width: number): string[] {
