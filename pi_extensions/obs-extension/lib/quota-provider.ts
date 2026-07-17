@@ -38,8 +38,12 @@ export interface QuotaFetchOptions {
 
 type JsonObject = Record<string, any>;
 
+function getAgentDir(): string {
+  return process.env.PI_CODING_AGENT_DIR?.trim() || join(homedir(), ".pi", "agent");
+}
+
 function loadAuthJson(): JsonObject {
-  const authPath = join(homedir(), ".pi", "agent", "auth.json");
+  const authPath = join(getAgentDir(), "auth.json");
   try {
     if (existsSync(authPath)) {
       return JSON.parse(readFileSync(authPath, "utf-8"));
@@ -69,6 +73,14 @@ function resolveAuthValue(value: unknown): string | undefined {
 
   if (/^[A-Z][A-Z0-9_]*$/.test(trimmed) && process.env[trimmed]) {
     return process.env[trimmed];
+  }
+
+  if (trimmed.startsWith("$$")) return trimmed.slice(1);
+  if (trimmed.startsWith("$!")) return trimmed.slice(1);
+
+  if (trimmed.startsWith("$")) {
+    const name = trimmed.slice(1).replace(/^\{(.*)\}$/, "$1");
+    return process.env[name] || undefined;
   }
 
   return trimmed;
@@ -309,51 +321,121 @@ export function parseOpenCodeGoDashboard(html: string): {
   };
 }
 
-async function fetchOpencodeGoUsage(): Promise<QuotaSnapshot> {
-  const config = loadAuthJson()["quota-status"]?.["opencode-go"];
-  const workspaceId = typeof config?.workspaceId === "string" ? config.workspaceId.trim() : "";
-  const authCookie = typeof config?.authCookie === "string" ? config.authCookie.trim() : "";
-  if (!workspaceId || !authCookie) {
-    return { provider: "opencode-go", windows: [], error: "no-auth", fetchedAt: Date.now() };
-  }
-
+/** Fetch usage for a single OpenCode Go workspace. */
+async function fetchSingleOpencodeGoUsage(
+  workspaceId: string,
+  authCookie: string,
+): Promise<{ rolling: OpenCodeGoWindow | null; weekly: OpenCodeGoWindow | null; monthly: OpenCodeGoWindow | null; error?: string }> {
   try {
     const url = `https://opencode.ai/workspace/${encodeURIComponent(workspaceId)}/go`;
     const { response, data: html } = await fetchJsonText(url, {
       headers: { Cookie: `auth=${authCookie}`, "User-Agent": OPENCODE_GO_USER_AGENT },
     });
     if (!isAuthenticatedOpencodeUrl(response.url, workspaceId)) {
-      return { provider: "opencode-go", windows: [], error: "auth-expired", fetchedAt: Date.now() };
+      return { rolling: null, weekly: null, monthly: null, error: "auth-expired" };
     }
-
-    const parsed = parseOpenCodeGoDashboard(html);
-    const windows: QuotaWindow[] = [];
-    if (parsed.rolling) {
-      windows.push({
-        label: "5h",
-        usedPercent: clampPercent(parsed.rolling.usagePercent),
-        resetsIn: formatResetSeconds(parsed.rolling.resetInSec),
-      });
-    }
-    if (parsed.weekly) {
-      windows.push({
-        label: "Week",
-        usedPercent: clampPercent(parsed.weekly.usagePercent),
-        resetsIn: formatResetSeconds(parsed.weekly.resetInSec),
-      });
-    }
-    if (parsed.monthly) {
-      windows.push({
-        label: "Month",
-        usedPercent: clampPercent(parsed.monthly.usagePercent),
-        resetsIn: formatResetSeconds(parsed.monthly.resetInSec),
-      });
-    }
-
-    return { provider: "opencode-go", windows, fetchedAt: Date.now() };
+    return parseOpenCodeGoDashboard(html);
   } catch (error) {
-    return { provider: "opencode-go", windows: [], error: safeError(error), fetchedAt: Date.now() };
+    return { rolling: null, weekly: null, monthly: null, error: safeError(error) };
   }
+}
+
+/**
+ * Build the QuotaSnapshot from a single account's parsed usage.
+ * label is used to distinguish accounts when multiple are tracked.
+ */
+function buildSnapshot(
+  parsed: { rolling: OpenCodeGoWindow | null; weekly: OpenCodeGoWindow | null; monthly: OpenCodeGoWindow | null },
+  label?: string,
+): QuotaWindow[] {
+  const windows: QuotaWindow[] = [];
+  if (parsed.rolling) {
+    windows.push({
+      label: "5h",
+      usedPercent: clampPercent(parsed.rolling.usagePercent),
+      resetsIn: formatResetSeconds(parsed.rolling.resetInSec),
+    });
+  }
+  if (parsed.weekly) {
+    windows.push({
+      label: "Week",
+      usedPercent: clampPercent(parsed.weekly.usagePercent),
+      resetsIn: formatResetSeconds(parsed.weekly.resetInSec),
+    });
+  }
+  if (parsed.monthly) {
+    windows.push({
+      label: "Month",
+      usedPercent: clampPercent(parsed.monthly.usagePercent),
+      resetsIn: formatResetSeconds(parsed.monthly.resetInSec),
+    });
+  }
+  return windows;
+}
+
+/** Helper: effective percent (Infinity if missing). */
+function effectivePct(w: OpenCodeGoWindow | null): number {
+  return w && Number.isFinite(w.usagePercent) ? w.usagePercent : Infinity;
+}
+
+async function fetchOpencodeGoUsage(): Promise<QuotaSnapshot> {
+  const auth = loadAuthJson();
+
+  // Try multi-account failover config first.
+  const failoverAccounts = Array.isArray(auth["opencode-go-failover"]?.accounts)
+    ? auth["opencode-go-failover"].accounts
+    : [];
+  if (failoverAccounts.length > 0) {
+    const results: Array<{
+      label: string;
+      rolling: OpenCodeGoWindow | null;
+      weekly: OpenCodeGoWindow | null;
+      monthly: OpenCodeGoWindow | null;
+    }> = [];
+    const fallbackQuota = auth["quota-status"]?.["opencode-go"] ?? {};
+    const fallbackWorkspaceId = resolveAuthValue(fallbackQuota.workspaceId) || "";
+    const fallbackAuthCookie = resolveAuthValue(fallbackQuota.authCookie) || "";
+    const fetched = await Promise.all(
+      failoverAccounts.map(async (acc: JsonObject) => {
+        if (!acc || typeof acc !== "object") return null;
+        const workspaceId = (resolveAuthValue(acc.workspaceId) || fallbackWorkspaceId).trim();
+        const authCookie = (resolveAuthValue(acc.authCookie) || fallbackAuthCookie).trim();
+        if (!workspaceId || !authCookie) return null;
+
+        const usage = await fetchSingleOpencodeGoUsage(workspaceId, authCookie);
+        if (!usage.rolling && !usage.weekly && !usage.monthly) return null;
+        return { label: String(acc.label || "?"), ...usage };
+      }),
+    );
+    results.push(...fetched.filter((result): result is (typeof results)[number] => result !== null));
+
+    if (results.length > 0) {
+      // Prefer the account the failover extension is actively using.
+      const activeLabel = (globalThis as any).__opencode_go_active_label;
+      const active = activeLabel ? results.find((r) => r.label === activeLabel) : null;
+      if (active) {
+        return { provider: `opencode-go (${active.label})`, windows: buildSnapshot(active, active.label), fetchedAt: Date.now() };
+      }
+      // Otherwise pick the account with the lowest rolling usage.
+      results.sort((a, b) => effectivePct(a.rolling) - effectivePct(b.rolling));
+      const best = results[0]!;
+      return { provider: `opencode-go (${best.label})`, windows: buildSnapshot(best, best.label), fetchedAt: Date.now() };
+    }
+  }
+
+  // Fall back to single-account quota-status config.
+  const quotaCfg = auth["quota-status"]?.["opencode-go"];
+  const workspaceId = typeof quotaCfg?.workspaceId === "string" ? quotaCfg.workspaceId.trim() : "";
+  const authCookie = typeof quotaCfg?.authCookie === "string" ? quotaCfg.authCookie.trim() : "";
+  if (!workspaceId || !authCookie) {
+    return { provider: "opencode-go", windows: [], error: "no-auth", fetchedAt: Date.now() };
+  }
+
+  const parsed = await fetchSingleOpencodeGoUsage(workspaceId, authCookie);
+  if (parsed.error) {
+    return { provider: "opencode-go", windows: [], error: parsed.error, fetchedAt: Date.now() };
+  }
+  return { provider: "opencode-go", windows: buildSnapshot(parsed), fetchedAt: Date.now() };
 }
 
 async function fetchJsonText(url: string, init: RequestInit, timeoutMs = 10_000): Promise<{ response: Response; data: string }> {
