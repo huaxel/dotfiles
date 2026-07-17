@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Wrapper for the local ogulcancelik/agent-skills web-search skill.
+# The skill is installed separately (not tracked in dotfiles) so it can be
+# updated independently via its own upstream repo.
+
+SKILL_DIR="${HOME}/.local/share/agent-skills/skills/web-search"
+SKILL_CLI="${SKILL_DIR}/web-search.js"
+
+if [ ! -f "${SKILL_CLI}" ]; then
+  echo "❌ web-search skill not found at ${SKILL_DIR}" >&2
+  echo "   Install it with:" >&2
+  echo "   mkdir -p ~/.local/share && cd ~/.local/share && git clone https://github.com/ogulcancelik/agent-skills.git agent-skills" >&2
+  echo "   cd agent-skills/skills/web-search && npm install" >&2
+  exit 1
+fi
+
+exec node "${SKILL_CLI}" "$@"
