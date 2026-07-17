@@ -12,6 +12,9 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
+# Clear stale env vars from Homebrew pi wrapper (migrated to pnpm global)
+unset PI_SKIP_VERSION_CHECK
+
 OS="$(uname -s)"
 
 # ─────────────────────────────────────────────────────────────────
