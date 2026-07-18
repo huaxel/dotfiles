@@ -24,6 +24,10 @@ Host arch-wsl
     HostName arch-wsl.bonobo-fort.ts.net
     User juan
 
+Host acerpepe
+    HostName acerpepe.bonobo-fort.ts.net
+    User juan
+
 Host github.com
     HostName ssh.github.com
     Port 443
