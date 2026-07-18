@@ -43,4 +43,4 @@ function Sync-Dir {
 }
 
 Sync-Dir -SourceDir (Join-Path $DOTFILES_DIR "skills") -TargetDir "$HOME\.agents\skills" -Label "skills"
-Sync-Dir -SourceDir (Join-Path $DOTFILES_DIR "pi_extensions") -TargetDir "$HOME\.pi\agent\extensions" -Label "pi extensions"
+Sync-Dir -SourceDir (Join-Path $DOTFILES_DIR "pi/agent/extensions") -TargetDir "$HOME\.pi\agent\extensions" -Label "pi extensions"

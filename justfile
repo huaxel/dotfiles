@@ -49,7 +49,7 @@ check: ci
 # ── Shell scripts ──
 
 # Lint all shell scripts with ShellCheck
-# Excludes: node_modules (npm deps), pi_npm/node_modules (pi npm deps),
+# Excludes: node_modules (npm deps), pi/agent/npm/node_modules (Pi npm deps),
 #           .dotter/cache (dotter generated), and Windows .bat-styled .sh files
 check-sh:
     #!/usr/bin/env bash
@@ -71,29 +71,25 @@ check-sh:
             echo "  ❌ $f has issues"
             errors=$((errors + 1))
         fi
-    done < <(find . \( -path ./node_modules -o -path ./pi_npm/node_modules -o -path ./.git -o -path ./.dotter/cache \) -prune -o -type f \( -name '*.sh' -o -name '*.bash' \) -print 2>/dev/null | sort || true)
+    done < <(find . \( -path ./node_modules -o -path ./pi/agent/npm/node_modules -o -path ./.git -o -path ./.dotter/cache \) -prune -o -type f \( -name '*.sh' -o -name '*.bash' \) -print 2>/dev/null | sort || true)
     echo "  Checked $count shell scripts"
     if [ "$errors" -gt 0 ]; then echo "  ❌ $errors files have issues"; exit 1; fi
     echo "  ✅ All shell scripts pass ShellCheck"
 
 # ── TypeScript ──
 
-# Syntax-check and lint pi_extension TypeScript files with deno
+# Syntax-check and lint Pi extension TypeScript files with deno
 check-ts:
     #!/usr/bin/env bash
-    echo "=== TypeScript (pi_extensions) ==="
+    echo "=== TypeScript (pi/agent/extensions) ==="
     if ! command -v deno &>/dev/null; then
         echo "  ⚠️  deno not installed — skipping"
         exit 0
     fi
     errors=0; count=0; lint_errors=0
-    TOPDIR="pi_extensions"
-    # Collect all .ts files (top-level + subdirectory index.ts)
-    all_files=""
-    for f in "$TOPDIR"/*.ts; do [ -f "$f" ] && all_files="$all_files $f"; done
-    for dir in subagent interview obs-extension; do
-        f="$TOPDIR/$dir/index.ts"; [ -f "$f" ] && all_files="$all_files $f"
-    done
+    TOPDIR="pi/agent/extensions"
+    # Collect every extension source, including nested package files.
+    all_files=$(find "$TOPDIR" -type f -name '*.ts' -print | sort)
     for f in $all_files; do
         count=$((count + 1))
         # Strong check: full type-checking
@@ -417,7 +413,7 @@ dry-run:
 deploy:
     dotter deploy
 
-# Patch pi_npm packages (tidy-tools pi-fff adapter for symlinked npm root)
+# Patch Pi npm packages (tidy-tools pi-fff adapter for symlinked npm root)
 patch-pi-npm:
     bash {{dotfiles-dir}}/bin/patch-tidy-pi-fff
 
