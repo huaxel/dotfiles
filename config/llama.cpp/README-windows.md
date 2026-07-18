@@ -10,7 +10,7 @@ Mirrors the dotfiles config at `~/Documents/dotfiles/`.
 | `config/llama.cpp/models-laptop.ini` | Reference for this machine |
 | `/etc/conf.d/llama.cpp` | `start-server.ps1` (env vars hardcoded) |
 | `config/llama.cpp/stats-bridge.py` | Same file, runs on Windows |
-| `pi_extensions/llama-stats.ts` | Same file, works as-is |
+| `pi/agent/extensions/llama-stats.ts` | Same file, works as-is |
 
 ## Quick start
 
