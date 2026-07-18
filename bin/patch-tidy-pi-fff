@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # patch-tidy-pi-fff: Patch @mobrienv/pi-tidy-tools pi-fff adapter to support
-# symlinked npm root (~/.pi/agent/npm -> dotfiles/pi_npm) and lockfile v3
+# symlinked npm root (~/.pi/agent/npm -> dotfiles/pi/agent/npm) and lockfile v3
 # workspace-relative package paths.
 #
 # Three fixes:
@@ -10,15 +10,15 @@
 #   3. integration.ts: discover — resolve packageRoot through realpath so
 #      the preflight comparison matches the plan's canonical root
 #
-# Run after: pi npm install, or npm install in pi_npm/
+# Run after: pi npm install, or npm install in pi/agent/npm/
 set -euo pipefail
 
-TARGET_ADAPTER="pi_npm/node_modules/@mobrienv/pi-tidy-tools/pi-fff/adapter.ts"
-TARGET_INTEGRATION="pi_npm/node_modules/@mobrienv/pi-tidy-tools/pi-fff/integration.ts"
+TARGET_ADAPTER="pi/agent/npm/node_modules/@mobrienv/pi-tidy-tools/pi-fff/adapter.ts"
+TARGET_INTEGRATION="pi/agent/npm/node_modules/@mobrienv/pi-tidy-tools/pi-fff/integration.ts"
 
 if [[ -n "${DOTFILES:-}" ]]; then
   ROOT="$DOTFILES"
-elif [[ -d "${0%/*}/../pi_npm" ]]; then
+elif [[ -d "${0%/*}/../pi/agent/npm" ]]; then
   ROOT="$(cd "${0%/*}/.." && pwd)"
 else
   ROOT="$PWD"
@@ -43,7 +43,7 @@ if grep -q 'function findLockEntry' "$FILE_A" 2>/dev/null && grep -q 'await fs.r
   exit 0
 fi
 
-python3 << 'PYEOF'
+python3 - "$FILE_A" "$FILE_I" << 'PYEOF'
 import sys, re
 
 adapter_path = sys.argv[1]
@@ -75,11 +75,11 @@ if 'function findLockEntry' not in a:
     old2a = 'async function validateLocalIntegrity'
     new2a = '''function findLockEntry(lock: any, identity: string): any | undefined {
 \tif (!lock.packages) return undefined;
-\tconst exactKey = \`node_modules/\${identity}\`;
+\tconst exactKey = `node_modules/${identity}`;
 \tconst exact = lock.packages[exactKey];
 \tif (exact && !exact.extraneous) return exact;
 \tfor (const [key, entry] of Object.entries(lock.packages) as [string, any][]) {
-\t\tif (key.endsWith(\`/node_modules/\${identity}\`)) {
+\t\tif (key.endsWith(`/node_modules/${identity}`)) {
 \t\t\tif (!entry.extraneous) return entry;
 \t\t}
 \t}
@@ -91,15 +91,15 @@ async function validateLocalIntegrity'''
     changed_a += 1
 
 # Fix 2b: use findLockEntry in validateLocalIntegrity
-old2b = '''\tconst packageKey = \`node_modules/\${profile.identity}\`;
+old2b = '''\tconst packageKey = `node_modules/${profile.identity}`;
 \tconst packageEntry = lock.packages?.[packageKey];
 \tconst dependencyEntry = lock.dependencies?.[profile.identity];
 \tconst entries = [packageEntry, dependencyEntry].filter((value) => value !== undefined);
-\tif (!entries.length) return { status: \"mismatch\", detail: \`selected lock has no \${profile.identity} entry\` };'''
+\tif (!entries.length) return { status: "mismatch", detail: `selected lock has no ${profile.identity} entry` };'''
 new2b = '''\tconst packageEntry = findLockEntry(lock, profile.identity);
 \tconst dependencyEntry = lock.dependencies?.[profile.identity];
 \tconst entries = [packageEntry, dependencyEntry].filter((value) => value !== undefined);
-\tif (!entries.length) return { status: \"mismatch\", detail: \`selected lock has no \${profile.identity} entry\` };'''
+\tif (!entries.length) return { status: "mismatch", detail: `selected lock has no ${profile.identity} entry` };'''
 if old2b in a:
     a = a.replace(old2b, new2b, 1)
     changed_a += 1
@@ -133,4 +133,4 @@ if total:
     print(f'[patch-tidy-pi-fff] applied {total} patch(es) (adapter: {changed_a}, integration: {changed_i})')
 else:
     print('[patch-tidy-pi-fff] nothing to patch — both files already up to date')
-PYEOF "$FILE_A" "$FILE_I"
+PYEOF

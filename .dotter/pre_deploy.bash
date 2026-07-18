@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Pre-deploy hook: sync skills and extensions
+# Pre-deploy hook: sync skills
 # This runs before dotter deploys
 
 set -euo pipefail
@@ -35,5 +35,4 @@ sync_dir() {
 # skills is now a symlink: ~/.agents/skills → ~/dotfiles/skills (created by
 # bootstrap.sh). The -ef check above detects this and skips. This way
 # "npx skills add" writes directly into the git repo.
-# pi_extensions is managed by Dotter as a single symlink, so we skip it too.
 sync_dir "$DOTFILES_DIR/skills" "$HOME/.agents/skills" "skills"
