@@ -44,7 +44,10 @@
     "npm:pi-autoresearch",
     "npm:@quintinshaw/pi-dynamic-workflows",
     "npm:@mobrienv/pi-tidy-tools",
-    "npm:@ogulcancelik/pi-herdr",
+    {
+      "source": "npm:@ogulcancelik/pi-herdr",
+      "skills": []
+    },
     "npm:@ogulcancelik/pi-ghostty-theme-sync",
     "npm:pi-cursor-sdk"
   ]
