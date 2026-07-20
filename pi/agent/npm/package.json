@@ -10,7 +10,13 @@
     "@narumitw/pi-goal": "^0.20.0",
     "@ogulcancelik/pi-ghostty-theme-sync": "^0.1.2",
     "@ogulcancelik/pi-herdr": "^0.3.0",
+<<<<<<< Updated upstream
     "@quintinshaw/pi-dynamic-workflows": "^3.3.0",
+||||||| Stash base
+    "@quintinshaw/pi-dynamic-workflows": "^2.14.1",
+=======
+    "@quintinshaw/pi-dynamic-workflows": "^3.0.0",
+>>>>>>> Stashed changes
     "pi-autoresearch": "^1.6.2",
     "pi-cursor-sdk": "^0.1.60",
     "pi-intercom": "^0.6.0",
