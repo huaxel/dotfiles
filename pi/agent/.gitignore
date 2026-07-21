@@ -23,6 +23,7 @@ models-store.json
 # Editor / OS junk
 .DS_Store
 *.bak
+*.bak-recovery-*
 
 # Secrets — auth.json has API keys
 auth.json
