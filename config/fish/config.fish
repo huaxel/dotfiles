@@ -207,3 +207,5 @@ end
 set -gx PATH "/home/juan/.local/bin" $PATH
 
 
+
+
