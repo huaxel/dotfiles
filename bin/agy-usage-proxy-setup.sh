@@ -142,72 +142,145 @@ fi
 # ─────────────────────────────────────────────────────────────────
 step "6/7 — Trust CA certificate system-wide"
 
-CA_BUNDLE="/etc/ca-certificates/extracted/tls-ca-bundle.pem"
+OS="$(uname -s)"
 
 if [ -f "$MITM_CERT" ] && [ -s "$MITM_CERT" ]; then
-  # Check if already trusted
-  if grep -q "mitmproxy" "$CA_BUNDLE" 2>/dev/null; then
-    info "mitmproxy CA already in PEM bundle"
-  else
-    info "Adding mitmproxy CA to system trust..."
-    # Method 1: p11-kit trust anchor (preferred)
-    if command -v trust &>/dev/null; then
-      if trust list 2>/dev/null | grep -q "mitmproxy"; then
-        info "mitmproxy CA already in p11-kit store"
+  info "Adding mitmproxy CA to system trust..."
+
+  if [ "$OS" = "Darwin" ]; then
+    # macOS — use security(1) to add to system keychain
+    if security find-certificate -c mitmproxy /Library/Keychains/System.keychain &>/dev/null; then
+      info "mitmproxy CA already in system keychain"
+    else
+      info "Adding to macOS system keychain (needs sudo)..."
+      if sudo security add-trusted-cert -d -p ssl -r trustRoot \
+        -k /Library/Keychains/System.keychain "$MITM_CERT" 2>/dev/null; then
+        info "Trusted via system keychain ✅"
       else
-        info "Using p11-kit trust anchor (needs sudo)..."
-        # Copy to a temp location first to avoid path issues
-        TMP_CERT="/tmp/mitmproxy-ca-cert.pem"
-        cp "$MITM_CERT" "$TMP_CERT"
-        if sudo trust anchor "$TMP_CERT" 2>/dev/null; then
-          rm -f "$TMP_CERT"
+        warn "Could not add to system keychain. Try manually:"
+        warn "  sudo security add-trusted-cert -d -p ssl -r trustRoot \\"
+        warn "    -k /Library/Keychains/System.keychain $MITM_CERT"
+      fi
+    fi
+
+  elif command -v trust &>/dev/null; then
+    # Linux with p11-kit
+    if trust list 2>/dev/null | grep -q "mitmproxy"; then
+      info "mitmproxy CA already in p11-kit store"
+    else
+      info "Using p11-kit trust anchor (needs sudo)..."
+      TMP_CERT="/tmp/mitmproxy-ca-cert.pem"
+      cp "$MITM_CERT" "$TMP_CERT"
+      if sudo trust anchor "$TMP_CERT" 2>/dev/null; then
+        rm -f "$TMP_CERT"
+        # Regenerate PEM bundle for Go
+        CA_BUNDLE="/etc/ca-certificates/extracted/tls-ca-bundle.pem"
+        if [ -f "$CA_BUNDLE" ]; then
           sudo p11-kit extract --format=pem-bundle --filter=ca-anchors \
             --overwrite --comment "$CA_BUNDLE" 2>/dev/null || true
-          info "Trusted via p11-kit ✅"
-        else
-          rm -f "$TMP_CERT"
-          warn "trust anchor failed — falling back to direct PEM append"
-          sudo cp "$MITM_CERT" /usr/local/share/ca-certificates/mitmproxy.crt 2>/dev/null || \
-            sudo tee -a "$CA_BUNDLE" < "$MITM_CERT" >/dev/null && \
-            info "Appended to PEM bundle ✅"
         fi
+        info "Trusted via p11-kit ✅"
+      else
+        rm -f "$TMP_CERT"
+        warn "trust anchor failed — falling back to direct PEM append"
+        # Try common Linux CA bundle paths
+        for bundle in \
+          /etc/ca-certificates/extracted/tls-ca-bundle.pem \
+          /etc/ssl/certs/ca-certificates.crt \
+          /etc/pki/tls/certs/ca-bundle.crt \
+          /etc/ssl/ca-bundle.pem; do
+          if [ -f "$bundle" ]; then
+            sudo tee -a "$bundle" < "$MITM_CERT" >/dev/null && \
+              info "Appended to $bundle ✅"
+            break
+          fi
+        done
       fi
-    # Method 2: direct PEM bundle append
-    elif [ -f "$CA_BUNDLE" ]; then
-      info "Appending to PEM bundle directly (needs sudo)..."
-      sudo tee -a "$CA_BUNDLE" < "$MITM_CERT" >/dev/null && \
-        info "Appended to PEM bundle ✅"
-    # Method 3: macOS keychain
-    elif [ "$(uname -s)" = "Darwin" ]; then
-      info "Adding to macOS keychain..."
-      sudo security add-trusted-cert -d -p ssl -r trustRoot \
-        -k /Library/Keychains/System.keychain "$MITM_CERT" 2>/dev/null || \
-        security add-trusted-cert -d -p ssl -r trustRoot \
-          -k "$HOME/Library/Keychains/login.keychain" "$MITM_CERT" 2>/dev/null || \
-        warn "Could not trust cert. Do it manually: open $MITM_CERT"
-    else
-      warn "Don't know how to trust cert on this OS."
-      warn "Manual: sudo tee -a $CA_BUNDLE < $MITM_CERT"
     fi
+
+  else
+    # Linux without p11-kit — try direct PEM bundle append
+    for bundle in \
+      /etc/ca-certificates/extracted/tls-ca-bundle.pem \
+      /etc/ssl/certs/ca-certificates.crt \
+      /etc/pki/tls/certs/ca-bundle.crt; do
+      if [ -f "$bundle" ]; then
+        if grep -q "mitmproxy" "$bundle" 2>/dev/null; then
+          info "mitmproxy CA already in $bundle"
+        else
+          info "Appending to $bundle (needs sudo)..."
+          sudo tee -a "$bundle" < "$MITM_CERT" >/dev/null && \
+            info "Appended to $bundle ✅"
+        fi
+        break
+      fi
+    done
   fi
 else
-  warn "CA cert not available yet — will be generated on first proxy start."
-  warn "The proxy will still work but HTTPS interception may fail until"
-  warn "you trust the cert manually:"
-  warn "  sudo trust anchor ~/.mitmproxy/mitmproxy-ca-cert.pem"
+  warn "CA cert not available — will be generated on first proxy start."
+  warn "Run the setup again after the first proxy run to trust it."
 fi
 
 # ─────────────────────────────────────────────────────────────────
-step "7/7 — Enable and start systemd service"
+step "7/7 — Enable background service"
 
-systemctl --user enable agy-usage-proxy.service
-systemctl --user restart agy-usage-proxy.service
-sleep 1
-if systemctl --user is-active agy-usage-proxy.service &>/dev/null; then
-  info "Service is active ✅"
+if command -v systemctl &>/dev/null; then
+  # Linux — systemd user service
+  systemctl --user enable agy-usage-proxy.service
+  systemctl --user restart agy-usage-proxy.service
+  sleep 1
+  if systemctl --user is-active agy-usage-proxy.service &>/dev/null; then
+    info "systemd service is active ✅"
+  else
+    err "Service failed to start — check: systemctl --user status agy-usage-proxy.service"
+    exit 1
+  fi
+elif [ "$OS" = "Darwin" ]; then
+  # macOS — launchd agent via .plist
+  PLIST="$HOME/Library/LaunchAgents/com.mitmproxy.agy-usage.plist"
+  mkdir -p "$HOME/Library/LaunchAgents"
+  cat > "$PLIST" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.mitmproxy.agy-usage</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>$(command -v mitmdump)</string>
+        <string>--listen-port</string>
+        <string>8080</string>
+        <string>--set</string>
+        <string>block_global=false</string>
+        <string>-s</string>
+        <string>$ADDON_DST</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>ThrottleInterval</key>
+    <integer>3</integer>
+    <key>StandardOutPath</key>
+    <string>$HOME/Library/Logs/mitmproxy-agy-usage.log</string>
+    <key>StandardErrorPath</key>
+    <string>$HOME/Library/Logs/mitmproxy-agy-usage.log</string>
+</dict>
+</plist>
+EOF
+  launchctl load "$PLIST" 2>/dev/null || true
+  sleep 1
+  if launchctl list | grep -q "com.mitmproxy.agy-usage"; then
+    info "launchd agent loaded ✅"
+  else
+    warn "launchd agent may not have started. Check:"
+    warn "  launchctl list | grep mitmproxy"
+  fi
 else
-  err "Service failed to start — check: systemctl --user status agy-usage-proxy.service"
-  exit 1
+  warn "No service manager found. Start the proxy manually when using agy:"
+  warn "  mitmdump --listen-port 8080 --set block_global=false -s $ADDON_DST"
 fi
 
 # ─────────────────────────────────────────────────────────────────
