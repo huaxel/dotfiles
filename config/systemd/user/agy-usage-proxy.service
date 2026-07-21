@@ -1,0 +1,22 @@
+[Unit]
+Description=Agy usage interceptor — captures token counts from agy API calls
+Documentation=https://github.com/s3rezhkaa/opencode-antigravity-auth
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStartPre=/bin/sh -c 'test -f %h/.config/antigravity-usage/proxy-addon.py || { echo "Addon not found at %h/.config/antigravity-usage/proxy-addon.py"; exit 1; }'
+ExecStart=%h/.local/bin/mitmdump \
+  --listen-port 8080 \
+  --set block_global=false \
+  -s %h/.config/antigravity-usage/proxy-addon.py
+Restart=on-failure
+RestartSec=3
+
+# Security hardening — relaxed enough for mitmproxy to work
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=default.target
