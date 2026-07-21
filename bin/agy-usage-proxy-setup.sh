@@ -41,15 +41,38 @@ step "1/7 — Ensure mitmproxy is installed"
 if command -v mitmdump &>/dev/null; then
   info "mitmdump found: $(mitmdump --version 2>&1 | head -1)"
 else
+  # Ensure pipx is available — try system package managers first
+  if ! command -v pipx &>/dev/null; then
+    if command -v pacman &>/dev/null; then
+      info "Installing pipx via pacman..."
+      sudo pacman -S --noconfirm python-pipx
+    elif command -v brew &>/dev/null; then
+      info "Installing pipx via brew..."
+      brew install pipx
+      pipx ensurepath
+    elif command -v apt-get &>/dev/null; then
+      info "Installing pipx via apt..."
+      sudo apt-get install -y pipx
+      pipx ensurepath
+    elif command -v pip3 &>/dev/null; then
+      # Fallback — try pip3 with --break-system-packages on Arch-like
+      info "Installing mitmproxy via pip3..."
+      pip3 install --user --break-system-packages mitmproxy 2>/dev/null || \
+        pip3 install --user mitmproxy 2>/dev/null || {
+        err "Could not install mitmproxy. Try: pipx install mitmproxy"
+        exit 1
+      }
+      return 0 2>/dev/null || true
+    else
+      err "No package manager found. Install pipx first, then re-run:"
+      err "  pipx install mitmproxy"
+      exit 1
+    fi
+  fi
+
   if command -v pipx &>/dev/null; then
     info "Installing mitmproxy via pipx..."
     pipx install mitmproxy
-  elif command -v pip3 &>/dev/null; then
-    info "Installing mitmproxy via pip3..."
-    pip3 install --user mitmproxy
-  else
-    err "Need pipx or pip3 to install mitmproxy"
-    exit 1
   fi
 fi
 
