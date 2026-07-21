@@ -1,4 +1,5 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { Loader, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 
 // ── Configuration ────────────────────────────────────────────────────────
 
@@ -11,6 +12,7 @@ const ROOT_URL = `http://${HOST}:${PORT}`; // load/unload at root, not /v1
 
 const DISCOVERY_TIMEOUT_MS =
   Number(process.env.PI_LLAMA_TIMEOUT_MS) || 15000;
+const PROPS_TIMEOUT_MS = 120_000; // /props auto-load can take a while for large models
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -53,6 +55,31 @@ interface DiscoveredModel {
   loadStatus: ModelLoadStatus;
   provider: string;
 }
+
+// SSE event types for loading progress
+type ModelLoadStage = "text_model" | "spec_model" | "mmproj_model";
+
+interface SseProgress {
+  stages: ModelLoadStage[];
+  current: ModelLoadStage;
+  value: number;
+}
+
+interface SseEvent {
+  model: string;
+  event: string;
+  data: {
+    status: string;
+    progress?: SseProgress;
+    exit_code?: number;
+  };
+}
+
+const MODEL_LOAD_STAGE_LABELS: Record<ModelLoadStage, string> = {
+  text_model: "Loading weights",
+  spec_model: "Loading draft",
+  mmproj_model: "Loading projector",
+};
 
 // ── Constants ────────────────────────────────────────────────────────────
 
@@ -148,10 +175,31 @@ function applyThinkingPayload(
   }
 }
 
+/** Detect Pi's "stale after session replacement" error. */
+function isStaleContextError(error: unknown): boolean {
+  return error instanceof Error && error.message.includes("stale after session replacement");
+}
+
 // ── State ────────────────────────────────────────────────────────────────
 
 let discoveredModels: DiscoveredModel[] | undefined;
 let discoveryPromise: Promise<DiscoveredModel[] | undefined> | undefined;
+
+// Metadata tracked per model: whether we've fetched /props, its context window, etc.
+const discoveredMetadata = new Set<string>();
+const pendingMetadata = new Set<string>();
+const loadedModelContext = new Map<string, number>();
+
+// SSE loading progress
+let activeSseAbort: AbortController | null = null;
+let statusTimeout: ReturnType<typeof setTimeout> | undefined;
+
+function clearStatusTimeout(): void {
+  if (statusTimeout !== undefined) {
+    clearTimeout(statusTimeout);
+    statusTimeout = undefined;
+  }
+}
 
 // ── Discovery ────────────────────────────────────────────────────────────
 
@@ -184,7 +232,7 @@ async function fetchModels(
       thinkingLevelMap: THINKING_LEVEL_MAP,
       input: getInputModalities(m),
       cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-      contextWindow: getContextWindow(m),
+      contextWindow: loadedModelContext.get(m.id) ?? getContextWindow(m),
       maxTokens: Number(process.env.PI_LLAMA_MAX_TOKENS) || 16_384,
       compat: COMPAT,
       loadStatus: getModelLoadStatus(m),
@@ -196,7 +244,6 @@ async function fetchModels(
 }
 
 async function discover(pi: ExtensionAPI): Promise<DiscoveredModel[] | undefined> {
-  // If a discovery is already in flight, await it instead of starting another.
   if (discoveryPromise) return discoveryPromise;
 
   discoveryPromise = (async () => {
@@ -204,8 +251,6 @@ async function discover(pi: ExtensionAPI): Promise<DiscoveredModel[] | undefined
       const models = await fetchModels(DISCOVERY_URL, PROVIDER);
       if (models) {
         discoveredModels = models;
-        // After bindCore, pi.registerProvider goes directly to
-        // modelRegistry.registerProvider, so this updates dynamically.
         registerProvider(pi, models);
       } else {
         registerProvider(pi);
@@ -263,12 +308,195 @@ function findModel(models: DiscoveredModel[], target: string): DiscoveredModel |
   return models.find((m) => m.id.toLowerCase().includes(lower));
 }
 
+// ── /props auto-load with SSE progress ────────────────────────────────
+
+/** Connect to /models/sse for live load progress. */
+async function watchLoadProgress(
+  modelId: string,
+  ctx: any,
+  loader: Loader,
+): Promise<AbortController> {
+  const abort = new AbortController();
+  // Close previous SSE connection
+  activeSseAbort?.abort();
+  activeSseAbort = abort;
+
+  try {
+    const res = await fetch(`${ROOT_URL}/models/sse`, { signal: abort.signal });
+    if (!res.ok || !res.body) return abort;
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (!abort.signal.aborted) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const events = buffer.split("\n\n");
+      buffer = events.pop() || "";
+
+      for (const event of events) {
+        if (!event) continue;
+        const dataLine = event
+          .split("\n")
+          .filter((l) => l.startsWith("data:"))
+          .map((l) => l.slice(5).trim())
+          .join("\n");
+        if (!dataLine) continue;
+
+        try {
+          const ev = JSON.parse(dataLine) as SseEvent;
+          if (ev.model !== modelId) continue;
+
+          if (ev.data.exit_code && ev.data.exit_code !== 0) {
+            loader.setMessage(`${modelId}: failed (exit ${ev.data.exit_code})`);
+            return abort;
+          }
+
+          if (ev.data.status === "loading" && ev.data.progress) {
+            const stage = ev.data.progress.current;
+            const stageLabel = MODEL_LOAD_STAGE_LABELS[stage] || stage;
+            const pct = Math.round(ev.data.progress.value * 100);
+            loader.setMessage(`${modelId}: ${stageLabel} (${pct}%)`);
+          }
+        } catch {
+          // parse error, skip
+        }
+      }
+    }
+  } catch (error: unknown) {
+    if (
+      abort.signal.aborted ||
+      (error instanceof DOMException && error.name === "AbortError") ||
+      isStaleContextError(error)
+    ) {
+      return abort;
+    }
+    // Non-critical: SSE is a nice-to-have, loading continues without it
+  }
+
+  return abort;
+}
+
+/** Fetch /props?model=...&autoload=true and update context window. */
+async function fetchModelProps(
+  modelId: string,
+  ctx: any,
+  shouldAutoload: boolean,
+): Promise<number | undefined> {
+  const abortController = new AbortController();
+  const timer = setTimeout(() => abortController.abort(), PROPS_TIMEOUT_MS);
+
+  try {
+    const url = `${ROOT_URL}/props?model=${encodeURIComponent(modelId)}&autoload=${shouldAutoload}`;
+    const res = await fetch(url, { signal: abortController.signal });
+    if (!res.ok) return undefined;
+
+    const data = (await res.json()) as {
+      default_generation_settings?: { n_ctx?: number };
+      chat_template?: string;
+    };
+    return data.default_generation_settings?.n_ctx;
+  } catch {
+    return undefined;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Auto-load and discover props for a model. Shows SSE progress if autoloading. */
+async function autoLoadModel(
+  modelId: string,
+  ctx: any,
+  pi: ExtensionAPI,
+): Promise<void> {
+  if (pendingMetadata.has(modelId)) return;
+  pendingMetadata.add(modelId);
+
+  const model = discoveredModels?.find((m) => m.id === modelId);
+  if (!model) {
+    pendingMetadata.delete(modelId);
+    return;
+  }
+
+  const alreadyLoaded = model.loadStatus === "loaded";
+  const needsAutoload = !alreadyLoaded;
+
+  let loader: Loader | null = null;
+
+  // Show loading widget
+  if (needsAutoload && ctx?.ui?.setWidget) {
+    clearStatusTimeout();
+    ctx.ui.setWidget(PROVIDER, (ui, theme) => {
+      const prefix = theme.fg("accent", ` [${PROVIDER}]`);
+      const prefixWidth = visibleWidth(` [${PROVIDER}]`);
+      loader = new Loader(
+        ui,
+        (s) => theme.fg("accent", s),
+        (t) => theme.fg("text", t),
+        `${model.name}: Loading...`,
+      );
+      return {
+        dispose: () => loader?.stop(),
+        render: (width: number) => {
+          const [_, line] = loader.render(width - prefixWidth);
+          return [prefix + truncateToWidth(line, width - prefixWidth)];
+        },
+      };
+    });
+
+    // Start SSE progress stream
+    void watchLoadProgress(modelId, ctx, loader);
+  }
+
+  // Fetch /props (auto-loads if needed)
+  const nCtx = await fetchModelProps(modelId, ctx, needsAutoload);
+
+  // Update discovery flag and context
+  discoveredMetadata.add(modelId);
+  pendingMetadata.delete(modelId);
+
+  if (typeof nCtx === "number" && nCtx > 0) {
+    loadedModelContext.set(modelId, nCtx);
+    model.contextWindow = nCtx;
+    model.maxTokens = Math.min(model.maxTokens, nCtx);
+  }
+
+  // Update model load status
+  model.loadStatus = "loaded";
+
+  // Show success footer
+  if (needsAutoload && ctx?.ui?.setWidget) {
+    const displayName = model.name.split(" ")[0];
+    const prefix = ctx.ui.theme.fg("success", `[${PROVIDER}] ✓`);
+    ctx.ui.setWidget(PROVIDER, [
+      prefix +
+        ctx.ui.theme.fg(
+          "text",
+          ` ${displayName}: Loaded${nCtx ? ` with context ${nCtx} tokens` : ""}`,
+        ),
+    ]);
+    clearStatusTimeout();
+    statusTimeout = setTimeout(() => {
+      statusTimeout = undefined;
+      try {
+        ctx?.ui?.setWidget(PROVIDER, undefined);
+      } catch { /* stale ctx */ }
+    }, 8000);
+  }
+
+  // Re-register provider with updated metadata
+  if (discoveredModels) {
+    registerProvider(pi, discoveredModels);
+  }
+}
+
 // ── Extension ────────────────────────────────────────────────────────────
 
 export default async function (pi: ExtensionAPI) {
   // Register a shell provider immediately so the factory resolves fast.
-  // Discovery runs in the background and re-registers with real models
-  // once the 5s server response arrives.
   registerProvider(pi);
   triggerDiscovery(pi);
 
@@ -276,8 +504,17 @@ export default async function (pi: ExtensionAPI) {
 
   // ── Events ──────────────────────────────────────────────────────────
 
-  pi.on("model_select", async (event) => {
-    if (isLlama(event.model.provider)) triggerDiscovery(pi);
+  pi.on("model_select", async (event, ctx) => {
+    if (!isLlama(event.model.provider)) return;
+
+    // Auto-load and discover /props for the selected model
+    const modelId = event.model.id;
+    if (!discoveredMetadata.has(modelId)) {
+      await autoLoadModel(modelId, ctx, pi);
+    }
+
+    // Re-discover to refresh the model list and status
+    await discover(pi);
   });
 
   pi.on("session_start", () => {
@@ -291,14 +528,11 @@ export default async function (pi: ExtensionAPI) {
     triggerDiscovery(pi);
     applyThinkingPayload(event.payload, pi.getThinkingLevel() as ThinkingLevel);
 
-    // Pre-load unloaded models (fire-and-forget; router auto-loads anyway)
+    // Ensure the model is loaded and props discovered
     const modelId = ctx.model?.id;
-    if (modelId) {
-      const model = discoveredModels?.find((m) => m.id === modelId);
-      if (model && model.loadStatus === "unloaded") {
-        console.warn(`[pi-llama] pre-loading ${modelId}...`);
-        loadModel(modelId).catch(() => {});
-      }
+    if (modelId && !discoveredMetadata.has(modelId)) {
+      // Fire-and-forget: auto-load will run in background
+      autoLoadModel(modelId, ctx, pi).catch(() => {});
     }
   });
 
@@ -325,6 +559,11 @@ export default async function (pi: ExtensionAPI) {
     };
   });
 
+  pi.on("session_shutdown", () => {
+    clearStatusTimeout();
+    activeSseAbort?.abort();
+    activeSseAbort = null;
+  });
   // ── /models command ─────────────────────────────────────────────────
 
   pi.registerCommand("models", {
@@ -385,15 +624,10 @@ export default async function (pi: ExtensionAPI) {
           ctx.ui.notify(`"${match.name}" is already loaded.`, "info");
           return;
         }
-        ctx.ui.notify(`Loading ${match.name}...`, "info");
-        const result = await loadModel(match.id);
-        if (result.ok) {
-          triggerDiscovery(pi);
-          ctx.ui.notify(`Loaded ${match.name}.`, "info");
-        } else {
-          console.warn(`[pi-llama] load ${match.id} failed:`, result.status, result.text);
-          ctx.ui.notify(`Failed to load ${match.name} (${result.status}).`, "warning");
-        }
+
+        // Use /props auto-load for progress
+        await autoLoadModel(match.id, ctx, pi);
+        ctx.ui.notify(`Loaded ${match.name}.`, "info");
         return;
       }
 
@@ -408,6 +642,9 @@ export default async function (pi: ExtensionAPI) {
           ctx.ui.notify(`Unloading ${match.name}...`, "info");
           const result = await unloadModel(match.id);
           if (result.ok) {
+            discoveredMetadata.delete(match.id);
+            loadedModelContext.delete(match.id);
+            match.loadStatus = "unloaded";
             triggerDiscovery(pi);
             ctx.ui.notify(`${match.name} unloaded.`, "info");
           } else {
@@ -417,6 +654,11 @@ export default async function (pi: ExtensionAPI) {
         } else {
           ctx.ui.notify("Unloading all models...", "info");
           const result = await unloadModel();
+          discoveredMetadata.clear();
+          loadedModelContext.clear();
+          if (discoveredModels) {
+            discoveredModels.forEach((m) => { m.loadStatus = "unloaded"; });
+          }
           triggerDiscovery(pi);
           ctx.ui.notify(result.ok ? "All models unloaded." : "Unload failed.", "info");
         }
@@ -435,11 +677,9 @@ export default async function (pi: ExtensionAPI) {
           return;
         }
         if (match.loadStatus !== "loaded") {
-          ctx.ui.notify(
-            `"${match.name}" is not loaded (status: ${match.loadStatus}). Use /models load first.`,
-            "warning",
-          );
-          return;
+          // Auto-load first
+          await autoLoadModel(match.id, ctx, pi);
+          await discover(pi);
         }
         const model = ctx.modelRegistry.find(PROVIDER, match.id);
         if (!model) {
@@ -460,13 +700,13 @@ export default async function (pi: ExtensionAPI) {
       // ── /models (list) ──
       const lines: string[] = [];
       if (allModels.length > 0) {
-        lines.push("─ llamacpp (port 8000) ─");
+        lines.push(`─ ${PROVIDER} (port ${PORT}) ─`);
         allModels.forEach((m, i) => {
           const icon = STATUS_ICON[m.loadStatus] ?? STATUS_ICON.unknown;
           lines.push(`  ${icon} ${i + 1}. ${m.name} (${m.id})`);
         });
       } else {
-        lines.push("─ llamacpp (port 8000) ─ unavailable");
+        lines.push(`─ ${PROVIDER} (port ${PORT}) ─ unavailable`);
         ctx.ui.notify("No local models discovered. Server may be unavailable.", "warning");
         return;
       }
