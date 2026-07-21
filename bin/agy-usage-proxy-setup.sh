@@ -117,14 +117,24 @@ step "5/7 — Generate mitmproxy CA certificate"
 MITM_DIR="$HOME/.mitmproxy"
 MITM_CERT="$MITM_DIR/mitmproxy-ca-cert.pem"
 
-if [ ! -f "$MITM_CERT" ]; then
+if [ ! -f "$MITM_CERT" ] || [ ! -s "$MITM_CERT" ]; then
   info "Starting mitmdump briefly to generate CA cert..."
-  mitmdump --listen-port 8081 -s "$ADDON_DST" &
+  rm -f "$MITM_CERT"  # ensure clean slate
+  mitmdump --listen-port 8081 --set block_global=false &
   PID=$!
-  sleep 2
+  # Wait up to 10s for the cert file to appear and be non-empty
+  for i in $(seq 1 20); do
+    if [ -s "$MITM_CERT" ]; then break; fi
+    sleep 0.5
+  done
   kill "$PID" 2>/dev/null || true
   wait "$PID" 2>/dev/null || true
-  info "CA cert generated at $MITM_CERT"
+  if [ -s "$MITM_CERT" ]; then
+    info "CA cert generated at $MITM_CERT ($(wc -c < "$MITM_CERT") bytes)"
+  else
+    warn "mitmdump may not have generated the CA cert."
+    warn "It will be auto-created when the service starts."
+  fi
 else
   info "CA cert already exists at $MITM_CERT"
 fi
@@ -132,27 +142,59 @@ fi
 # ─────────────────────────────────────────────────────────────────
 step "6/7 — Trust CA certificate system-wide"
 
-if command -v trust &>/dev/null; then
-  if ! trust list 2>/dev/null | grep -q "mitmproxy"; then
-    info "Adding mitmproxy CA to system trust store (needs sudo)..."
-    sudo trust anchor "$MITM_CERT"
-    info "Regenerating PEM bundle for Go..."
-    sudo p11-kit extract --format=pem-bundle --filter=ca-anchors \
-      --overwrite --comment /etc/ca-certificates/extracted/tls-ca-bundle.pem 2>/dev/null || true
-    info "CA cert trusted ✅"
+CA_BUNDLE="/etc/ca-certificates/extracted/tls-ca-bundle.pem"
+
+if [ -f "$MITM_CERT" ] && [ -s "$MITM_CERT" ]; then
+  # Check if already trusted
+  if grep -q "mitmproxy" "$CA_BUNDLE" 2>/dev/null; then
+    info "mitmproxy CA already in PEM bundle"
   else
-    info "CA cert already trusted"
+    info "Adding mitmproxy CA to system trust..."
+    # Method 1: p11-kit trust anchor (preferred)
+    if command -v trust &>/dev/null; then
+      if trust list 2>/dev/null | grep -q "mitmproxy"; then
+        info "mitmproxy CA already in p11-kit store"
+      else
+        info "Using p11-kit trust anchor (needs sudo)..."
+        # Copy to a temp location first to avoid path issues
+        TMP_CERT="/tmp/mitmproxy-ca-cert.pem"
+        cp "$MITM_CERT" "$TMP_CERT"
+        if sudo trust anchor "$TMP_CERT" 2>/dev/null; then
+          rm -f "$TMP_CERT"
+          sudo p11-kit extract --format=pem-bundle --filter=ca-anchors \
+            --overwrite --comment "$CA_BUNDLE" 2>/dev/null || true
+          info "Trusted via p11-kit ✅"
+        else
+          rm -f "$TMP_CERT"
+          warn "trust anchor failed — falling back to direct PEM append"
+          sudo cp "$MITM_CERT" /usr/local/share/ca-certificates/mitmproxy.crt 2>/dev/null || \
+            sudo tee -a "$CA_BUNDLE" < "$MITM_CERT" >/dev/null && \
+            info "Appended to PEM bundle ✅"
+        fi
+      fi
+    # Method 2: direct PEM bundle append
+    elif [ -f "$CA_BUNDLE" ]; then
+      info "Appending to PEM bundle directly (needs sudo)..."
+      sudo tee -a "$CA_BUNDLE" < "$MITM_CERT" >/dev/null && \
+        info "Appended to PEM bundle ✅"
+    # Method 3: macOS keychain
+    elif [ "$(uname -s)" = "Darwin" ]; then
+      info "Adding to macOS keychain..."
+      sudo security add-trusted-cert -d -p ssl -r trustRoot \
+        -k /Library/Keychains/System.keychain "$MITM_CERT" 2>/dev/null || \
+        security add-trusted-cert -d -p ssl -r trustRoot \
+          -k "$HOME/Library/Keychains/login.keychain" "$MITM_CERT" 2>/dev/null || \
+        warn "Could not trust cert. Do it manually: open $MITM_CERT"
+    else
+      warn "Don't know how to trust cert on this OS."
+      warn "Manual: sudo tee -a $CA_BUNDLE < $MITM_CERT"
+    fi
   fi
-elif [ "$(uname -s)" = "Darwin" ]; then
-  info "Adding mitmproxy CA to macOS keychain..."
-  sudo security add-trusted-cert -d -p ssl -r trustRoot \
-    -k /Library/Keychains/System.keychain "$MITM_CERT" 2>/dev/null || \
-    security add-trusted-cert -d -p ssl -r trustRoot \
-      -k ~/Library/Keychains/login.keychain "$MITM_CERT" 2>/dev/null || \
-    warn "Could not trust cert. Do it manually: open $MITM_CERT"
 else
-  warn "Unknown platform — trust the CA cert manually:"
-  warn "  sudo trust anchor $MITM_CERT"
+  warn "CA cert not available yet — will be generated on first proxy start."
+  warn "The proxy will still work but HTTPS interception may fail until"
+  warn "you trust the cert manually:"
+  warn "  sudo trust anchor ~/.mitmproxy/mitmproxy-ca-cert.pem"
 fi
 
 # ─────────────────────────────────────────────────────────────────
