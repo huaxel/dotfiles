@@ -302,6 +302,29 @@ export default async function (pi: ExtensionAPI) {
     }
   });
 
+  // ── Context overflow normalization ──
+  // Rewrite llama.cpp context-length errors so pi auto-compacts and retries.
+  pi.on("message_end", (event, ctx) => {
+    const message = event.message;
+    if (message.role !== "assistant") return;
+    if (message.stopReason !== "error") return;
+    if (message.provider !== PROVIDER && ctx.model?.provider !== PROVIDER) return;
+
+    const errorMessage = message.errorMessage ?? "";
+    if (errorMessage.includes("context_length_exceeded")) return;
+
+    // Match common llama.cpp overflow patterns
+    const LLAMA_OVERFLOW = /context|ctx|exceed|too long/i;
+    if (!LLAMA_OVERFLOW.test(errorMessage)) return;
+
+    return {
+      message: {
+        ...message,
+        errorMessage: `context_length_exceeded: ${errorMessage}`,
+      },
+    };
+  });
+
   // ── /models command ─────────────────────────────────────────────────
 
   pi.registerCommand("models", {

@@ -5,10 +5,6 @@
   "defaultModel": null,
   "defaultThinkingLevel": "low",
   "enabledModels": [
-    "cline-pass/glm-5.2",
-    "cline-pass/kimi-k2.7-code",
-    "cline-pass/deepseek-v4-pro",
-    "cline-pass/deepseek-v4-flash",
     "openai-codex/gpt-5.6-sol",
     "openai-codex/gpt-5.6-luna",
     "openai-codex/gpt-5.6-terra",
@@ -23,7 +19,14 @@
     "nan/qwen3.6",
     "nan/gemma4",
     "nan/mimo-v2.5",
-    "nan/deepseek-v4-flash"
+    "nan/deepseek-v4-flash",
+    "opencode/deepseek-v4-flash-free",
+    "opencode/mimo-v2.5-free",
+    "opencode/nemotron-3-ultra-free",
+    "opencode/north-mini-code-free",
+    "commandcode/deepseek/deepseek-v4-pro",
+    "commandcode/MiniMaxAI/MiniMax-M3",
+    "commandcode/xiaomi/mimo-v2.5"
   ],
   "defaults": {
     "model": null
@@ -49,6 +52,7 @@
       "skills": []
     },
     "npm:@ogulcancelik/pi-ghostty-theme-sync",
-    "npm:pi-cursor-sdk"
+    "npm:pi-cursor-sdk",
+    "npm:pi-commandcode-provider"
   ]
 }
