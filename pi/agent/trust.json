@@ -2,6 +2,7 @@
   "/Users/juanbenjumea": true,
   "/Users/juanbenjumea/coding/projects": true,
   "/Users/juanbenjumea/dotfiles": true,
+  "/home/juan": true,
   "/home/juan/.herdr/worktrees/project-atom": true,
   "/home/juan/.herdr/worktrees/project-atom/eht-matching": true,
   "/home/juan/.herdr/worktrees/project-atom/eht-review": true,
@@ -11,5 +12,7 @@
   "/home/juan/.herdr/worktrees/project-atom/profile-speed": true,
   "/home/juan/.herdr/worktrees/project-atom/tc-review": true,
   "/home/juan/.herdr/worktrees/project-atom/viapass": true,
-  "/home/juan/projects/nursultan-web": true
+  "/home/juan/project-atom": true,
+  "/home/juan/projects/nursultan-web": true,
+  "/mnt/c/Users/jbenjumeamoreno/atom-data": true
 }
