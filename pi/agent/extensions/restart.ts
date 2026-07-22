@@ -3,7 +3,7 @@
  *
  * Two triggers:
  * 1. /restart [--edit] [--preview] [--model ...] [--compact] [goal...]
- * 2. Auto context guard at 90% (turn_end check)
+ * 2. Auto context guard at 80% (turn_end check)
  *
  * Handoff context is condensed: compaction summaries + user messages +
  * assistant text without thinking + write/edit results + last messages fully.
@@ -42,7 +42,7 @@ No preamble. Only the prompt.`;
 
 /* ───── Context guard constants ───── */
 
-const CONTEXT_THRESHOLD_PERCENT = 90;
+const CONTEXT_THRESHOLD_PERCENT = 80;
 const AFK_TIMEOUT_MS = 60_000;
 /* ───── Helpers ───── */
 
