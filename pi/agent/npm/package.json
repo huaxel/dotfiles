@@ -19,7 +19,7 @@
     "pi-provider-umans": "^1.4.1",
     "pi-subagents": "^0.35.1",
     "pi-web-access": "^0.13.0",
-    "@juanbenjumea/pi-dynamic-footer": "file:../../packages/pi-dynamic-footer"
+    "@juanbenjumea/pi-dynamic-footer": "^0.1.0"
   },
   "allowScripts": {
     "context-mode@1.0.162": true,
