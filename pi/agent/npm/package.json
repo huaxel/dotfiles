@@ -3,23 +3,22 @@
   "private": true,
   "dependencies": {
     "@ff-labs/pi-fff": "^0.10.1",
+    "@juanbenjumea/pi-dynamic-footer": "^0.1.0",
     "@juicesharp/rpiv-ask-user-question": "^2.0.0",
     "@juicesharp/rpiv-todo": "^2.0.0",
     "@mjfuertesf/pi-quota-status": "^0.1.7",
     "@mobrienv/pi-tidy-tools": "^0.4.1",
-    "@narumitw/pi-goal": "^0.24.0",
     "@ogulcancelik/pi-auto-permissions": "^0.1.2",
     "@ogulcancelik/pi-ghostty-theme-sync": "^0.1.2",
     "@ogulcancelik/pi-herdr": "^0.4.0",
-    "@quintinshaw/pi-dynamic-workflows": "^3.4.0",
+    "@quintinshaw/pi-dynamic-workflows": "^3.4.1",
     "pi-autoresearch": "^1.6.2",
     "pi-commandcode-provider": "^0.4.2",
     "pi-cursor-sdk": "^0.1.60",
     "pi-intercom": "^0.6.0",
     "pi-provider-umans": "^1.4.1",
     "pi-subagents": "^0.35.1",
-    "pi-web-access": "^0.13.0",
-    "@juanbenjumea/pi-dynamic-footer": "^0.1.0"
+    "pi-web-access": "^0.13.0"
   },
   "allowScripts": {
     "context-mode@1.0.162": true,
