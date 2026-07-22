@@ -58,6 +58,12 @@ just pi-prune-sessions [days=30] [project=dotfiles]  # Prune old session files
 Key settings: `defaultThinkingLevel=low`, context guard at 80% (auto-/restart).
 Session files live in `pi/agent/sessions/` (~226 MB total across all projects).
 
+## Agent preferences
+
+- **Subagent over workflow** — Prefer `subagent` for delegation (single/parallel/chain).
+  Only use `workflow` when JS orchestration (loops, retry, quality gates) is genuinely
+  needed; otherwise it's redundant ceremony with worse reliability in this setup.
+
 ## Cross-session coordination
 
 <pi-intercom>
