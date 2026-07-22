@@ -47,6 +47,17 @@ These live in `$HOME/.agents/skills/` or `$HOME/dotfiles/skills/`:
 | `uv` | Python scripts with `uv run`, `uv add` |
 | `git-noninteractive` | Git operations that avoid editor hangs |
 
+## Pi session management
+
+```
+just pi-stats [n=10]         # Show last N session costs & duration
+just pi-session-size         # Disk usage per project
+just pi-prune-sessions [days=30] [project=dotfiles]  # Prune old session files
+```
+
+Key settings: `defaultThinkingLevel=low`, context guard at 80% (auto-/restart).
+Session files live in `pi/agent/sessions/` (~226 MB total across all projects).
+
 ## Cross-session coordination
 
 <pi-intercom>
