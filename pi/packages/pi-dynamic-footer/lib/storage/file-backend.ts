@@ -1,4 +1,4 @@
-import { appendFile, mkdir, readFile, rename, rm, stat, utimes, writeFile } from "node:fs/promises";
+import { appendFile, chmod, mkdir, readFile, rename, rm, stat, utimes, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { RawBackend } from "./types.js";
 
@@ -16,7 +16,10 @@ export function createFileBackend(options: FileBackendOptions): RawBackend {
 
   async function ensureDir() {
     if (ensured) return;
-    await mkdir(dir, { recursive: true });
+    await mkdir(dir, { recursive: true, mode: 0o700 });
+    // Keep session metadata private on shared machines, including when the
+    // directory pre-dates this extension.
+    await chmod(dir, 0o700);
     ensured = true;
   }
 
@@ -76,6 +79,11 @@ export function createFileBackend(options: FileBackendOptions): RawBackend {
   }
 
   function pathFor(name: string): string {
+    // Store names are part of the public storage API. Keep them as plain file
+    // names so a caller cannot escape the configured storage directory.
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(name)) {
+      throw new Error(`Invalid storage file name: ${name}`);
+    }
     return join(dir, name);
   }
 
@@ -94,15 +102,18 @@ export function createFileBackend(options: FileBackendOptions): RawBackend {
         await ensureDir();
         const target = pathFor(name);
         const temp = `${target}.tmp`;
-        await writeFile(temp, content, "utf8");
+        await writeFile(temp, content, { encoding: "utf8", mode: 0o600 });
         await rename(temp, target);
+        await chmod(target, 0o600);
       });
     },
 
     append(name, line) {
       return queueMutation(name, async () => {
         await ensureDir();
-        await appendFile(pathFor(name), `${line}\n`, "utf8");
+        const target = pathFor(name);
+        await appendFile(target, `${line}\n`, { encoding: "utf8", mode: 0o600 });
+        await chmod(target, 0o600);
       });
     },
 
@@ -122,8 +133,9 @@ export function createFileBackend(options: FileBackendOptions): RawBackend {
         const target = pathFor(name);
         const writeContent = async (content: string) => {
           const temp = `${target}.tmp`;
-          await writeFile(temp, content, "utf8");
+          await writeFile(temp, content, { encoding: "utf8", mode: 0o600 });
           await rename(temp, target);
+          await chmod(target, 0o600);
         };
         if (keepLast <= 0) {
           await writeContent("");

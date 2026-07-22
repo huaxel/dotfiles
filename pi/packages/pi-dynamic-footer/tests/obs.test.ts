@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -76,8 +76,21 @@ test("file storage preserves concurrent appends and zero trimming", async () => 
       first.append("history.jsonl", "three"),
     ]);
     assert.equal((await first.readLines("history.jsonl")).length, 3);
+    assert.equal((await stat(dir)).mode & 0o777, 0o700);
+    assert.equal((await stat(join(dir, "history.jsonl"))).mode & 0o777, 0o600);
     await second.trimLines("history.jsonl", 0);
     assert.deepEqual(await first.readLines("history.jsonl"), []);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("file storage rejects names that escape its directory", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "pi-obs-test-"));
+  try {
+    const backend = createFileBackend({ dir });
+    await assert.rejects(backend.write("../outside", "nope"), /Invalid storage file name/);
+    await assert.rejects(backend.append("nested/history.jsonl", "nope"), /Invalid storage file name/);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
