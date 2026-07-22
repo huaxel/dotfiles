@@ -3,7 +3,7 @@
   "theme": "ghostty-sync-b59692fc",
   "defaultProvider": null,
   "defaultModel": null,
-  "defaultThinkingLevel": "low",
+  "defaultThinkingLevel": "off",
   "enabledModels": [
     "openai-codex/gpt-5.6-sol",
     "openai-codex/gpt-5.6-luna",
