@@ -37,7 +37,6 @@
     "npm:pi-subagents",
     "npm:pi-web-access",
     "npm:pi-provider-umans",
-    "npm:pi-review-loop",
     {
       "source": "npm:@ff-labs/pi-fff",
       "extensions": []
@@ -53,6 +52,7 @@
     },
     "npm:@ogulcancelik/pi-ghostty-theme-sync",
     "npm:pi-cursor-sdk",
-    "npm:pi-commandcode-provider"
+    "npm:pi-commandcode-provider",
+    "git:github.com/earendil-works/pi-review"
   ]
 }
