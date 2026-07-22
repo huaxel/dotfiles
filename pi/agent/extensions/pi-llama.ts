@@ -4,7 +4,7 @@ import { Loader, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 // ── Configuration ────────────────────────────────────────────────────────
 
 const PROVIDER = "llamacpp";
-const HOST = process.env.PI_LLAMA_HOST || "framearch-juan";
+const HOST = process.env.PI_LLAMA_HOST || "framearch-juan.bonobo-fort.ts.net";
 const PORT = Number(process.env.PI_LLAMA_PORT) || 8000;
 const DISCOVERY_URL = `http://${HOST}:${PORT}/v1/models`;
 const API_BASE_URL = `http://${HOST}:${PORT}/v1`;

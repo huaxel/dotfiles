@@ -68,7 +68,7 @@ export default function (pi: ExtensionAPI) {
   const BRIDGE =
     (pi.config?.get("llama-stats.bridge") as string | undefined) ??
     process.env.LLAMA_STATS_BRIDGE ??
-    "http://framearch-juan:55268";
+    "http://framearch-juan.bonobo-fort.ts.net:55268";
 
   const POLL_INTERVAL =
     (pi.config?.get("llama-stats.pollInterval") as number | undefined) ??
