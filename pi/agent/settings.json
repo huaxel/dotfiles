@@ -24,9 +24,7 @@
     "opencode/mimo-v2.5-free",
     "opencode/nemotron-3-ultra-free",
     "opencode/north-mini-code-free",
-    "commandcode/deepseek/deepseek-v4-pro",
-    "commandcode/MiniMaxAI/MiniMax-M3",
-    "commandcode/xiaomi/mimo-v2.5"
+    "commandcode/deepseek/deepseek-v4-pro"
   ],
   "defaults": {
     "model": null
