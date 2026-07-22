@@ -516,3 +516,55 @@ project-init-ci path="":
     echo "  Next: set the CI_RUNNER variable in your repo if using a self-hosted runner:"
     echo "    GitHub repo → Settings → Secrets and variables → Actions → Variables"
     echo "    Add: CI_RUNNER = 'self-hosted,linux,ci'"
+
+# ──────────── Pi Session Optimisation ────────────
+
+# Show session usage stats (last N sessions from observability history).
+pi-stats n="10":
+    #!/usr/bin/env bash
+    HISTORY="$HOME/.pi/agent/observability/history.jsonl"
+    if [ ! -f "$HISTORY" ]; then
+        echo "No observability history found."
+        exit 0
+    fi
+    cat "$HISTORY" | tail -"{{n}}" | python3 -c '
+    import json, sys, statistics
+    recs = [json.loads(l) for l in sys.stdin if l.strip()]
+    active = [r for r in recs if r.get("turns",0) > 1]
+    print(f"Sessions: {len(recs)} total, {len(active)} active (\u22652 turns)")
+    if active:
+        costs = [r["cost"] for r in active if r.get("cost",0) > 0]
+        mins = [r.get("runtimeMs",0)/60000 for r in active]
+        ts = [r.get("turns",0) for r in active]
+        print(f"Avg turns:  {statistics.mean(ts):.0f}")
+        print(f"Avg dur:    {statistics.mean(mins):.0f}m")
+        print(f"Avg cost:   ${statistics.mean(costs):.4f}")' 2>/dev/null || echo "Error parsing history"
+
+# Summary of session file storage.
+pi-session-size:
+    #!/usr/bin/env bash
+    DIR="$HOME/dotfiles/pi/agent/sessions"
+        if [ ! -d "$DIR" ]; then echo "No session dir"; exit 0; fi
+    echo "Session storage: $(du -sh "$DIR" | cut -f1) total"
+    echo ""
+    echo "  Sessions by project:"
+    for d in "$DIR"/--*; do
+        name=$(basename "$d" | sed 's/^--//;s/--$//' | tr - " ")
+        count=$(find "$d" -name "*.jsonl" 2>/dev/null | wc -l | tr -d " ")
+        size=$(du -sh "$d" 2>/dev/null | cut -f1)
+        echo "    $count  $size  $name"
+    done | sort -rn
+
+# Prune old sessions.
+pi-prune-sessions days="30" project="dotfiles":
+    #!/usr/bin/env bash
+    DIR="$HOME/dotfiles/pi/agent/sessions/--Users-juanbenjumea-{{project}}--"
+        if [ ! -d "$DIR" ]; then
+        echo "Session dir not found: $DIR"
+        exit 1
+    fi
+    before=$(find "$DIR" -name "*.jsonl" | wc -l)
+    find "$DIR" -name "*.jsonl" -mtime +"{{days}}" -delete 2>/dev/null
+    after=$(find "$DIR" -name "*.jsonl" | wc -l)
+    echo "Deleted $((before - after)) sessions older than {{days}}d from $project"
+    echo "Remaining: $after"
