@@ -42,15 +42,28 @@ export default function (pi: ExtensionAPI) {
     const agent = agentMap.get(event.toolCallId) ?? "?";
     agentMap.delete(event.toolCallId);
 
-    // Safely extract model details from the tool result
+    // Safely extract model details from the tool result.
+    // pi-subagents nests model info inside details.results[0] for foreground
+    // calls and host them directly for background/synthesis calls.
     const result = event.result as any;
     const details = result?.details as Record<string, unknown> | undefined;
     if (!details) return;
 
-    const model = String(details.model ?? details.attemptedModels?.[0] ?? "?");
-    const attemptedModels = (details.attemptedModels as string[] | undefined) ?? [];
-    const modelAttempts = (details.modelAttempts as Array<Record<string, unknown>> | undefined) ?? [];
-    const error = details.error as string | undefined;
+    const firstResult = (details.results as Array<Record<string, unknown>> | undefined)?.[0];
+    const model = String(
+      firstResult?.model ?? details.model ?? details.attemptedModels?.[0] ?? "?",
+    );
+    const attemptedModels = (
+      (firstResult?.attemptedModels as string[] | undefined) ??
+      (details.attemptedModels as string[] | undefined) ??
+      []
+    );
+    const modelAttempts = (
+      (firstResult?.modelAttempts as Array<Record<string, unknown>> | undefined) ??
+      (details.modelAttempts as Array<Record<string, unknown>> | undefined) ??
+      []
+    );
+    const error = (firstResult?.error as string | undefined) ?? (details.error as string | undefined);
 
     // Build chain display
     const chain: string[] = [];
@@ -60,20 +73,21 @@ export default function (pi: ExtensionAPI) {
       if (error) chain[0] += ` ${error.slice(0, 40)}`;
     } else {
       // Multiple models tried — show the chain
-      let finalModel = "";
       for (const attempt of modelAttempts) {
         const m = String(attempt.model ?? "?");
         if (attempt.success) {
-          finalModel = m;
           break;
         }
         const err = attempt.error ? String(attempt.error).slice(0, 25) : "✗";
         chain.push(m);
         chain.push(`✗ ${err}`);
       }
-      if (!error && attemptedModels.length > 0) {
-        // Last attempt succeeded — show the winning model
-        chain.push(attemptedModels[attemptedModels.length - 1]);
+      // Push the winning model if any attempt succeeded
+      const winner = attemptedModels.length > 0
+        ? attemptedModels[attemptedModels.length - 1]
+        : undefined;
+      if (winner && !error) {
+        chain.push(winner);
         chain.push("✓");
       } else if (error) {
         chain.push(`✗ ${error.slice(0, 40)}`);
