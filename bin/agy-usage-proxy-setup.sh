@@ -251,7 +251,7 @@ elif [ "$OS" = "Darwin" ]; then
     <array>
         <string>$(command -v mitmdump)</string>
         <string>--listen-port</string>
-        <string>8080</string>
+        <string>8082</string>
         <string>--set</string>
         <string>block_global=false</string>
         <string>-s</string>

@@ -4,5 +4,5 @@ function agy --description="Run agy through usage-capture proxy"
         echo "agy: command not found" >&2
         return 1
     end
-    env HTTPS_PROXY=http://localhost:8080 HTTP_PROXY=http://localhost:8080 $agy_bin $argv
+    env HTTPS_PROXY=http://localhost:8082 HTTP_PROXY=http://localhost:8082 $agy_bin $argv
 end
