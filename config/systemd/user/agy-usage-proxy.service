@@ -8,7 +8,7 @@ Wants=network-online.target
 Type=simple
 ExecStartPre=/bin/sh -c 'test -f %h/.config/antigravity-usage/proxy-addon.py || { echo "Addon not found at %h/.config/antigravity-usage/proxy-addon.py"; exit 1; }'
 ExecStart=%h/.local/bin/mitmdump \
-  --listen-port 8080 \
+  --listen-port 8082 \
   --set block_global=false \
   -s %h/.config/antigravity-usage/proxy-addon.py
 Restart=on-failure
