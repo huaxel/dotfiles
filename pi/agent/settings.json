@@ -48,7 +48,6 @@
       "skills": []
     },
     "npm:@ogulcancelik/pi-ghostty-theme-sync",
-    "npm:pi-cursor-sdk",
     "npm:pi-commandcode-provider",
     "git:github.com/earendil-works/pi-review",
     "npm:@ogulcancelik/pi-auto-permissions",
