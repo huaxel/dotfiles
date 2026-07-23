@@ -1,15 +1,13 @@
 /**
- * Restart v2 — lightweight session handoff with auto context guard.
+ * Session handoff with a context guard.
  *
- * Two triggers:
- * 1. /restart [--edit] [--preview] [--model ...] [--compact] [goal...]
- * 2. Auto context guard at 80% (turn_end check)
- *
- * Handoff context is condensed: compaction summaries + user messages +
- * assistant text without thinking + write/edit results + last messages fully.
- * No compaction for the restart path (old session stays intact on disk).
+ * /restart generates a handoff prompt from the current branch and starts a
+ * fresh session. The context guard only prepares /restart in the editor:
+ * session replacement is a command-only API in Pi and cannot safely be called
+ * from turn_end or a tool callback.
  */
 
+import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import { complete, type Message } from "@earendil-works/pi-ai/compat";
 import type {
   ExtensionAPI,
@@ -18,8 +16,9 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 import {
   BorderedLoader,
+  convertToLlm,
+  serializeConversation,
 } from "@earendil-works/pi-coding-agent";
-import { Type } from "@sinclair/typebox";
 
 const SYSTEM_PROMPT = `You are a context transfer assistant. Given a conversation history and a goal for a new thread, generate a focused handoff prompt that:
 
@@ -94,92 +93,46 @@ interface HandoffResult {
   contextChars: number;
 }
 
-/**
- * Prepare condensed handoff context.
- *
- * Keeps: compaction summaries, user messages (full), assistant text (no thinking),
- * write/edit tool results (truncated), error bash results (truncated).
- * Drops: thinking blocks, successful bash stdout, read/grep/find/ls results.
- */
-function prepareHandoffContext(entries: SessionEntry[]): string {
-  const compactions: string[] = [];
-  const messages: Message[] = [];
+function entryToMessage(entry: SessionEntry): AgentMessage | undefined {
+  if (entry.type === "message") return entry.message;
+  if (entry.type === "compaction") {
+    return {
+      role: "compactionSummary",
+      summary: entry.summary,
+      tokensBefore: entry.tokensBefore,
+      timestamp: new Date(entry.timestamp).getTime(),
+    };
+  }
+  return undefined;
+}
 
-  for (const entry of entries) {
-    if (entry.type === "compaction") {
-      compactions.push(entry.summary);
-      continue;
-    }
-    if (entry.type !== "message") continue;
-
-    const msg = entry.message;
-    if (msg.role === "user") {
-      messages.push({
-        role: "user",
-        content: msg.content.filter((c: any) => c.type === "text"),
-        timestamp: msg.timestamp,
-      });
-    } else if (msg.role === "assistant") {
-      messages.push({
-        role: "assistant",
-        content: msg.content.filter((c: any) => c.type !== "thinking"),
-        timestamp: msg.timestamp,
-      });
-    } else if (msg.role === "toolResult") {
-      const toolName = String(msg.toolName || "").toLowerCase();
-      // Keep write/edit results (truncated) — they show what changed
-      if (toolName === "write" || toolName === "edit") {
-        messages.push({
-          role: "toolResult",
-          toolCallId: msg.toolCallId,
-          toolName: msg.toolName,
-          content: msg.content.map((c: any) =>
-            c.type === "text" ? { ...c, text: String(c.text || "").slice(0, 500) } : c
-          ),
-          timestamp: msg.timestamp,
-          isError: msg.isError,
-        });
-      }
-      // Keep error bash results (truncated) — they show what went wrong
-      if (toolName === "bash" && msg.isError) {
-        messages.push({
-          role: "toolResult",
-          toolCallId: msg.toolCallId,
-          toolName: msg.toolName,
-          content: msg.content.map((c: any) =>
-            c.type === "text" ? { ...c, text: String(c.text || "").slice(0, 300) } : c
-          ),
-          timestamp: msg.timestamp,
-          isError: true,
-        });
-      }
-      // Everything else (successful bash, read, grep, find, ls) is dropped
+/** Return the current branch without replaying entries hidden by compaction. */
+function getHandoffMessages(branch: SessionEntry[]): AgentMessage[] {
+  let compactionIndex = -1;
+  for (let i = branch.length - 1; i >= 0; i--) {
+    if (branch[i].type === "compaction") {
+      compactionIndex = i;
+      break;
     }
   }
 
-  const parts: string[] = [];
-  if (compactions.length) {
-    parts.push("[Compacted context: " + compactions.join(" | ") + "]");
-  }
-  for (const msg of messages) {
-    if (msg.role === "user") {
-      const text = msg.content.filter((c: any) => c.type === "text").map((c: any) => c.text).join(" ");
-      if (text.trim()) parts.push("[User] " + text.trim());
-    } else if (msg.role === "assistant") {
-      const text = msg.content.filter((c: any) => c.type === "text").map((c: any) => c.text).join(" ");
-      const tools = msg.content.filter((c: any) => c.type === "toolCall").map((c: any) => c.name || "?");
-      const line = text.trim() + (tools.length ? "\n  [tools: " + tools.join(", ") + "]" : "");
-      if (line.trim()) parts.push("[Assistant] " + line.trim());
-    } else if (msg.role === "toolResult") {
-      const text = msg.content.filter((c: any) => c.type === "text").map((c: any) => c.text).join(" ");
-      if (text.trim()) {
-        const label = msg.isError ? "[Error]" : "[" + (msg.toolName || "tool") + " result]";
-        parts.push(label + " " + text.trim());
-      }
-    }
+  if (compactionIndex < 0) {
+    return branch.map(entryToMessage).filter((message): message is AgentMessage => message !== undefined);
   }
 
-  return parts.join("\n\n");
+  const compaction = branch[compactionIndex];
+  const firstKeptIndex =
+    compaction.type === "compaction"
+      ? branch.findIndex((entry) => entry.id === compaction.firstKeptEntryId)
+      : -1;
+  const compactedBranch = [
+    compaction,
+    ...(firstKeptIndex >= 0 ? branch.slice(firstKeptIndex, compactionIndex) : []),
+    ...branch.slice(compactionIndex + 1),
+  ];
+  return compactedBranch
+    .map(entryToMessage)
+    .filter((message): message is AgentMessage => message !== undefined);
 }
 
 async function generateHandoffPrompt(
@@ -187,12 +140,10 @@ async function generateHandoffPrompt(
   model: NonNullable<ExtensionCommandContext["model"]>,
   goal: string,
 ): Promise<HandoffResult | null> {
-  const entries = ctx.sessionManager.buildContextEntries();
-  const hasContent = entries.some(e => e.type === "message" || e.type === "compaction");
-  if (!hasContent) return null;
+  const messages = getHandoffMessages(ctx.sessionManager.getBranch());
+  if (messages.length === 0) return null;
 
-  // Prepare condensed context
-  const condensedText = prepareHandoffContext(entries);
+  const conversationText = serializeConversation(convertToLlm(messages));
 
   let generationError: Error | null = null;
   const prompt = await ctx.ui.custom<string | null>((tui, theme, _kb, done) => {
@@ -209,7 +160,7 @@ async function generateHandoffPrompt(
 
       const userMessage: Message = {
         role: "user",
-        content: [{ type: "text", text: `## Conversation (condensed)\n\n${condensedText}\n\n${goalText}` }],
+        content: [{ type: "text", text: `## Conversation History\n\n${conversationText}\n\n${goalText}` }],
         timestamp: Date.now(),
       };
 
@@ -229,9 +180,8 @@ async function generateHandoffPrompt(
     return loader;
   });
 
-  const messageCount = entries.filter(e => e.type === "message" || e.type === "compaction").length;
   if (prompt === null && generationError) throw generationError;
-  return prompt ? { prompt, messageCount, contextChars: condensedText.length } : null;
+  return prompt ? { prompt, messageCount: messages.length, contextChars: conversationText.length } : null;
 }
 
 async function compactSession(ctx: ExtensionCommandContext): Promise<boolean> {
@@ -250,94 +200,67 @@ async function compactSession(ctx: ExtensionCommandContext): Promise<boolean> {
 /* ───── Extension ───── */
 
 export default function (pi: ExtensionAPI) {
-  let lastSuppressedPct: number | null = null;
-  const RE_PROMPT_INTERVAL = 5; // re-prompt if usage has climbed this many % since last dismissal
+  const lastPromptedPct = new Map<string, number>();
+  let guardDialogOpen = false;
+  const RE_PROMPT_INTERVAL = 5;
 
-  /* ── Auto context guard ── */
+  /* ── Context guard ── */
 
-  pi.on("session_start", () => { lastSuppressedPct = null; });
+  pi.on("session_shutdown", (_event, ctx) => {
+    lastPromptedPct.delete(ctx.sessionManager.getSessionId());
+  });
 
   pi.on("turn_end", async (_event, ctx) => {
-    if (!ctx.hasUI) return;
+    if (ctx.mode !== "tui" || guardDialogOpen) return;
 
     const usage = ctx.getContextUsage?.();
     if (!usage || usage.percent === null || usage.percent < CONTEXT_THRESHOLD_PERCENT) return;
 
-    const pct = Math.round(usage.percent);
-    // Don't re-prompt unless usage has climbed meaningfully since last dismissal
-    if (lastSuppressedPct !== null && pct < lastSuppressedPct + RE_PROMPT_INTERVAL) return;
-    lastSuppressedPct = pct;
     const sessionBefore = ctx.sessionManager.getSessionId();
+    const pct = Math.round(usage.percent);
+    const previousPct = lastPromptedPct.get(sessionBefore);
+    if (previousPct !== undefined && pct < previousPct + RE_PROMPT_INTERVAL) return;
+    lastPromptedPct.set(sessionBefore, pct);
+
+    guardDialogOpen = true;
     const timeoutController = new AbortController();
     let didTimeout = false;
-    const timeoutId = setTimeout(() => { didTimeout = true; timeoutController.abort(); }, AFK_TIMEOUT_MS);
+    const timeoutId = setTimeout(() => {
+      didTimeout = true;
+      timeoutController.abort();
+    }, AFK_TIMEOUT_MS);
+    let choice: string | undefined;
+    try {
+      choice = await ctx.ui.select(
+        `Context at ${pct}% — prepare a handoff?`,
+        ["Yes, prepare restart", "Not now"],
+        { signal: timeoutController.signal },
+      );
+    } catch {
+      // Dialog dismissal (including timeout) is equivalent to “Not now”.
+      choice = undefined;
+    } finally {
+      clearTimeout(timeoutId);
+      guardDialogOpen = false;
+    }
 
-    const choice = await ctx.ui.select(
-      `Context at ${pct}% — handoff to a new session?`,
-      ["Yes, handoff", "Not now"],
-      { signal: timeoutController.signal },
-    );
-    clearTimeout(timeoutId);
-
-    // Session changed while waiting — bail
+    // Session replacement or reload may have happened while the dialog was open.
     if (ctx.sessionManager.getSessionId() !== sessionBefore) return;
 
-    if (choice === "Not now") {
-      ctx.ui.notify(`Restart guard muted until ${pct + RE_PROMPT_INTERVAL}%`, "info");
-      return;
-    }
-    if (!choice && !didTimeout) {
-      // User dismissed without picking — treat as "not now"
+    if (choice !== "Yes, prepare restart" && !didTimeout) {
       ctx.ui.notify(`Restart guard muted until ${pct + RE_PROMPT_INTERVAL}%`, "info");
       return;
     }
 
-    // Handoff — tell the model to write a prompt and call the handoff tool
-    ctx.ui.notify("Context is full — starting handoff...", "warning");
-    pi.sendMessage(
-      {
-        customType: "restart:auto-handoff",
-        content:
-          `Context is at ${pct}%. Handoff to a new session now.\n\n` +
-          `Write a complete handoff prompt that captures:\n` +
-          `- What we're working on and key decisions\n` +
-          `- Files involved and current state\n` +
-          `- What to do next\n\n` +
-          `Then call the \`handoff\` tool with your prompt. This is the only briefing the next session gets — be thorough.`,
-        display: false,
-      },
-      { triggerTurn: true, deliverAs: "followUp" },
-    );
-  });
-
-  /* ── handoff tool ── */
-
-  pi.registerTool({
-    name: "handoff",
-    label: "Handoff",
-    description:
-      "Transfer context to a new focused session. " +
-      "Write a complete self-contained prompt with context, decisions, files, and the task. " +
-      "This is the only briefing the next agent gets.",
-    parameters: Type.Object({
-      prompt: Type.String({ description: "Complete handoff prompt for the next session." }),
-    }),
-    async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-      if (!ctx.hasUI) return { content: [{ type: "text", text: "Handoff requires interactive mode." }] };
-      const currentSessionFile = ctx.sessionManager.getSessionFile();
-      // Defer so tool_result is recorded in the current session first
-      queueMicrotask(async () => {
-        try {
-          const result = await ctx.newSession({ parentSession: currentSessionFile });
-          if (!result.cancelled && "ctx" in result && (result as any).ctx?.sendUserMessage) {
-            await (result as any).ctx.sendUserMessage(params.prompt);
-          }
-        } catch (error) {
-          console.error("handoff: session switch failed:", error);
-        }
-      });
-      return { content: [{ type: "text", text: "Handoff started." }] };
-    },
+    // newSession() is intentionally unavailable in event and tool contexts.
+    // Put the real command in the editor so the user can submit it safely,
+    // without overwriting a draft the user may already be composing.
+    if (!ctx.ui.getEditorText().trim()) {
+      ctx.ui.setEditorText("/restart");
+      ctx.ui.notify("Restart ready. Press Enter to generate the handoff.", "warning");
+    } else {
+      ctx.ui.notify("Context is high. Run /restart when your current draft is ready.", "warning");
+    }
   });
 
   /* ── /restart command ── */
