@@ -70,6 +70,8 @@ set -x XDG_CONFIG_HOME $HOME/.config
 set -x EZA_CONFIG_DIR $HOME/.config/eza
 set -x PI_CODING_AGENT_DIR $HOME/dotfiles/pi/agent
 
+# Fix agy CLI using staging endpoint instead of production
+set -x CLOUD_CODE_URL https://cloudcode-pa.googleapis.com
 
 # Run pi as restricted pi-agent user
 alias pi-sudo='sudo -iu pi-agent PI_CODING_AGENT_DIR=$HOME/dotfiles/pi/agent -- pi'
