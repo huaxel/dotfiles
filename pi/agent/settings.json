@@ -38,10 +38,7 @@
     "npm:pi-subagents",
     "npm:pi-web-access",
     "npm:pi-provider-umans",
-    {
-      "source": "npm:@ff-labs/pi-fff",
-      "extensions": []
-    },
+    "npm:@ff-labs/pi-fff",
     "npm:pi-intercom",
     "npm:pi-autoresearch",
     "npm:@quintinshaw/pi-dynamic-workflows",
@@ -55,6 +52,8 @@
     "npm:pi-commandcode-provider",
     "git:github.com/earendil-works/pi-review",
     "npm:@ogulcancelik/pi-auto-permissions",
-    "npm:@juanbenjumea/pi-dynamic-footer"
+    "npm:@juanbenjumea/pi-dynamic-footer",
+    "git:github.com/earendil-works/pi-review-loop",
+    "npm:@amaster.ai/pi-computer-use"
   ]
 }
