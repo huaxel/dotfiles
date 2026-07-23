@@ -2,6 +2,7 @@
   "name": "pi-extensions",
   "private": true,
   "dependencies": {
+    "@amaster.ai/pi-computer-use": "^0.1.6",
     "@ff-labs/pi-fff": "^0.10.1",
     "@juanbenjumea/pi-dynamic-footer": "^0.1.0",
     "@juicesharp/rpiv-ask-user-question": "^2.0.0",
