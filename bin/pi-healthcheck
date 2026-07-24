@@ -1,0 +1,448 @@
+#!/usr/bin/env python3
+"""
+Pi Health Check — on-demand assessment of pi setup health.
+
+Usage:
+    just pi-healthcheck          # terminal summary
+    just pi-healthcheck --json   # rich JSON output
+
+Output: 5 grades (A-F) across Cost & Performance, Config Hygiene,
+Session Storage, Reliability, and Observability.
+"""
+import json
+import os
+import subprocess
+import sys
+import statistics
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+
+# ── Paths ────────────────────────────────────────────────
+DOTFILES = Path.home() / "dotfiles"
+PI_RUNTIME = Path.home() / ".pi" / "agent"
+PI_DOTFILES = DOTFILES / "pi" / "agent"
+
+HISTORY = PI_RUNTIME / "observability" / "history.jsonl"
+RUN_HISTORY = PI_RUNTIME / "run-history.jsonl"
+CRASH_LOG = PI_RUNTIME / "pi-crash.log"
+FAILOVER_LOG = PI_DOTFILES / "opencode-go-failover.log"
+SESSION_DOTFILES = PI_DOTFILES / "sessions"
+SESSION_RUNTIME = PI_RUNTIME / "sessions"
+SETTINGS_DOTFILES = PI_DOTFILES / "settings.json"
+SETTINGS_RUNTIME = PI_RUNTIME / "settings.json"
+MODELS_DOTFILES = PI_DOTFILES / "models.json"
+MODELS_RUNTIME = PI_RUNTIME / "models.json"
+TRUST_DOTFILES = PI_DOTFILES / "trust.json"
+TRUST_RUNTIME = PI_RUNTIME / "trust.json"
+SUBAGENT_CONFIG_DOTFILES = PI_DOTFILES / "extensions" / "subagent" / "config.json"
+SUBAGENT_CONFIG_RUNTIME = PI_RUNTIME / "skills" / "brainstorming" / "SKILL.md"
+
+
+# ── Helpers ──────────────────────────────────────────────
+
+def safe_read_json(path):
+    try:
+        return json.loads(path.read_text())
+    except (FileNotFoundError, json.JSONDecodeError):
+        return None
+
+
+def file_size_mb(path):
+    try:
+        return sum(f.stat().st_size for f in path.rglob("*") if f.is_file()) / (1024 * 1024)
+    except FileNotFoundError:
+        return 0.0
+
+
+def count_files(path):
+    try:
+        return len(list(path.rglob("*.jsonl")))
+    except FileNotFoundError:
+        return 0
+
+
+def grade_from_score(score, thresholds):
+    """thresholds: [(high_bound, letter), ...] sorted descending"""
+    for bound, letter in thresholds:
+        if score >= bound:
+            return letter
+    return "F"
+
+
+def grade_color(grade):
+    return {"A": "\033[32m", "B": "\033[92m", "C": "\033[93m",
+            "D": "\033[33m", "F": "\033[31m"}.get(grade, "\033[0m")
+
+
+def score_to_num(score, max_val, invert=False):
+    """Convert a raw value to 0-100 score."""
+    if max_val == 0:
+        return 0
+    raw = max(0, min(1, score / max_val))
+    if invert:
+        raw = 1 - raw
+    return round(raw * 100)
+
+
+def num_to_grade(n, thresholds_a=None, thresholds_f=None):
+    """Default: A>=90, B>=70, C>=50, D>=25, F<25"""
+    t = thresholds_a or [(90, "A"), (70, "B"), (50, "C"), (25, "D")]
+    for bound, letter in t:
+        if n >= bound:
+            return letter
+    return "F"
+
+
+# ── Assessment functions ─────────────────────────────────
+
+def assess_cost_performance():
+    """Grade based on average cost per session and data freshness."""
+    history = safe_read_json_lines(HISTORY)
+    if not history:
+        return {"grade": "F", "score": 0, "sessions": 0, "avg_cost": 0,
+                "total_cost": 0, "avg_turns": 0, "avg_tokens": 0, "note": "No observability data"}
+
+    active = [r for r in history if r.get("turns", 0) > 1]
+    if not active:
+        return {"grade": "F", "score": 5, "sessions": len(history),
+                "avg_cost": 0, "total_cost": 0, "avg_turns": 0,
+                "avg_tokens": 0, "note": "No active sessions recorded"}
+
+    costs = [r.get("cost", 0) for r in active if r.get("cost", 0) > 0]
+    avg_cost = statistics.mean(costs) if costs else 0
+    total_cost = sum(costs)
+    avg_turns = statistics.mean([r.get("turns", 0) for r in active])
+    total_tokens = sum(r.get("inputTokens", 0) + r.get("outputTokens", 0) for r in active)
+    avg_tokens = total_tokens / len(active)
+
+    # Grade: A < $0.01/session, B < $0.05, C < $0.10, D < $0.50, F >= $0.50
+    if avg_cost < 0.01:
+        grade = "A"
+        score = 90
+    elif avg_cost < 0.05:
+        grade = "B"
+        score = 75
+    elif avg_cost < 0.10:
+        grade = "C"
+        score = 55
+    elif avg_cost < 0.50:
+        grade = "D"
+        score = 30
+    else:
+        grade = "F"
+        score = 10
+
+    return {"grade": grade, "score": score, "sessions": len(history),
+            "avg_cost": round(avg_cost, 4), "total_cost": round(total_cost, 4),
+            "avg_turns": round(avg_turns, 1), "avg_tokens": round(avg_tokens, 0),
+            "note": f"~${avg_cost:.4f}/session avg, {len(history)} sessions tracked"}
+
+
+def safe_read_json_lines(path):
+    try:
+        lines = [json.loads(l) for l in path.read_text().splitlines() if l.strip()]
+        return lines
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
+
+
+def assess_config_hygiene():
+    """Compare dotfiles config vs runtime config. Returns drift count and details."""
+    drifts = []
+    comparisons = [
+        ("settings.json", SETTINGS_DOTFILES, SETTINGS_RUNTIME),
+        ("trust.json", TRUST_DOTFILES, TRUST_RUNTIME),
+    ]
+
+    for name, dot, run in comparisons:
+        dc = safe_read_json(dot)
+        rc = safe_read_json(run)
+        if dc is None and rc is None:
+            continue
+        # Compare keys at top level
+        all_keys = set((dc or {}).keys()) | set((rc or {}).keys())
+        ignore_keys = {"lastChangelogVersion", "theme", "packages"}
+
+        for key in sorted(all_keys):
+            if key in ignore_keys:
+                continue
+            dv = (dc or {}).get(key)
+            rv = (rc or {}).get(key)
+            if dv is None and rv is not None:
+                drifts.append({"file": name, "key": key, "type": "MISSING_IN_SOURCE",
+                              "expected": None, "actual": str(rv)[:80], "severity": "high"})
+            elif rv is None and dv is not None:
+                drifts.append({"file": name, "key": key, "type": "MISSING_IN_RUNTIME",
+                              "expected": str(dv)[:80], "actual": None, "severity": "critical"})
+            elif dv != rv:
+                drifts.append({"file": name, "key": key, "type": "VALUE_DIFF",
+                              "expected": str(dv)[:80], "actual": str(rv)[:80],
+                              "severity": "critical" if key in ("defaultProvider", "defaultModel", "defaultThinkingLevel") else "medium"})
+
+    # Also detect staleness
+    rc_settings = safe_read_json(SETTINGS_RUNTIME)
+    if rc_settings and rc_settings.get("lastChangelogVersion") == "0.0.0":
+        drifts.append({"file": "settings.json", "key": "lastChangelogVersion",
+                       "type": "STALE_COPY", "expected": "recent", "actual": "0.0.0",
+                       "severity": "warning"})
+
+    count = len(drifts)
+    critical = sum(1 for d in drifts if d.get("severity") == "critical")
+
+    if count == 0:
+        grade = "A"
+        score = 100
+    elif count <= 5:
+        grade = "B"
+        score = 80
+    elif count <= 15:
+        grade = "C"
+        score = 55
+    elif count <= 30:
+        grade = "D"
+        score = 30
+    else:
+        grade = "F"
+        score = 10
+
+    return {"grade": grade, "score": score, "drift_count": count,
+            "critical_count": critical, "drifts": drifts,
+            "note": f"{count} drifts found, {critical} critical"}
+
+
+def assess_session_storage():
+    """Assess session file storage."""
+    size_dot = file_size_mb(SESSION_DOTFILES)
+    size_run = file_size_mb(SESSION_RUNTIME)
+    total_mb = size_dot + size_run
+    total_gb = total_mb / 1024
+
+    # Count orphan worktree sessions (dirs with 'worktree' in name or old)
+    orphans = 0
+    orphan_mb = 0
+    for d in list(SESSION_DOTFILES.glob("--*--")) + list(SESSION_RUNTIME.glob("--*--")):
+        if "worktree" in d.name or "herdr-worktree" in d.name:
+            size = file_size_mb(d)
+            # Check if the session is recent (last 7 days)
+            try:
+                newest = max(f.stat().st_mtime for f in d.rglob("*.jsonl") if f.is_file())
+                if time.time() - newest > 7 * 86400:
+                    orphans += 1
+                    orphan_mb += size
+            except (ValueError, FileNotFoundError):
+                orphans += 1
+                orphan_mb += size
+
+    # Grade: A < 100MB, B < 300MB, C < 500MB, D < 1000MB, F >= 1000MB
+    if total_mb < 100:
+        grade = "A"
+        score = 90
+    elif total_mb < 300:
+        grade = "B"
+        score = 75
+    elif total_mb < 500:
+        grade = "C"
+        score = 55
+    elif total_mb < 1000:
+        grade = "D"
+        score = 30
+    else:
+        grade = "F"
+        score = 10
+
+    return {"grade": grade, "score": score,
+            "total_mb": round(total_mb, 0),
+            "total_gb": round(total_gb, 2),
+            "dotfiles_mb": round(size_dot, 0),
+            "runtime_mb": round(size_run, 0),
+            "orphan_sessions": orphans,
+            "orphan_mb": round(orphan_mb, 0),
+            "note": f"{round(total_mb)} MB total, {orphans} orphan sessions ({round(orphan_mb)} MB)"}
+
+
+def assess_reliability():
+    """Assess reliability from crash log and failover log."""
+    crash_count = 0
+    crash_info = ""
+    if CRASH_LOG.exists():
+        content = CRASH_LOG.read_text()
+        crash_count = content.count("Crash at")
+        if crash_count > 0:
+            # Try to find the first crash line
+            for line in content.splitlines():
+                if "Crash at" in line:
+                    crash_info = line.strip()
+                    break
+
+    failover_count = 0
+    failover_errors = 0
+    quota_events = 0
+    if FAILOVER_LOG.exists():
+        content = FAILOVER_LOG.read_text()
+        failover_count = content.count("quota-like error") + content.count("429")
+        quota_events = content.count("weekly usage limit")
+
+    # Grade based on crash count and failover health
+    if crash_count == 0 and quota_events == 0:
+        grade = "A"
+        score = 95
+    elif crash_count == 0 and quota_events <= 3:
+        grade = "B"
+        score = 80
+    elif crash_count <= 2 and quota_events <= 5:
+        grade = "C"
+        score = 55
+    elif crash_count <= 5:
+        grade = "D"
+        score = 30
+    else:
+        grade = "F"
+        score = 10
+
+    return {"grade": grade, "score": score,
+            "crash_count": crash_count, "crash_info": crash_info,
+            "quota_exhaustion_events": quota_events,
+            "failover_requests": failover_count,
+            "note": f"{crash_count} crash(es), {quota_events} quota events"}
+
+
+def assess_observability():
+    """Assess observability pipeline health."""
+    history_lines = 0
+    if HISTORY.exists():
+        history_lines = len([l for l in HISTORY.read_text().splitlines() if l.strip()])
+
+    # Check if dynamic-footer is configured
+    obs_config = safe_read_json(PI_RUNTIME / "observability" / "settings.json")
+
+    # Grade based on history coverage
+    if history_lines >= 100:
+        grade = "A"
+        score = 90
+    elif history_lines >= 50:
+        grade = "B"
+        score = 75
+    elif history_lines >= 20:
+        grade = "C"
+        score = 55
+    elif history_lines >= 5:
+        grade = "D"
+        score = 30
+    else:
+        grade = "F"
+        score = 10
+
+    return {"grade": grade, "score": score,
+            "history_entries": history_lines,
+            "observability_configured": obs_config is not None,
+            "note": f"{history_lines} history entries (capped at 10 by design)"}
+
+
+# ── Report ───────────────────────────────────────────────
+
+def generate_report():
+    categories = {
+        "cost_performance": {"label": "Cost & Performance", "data": assess_cost_performance()},
+        "config_hygiene": {"label": "Config Hygiene", "data": assess_config_hygiene()},
+        "session_storage": {"label": "Session Storage", "data": assess_session_storage()},
+        "reliability": {"label": "Reliability", "data": assess_reliability()},
+        "observability": {"label": "Observability", "data": assess_observability()},
+    }
+
+    # Critical issues
+    critical = []
+    for key, cat in categories.items():
+        d = cat["data"]
+        if d.get("grade") in ("D", "F"):
+            critical.append(d.get("note", f"{cat['label']}: grade {d['grade']}"))
+        for drift in d.get("drifts", []):
+            if drift.get("severity") == "critical":
+                critical.append(f"Config drift: {drift['key']} differs ({drift['expected']} vs {drift['actual']})")
+
+    # Recommendations
+    recommendations = []
+    if categories["observability"]["data"]["history_entries"] < 50:
+        recommendations.append("Increase history.jsonl keepLast from 10 to 200+")
+    if categories["session_storage"]["data"]["score"] < 70:
+        recommendations.append("Prune orphan worktree sessions and sessions >30 days old")
+    if categories["config_hygiene"]["data"]["drift_count"] > 5:
+        recommendations.append("Sync runtime config from dotfiles (PI_CODING_AGENT_DIR should point to dotfiles)")
+
+    report = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "repo": "huaxel/dotfiles",
+        "grades": {},
+        "critical_issues": critical[:10],
+        "recommendations": recommendations,
+    }
+
+    for key, cat in categories.items():
+        d = cat["data"]
+        report["grades"][key] = {
+            "grade": d["grade"],
+            "score": d["score"],
+            "label": cat["label"],
+            "note": d["note"],
+        }
+        # Include details in JSON mode
+        d_copy = dict(d)
+        d_copy.pop("grade", None)
+        d_copy.pop("score", None)
+        report.setdefault("details", {})[key] = d_copy
+
+    return report
+
+
+def print_terminal(report):
+    """Print 1-page terminal summary."""
+    G = "\033[32m"  # Green
+    Y = "\033[93m"  # Yellow
+    R = "\033[31m"  # Red
+    B = "\033[1m"   # Bold
+    N = "\033[0m"   # Reset
+
+    print(f"{B}╔══════════════════════════════════════════════╗{N}")
+    print(f"{B}║      PI HEALTH CHECK                         ║{N}")
+    print(f"{B}║      huaxel/dotfiles                         ║{N}")
+    print(f"{B}║      {report['timestamp'][:19].replace('T', ' ')} UTC{' ' * 16}║{N}")
+    print(f"{B}╚══════════════════════════════════════════════╝{N}")
+    print()
+
+    print(f"  {B}GRADE{N}  {'CATEGORY':<22} {'STATUS':<40}")
+    print(f"  {'─' * 68}")
+    for key, g in report["grades"].items():
+        letter = g["grade"]
+        color = {"A": G, "B": G, "C": Y, "D": Y, "F": R}.get(letter, "")
+        print(f"  {color}{B}{letter}{N}     {g['label']:<22} {g['note'][:50]:<50}")
+    print()
+
+    if report["critical_issues"]:
+        print(f"  {R}⚠  Critical items:{N}")
+        for issue in report["critical_issues"][:5]:
+            print(f"     • {issue[:70]}")
+        print()
+
+    if report["recommendations"]:
+        print(f"  {B}→ Recommendations:{N}")
+        for rec in report["recommendations"][:3]:
+            print(f"     • {rec[:70]}")
+        print()
+
+    print(f"  ℹ  Run with --json for full machine-readable output.")
+
+
+# ── Main ─────────────────────────────────────────────────
+
+def main():
+    json_mode = "--json" in sys.argv
+    report = generate_report()
+
+    if json_mode:
+        print(json.dumps(report, indent=2, default=str))
+    else:
+        print_terminal(report)
+
+
+if __name__ == "__main__":
+    main()
