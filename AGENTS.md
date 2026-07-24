@@ -27,6 +27,7 @@ AGENTS.md files:
 | Visual regression | `docs/patterns/visual-regression.md` | When running VR tests |
 | Commit sweep | `docs/patterns/commit-sweep.md` | After a batch of changes |
 | End of shift | `docs/patterns/end-of-shift.md` | Before ending a session |
+| Uncle Bob gauntlet | `docs/patterns/uncle-bob-gauntlet.md` | Before every agent task — the hard quality gates |
 | Test audit | `docs/patterns/test-audit.md` | When suspecting test quality drift |
 | Performance benchmarks | `docs/patterns/performance-benchmarks.md` | Before shipping perf-sensitive changes |
 | Profiling tools | `docs/patterns/profiling-tools.md` | When optimizing slow code |
@@ -58,8 +59,21 @@ just pi-prune-sessions [days=30] [project=dotfiles]  # Prune old session files
 Key settings: `defaultThinkingLevel=low`, context guard at 80% (auto-/restart).
 Session files live in `pi/agent/sessions/` (~226 MB total across all projects).
 
+## Agent definitions
+
+- **`disciplined-worker`** (`pi/agent/agents/disciplined-worker.md`) — Hard-gate agent
+  that enforces TDD, `just quality`, and mandatory review. Use for all quality-critical
+  work. Cannot skip gates.
+- **`worker`** (`pi/agent/agents/worker.md`) — General-purpose worker with full
+  capabilities. For non-critical tasks where the gauntlet is overkill.
+- **`reviewer`** (`pi/agent/agents/reviewer.md`) — Read-only code review specialist.
+  Dispatch as a subagent from disciplined-worker.
+
 ## Agent preferences
 
+- **disciplined-worker > worker** — Use `disciplined-worker` by default. Fall back to
+  `worker` only when the task genuinely doesn't benefit from TDD (e.g., config changes,
+  research, documentation).
 - **Subagent over workflow** — Prefer `subagent` for delegation (single/parallel/chain).
   Only use `workflow` when JS orchestration (loops, retry, quality gates) is genuinely
   needed; otherwise it's redundant ceremony with worse reliability in this setup.
