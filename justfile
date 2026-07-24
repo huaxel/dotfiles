@@ -568,3 +568,8 @@ pi-prune-sessions days="30" project="dotfiles":
     after=$(find "$DIR" -name "*.jsonl" | wc -l)
     echo "Deleted $((before - after)) sessions older than {{days}}d from $project"
     echo "Remaining: $after"
+
+# Run the full pi health check (terminal summary). Pass `--json` for machine-readable output.
+pi-healthcheck *args="":
+    #!/usr/bin/env bash
+    cd "$HOME/dotfiles" && exec ./bin/pi-healthcheck {{args}}
