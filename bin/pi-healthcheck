@@ -328,36 +328,57 @@ def assess_reliability():
             "note": f"{crash_count} crash(es), {quota_events} quota events"}
 
 
+def count_session_files(path):
+    """Count actual session files (not subagent run files)."""
+    count = 0
+    session_size_mb = 0.0
+    if path.exists():
+        for f in path.rglob("*.jsonl"):
+            if "run-" not in str(f):
+                count += 1
+                session_size_mb += f.stat().st_size / (1024 * 1024)
+    return count, round(session_size_mb, 0)
+
+
 def assess_observability():
     """Assess observability pipeline health."""
     history_lines = 0
     if HISTORY.exists():
         history_lines = len([l for l in HISTORY.read_text().splitlines() if l.strip()])
 
+    # Count actual session files (the real data store)
+    dot_sessions, dot_size = count_session_files(SESSION_DOTFILES)
+    run_sessions, run_size = count_session_files(SESSION_RUNTIME)
+    total_sessions = dot_sessions + run_sessions
+
     # Check if dynamic-footer is configured
     obs_config = safe_read_json(PI_RUNTIME / "observability" / "settings.json")
 
-    # Grade based on history coverage
-    if history_lines >= 100:
+    # Grade based on actual session file count (rich data) + history coverage
+    if total_sessions >= 500:
         grade = "A"
-        score = 90
-    elif history_lines >= 50:
+        score = 95
+    elif total_sessions >= 200:
         grade = "B"
-        score = 75
-    elif history_lines >= 20:
+        score = 80
+    elif total_sessions >= 75:
         grade = "C"
-        score = 55
-    elif history_lines >= 5:
+        score = 60
+    elif total_sessions >= 25:
         grade = "D"
-        score = 30
+        score = 35
     else:
         grade = "F"
         score = 10
 
     return {"grade": grade, "score": score,
             "history_entries": history_lines,
+            "total_session_files": total_sessions,
+            "dotfiles_sessions": dot_sessions,
+            "runtime_sessions": run_sessions,
+            "session_data_mb": dot_size + run_size,
             "observability_configured": obs_config is not None,
-            "note": f"{history_lines} history entries (capped at 10 by design)"}
+            "note": f"{total_sessions} session files ({history_lines} history entries)"}
 
 
 # ── Report ───────────────────────────────────────────────
