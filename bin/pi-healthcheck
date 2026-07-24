@@ -149,11 +149,21 @@ def safe_read_json_lines(path):
 
 def assess_config_hygiene():
     """Compare dotfiles config vs runtime config. Returns drift count and details."""
+    # PI_CODING_AGENT_DIR means pi reads config from dotfiles at runtime,
+    # so the ~/.pi/agent/ config is irrelevant (stale legacy).
+    using_dotfiles_directly = os.environ.get("PI_CODING_AGENT_DIR", "") == str(PI_DOTFILES)
     drifts = []
     comparisons = [
         ("settings.json", SETTINGS_DOTFILES, SETTINGS_RUNTIME),
         ("trust.json", TRUST_DOTFILES, TRUST_RUNTIME),
     ]
+
+    # Env vars that override settings at runtime
+    env_overrides = {
+        "defaultProvider": os.environ.get("PI_PROVIDER"),
+        "defaultModel": os.environ.get("PI_MODEL"),
+        "defaultThinkingLevel": os.environ.get("PI_REASONING_LEVEL"),
+    }
 
     for name, dot, run in comparisons:
         dc = safe_read_json(dot)
@@ -169,46 +179,57 @@ def assess_config_hygiene():
                 continue
             dv = (dc or {}).get(key)
             rv = (rc or {}).get(key)
-            if dv is None and rv is not None:
+
+            # When using dotfiles directly, MISSING_IN_RUNTIME is expected
+            if rv is None and dv is not None:
+                if using_dotfiles_directly:
+                    # Runtime config missing is OK — pi reads from dotfiles
+                    severity = "info"
+                else:
+                    severity = "critical"
+                drifts.append({"file": name, "key": key, "type": "MISSING_IN_RUNTIME",
+                              "expected": str(dv)[:80], "actual": None, "severity": severity})
+            elif dv is None and rv is not None:
                 drifts.append({"file": name, "key": key, "type": "MISSING_IN_SOURCE",
                               "expected": None, "actual": str(rv)[:80], "severity": "high"})
-            elif rv is None and dv is not None:
-                drifts.append({"file": name, "key": key, "type": "MISSING_IN_RUNTIME",
-                              "expected": str(dv)[:80], "actual": None, "severity": "critical"})
             elif dv != rv:
+                # Check if env var overrides the runtime value
+                env_val = env_overrides.get(key)
+                if env_val and str(rv or "").lower() == env_val.lower():
+                    severity = "info"
+                elif key in ("defaultProvider", "defaultModel", "defaultThinkingLevel"):
+                    severity = "info" if using_dotfiles_directly else "critical"
+                else:
+                    severity = "medium"
                 drifts.append({"file": name, "key": key, "type": "VALUE_DIFF",
                               "expected": str(dv)[:80], "actual": str(rv)[:80],
-                              "severity": "critical" if key in ("defaultProvider", "defaultModel", "defaultThinkingLevel") else "medium"})
-
-    # Also detect staleness
-    rc_settings = safe_read_json(SETTINGS_RUNTIME)
-    if rc_settings and rc_settings.get("lastChangelogVersion") == "0.0.0":
-        drifts.append({"file": "settings.json", "key": "lastChangelogVersion",
-                       "type": "STALE_COPY", "expected": "recent", "actual": "0.0.0",
-                       "severity": "warning"})
+                              "severity": severity})
 
     count = len(drifts)
     critical = sum(1 for d in drifts if d.get("severity") == "critical")
+    high = sum(1 for d in drifts if d.get("severity") == "high")
+    info = sum(1 for d in drifts if d.get("severity") == "info")
 
-    if count == 0:
-        grade = "A"
-        score = 100
-    elif count <= 5:
-        grade = "B"
-        score = 80
-    elif count <= 15:
+    # Severity-weighted grading: info drifts are expected when PI_CODING_AGENT_DIR is set
+    if critical > 0:
+        grade = "F"
+        score = max(10, 50 - critical * 10)
+    elif high > 3:
         grade = "C"
         score = 55
-    elif count <= 30:
-        grade = "D"
-        score = 30
+    elif high > 0:
+        grade = "B"
+        score = 75
+    elif info > 0:
+        grade = "B"
+        score = 80
     else:
-        grade = "F"
-        score = 10
+        grade = "A"
+        score = 100
 
     return {"grade": grade, "score": score, "drift_count": count,
             "critical_count": critical, "drifts": drifts,
-            "note": f"{count} drifts found, {critical} critical"}
+            "note": f"{count} drifts ({info} info, {high} high, {critical} critical)"}
 
 
 def assess_session_storage():
@@ -361,12 +382,13 @@ def generate_report():
                 critical.append(f"Config drift: {drift['key']} differs ({drift['expected']} vs {drift['actual']})")
 
     # Recommendations
+    using_dotfiles_directly = os.environ.get("PI_CODING_AGENT_DIR", "") == str(PI_DOTFILES)
     recommendations = []
     if categories["observability"]["data"]["history_entries"] < 50:
         recommendations.append("Increase history.jsonl keepLast from 10 to 200+")
     if categories["session_storage"]["data"]["score"] < 70:
         recommendations.append("Prune orphan worktree sessions and sessions >30 days old")
-    if categories["config_hygiene"]["data"]["drift_count"] > 5:
+    if categories["config_hygiene"]["data"]["drift_count"] > 5 and not using_dotfiles_directly:
         recommendations.append("Sync runtime config from dotfiles (PI_CODING_AGENT_DIR should point to dotfiles)")
 
     report = {
