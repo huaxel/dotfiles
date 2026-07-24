@@ -53,6 +53,7 @@
     "npm:@ogulcancelik/pi-auto-permissions",
     "npm:@juanbenjumea/pi-dynamic-footer",
     "git:github.com/earendil-works/pi-review-loop",
-    "npm:@amaster.ai/pi-computer-use"
+    "npm:@amaster.ai/pi-computer-use",
+    "npm:@plannotator/pi-extension"
   ]
 }
