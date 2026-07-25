@@ -6,7 +6,7 @@
   "subagents": {
     "defaultModel": "nan/qwen3.6"
   },
-  "defaultThinkingLevel": "max",
+  "defaultThinkingLevel": "high",
   "enabledModels": [
     "openai-codex/gpt-5.6-sol",
     "openai-codex/gpt-5.6-luna",
@@ -54,6 +54,7 @@
     "npm:@juanbenjumea/pi-dynamic-footer",
     "git:github.com/earendil-works/pi-review-loop",
     "npm:@amaster.ai/pi-computer-use",
-    "npm:@plannotator/pi-extension"
+    "npm:@plannotator/pi-extension",
+    "npm:pi-cursor-sdk"
   ]
 }
