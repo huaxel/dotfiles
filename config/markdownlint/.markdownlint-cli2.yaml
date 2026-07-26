@@ -1,0 +1,24 @@
+# Global markdownlint base configuration
+#
+# Applied as a BASE via --config in nvim-lint + conform so it works for every
+# markdown file regardless of project location.  Any project-level
+# `.markdownlint-cli2.*` or `.markdownlint.*` file in the file's ancestor tree
+# overrides or augments these settings.
+#
+# Rule reference:
+#   https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
+config:
+  # Start from all default rules on, then disable the ones that nag.
+  default: true
+
+  # MD013 — line length.  Drop the 80-char straightjacket.
+  MD013: false
+
+  # MD022 — headings should be surrounded by blank lines.
+  MD022: false
+
+  # MD031 — fenced code blocks should be surrounded by blank lines.
+  MD031: false
+
+  # MD032 — lists should be surrounded by blank lines.
+  MD032: false
