@@ -33,9 +33,7 @@
     "model": null
   },
   "packages": [
-    "npm:@juicesharp/rpiv-ask-user-question",
     "npm:@juicesharp/rpiv-todo",
-    "npm:pi-subagents",
     "npm:pi-web-access",
     "npm:pi-provider-umans",
     "npm:@ff-labs/pi-fff",
@@ -56,6 +54,12 @@
     "npm:@amaster.ai/pi-computer-use",
     "npm:@plannotator/pi-extension",
     "npm:pi-cursor-sdk",
-    "npm:@ogulcancelik/pi-session-recall"
+    "npm:@ogulcancelik/pi-session-recall",
+    "npm:@ogulcancelik/pi-codex-subagents",
+    "npm:pi-herdr-subagents",
+    "npm:pi-ask-herdr",
+    "npm:@zhcsyncer/pi-recap",
+    "npm:@ogulcancelik/pi-codex-compaction",
+    "npm:@tifan/pi-rename"
   ]
 }
