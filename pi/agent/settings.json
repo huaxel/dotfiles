@@ -56,6 +56,7 @@
     "npm:@amaster.ai/pi-computer-use",
     "npm:@plannotator/pi-extension",
     "npm:pi-cursor-sdk",
-    "npm:@ogulcancelik/pi-session-recall"
+    "npm:@ogulcancelik/pi-session-recall",
+    "npm:@zhcsyncer/pi-recap"
   ]
 }
