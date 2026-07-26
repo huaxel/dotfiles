@@ -55,6 +55,7 @@
     "git:github.com/earendil-works/pi-review-loop",
     "npm:@amaster.ai/pi-computer-use",
     "npm:@plannotator/pi-extension",
-    "npm:pi-cursor-sdk"
+    "npm:pi-cursor-sdk",
+    "npm:@ogulcancelik/pi-session-recall"
   ]
 }
