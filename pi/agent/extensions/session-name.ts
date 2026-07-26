@@ -60,10 +60,7 @@ export default function (pi: ExtensionAPI) {
       ?.replace(/\w+/g, w => w[0].toUpperCase() + w.slice(1).toLowerCase()) || "";
 
     // Try cheap LLM once
-    const cheapModel = ctx.modelRegistry.find("opencode", "deepseek-v4-flash-free")
-      || ctx.modelRegistry.find("nan", "deepseek-v4-flash")
-      || ctx.modelRegistry.find("nan", "qwen3.6")
-      || ctx.modelRegistry.find("llamacpp", "Qwen3.6-27B-MTP");
+    const cheapModel = ctx.modelRegistry.find("opencode-go", "deepseek-v4-flash");
 
     if (cheapModel) {
       try {
