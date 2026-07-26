@@ -6,10 +6,19 @@ import test from "node:test";
 
 import { fmtTokens, shortenPath } from "../lib/footer-engine/format.js";
 import { builtinRenderers } from "../lib/footer-engine/segments.js";
-import { setZone, updateSetting } from "../lib/settings/domain.js";
+import { defaultAssembler } from "../lib/footer-engine/layout.js";
+import { visibleWidth } from "@earendil-works/pi-tui";
+import { setZone, updateSetting, validateSettings, createDefaultSettings } from "../lib/settings/domain.js";
 import { createFileBackend } from "../lib/storage/file-backend.js";
 import { createMemoryBackend } from "../lib/storage/memory-backend.js";
-import { parseOpenCodeGoDashboard } from "../lib/quota-provider.js";
+import {
+  parseOpenCodeGoDashboard,
+  resolveAuthValue,
+  clampPercent,
+  normalizePercent,
+  formatResetTime,
+  safeError,
+} from "../lib/quota-provider.js";
 
 test("fmtTokens handles invalid and negative values", () => {
   assert.equal(fmtTokens(Number.NaN), "0");
@@ -172,4 +181,184 @@ test("turn counter shows current turn number", () => {
   const theme = { fg: (_color: string, text: string) => text } as never;
   const rendered = builtinRenderers.turnCount!({ turnNumber: 12, theme } as never);
   assert.match(rendered, /#12/);
+});
+
+/* ───── resolveAuthValue ───── */
+
+test("resolveAuthValue rejects execution-prefixed (!) credentials", () => {
+  // Values beginning with `!` are intentionally ignored so this package
+  // never executes credential values from auth.json.
+  assert.equal(resolveAuthValue("!./fetch-token.sh"), undefined);
+  assert.equal(resolveAuthValue("!"), undefined);
+});
+
+test("resolveAuthValue resolves env-var indirection", () => {
+  const previous = process.env.TEST_QUOTA_KEY;
+  process.env.TEST_QUOTA_KEY = "secret-value";
+  try {
+    assert.equal(resolveAuthValue("TEST_QUOTA_KEY"), "secret-value");
+    // Unset env var resolves to undefined
+    assert.equal(resolveAuthValue("UNSET_TEST_VAR_XYZ"), undefined);
+  } finally {
+    if (previous === undefined) delete process.env.TEST_QUOTA_KEY;
+    else process.env.TEST_QUOTA_KEY = previous;
+  }
+});
+
+test("resolveAuthValue resolves $VAR and ${VAR} syntax", () => {
+  process.env.TEST_QUOTA_TOKEN = "tok-123";
+  try {
+    assert.equal(resolveAuthValue("$TEST_QUOTA_TOKEN"), "tok-123");
+    assert.equal(resolveAuthValue("${TEST_QUOTA_TOKEN}"), "tok-123");
+    assert.equal(resolveAuthValue("$UNSET_TOKEN_XYZ"), undefined);
+  } finally {
+    delete process.env.TEST_QUOTA_TOKEN;
+  }
+});
+
+test("resolveAuthValue passes through literals and $$/$! escapes", () => {
+  assert.equal(resolveAuthValue("sk-literal-key"), "sk-literal-key");
+  assert.equal(resolveAuthValue("$$LITERAL"), "$LITERAL");
+  assert.equal(resolveAuthValue("$!LITERAL"), "!LITERAL");
+  assert.equal(resolveAuthValue("  "), undefined);
+  assert.equal(resolveAuthValue(123 as never), undefined);
+});
+
+/* ───── percent helpers ───── */
+
+test("clampPercent clamps to [0,100] and coerces non-finite to 0", () => {
+  assert.equal(clampPercent(50), 50);
+  assert.equal(clampPercent(0), 0);
+  assert.equal(clampPercent(100), 100);
+  assert.equal(clampPercent(150), 100);
+  assert.equal(clampPercent(-5), 0);
+  assert.equal(clampPercent(Number.NaN), 0);
+  assert.equal(clampPercent(Infinity), 100);
+});
+
+test("normalizePercent scales 0..1 fractions to percentages", () => {
+  assert.equal(normalizePercent(0.5), 50);
+  assert.equal(normalizePercent(1), 100);
+  assert.equal(normalizePercent(0), 0);
+  assert.equal(normalizePercent(75), 75);
+  assert.equal(normalizePercent(150), 100);
+  assert.equal(normalizePercent(Number.NaN), 0);
+});
+
+/* ───── formatResetTime ───── */
+
+test("formatResetTime renders past, minutes, hours, and days", () => {
+  const now = Date.now();
+  assert.equal(formatResetTime(new Date(now - 1000)), "now");
+  assert.equal(formatResetTime(new Date(now + 5 * 60_000)), "5m");
+  assert.equal(formatResetTime(new Date(now + 90 * 60_000)), "1h30m");
+  assert.equal(formatResetTime(new Date(now + 5 * 3_600_000)), "5h");
+  assert.equal(formatResetTime(new Date(now + 26 * 3_600_000)), "1d2h");
+  assert.equal(formatResetTime(new Date(now + 48 * 3_600_000)), "2d");
+});
+
+/* ───── safeError ───── */
+
+test("safeError maps HTTP errors, aborts, and unknowns", () => {
+  assert.equal(safeError(new Error("HTTP 429")), "HTTP 429");
+  assert.equal(safeError(new Error("HTTP 500")), "HTTP 500");
+  assert.equal(safeError(new DOMException("aborted", "AbortError")), "timeout");
+  assert.equal(safeError(new Error("network reset")), "unavailable");
+  assert.equal(safeError(new TypeError("boom")), "unavailable");
+  assert.equal(safeError("string error"), "unavailable");
+});
+
+/* ───── setZone invariant ───── */
+
+test("setZone enforces expert <= warning", () => {
+  const base = createDefaultSettings();
+  // Setting expert above warning pulls warning up to match.
+  let cfg = setZone(base, "expert", 95);
+  assert.equal(cfg.contextZones.expert, 95);
+  assert.equal(cfg.contextZones.warning, 95, "warning bumped to match expert");
+
+  // Setting warning below expert pulls expert down to match.
+  cfg = setZone(base, "warning", 50);
+  assert.equal(cfg.contextZones.warning, 50);
+  assert.equal(cfg.contextZones.expert, 50, "expert dropped to match warning");
+
+  // Normal case leaves both independent.
+  cfg = setZone(base, "expert", 65);
+  assert.equal(cfg.contextZones.expert, 65);
+  assert.equal(cfg.contextZones.warning, 85);
+});
+
+test("setZone clamps out-of-range values", () => {
+  const base = createDefaultSettings();
+  assert.equal(setZone(base, "expert", 150).contextZones.expert, 100);
+  assert.equal(setZone(base, "expert", -10).contextZones.expert, 0);
+  // NaN is ignored, keeps previous value
+  assert.equal(setZone(base, "expert", Number.NaN).contextZones.expert, 70);
+});
+
+test("validateSettings migrates configs missing footerEnabled", () => {
+  // Old persisted settings without footerEnabled should default to true.
+  const migrated = validateSettings({
+    version: 1,
+    preset: "standard",
+    segments: { modelThink: true } as never,
+    contextZones: { expert: 70, warning: 85 },
+  });
+  assert.equal(migrated.footerEnabled, true);
+  assert.equal(migrated.preset, "standard");
+});
+
+test("validateSettings rejects unknown presets and falls back to standard", () => {
+  const cfg = validateSettings({
+    version: 1,
+    preset: "nonexistent",
+    segments: { modelThink: true },
+    contextZones: { expert: 70, warning: 85 },
+    footerEnabled: true,
+  });
+  assert.equal(cfg.preset, "standard");
+});
+
+/* ───── layout assembler ───── */
+
+const fakeTheme = { fg: (_c: string, t: string) => t } as never;
+
+test("layout assembler joins enabled segments with separators", () => {
+  // Keys match the renderer names the assembler reads in production
+  // (modelThink, tps, …) — not a friendly alias like "model".
+  const segments = { modelThink: "model:med", tps: "⚡12 tok/s" };
+  const lines = defaultAssembler(segments, 80, fakeTheme);
+  assert.equal(lines.length, 1);
+  assert.match(lines[0]!, /model:med/);
+  assert.match(lines[0]!, /⚡12 tok\/s/);
+});
+
+test("layout assembler pads lines to full width", () => {
+  const segments = { modelThink: "short" };
+  const lines = defaultAssembler(segments, 80, fakeTheme);
+  assert.equal(lines.length, 1);
+  assert.equal(lines[0]!.length, 80, "line padded to width");
+});
+
+test("layout assembler truncates overflowing lines", () => {
+  const segments = { modelThink: "x".repeat(120) };
+  const lines = defaultAssembler(segments, 80, fakeTheme);
+  assert.equal(lines.length, 1);
+  // truncateToWidth appends an ANSI "..." marker, so check visible width —
+  // the semantic guarantee — rather than raw string length.
+  assert.ok(visibleWidth(lines[0]!) <= 80, "line truncated to width");
+});
+
+test("layout assembler places usageBars on its own line", () => {
+  const segments = { modelThink: "model:med", usageBars: "5h 50% Week 20%" };
+  const lines = defaultAssembler(segments, 80, fakeTheme);
+  assert.ok(lines.length >= 2, "usageBars on a separate line");
+  assert.match(lines[lines.length - 1]!, /5h 50%/);
+});
+
+test("layout assembler drops empty segments", () => {
+  const segments = { modelThink: "model:med", git: "", tokens: "" };
+  const lines = defaultAssembler(segments, 80, fakeTheme);
+  assert.equal(lines.length, 1);
+  assert.match(lines[0]!, /model:med/);
 });

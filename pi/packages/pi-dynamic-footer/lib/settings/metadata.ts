@@ -20,6 +20,7 @@ export const DEFAULT_SETTINGS: SettingsConfig = {
     usageBars: true,
   },
   contextZones: { expert: 70, warning: 85 },
+  footerEnabled: true,
 };
 
 export const PRESETS: Record<PresetName, Partial<Record<SegmentKey, boolean>>> = {

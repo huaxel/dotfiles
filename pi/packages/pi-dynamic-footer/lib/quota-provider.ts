@@ -33,6 +33,13 @@ export interface QuotaSnapshot {
 export interface QuotaFetchOptions {
   /** Resolved by pi's model registry, when available. */
   apiKey?: string;
+  /**
+   * The opencode-go account label the failover extension is actively using.
+   * When set, multi-account quota selection prefers this account's windows.
+   * Supplied by the footer, which learns it from the failover extension via
+   * the shared `pi.events` bus.
+   */
+  activeOpencodeGoLabel?: string;
 }
 
 /* ───── Auth and safe helpers ───── */
@@ -65,8 +72,11 @@ function resolveAuthValue(value: unknown): string | undefined {
   // environment variable instead.
   if (trimmed.startsWith("!")) return undefined;
 
-  if (/^[A-Z][A-Z0-9_]*$/.test(trimmed) && process.env[trimmed]) {
-    return process.env[trimmed];
+  // A bare ALL_CAPS token is treated as an environment-variable reference.
+  // If the variable is unset, the credential is unavailable (undefined) — we
+  // do not fall back to returning the variable name as a literal token.
+  if (/^[A-Z][A-Z0-9_]*$/.test(trimmed)) {
+    return process.env[trimmed] || undefined;
   }
 
   if (trimmed.startsWith("$$")) return trimmed.slice(1);
@@ -79,6 +89,8 @@ function resolveAuthValue(value: unknown): string | undefined {
 
   return trimmed;
 }
+
+export { resolveAuthValue };
 
 function authCredential(...keys: string[]): string | undefined {
   const auth = loadAuthJson();
@@ -114,6 +126,8 @@ function formatResetTime(date: Date): string {
   const rem = hours % 24;
   return rem > 0 ? `${days}d${rem}h` : `${days}d`;
 }
+
+export { formatResetTime };
 
 function formatResetSeconds(seconds: number): string | undefined {
   if (!Number.isFinite(seconds)) return undefined;
@@ -172,7 +186,10 @@ async function fetchJson(url: string, init: RequestInit, timeoutMs = 10_000): Pr
 }
 
 function clampPercent(value: number): number {
-  if (!Number.isFinite(value)) return 0;
+  // NaN has no meaningful clamped value; surface it as 0 so a bad parse
+  // never renders as a full bar. ±Infinity clamps to the nearer bound.
+  if (Number.isNaN(value)) return 0;
+  if (!Number.isFinite(value)) return value > 0 ? 100 : 0;
   return Math.max(0, Math.min(100, value));
 }
 
@@ -182,11 +199,15 @@ function normalizePercent(value: number): number {
   return clampPercent(normalized);
 }
 
+export { clampPercent, normalizePercent };
+
 function safeError(error: unknown): string {
   if (error instanceof Error && /^HTTP \d+$/.test(error.message)) return error.message;
   if (error instanceof DOMException && error.name === "AbortError") return "timeout";
   return "unavailable";
 }
+
+export { safeError };
 
 /* ───── Provider mapping ───── */
 
@@ -414,8 +435,11 @@ function effectivePct(w: OpenCodeGoWindow | null): number {
   return w && Number.isFinite(w.usagePercent) ? w.usagePercent : Infinity;
 }
 
-async function fetchOpencodeGoUsage(): Promise<QuotaSnapshot> {
+async function fetchOpencodeGoUsage(options: QuotaFetchOptions = {}): Promise<QuotaSnapshot> {
   const auth = loadAuthJson();
+  // The account the failover extension is actively routing requests through.
+  // Learned via the shared pi.events bus, never read from globalThis.
+  const activeLabel = options.activeOpencodeGoLabel;
 
   // Try multi-account failover config first.
   const failoverAccounts = Array.isArray(auth["opencode-go-failover"]?.accounts)
@@ -446,8 +470,9 @@ async function fetchOpencodeGoUsage(): Promise<QuotaSnapshot> {
     results.push(...fetched.filter((result): result is (typeof results)[number] => result !== null));
 
     if (results.length > 0) {
-      // Prefer the account the failover extension is actively using.
-      const activeLabel = (globalThis as any).__opencode_go_active_label;
+      // Prefer the account the failover extension is actively using. The label
+      // arrives via the shared pi.events bus (threaded through QuotaFetchOptions)
+      // rather than a globalThis side channel.
       const active = activeLabel ? results.find((r) => r.label === activeLabel) : null;
       if (active) {
         return { provider: `opencode-go (${active.label})`, windows: buildSnapshot(active, active.label), fetchedAt: Date.now() };
@@ -808,7 +833,7 @@ async function fetchKimiUsage(): Promise<QuotaSnapshot> {
 const FETCHERS: Record<string, (options: QuotaFetchOptions) => Promise<QuotaSnapshot>> = {
   claude: async () => fetchClaudeUsage(),
   codex: async () => fetchCodexUsage(),
-  "opencode-go": async () => fetchOpencodeGoUsage(),
+  "opencode-go": async (options) => fetchOpencodeGoUsage(options),
   "cline-pass": async (options) => {
     const key = clineApiKey(options.apiKey);
     return key ? fetchClineUsage(key) : { provider: "ClinePass", windows: [], error: "no-auth", fetchedAt: Date.now() };

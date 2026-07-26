@@ -21,6 +21,7 @@ export interface SettingsConfig {
   preset: PresetName;
   segments: Record<SegmentKey, boolean>;
   contextZones: { expert: number; warning: number };
+  footerEnabled: boolean;
 }
 
 export interface SettingsListItem {

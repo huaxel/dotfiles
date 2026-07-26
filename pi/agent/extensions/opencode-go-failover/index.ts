@@ -405,6 +405,9 @@ export default function (pi: ExtensionAPI) {
   let activeAccount: OpenCodeGoAccount | null = null;
   let lastFetch = 0;
   let forceRefresh = false;
+  // Last label broadcast to other extensions via pi.events. Used to emit only
+  // on actual rotation rather than on every refresh.
+  let lastEmittedLabel: string | null = null;
 
   async function refresh(ctx: ExtensionContext): Promise<void> {
     if (accounts.length === 0) return;
@@ -418,11 +421,13 @@ export default function (pi: ExtensionAPI) {
 
   function updateActiveLabel(): void {
     if (!activeAccount) return;
-    const prevLabel = (globalThis as any).__opencode_go_active_label;
-    (globalThis as any).__opencode_go_active_label = activeAccount.label;
-    if (activeAccount.label !== prevLabel) {
-      const trigger = (globalThis as any).__opencode_go_trigger_refresh;
-      if (typeof trigger === "function") trigger();
+    const label = activeAccount.label;
+    if (label !== lastEmittedLabel) {
+      lastEmittedLabel = label;
+      // Notify other extensions (the obs footer) of the active account so its
+      // quota bars prefer this account's windows. Replaces the globalThis
+      // side channel; the footer refreshes its quota on receipt.
+      pi.events.emit("opencode-go:active-account", { label });
     }
   }
 
@@ -450,8 +455,11 @@ export default function (pi: ExtensionAPI) {
       return;
     }
     log(`loaded ${accounts.length} account(s)`);
-    // Set initial label immediately so other extensions (e.g. obs) can read it.
-    (globalThis as any).__opencode_go_active_label = accounts[0]!.label;
+    // Seed the initial active account so the obs footer can prefer it before
+    // the first dashboard fetch completes. refresh() will re-broadcast if the
+    // picker selects a different account.
+    activeAccount = accounts[0] ?? null;
+    updateActiveLabel();
     await refresh(ctx);
   });
 
@@ -490,6 +498,9 @@ export default function (pi: ExtensionAPI) {
     markExhausted(activeAccount.label);
     activeAccount = pickAccount(usages, accounts, Date.now());
     updateActiveLabel();
+    // Request a quota re-fetch so the footer reflects the exhaustion
+    // immediately, even if the active account label stayed the same.
+    pi.events.emit("opencode-go:refresh-requested", {});
   });
 
   pi.on("message_end", async (event, ctx) => {
@@ -516,6 +527,9 @@ export default function (pi: ExtensionAPI) {
     // Pick next account immediately so the retry uses it.
     activeAccount = pickAccount(usages, accounts, Date.now());
     updateActiveLabel();
+    // Request a quota re-fetch so the footer reflects the exhaustion
+    // immediately, even if the active account label stayed the same.
+    pi.events.emit("opencode-go:refresh-requested", {});
   });
 
   /* ─── Commands ─── */

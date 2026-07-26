@@ -40,20 +40,6 @@ function stripProvider(modelId: string): string {
   return modelId;
 }
 
-function maxQuotaPercent(input: FooterInput): number {
-  if (!input.quotaUsage?.windows?.length) return 0;
-  const values = input.quotaUsage.windows
-    .map((window) => window.usedPercent)
-    .filter((value) => Number.isFinite(value));
-  return values.length > 0 ? Math.max(...values) : 0;
-}
-
-function quotaColor(usedPercent: number): string | null {
-  if (usedPercent >= 92) return "error";
-  if (usedPercent >= 85) return "warning";
-  return null;
-}
-
 function renderUsageBar(usedPercent: number, barWidth: number, theme: FooterInput["theme"]): string {
   const safePercent = Number.isFinite(usedPercent) ? usedPercent : 0;
   const safeWidth = Math.max(0, Math.floor(barWidth));
@@ -91,11 +77,9 @@ export const builtinRenderers: Record<string, SegmentRenderer> = {
     if (thinkingLevel === "xhigh" || thinkingLevel === "max") {
       return rainbowText(text) + tier;
     }
-    // Override color with quota alert when usage is high
-    const maxPct = maxQuotaPercent(input);
-    const qColor = quotaColor(maxPct);
-    const color = qColor ?? thinkingColor(thinkingLevel);
-    return theme.fg(color, text) + tier;
+    // The model segment reflects the thinking level only. Quota alerts are
+    // surfaced by the usageBars segment, which already colors itself.
+    return theme.fg(thinkingColor(thinkingLevel), text) + tier;
   },
 
   runtime(input) {
@@ -156,9 +140,12 @@ export const builtinRenderers: Record<string, SegmentRenderer> = {
   },
 
   tps(input) {
-    const { isStreaming, currentTurnStartTime, currentTurnOutputTokens, lastTurnTps, theme } = input;
-    if (isStreaming && currentTurnStartTime) {
-      const elapsed = (Date.now() - currentTurnStartTime) / 1000;
+    const { isStreaming, currentTurnStartTime, currentTurnFirstTokenTime, currentTurnOutputTokens, lastTurnTps, theme } = input;
+    if (isStreaming) {
+      // Measure from the first token, not turn start, so live tok/s reflects
+      // generation speed rather than TTFT/prefill/thinking latency.
+      const genStart = currentTurnFirstTokenTime ?? currentTurnStartTime;
+      const elapsed = genStart ? (Date.now() - genStart) / 1000 : 0;
       const liveTok = elapsed > 0 && currentTurnOutputTokens > 0
         ? currentTurnOutputTokens / elapsed
         : 0;

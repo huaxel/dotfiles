@@ -60,8 +60,9 @@ export function validateSettings(raw: unknown): SettingsConfig {
   const preset = isPresetName(r.preset) ? r.preset : DEFAULT_SETTINGS.preset;
   const segments = validateSegments(r.segments);
   const contextZones = validateZones(r.contextZones);
+  const footerEnabled = typeof r.footerEnabled === "boolean" ? r.footerEnabled : true;
 
-  return { version: 1, preset, segments, contextZones };
+  return { version: 1, preset, segments, contextZones, footerEnabled };
 }
 
 export function migrateSettings(raw: unknown): SettingsConfig {

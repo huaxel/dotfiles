@@ -75,6 +75,7 @@ interface SessionState {
   startTime: number;
   turns: TurnRecord[];
   currentTurnStartTime: number | null;
+  currentTurnFirstTokenTime: number | null;
   currentTurnUpdateCount: number;
   currentTurnOutputTokens: number;
   totalCacheRead: number;
@@ -88,6 +89,12 @@ interface SessionState {
   showFullPath: boolean;
   settings: SettingsConfig;
   quotaUsage: QuotaSnapshot | null;
+  /**
+   * The opencode-go account label the failover extension is actively routing
+   * requests through. Learned via the shared `pi.events` bus so quota
+   * selection prefers the in-use account without a globalThis side channel.
+   */
+  activeOpencodeGoLabel: string | undefined;
 }
 
 interface SessionSummary {
@@ -190,6 +197,13 @@ function isFastServiceTier(serviceTier: string | null): boolean {
   // OpenAI's actual fast/priority tier is `priority`. Older/local shims may
   // still emit `fast`, so keep accepting it for backwards-compatible display.
   return serviceTier === "priority" || serviceTier === "fast";
+}
+
+/** Treat a PI_OBS_* env var as a boolean flag: 1/true/yes/on (case-insensitive). */
+function isEnvFlagSet(value: string | undefined): boolean {
+  if (!value) return false;
+  const v = value.trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes" || v === "on";
 }
 
 function supportsFastMode(ctx: ExtensionContext): boolean {
@@ -336,12 +350,37 @@ export default function (pi: ExtensionAPI) {
 
   let quotaEpoch = 0;
   let requestFooterRender = () => {};
+  // Most-recent session context, captured so the pi.events subscriptions below
+  // can drive a quota refresh even when the footer isn't actively rendering.
+  let sessionCtx: ExtensionContext | null = null;
+
+  // Cross-extension communication with the opencode-go-failover extension,
+  // replacing the prior globalThis side channel. The failover emits the
+  // active-account label whenever it rotates; we mirror it into state so quota
+  // selection prefers the in-use account. It also emits refresh requests when
+  // an account is marked exhausted, so the usage bars update promptly.
+  pi.events.on("opencode-go:active-account", (data) => {
+    const label =
+      data && typeof data === "object" && typeof (data as { label?: unknown }).label === "string"
+        ? (data as { label: string }).label
+        : undefined;
+    state.activeOpencodeGoLabel = label;
+    // Re-fetch quota so the bars reflect the newly active account.
+    if (sessionCtx) void refreshQuota(sessionCtx).finally(() => requestFooterRender());
+  });
+  pi.events.on("opencode-go:refresh-requested", () => {
+    if (sessionCtx) void refreshQuota(sessionCtx).finally(() => requestFooterRender());
+  });
 
   async function refreshQuota(ctx: ExtensionContext): Promise<void> {
     const provider = ctx.model?.provider;
     const epoch = ++quotaEpoch;
-    state.quotaUsage = null;
-    if (!provider) return;
+    // Keep the last good snapshot visible until the new fetch resolves.
+    // Clearing it here would blank the usage bars every refresh cycle.
+    if (!provider) {
+      state.quotaUsage = null;
+      return;
+    }
 
     let apiKey: string | undefined;
     if (provider === "cline-pass" || provider === "umans") {
@@ -355,7 +394,7 @@ export default function (pi: ExtensionAPI) {
     }
 
     try {
-      const snapshot = await fetchQuota(provider, { apiKey });
+      const snapshot = await fetchQuota(provider, { apiKey, activeOpencodeGoLabel: state.activeOpencodeGoLabel });
       if (epoch === quotaEpoch) state.quotaUsage = snapshot;
     } catch {
       if (epoch === quotaEpoch) state.quotaUsage = null;
@@ -368,6 +407,7 @@ export default function (pi: ExtensionAPI) {
     startTime: Date.now(),
     turns: [],
     currentTurnStartTime: null,
+    currentTurnFirstTokenTime: null,
     currentTurnUpdateCount: 0,
     currentTurnOutputTokens: 0,
     totalCacheRead: 0,
@@ -380,6 +420,7 @@ export default function (pi: ExtensionAPI) {
     serviceTier: null,
     showFullPath: false,
     quotaUsage: null,
+    activeOpencodeGoLabel: undefined,
     settings: {
       version: 1,
       preset: "standard",
@@ -409,6 +450,7 @@ export default function (pi: ExtensionAPI) {
     state.startTime = getSessionStartTime(ctx);
     state.turns = scanHistoricalTurns(ctx);
     state.currentTurnStartTime = null;
+    state.currentTurnFirstTokenTime = null;
     state.currentTurnUpdateCount = 0;
     state.currentTurnOutputTokens = 0;
     state.totalCacheRead = 0;
@@ -418,13 +460,17 @@ export default function (pi: ExtensionAPI) {
     state.fastModeSupported = supportsFastMode(ctx);
     state.fastModeEnabled = false;
     state.serviceTier = null;
+    // PI_OBS_SHOW_FULL_PATH seeds the default; /obs-toggle-path flips it at runtime.
+    state.showFullPath = isEnvFlagSet(process.env.PI_OBS_SHOW_FULL_PATH);
     try {
       state.settings = await loadSettings(storage);
     } catch {
       state.settings = createDefaultSettings();
       if (ctx.hasUI) ctx.ui.notify("Observability settings unavailable; using defaults", "warning");
     }
+    state.footerEnabled = state.settings.footerEnabled;
     state.quotaUsage = null;
+    state.activeOpencodeGoLabel = undefined;
 
     if (state.footerEnabled && ctx.hasUI) {
       setupFooter(ctx);
@@ -440,6 +486,7 @@ export default function (pi: ExtensionAPI) {
 
   pi.on("turn_start", async (_event, _ctx) => {
     state.currentTurnStartTime = Date.now();
+    state.currentTurnFirstTokenTime = null;
     state.currentTurnUpdateCount = 0;
     state.currentTurnOutputTokens = 0;
     state.turnNumber++;
@@ -462,6 +509,12 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.on("message_update", async (event, _ctx) => {
+    // Record the first streaming update as the generation start. Measuring from
+    // here (rather than turn_start) excludes TTFT, prefill, and thinking time,
+    // so the reported tok/s reflects actual generation speed.
+    if (state.currentTurnFirstTokenTime === null) {
+      state.currentTurnFirstTokenTime = Date.now();
+    }
     state.currentTurnUpdateCount++;
 
     // Track actual output token count during streaming for live tok/s.
@@ -476,7 +529,12 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.on("turn_end", async (event, ctx) => {
-    const duration = state.currentTurnStartTime ? Date.now() - state.currentTurnStartTime : 0;
+    const turnDuration = state.currentTurnStartTime ? Date.now() - state.currentTurnStartTime : 0;
+    // Generation duration: first streaming token → turn end. Falls back to the
+    // full turn duration when no tokens streamed (e.g. tool-only turn).
+    const genDuration = state.currentTurnFirstTokenTime
+      ? Date.now() - state.currentTurnFirstTokenTime
+      : turnDuration;
 
     let inputTokens = 0;
     let outputTokens = 0;
@@ -486,6 +544,7 @@ export default function (pi: ExtensionAPI) {
     if (completedMessage?.role !== "assistant" || !completedMessage.usage) {
       state.isStreaming = false;
       state.currentTurnStartTime = null;
+      state.currentTurnFirstTokenTime = null;
       state.currentTurnUpdateCount = 0;
       return;
     }
@@ -501,15 +560,18 @@ export default function (pi: ExtensionAPI) {
     const safeInputTokens = Number.isFinite(inputTokens) ? Math.max(0, inputTokens) : 0;
     const safeOutputTokens = Number.isFinite(outputTokens) ? Math.max(0, outputTokens) : 0;
     const safeCost = Number.isFinite(cost) ? Math.max(0, cost) : 0;
-    const safeDuration = Number.isFinite(duration) ? Math.max(0, duration) : 0;
-    const tps = safeDuration > 0 ? safeOutputTokens / (safeDuration / 1000) : 0;
+    const safeTurnDuration = Number.isFinite(turnDuration) ? Math.max(0, turnDuration) : 0;
+    const safeGenDuration = Number.isFinite(genDuration) ? Math.max(0, genDuration) : 0;
+    // tok/s reflects generation speed (first token → end), not wall-clock
+    // turn time, so it isn't dragged down by TTFT/prefill/thinking.
+    const tps = safeGenDuration > 0 ? safeOutputTokens / (safeGenDuration / 1000) : 0;
 
     const record: TurnRecord = {
       turnIndex: event.turnIndex,
       inputTokens: safeInputTokens,
       outputTokens: safeOutputTokens,
       cost: safeCost,
-      durationMs: safeDuration,
+      durationMs: safeTurnDuration,
       tps,
       model: ctx.model?.id ?? completedMessage?.model ?? "unknown",
     };
@@ -517,6 +579,7 @@ export default function (pi: ExtensionAPI) {
     state.turns.push(record);
     state.isStreaming = false;
     state.currentTurnStartTime = null;
+    state.currentTurnFirstTokenTime = null;
     state.currentTurnUpdateCount = 0;
 
     pi.appendEntry("obs-turn", record);
@@ -561,6 +624,8 @@ export default function (pi: ExtensionAPI) {
 
   pi.on("session_shutdown", async (_event, ctx) => {
     if (ctx.hasUI) teardownFooter(ctx);
+    sessionCtx = null;
+    state.activeOpencodeGoLabel = undefined;
 
     const totalIn = state.turns.reduce((s, t) => s + t.inputTokens, 0);
     const totalOut = state.turns.reduce((s, t) => s + t.outputTokens, 0);
@@ -603,10 +668,6 @@ export default function (pi: ExtensionAPI) {
   function setupFooter(ctx: ExtensionContext) {
     ctx.ui.setFooter((tui, theme, footerData) => {
       requestFooterRender = () => tui.requestRender();
-      // Register re-fetch callback for failover account rotation.
-      (globalThis as any).__opencode_go_trigger_refresh = () => {
-        void refreshQuota(ctx).finally(() => tui.requestRender());
-      };
       let diffAdded = 0;
       let diffRemoved = 0;
 
@@ -662,7 +723,6 @@ export default function (pi: ExtensionAPI) {
 
       return {
         dispose() {
-          (globalThis as any).__opencode_go_trigger_refresh = undefined;
           unsubBranch();
           clearInterval(timer);
           clearInterval(quotaTimer);
@@ -687,6 +747,7 @@ export default function (pi: ExtensionAPI) {
             runtimeMs: Date.now() - state.startTime,
             isStreaming: state.isStreaming,
             currentTurnStartTime: state.currentTurnStartTime,
+            currentTurnFirstTokenTime: state.currentTurnFirstTokenTime,
             currentTurnUpdateCount: state.currentTurnUpdateCount,
             currentTurnOutputTokens: state.currentTurnOutputTokens,
             totalCacheRead: state.totalCacheRead,
@@ -783,6 +844,12 @@ export default function (pi: ExtensionAPI) {
     description: "Toggle the observability footer on/off",
     handler: async (_args, ctx) => {
       state.footerEnabled = !state.footerEnabled;
+      state.settings.footerEnabled = state.footerEnabled;
+      try {
+        await saveSettings(state.settings, storage);
+      } catch {
+        // Non-fatal: the toggle still applies for this session.
+      }
       if (state.footerEnabled) {
         setupFooter(ctx);
         ctx.ui.notify("Observability footer enabled", "info");
