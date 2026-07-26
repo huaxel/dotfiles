@@ -63,3 +63,9 @@ command = "herdr plugin action invoke open-file-viewer --plugin herdr-file-viewe
 key = "prefix+shift+f"
 type = "shell"
 command = "herdr plugin action invoke open-file-viewer-tab --plugin herdr-file-viewer"
+
+[ui.toast]
+delivery = "terminal"
+
+[experimental]
+pane_history = false
