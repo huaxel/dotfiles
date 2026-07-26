@@ -57,7 +57,6 @@
     "npm:@plannotator/pi-extension",
     "npm:pi-cursor-sdk",
     "npm:@ogulcancelik/pi-session-recall",
-    "npm:@zhcsyncer/pi-recap",
     "npm:@tifan/pi-rename"
   ]
 }
