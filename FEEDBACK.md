@@ -30,3 +30,21 @@
 
 ### Improvements for next time
 - Add an isolated package test fixture with Pi peer dependencies before publishing a TypeScript extension.
+
+## 2026-07-26: Subagent UX — teardown & observability
+
+### What went well
+- Subagents spawned in parallel, ran independently, delivered results back automatically.
+- Scout + worker demo showed the core pattern cleanly.
+
+### What was frustrating / slow
+- **Ungracious teardown:** When the user manually closed a completed subagent's pane, the post-completion cleanup tried to close the same pane again, failed with `pane_not_found`, and surfaced that as `Sub-agent "worker-demo" failed (exit code 1)` — making a successful task look like it failed.
+- **Poor observability:** After a subagent finishes, the pane shows as "idle" or just sits at a shell prompt. There's no visual cue like "✓ Done — inspect output below" to distinguish a completed subagent from one that's still running or waiting.
+
+### What config change would have helped
+- Subagent teardown should gracefully handle already-closed panes (no failure propagation for cleanup-only errors).
+- A post-completion state label like `completed` (not just `idle`) on finished subagents would improve UX.
+
+### Improvements for next time
+- Make pane cleanup best-effort and silent — don't report it as a subagent failure.
+- Add a descriptive banner or state transition so users can tell at a glance: "this subagent is done, its output is here to read."
