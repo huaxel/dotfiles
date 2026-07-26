@@ -58,7 +58,6 @@
     "npm:@ogulcancelik/pi-codex-subagents",
     "npm:pi-herdr-subagents",
     "npm:pi-ask-herdr",
-    "npm:@zhcsyncer/pi-recap",
     "npm:@ogulcancelik/pi-codex-compaction",
     "npm:@tifan/pi-rename"
   ]
