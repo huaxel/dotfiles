@@ -12,10 +12,10 @@ import { complete, type Message } from "@earendil-works/pi-ai/compat";
 import type {
   ExtensionAPI,
   ExtensionCommandContext,
-  SessionEntry,
 } from "@earendil-works/pi-coding-agent";
 import {
   BorderedLoader,
+  buildSessionContext,
   convertToLlm,
   serializeConversation,
 } from "@earendil-works/pi-coding-agent";
@@ -91,48 +91,34 @@ interface HandoffResult {
   prompt: string;
   messageCount: number;
   contextChars: number;
+  model?: string;
 }
 
-function entryToMessage(entry: SessionEntry): AgentMessage | undefined {
-  if (entry.type === "message") return entry.message;
-  if (entry.type === "compaction") {
-    return {
-      role: "compactionSummary",
-      summary: entry.summary,
-      tokensBefore: entry.tokensBefore,
-      timestamp: new Date(entry.timestamp).getTime(),
-    };
+/** Models to try for handoff generation, in priority order. */
+function getHandoffModels(ctx: ExtensionCommandContext, primary: NonNullable<ExtensionCommandContext["model"]>): NonNullable<ExtensionCommandContext["model"]>[] {
+  const fallbacks = [
+    ctx.modelRegistry.find("opencode-go", "deepseek-v4-flash"),
+    ctx.modelRegistry.find("openai-codex", "gpt-5.6-luna"),
+    ctx.modelRegistry.find("llamacpp", "Qwen3.6-27B-MTP"),
+  ].filter(Boolean) as NonNullable<ExtensionCommandContext["model"]>[];
+  // Primary first, then fallbacks not already included
+  const seen = new Set([`${primary.provider}/${primary.id}`]);
+  const chain = [primary];
+  for (const m of fallbacks) {
+    const key = `${m.provider}/${m.id}`;
+    if (!seen.has(key)) { seen.add(key); chain.push(m); }
   }
-  return undefined;
+  return chain;
 }
 
-/** Return the current branch without replaying entries hidden by compaction. */
-function getHandoffMessages(branch: SessionEntry[]): AgentMessage[] {
-  let compactionIndex = -1;
-  for (let i = branch.length - 1; i >= 0; i--) {
-    if (branch[i].type === "compaction") {
-      compactionIndex = i;
-      break;
-    }
-  }
-
-  if (compactionIndex < 0) {
-    return branch.map(entryToMessage).filter((message): message is AgentMessage => message !== undefined);
-  }
-
-  const compaction = branch[compactionIndex];
-  const firstKeptIndex =
-    compaction.type === "compaction"
-      ? branch.findIndex((entry) => entry.id === compaction.firstKeptEntryId)
-      : -1;
-  const compactedBranch = [
-    compaction,
-    ...(firstKeptIndex >= 0 ? branch.slice(firstKeptIndex, compactionIndex) : []),
-    ...branch.slice(compactionIndex + 1),
-  ];
-  return compactedBranch
-    .map(entryToMessage)
-    .filter((message): message is AgentMessage => message !== undefined);
+/** Extract text from an LLM response, handling text + thinking blocks. */
+function extractResponseText(response: { content: any[]; stopReason: string }): string | null {
+  if (response.stopReason === "aborted") return null;
+  const textBlocks = response.content.filter((c): c is { type: "text"; text: string } => c.type === "text").map((c) => c.text);
+  if (textBlocks.length > 0) return textBlocks.join("\n");
+  const thinkingBlocks = response.content.filter((c): c is { type: "thinking"; thinking: string } => c.type === "thinking").map((c) => c.thinking);
+  if (thinkingBlocks.length > 0) return thinkingBlocks.join("\n");
+  return null;
 }
 
 async function generateHandoffPrompt(
@@ -140,20 +126,20 @@ async function generateHandoffPrompt(
   model: NonNullable<ExtensionCommandContext["model"]>,
   goal: string,
 ): Promise<HandoffResult | null> {
-  const messages = getHandoffMessages(ctx.sessionManager.getBranch());
+  const context = buildSessionContext(ctx.sessionManager.getBranch(), ctx.sessionManager.getLeafId());
+  const messages: AgentMessage[] = context.messages;
   if (messages.length === 0) return null;
 
   const conversationText = serializeConversation(convertToLlm(messages));
+  const models = getHandoffModels(ctx, model);
 
   let generationError: Error | null = null;
+  let usedModel: string | null = null;
   const prompt = await ctx.ui.custom<string | null>((tui, theme, _kb, done) => {
     const loader = new BorderedLoader(tui, theme, "Generating handoff prompt...");
     loader.onAbort = () => done(null);
 
     const doGenerate = async () => {
-      const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model);
-      if (!auth.ok || !auth.apiKey) throw new Error(auth.ok ? `No API key for ${model.provider}` : auth.error);
-
       const goalText = goal
         ? `## User's Goal for New Thread\n\n${goal}`
         : "## Task\n\nContinue from where we left off, preserving all context.";
@@ -164,16 +150,32 @@ async function generateHandoffPrompt(
         timestamp: Date.now(),
       };
 
-      const response = await complete(
-        model,
-        { systemPrompt: SYSTEM_PROMPT, messages: [userMessage] },
-        { apiKey: auth.apiKey, headers: auth.headers, env: auth.env, signal: loader.signal },
-      );
-      if (response.stopReason === "aborted") return null;
-      return response.content.filter((c): c is { type: "text"; text: string } => c.type === "text").map((c) => c.text).join("\n");
+      let lastError: string | null = null;
+      for (const tryModel of models) {
+        const auth = await ctx.modelRegistry.getApiKeyAndHeaders(tryModel);
+        if (!auth.ok || !auth.apiKey) { lastError = auth.ok ? `No API key for ${tryModel.provider}` : auth.error; continue; }
+        try {
+          const response = await complete(
+            tryModel,
+            { systemPrompt: SYSTEM_PROMPT, messages: [userMessage] },
+            { apiKey: auth.apiKey, headers: auth.headers, env: auth.env, signal: loader.signal },
+          );
+          const text = extractResponseText(response);
+          if (text) { usedModel = `${tryModel.provider}/${tryModel.id}`; return text; }
+          if (response.stopReason === "aborted") return null;
+          // stopReason === "error" or empty content — try next model
+          lastError = `${tryModel.provider}/${tryModel.id}: stopReason=${response.stopReason}`;
+        } catch (err) {
+          lastError = `${tryModel.provider}/${tryModel.id}: ${err instanceof Error ? err.message : String(err)}`;
+          // try next model
+        }
+      }
+      throw new Error(`All handoff models failed. Last: ${lastError}`);
     };
 
-    doGenerate().then(done).catch((err) => {
+    doGenerate().then((text) => {
+      done(text);
+    }).catch((err) => {
       generationError = err instanceof Error ? err : new Error(String(err));
       done(null);
     });
@@ -181,7 +183,8 @@ async function generateHandoffPrompt(
   });
 
   if (prompt === null && generationError) throw generationError;
-  return prompt ? { prompt, messageCount: messages.length, contextChars: conversationText.length } : null;
+  if (!prompt) return null;
+  return { prompt, messageCount: messages.length, contextChars: conversationText.length, model: usedModel ?? undefined };
 }
 
 async function compactSession(ctx: ExtensionCommandContext): Promise<boolean> {
@@ -300,7 +303,8 @@ export default function (pi: ExtensionAPI) {
       catch (error) { await ctx.ui.notify(`Handoff generation failed: ${error instanceof Error ? error.message : String(error)}`, "error"); return; }
       if (!result) { await ctx.ui.notify("No conversation to transfer", "error"); return; }
 
-      await ctx.ui.notify(`Handoff: ${result.messageCount} msgs, ${(result.contextChars / 1000).toFixed(1)}k chars`, "info");
+      const modelSuffix = result.model ? ` via ${result.model}` : "";
+      await ctx.ui.notify(`Handoff: ${result.messageCount} msgs, ${(result.contextChars / 1000).toFixed(1)}k chars${modelSuffix}`, "info");
 
       let finalPrompt = result.prompt;
       if (flags.edit || flags.preview) {
