@@ -1,5 +1,21 @@
 {
   "providers": {
+    "novita": {
+      "baseUrl": "https://api.novita.ai/openai",
+      "api": "openai-completions",
+      "apiKey": "!fish -c 'echo -n $NOVITA_API_KEY'",
+      "models": [
+        {
+          "id": "mindai/macaron-v1-venti",
+          "name": "Macaron V1 Venti (Novita)",
+          "reasoning": false,
+          "input": ["text", "image"],
+          "contextWindow": 1048576,
+          "maxTokens": 131072,
+          "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 }
+        }
+      ]
+    },
     "nan": {
       "baseUrl": "https://api.nan.builders/v1",
       "api": "openai-completions",
