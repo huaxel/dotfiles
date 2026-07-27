@@ -13,7 +13,16 @@ and follows the naming convention `ws-<epoch>-<slug>.md`.
 
 ## How it works — first turn
 
-1. If no worksheet exists yet for this session, create one:
+1. If no worksheet exists yet for this session, create one.  The easiest way is
+   the **`/worksheet start`** command (Tab-completes its subcommands):
+
+   - `/worksheet start fix-auth` — creates `.worksheets/ws-<epoch>-fix-auth.md`
+     from the standard template and opens it in a herdr split.
+   - `/worksheet start` with no slug — prompts you for a kebab-case slug.
+   - Other subcommands: `open` (open latest in a split), `path` (print latest
+     path), `status`, `pause`.
+
+   Or create one manually:
    - Grab the current epoch: `date +%s`
    - Pick a short kebab-case slug from the task (e.g. `fix-auth`, `refactor-middleware`)
    - Run `mkdir -p .worksheets` first
