@@ -6,7 +6,7 @@
   "subagents": {
     "defaultModel": "nan/qwen3.6"
   },
-  "defaultThinkingLevel": "high",
+  "defaultThinkingLevel": "low",
   "enabledModels": [
     "openai-codex/gpt-5.6-sol",
     "openai-codex/gpt-5.6-luna",
@@ -27,7 +27,22 @@
     "opencode/mimo-v2.5-free",
     "opencode/nemotron-3-ultra-free",
     "opencode/north-mini-code-free",
-    "commandcode/deepseek/deepseek-v4-pro"
+    "commandcode/deepseek/deepseek-v4-pro",
+    "cursor/composer-2.5",
+    "cursor/grok-4.5",
+    "cursor/glm-5.2",
+    "cursor/opus-5@300k",
+    "cursor/opus-5@1m",
+    "cursor/fable-5@300k",
+    "cursor/fable-5@1m",
+    "cursor/sonnet-5@300k",
+    "cursor/sonnet-5@1m",
+    "cursor/gpt-5.6-sol@272k",
+    "cursor/gpt-5.6-sol@1m",
+    "cursor/gpt-5.6-terra@272k",
+    "cursor/gpt-5.6-terra@1m",
+    "cursor/gpt-5.6-luna@272k",
+    "cursor/gpt-5.6-luna@1m"
   ],
   "defaults": {
     "model": null
