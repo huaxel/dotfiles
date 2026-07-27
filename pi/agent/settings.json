@@ -6,7 +6,7 @@
   "subagents": {
     "defaultModel": "nan/qwen3.6"
   },
-  "defaultThinkingLevel": "low",
+  "defaultThinkingLevel": "high",
   "enabledModels": [
     "openai-codex/gpt-5.6-sol",
     "openai-codex/gpt-5.6-luna",
@@ -79,6 +79,7 @@
     "npm:pi-ask-herdr",
     "npm:@ogulcancelik/pi-codex-compaction",
     "npm:@tifan/pi-rename",
-    "npm:pi-eta"
+    "npm:pi-eta",
+    "npm:pi-ollama-cloud"
   ]
 }
