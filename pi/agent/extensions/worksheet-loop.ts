@@ -11,7 +11,8 @@
 import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import type { AutocompleteItem } from "@earendil-works/pi-tui";
 
 export default function (pi: ExtensionAPI) {
   const WORKSHEETS_DIR = ".worksheets";
@@ -255,66 +256,189 @@ export default function (pi: ExtensionAPI) {
     }
   }
 
+  /** Turn arbitrary text into a short kebab-case slug. */
+  function slugify(text: string): string {
+    return text
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40);
+  }
+
+  /** Local date stamp like `2026-07-27 14:30`. */
+  function dateStamp(): string {
+    const d = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  /** Build the path for a new worksheet: .worksheets/ws-<epoch>-<slug>.md */
+  function worksheetPath(slug: string): string {
+    const epoch = Math.floor(Date.now() / 1000);
+    return path.resolve(WORKSHEETS_DIR, `ws-${epoch}-${slug}.md`);
+  }
+
+  /** Render the standard worksheet template. */
+  function worksheetTemplate(title: string, task: string): string {
+    return `# ${title} — ${dateStamp()}
+
+## Task
+${task}
+
+## Progress
+- Started
+
+## Questions / Next steps
+
+`;
+  }
+
+  /**
+   * Open a worksheet file in a new herdr split running nvim.
+   * Fire-and-forget: herdr pane run returns immediately.
+   * Falls back to printing instructions if herdr/nvim is unavailable.
+   */
+  async function openInSplit(
+    wsPath: string,
+    ctx: ExtensionCommandContext,
+  ): Promise<void> {
+    const rel = path.relative(process.cwd(), wsPath);
+    try {
+      const { execSync } = await import("node:child_process");
+      const out = execSync(
+        `herdr pane split --direction right --cwd "${process.cwd()}" --focus`,
+        { timeout: 5000, encoding: "utf-8" },
+      );
+      const parsed = JSON.parse(out) as {
+        result?: { pane?: { pane_id?: string } };
+      };
+      const newPaneId = parsed.result?.pane?.pane_id ?? "";
+      if (newPaneId) {
+        execSync(`herdr pane run "${newPaneId}" nvim "${wsPath}"`, {
+          timeout: 5000,
+        });
+        ctx.ui.notify(`📄 ${path.basename(wsPath)} opened in split`, "info");
+      } else {
+        ctx.ui.notify(`📄 ${rel} (open with: nvim "${rel}")`, "info");
+      }
+    } catch {
+      ctx.ui.notify(
+        `📄 ${rel}\n  Split: herdr pane split --direction right --focus\n  Then:  nvim "${rel}"`,
+        "info",
+      );
+    }
+  }
+
   // ── commands ────────────────────────────────────────────────────────────
 
-  pi.registerCommand("worksheet", {
-    description: "Control the worksheet loop. Subcommands: open, path, status, pause",
-    handler: async (args: string, ctx) => {
-      const [cmd, ...rest] = args.trim().toLowerCase().split(/\s+/);
+  // Subcommand list shared between autocomplete and the usage hint.
+  const SUBCOMMANDS: { value: string; label: string; description: string }[] = [
+    { value: "start", label: "start", description: "Create a new worksheet and open it in a split" },
+    { value: "open", label: "open", description: "Open the latest worksheet in a split" },
+    { value: "path", label: "path", description: "Show the latest worksheet path" },
+    { value: "status", label: "status", description: "Show watcher status and latest worksheet" },
+    { value: "pause", label: "pause", description: "Pause the worksheet loop (reload to resume)" },
+  ];
 
-      if (cmd === "open" || cmd === "path") {
+  pi.registerCommand("worksheet", {
+    description: "Control the worksheet loop. Subcommands: start, open, path, status, pause",
+    getArgumentCompletions: (prefix: string): AutocompleteItem[] | null => {
+      const filtered = SUBCOMMANDS.filter((s) => s.value.startsWith(prefix));
+      return filtered.length > 0 ? filtered : null;
+    },
+    handler: async (args: string, ctx) => {
+      const [cmd, ...rest] = args.trim().split(/\s+/);
+      const sub = (cmd || "").toLowerCase();
+
+      // ── /worksheet start [slug] ────────────────────────────────────────
+      // Create a new worksheet from the standard template and open it in a
+      // split.  Slug is taken from the args, or prompted for if missing.
+      if (sub === "start" || sub === "new" || sub === "create") {
+        let slug = rest.join(" ").trim();
+        if (!slug) {
+          const prompted = await ctx.ui.input(
+            "Worksheet slug (kebab-case):",
+            "fix-auth",
+          );
+          if (prompted === undefined) {
+            ctx.ui.notify("Cancelled", "info");
+            return;
+          }
+          slug = prompted.trim();
+        }
+        slug = slugify(slug);
+        if (!slug) {
+          ctx.ui.notify("Invalid slug — use letters/numbers", "warning");
+          return;
+        }
+
+        const wsPath = worksheetPath(slug);
+        const title = slug
+          .split("-")
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(" ");
+        // The real task comes from the chat conversation; leave a placeholder
+        // the agent fills in on its first turn (see SKILL.md).
+        const task = "<what the human asked>";
+
+        try {
+          fs.mkdirSync(path.resolve(WORKSHEETS_DIR), { recursive: true });
+          fs.writeFileSync(wsPath, worksheetTemplate(title, task), "utf-8");
+          // Seed the hash so the agent's own create doesn't trigger injection.
+          const content = fs.readFileSync(wsPath, "utf-8");
+          fileState.set(wsPath, {
+            exact: fileHash(content),
+            norm: normalizedHash(content),
+          });
+        } catch (err) {
+          ctx.ui.notify(`Failed to create worksheet: ${(err as Error).message}`, "error");
+          return;
+        }
+
+        const rel = path.relative(process.cwd(), wsPath);
+        ctx.ui.notify(`📄 Created ${rel}`, "info");
+        await openInSplit(wsPath, ctx);
+        return;
+      }
+
+      // ── /worksheet open|path ───────────────────────────────────────────
+      if (sub === "open" || sub === "path") {
         const ws = latestWorksheet();
         if (!ws) {
-          ctx.ui.notify("No worksheet found in .worksheets/", "warning");
+          ctx.ui.notify("No worksheet found in .worksheets/ — try /worksheet start", "warning");
           return;
         }
         const rel = path.relative(process.cwd(), ws);
 
-        if (cmd === "path") {
+        if (sub === "path") {
           ctx.ui.notify(`📄 ${rel}`, "info");
           return;
         }
 
-        // open: try herdr split + nvim, fall back to printing instructions
-        try {
-          const { execSync } = await import("node:child_process");
-          const result = execSync(
-            `herdr pane split --direction right --cwd "${process.cwd()}" --focus`,
-            { timeout: 5000, encoding: "utf-8" },
-          );
-          const newPaneId = result.trim().split("\n").pop() || "";
-          if (newPaneId) {
-            // Launch nvim in the new pane
-            execSync(`herdr pane run "${newPaneId}" nvim "${ws}"`, {
-              timeout: 5000,
-            });
-            ctx.ui.notify(`📄 ${path.basename(ws)} opened in split`, "info");
-          } else {
-            ctx.ui.notify(`📄 ${rel} (created split, open with: nvim "${rel}")`, "info");
-          }
-        } catch {
-          ctx.ui.notify(
-            `📄 ${rel}\n  Split: herdr pane split --direction right --focus\n  Then:  nvim "${rel}"`,
-            "info",
-          );
-        }
+        await openInSplit(ws, ctx);
         return;
       }
 
-      if (cmd === "off" || cmd === "pause") {
+      // ── /worksheet pause|off ───────────────────────────────────────────
+      if (sub === "off" || sub === "pause") {
         ctx.ui.notify("⏸ Worksheet loop paused (reload to resume)", "info");
-      } else if (cmd === "status") {
+        return;
+      }
+
+      // ── /worksheet status ──────────────────────────────────────────────
+      if (sub === "status") {
         const latest = latestWorksheet();
         const info = latest
           ? `Watching ${path.resolve(WORKSHEETS_DIR)}/ — latest: ${path.basename(latest)}`
           : `Watching ${path.resolve(WORKSHEETS_DIR)}/ — no worksheets yet`;
         ctx.ui.notify(info, "info");
-      } else {
-        ctx.ui.notify(
-          "Usage: /worksheet {open|path|status|pause}",
-          "info",
-        );
+        return;
       }
+
+      // ── usage ──────────────────────────────────────────────────────────
+      const usage = SUBCOMMANDS.map((s) => `  ${s.value.padEnd(7)} ${s.description}`).join("\n");
+      ctx.ui.notify(`Usage: /worksheet {subcommand}\n${usage}`, "info");
     },
   });
 }
