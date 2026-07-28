@@ -188,6 +188,52 @@ This is sourced at the end of the main zshrc.
 
 ---
 
+## WSL (Arch WSL on Windows)
+
+### Mirrored Networking
+
+WSL2 uses **mirrored networking mode** (configured in `.wslconfig`)
+so Windows VPN routes propagate automatically into WSL. The Qlik-Env
+Azure VPN provides access to the `10.7.0.0/8` corporate network.
+
+### WSL Interop (running Windows executables)
+
+To run Windows binaries (`powershell.exe`, `rasdial.exe`, `clip.exe`,
+`explorer.exe`) from WSL, the `WSLInterop` binfmt_misc handler must be
+registered. This is done via `/etc/binfmt.d/wsl.conf`
+(loaded by `systemd-binfmt` on boot).
+
+### VPN Reconnect Script
+
+```bash
+~/dotfiles/scripts/wsl-vpn-setup.sh
+```
+
+This script handles everything:
+
+| Command | What it does |
+|---------|-------------|
+| `setup` | Register WSLInterop binfmt (permanent, done once) |
+| `status` | Check VPN and `/mnt/atomsrc` mount |
+| `reconnect` | Reconnect the Qlik-Env VPN |
+| `mount` | Mount `/mnt/atomsrc` |
+| `route` | Show routing, VPN interface, and mount info |
+| `all` | Run setup + reconnect + mount (default) |
+
+For a quick alias, add to `~/.config/local/zshrc`:
+
+```bash
+alias vpn-reconnect='~/dotfiles/scripts/wsl-vpn-setup.sh reconnect'
+```
+
+The CIFS mount is defined in `/etc/fstab` on the WSL side:
+
+```
+//10.7.0.4/MSPBFDATA /mnt/atomsrc cifs credentials=/home/juan/.smbcred,uid=1000,gid=1000,vers=3.0,noatime,soft,nofail,_netdev,x-systemd.automount 0 0
+```
+
+---
+
 ## New Machine Setup
 
 Setting up a new Mac (e.g., MacBook Air M5): bootstrap captures most things,

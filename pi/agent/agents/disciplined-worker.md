@@ -2,10 +2,9 @@
 name: disciplined-worker
 description: Quality-constrained worker that enforces TDD, verification, and review gates. Agents spawned with this definition cannot skip quality checks.
 tools: read, write, edit, grep, find, ls, bash, subagent, todo, ffgrep, fffind
-model: anthropic/claude-sonnet-4
+model: opencode-go/deepseek-v4-flash
 fallbackModels:
-  - opencode-go/deepseek-v4-flash
-  - cline-pass/deepseek-v4-flash
+  - cursor/composer-2.5
 maxRuntimeMs: 1200000
 ---
 

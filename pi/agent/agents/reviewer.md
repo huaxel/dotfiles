@@ -4,8 +4,8 @@ description: Code review specialist for quality and security analysis.
 tools: read, grep, find, ls
 model: openai-codex/gpt-5.6-luna
 fallbackModels:
-  - umans/umans-kimi-k2.7
-  - umans/umans-glm-5.2
+  - cursor/composer-2.5
+  - cursor/grok-4.5
 maxRuntimeMs: 600000
 ---
 
