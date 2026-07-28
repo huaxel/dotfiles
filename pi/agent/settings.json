@@ -4,7 +4,18 @@
   "defaultProvider": null,
   "defaultModel": null,
   "subagents": {
-    "defaultModel": "nan/qwen3.6"
+    "defaultModel": "opencode-go/deepseek-v4-flash",
+    "agentOverrides": {
+      "worker": {
+        "model": "opencode-go/deepseek-v4-flash"
+      },
+      "disciplined-worker": {
+        "model": "opencode-go/deepseek-v4-flash"
+      },
+      "reviewer": {
+        "model": "opencode-go/deepseek-v4-pro"
+      }
+    }
   },
   "defaultThinkingLevel": "high",
   "enabledModels": [
