@@ -1,10 +1,8 @@
 ---
 name: worker
 description: General-purpose subagent with full capabilities, isolated context.
-model: nan/qwen3.6
+model: opencode-go/deepseek-v4-flash
 fallbackModels:
-  - opencode-go/deepseek-v4-flash
-  - cline-pass/deepseek-v4-flash
   - llamacpp/Qwen3.6-35B-A3B-MTP
 ---
 
