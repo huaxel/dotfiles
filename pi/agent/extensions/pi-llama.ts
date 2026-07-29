@@ -24,13 +24,21 @@ type ThinkingLevel =
   | "medium"
   | "high"
   | "xhigh";
-type ModelLoadStatus = "loaded" | "unloaded" | "loading" | "error" | "unknown";
+type ModelLoadStatus =
+  | "loaded"
+  | "unloaded"
+  | "loading"
+  | "failed"
+  | "error"
+  | "unknown";
 
 interface LlamaCppModel {
   id: string;
   status?: {
     args?: string[];
     value?: ModelLoadStatus;
+    failed?: boolean;
+    exit_code?: number;
   };
   architecture?: {
     input_modalities?: string[];
@@ -87,6 +95,7 @@ const STATUS_ICON: Record<ModelLoadStatus, string> = {
   loaded: "\uF0100",
   loading: "\uF0DD0",
   error: "\uF015A",
+  failed: "\uF015A",
   unloaded: "\uF0DE4",
   unknown: "\uF02D7",
 };
@@ -142,6 +151,7 @@ function getInputModalities(model: LlamaCppModel): InputModality[] {
 }
 
 function getModelLoadStatus(model: LlamaCppModel): ModelLoadStatus {
+  if (model.status?.failed || (model.status?.exit_code ?? 0) !== 0) return "failed";
   return model.status?.value ?? "unknown";
 }
 
@@ -385,22 +395,22 @@ async function fetchModelProps(
   modelId: string,
   ctx: any,
   shouldAutoload: boolean,
-): Promise<number | undefined> {
+): Promise<{ ok: boolean; nCtx?: number }> {
   const abortController = new AbortController();
   const timer = setTimeout(() => abortController.abort(), PROPS_TIMEOUT_MS);
 
   try {
     const url = `${ROOT_URL}/props?model=${encodeURIComponent(modelId)}&autoload=${shouldAutoload}`;
     const res = await fetch(url, { signal: abortController.signal });
-    if (!res.ok) return undefined;
+    if (!res.ok) return { ok: false };
 
     const data = (await res.json()) as {
       default_generation_settings?: { n_ctx?: number };
       chat_template?: string;
     };
-    return data.default_generation_settings?.n_ctx;
+    return { ok: true, nCtx: data.default_generation_settings?.n_ctx };
   } catch {
-    return undefined;
+    return { ok: false };
   } finally {
     clearTimeout(timer);
   }
@@ -411,14 +421,14 @@ async function autoLoadModel(
   modelId: string,
   ctx: any,
   pi: ExtensionAPI,
-): Promise<void> {
-  if (pendingMetadata.has(modelId)) return;
+): Promise<boolean> {
+  if (pendingMetadata.has(modelId)) return true;
   pendingMetadata.add(modelId);
 
   const model = discoveredModels?.find((m) => m.id === modelId);
   if (!model) {
     pendingMetadata.delete(modelId);
-    return;
+    return false;
   }
 
   const alreadyLoaded = model.loadStatus === "loaded";
@@ -451,17 +461,28 @@ async function autoLoadModel(
     void watchLoadProgress(modelId, ctx, loader);
   }
 
-  // Fetch /props (auto-loads if needed)
-  const nCtx = await fetchModelProps(modelId, ctx, needsAutoload);
+  // Fetch /props (auto-loads if needed). Do not claim success on failure.
+  const props = await fetchModelProps(modelId, ctx, needsAutoload);
+  pendingMetadata.delete(modelId);
+
+  if (!props.ok) {
+    model.loadStatus = "failed";
+    discoveredMetadata.delete(modelId);
+    const fallback = discoveredModels?.find(
+      (candidate) => candidate.id !== modelId && candidate.loadStatus === "loaded",
+    );
+    const hint = fallback ? ` Try /models switch ${fallback.id}.` : "";
+    ctx?.ui?.notify?.(`Failed to load ${modelId}.${hint}`, "warning");
+    return false;
+  }
 
   // Update discovery flag and context
   discoveredMetadata.add(modelId);
-  pendingMetadata.delete(modelId);
 
-  if (typeof nCtx === "number" && nCtx > 0) {
-    loadedModelContext.set(modelId, nCtx);
-    model.contextWindow = nCtx;
-    model.maxTokens = Math.min(model.maxTokens, nCtx);
+  if (typeof props.nCtx === "number" && props.nCtx > 0) {
+    loadedModelContext.set(modelId, props.nCtx);
+    model.contextWindow = props.nCtx;
+    model.maxTokens = Math.min(model.maxTokens, props.nCtx);
   }
 
   // Update model load status
@@ -475,7 +496,7 @@ async function autoLoadModel(
       prefix +
         ctx.ui.theme.fg(
           "text",
-          ` ${displayName}: Loaded${nCtx ? ` with context ${nCtx} tokens` : ""}`,
+          ` ${displayName}: Loaded${props.nCtx ? ` with context ${props.nCtx} tokens` : ""}`,
         ),
     ]);
     clearStatusTimeout();
@@ -491,6 +512,7 @@ async function autoLoadModel(
   if (discoveredModels) {
     registerProvider(pi, discoveredModels);
   }
+  return true;
 }
 
 // ── Extension ────────────────────────────────────────────────────────────
@@ -531,8 +553,11 @@ export default async function (pi: ExtensionAPI) {
     // Ensure the model is loaded and props discovered
     const modelId = ctx.model?.id;
     if (modelId && !discoveredMetadata.has(modelId)) {
-      // Fire-and-forget: auto-load will run in background
-      autoLoadModel(modelId, ctx, pi).catch(() => {});
+      // Wait for loading before the request; otherwise llama.cpp races the autoload.
+      const loaded = await autoLoadModel(modelId, ctx, pi);
+      if (!loaded) {
+        throw new Error(`Local model ${modelId} failed to load; choose a loaded model.`);
+      }
     }
   });
 
@@ -626,8 +651,8 @@ export default async function (pi: ExtensionAPI) {
         }
 
         // Use /props auto-load for progress
-        await autoLoadModel(match.id, ctx, pi);
-        ctx.ui.notify(`Loaded ${match.name}.`, "info");
+        const loaded = await autoLoadModel(match.id, ctx, pi);
+        if (loaded) ctx.ui.notify(`Loaded ${match.name}.`, "info");
         return;
       }
 
@@ -678,7 +703,8 @@ export default async function (pi: ExtensionAPI) {
         }
         if (match.loadStatus !== "loaded") {
           // Auto-load first
-          await autoLoadModel(match.id, ctx, pi);
+          const loaded = await autoLoadModel(match.id, ctx, pi);
+          if (!loaded) return;
           await discover(pi);
         }
         const model = ctx.modelRegistry.find(PROVIDER, match.id);
