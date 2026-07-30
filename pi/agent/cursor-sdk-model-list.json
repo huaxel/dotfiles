@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "fetchedAt": 1785181572567,
+  "fetchedAt": 1785390631498,
   "keyFingerprint": "2f6240de0391a9eb",
   "models": [
     {
@@ -7256,6 +7256,60 @@
         {
           "params": [],
           "displayName": "Gemini 2.5 Flash",
+          "isDefault": true
+        }
+      ]
+    },
+    {
+      "id": "kimi-k3",
+      "displayName": "Kimi K3",
+      "parameters": [
+        {
+          "id": "reasoning",
+          "displayName": "Reasoning",
+          "values": [
+            {
+              "value": "low",
+              "displayName": "Low"
+            },
+            {
+              "value": "high",
+              "displayName": "High"
+            },
+            {
+              "value": "max",
+              "displayName": "Max"
+            }
+          ]
+        }
+      ],
+      "variants": [
+        {
+          "params": [
+            {
+              "id": "reasoning",
+              "value": "low"
+            }
+          ],
+          "displayName": "Kimi K3"
+        },
+        {
+          "params": [
+            {
+              "id": "reasoning",
+              "value": "high"
+            }
+          ],
+          "displayName": "Kimi K3"
+        },
+        {
+          "params": [
+            {
+              "id": "reasoning",
+              "value": "max"
+            }
+          ],
+          "displayName": "Kimi K3",
           "isDefault": true
         }
       ]
