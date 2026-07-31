@@ -48,3 +48,20 @@
 ### Improvements for next time
 - Make pane cleanup best-effort and silent — don't report it as a subagent failure.
 - Add a descriptive banner or state transition so users can tell at a glance: "this subagent is done, its output is here to read."
+
+## 2026-07-30: Starship Git timeout
+
+### What went well
+- Measuring Git and Starship separately showed the warning was a transient timeout, not a persistently slow repository.
+- Previewing Dotter first prevented unrelated `llama-models.ini` drift from being deployed.
+- Full local CI exposed two portability gaps, and focused reproductions identified both root causes before edits.
+
+### What was frustrating / slow
+- The one-line prompt fix expanded because `just ci` assumed Mike Farah `yq` syntax and treated intentionally tracked checksum metadata as plaintext secrets.
+
+### What config change would have helped
+- Keep CI commands portable across both common `yq` implementations and mirror the checksum allowlist across all secret checks.
+
+### Improvements for next time
+- Run `dotter --dry-run` before any deployment and apply a single generated target manually when unrelated templates have drifted.
+- Distinguish expected metadata from secret payloads consistently in every hygiene gate.

@@ -196,7 +196,7 @@ check-secrets:
     echo "  ✅ All secrets decryptable"
     # Check .sops.yaml is valid YAML
     if command -v yq &>/dev/null; then
-        if yq eval . .sops.yaml >/dev/null 2>&1; then
+        if yq . .sops.yaml >/dev/null 2>&1; then
             echo "  ✅ .sops.yaml is valid YAML"
         else
             echo "  ❌ .sops.yaml parse error"; exit 1
@@ -232,7 +232,7 @@ check-gitignore:
     # Check .gitallowed present
     if [ -f .gitallowed ]; then echo "  ✅ .gitallowed present"; fi
     # Check no unencrypted secrets committed
-    committed_secrets=$(git ls-files 'secrets/*' 2>/dev/null | grep -v '\.enc$' | grep -v '\.gitkeep' | grep -v 'README.md' || true)
+    committed_secrets=$(git ls-files 'secrets/*' 2>/dev/null | grep -v '\.enc$' | grep -v '\.sha256$' | grep -v '\.gitkeep' | grep -v 'README.md' || true)
     if [ -n "$committed_secrets" ]; then
         echo "  ❌ Unencrypted secrets tracked in git:"
         echo "$committed_secrets" | sed 's/^/    /'

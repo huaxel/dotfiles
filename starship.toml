@@ -1,4 +1,5 @@
 "$schema" = 'https://starship.rs/config-schema.json'
+command_timeout = 1000
 
 format = """
 [](fg:#7aa2f7)$os [](fg:#7aa2f7)$username$hostname [](fg:#9aa5ce)$directory [](fg:#bb9af7)$git_branch $git_status [](fg:#e0af68)$cmd_duration$fill[](fg:#565f89)$time
