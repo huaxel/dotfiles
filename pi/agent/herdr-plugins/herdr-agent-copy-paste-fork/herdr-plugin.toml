@@ -1,0 +1,40 @@
+id = "herdr-plugins.fork"
+name = "Fork"
+version = "0.4.0"
+min_herdr_version = "0.7.5"
+description = "Fork the current pane's agent conversation into a new tab or split, or copy/paste it into another pane."
+platforms = ["linux", "macos"]
+
+[[actions]]
+id = "fork"
+title = "Fork agent conversation into a tab"
+description = "Branch the current pane's Claude Code, Codex, or Pi session into a new resumed tab."
+contexts = ["pane", "workspace"]
+command = ["bash", "scripts/fork.sh", "--placement", "tab"]
+
+[[actions]]
+id = "fork-split"
+title = "Fork agent conversation into a split"
+description = "Branch the current pane's Claude Code, Codex, or Pi session into a new vertical split beside it."
+contexts = ["pane", "workspace"]
+command = ["bash", "scripts/fork.sh", "--placement", "split", "--direction", "right"]
+
+[[actions]]
+id = "copy"
+title = "Copy agent conversation (fork clipboard)"
+description = "Capture the current pane's Claude Code, Codex, or Pi session so it can be pasted as a fork into another pane."
+contexts = ["pane", "workspace"]
+command = ["bash", "scripts/copy.sh"]
+
+[[actions]]
+id = "paste"
+title = "Paste forked conversation into this pane"
+description = "Start the copied session as a fresh fork in the currently focused pane's shell."
+contexts = ["pane", "workspace"]
+command = ["bash", "scripts/paste.sh"]
+
+[[panes]]
+id = "session"
+title = "Forked session"
+placement = "tab"
+command = ["bash", "scripts/launch.sh"]
