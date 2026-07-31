@@ -1,13 +1,16 @@
 #!/bin/bash
 # shellcheck disable=SC2016
-BRITISH_CONF='input "type:keyboard" {
-    xkb_file "$HOME/.config/xkb/symbols/gb_qwerty"
+KEYBOARD='13364:53296:Keychron__Keychron_Link__Keyboard'
+BRITISH_CONF="input \"$KEYBOARD\" {
+    xkb_layout \"gb,mac_colemak\"
+    xkb_variant \",basic\"
 }
-'
-COLEMAK_CONF='input "type:keyboard" {
-    xkb_file "$HOME/.config/xkb/symbols/mac_colemak"
+"
+COLEMAK_CONF="input \"$KEYBOARD\" {
+    xkb_layout \"mac_colemak,gb\"
+    xkb_variant \"basic,\"
 }
-'
+"
 
 # Set SWAYSOCK if not set (for when called from keybinding)
 if [ -z "$SWAYSOCK" ]; then
