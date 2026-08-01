@@ -65,15 +65,15 @@ git config filter.strip-pi-machine-config.smudge \
 # Create .dotter/local.toml on first run
 if [ ! -f .dotter/local.toml ]; then
     case "$OS" in
-        Darwin*) dotter_os="macos"; models_base_path="$HOME/.cache/huggingface/hub" ;;
-        *)       dotter_os="linux"; models_base_path="/mnt/ai_models/models" ;;
+        Darwin*) dotter_os="macos"; os_pkg="macos"; models_base_path="$HOME/.cache/huggingface/hub" ;;
+        *)       dotter_os="linux"; os_pkg="linux"; models_base_path="/mnt/ai_models/models" ;;
     esac
 
     git_name=$(git config --global user.name 2>/dev/null || printf '%s' "${USER:-Your Name}")
     git_email=$(git config --global user.email 2>/dev/null || printf '%s' "your@email.com")
 
     cat > .dotter/local.toml <<EOF
-packages = ["default", "unix"]
+packages = ["default", "unix", "$os_pkg"]
 
 [variables]
 os = "$dotter_os"

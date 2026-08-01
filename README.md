@@ -7,7 +7,7 @@ Migrated from chezmoi to [dotter](https://github.com/SuperCuber/dotter) for clea
 | Chezmoi Pain Point | Dotter Solution |
 |-------------------|-----------------|
 | `dot_` prefix on every file | Files named exactly as they appear |
-| Go template syntax: `{{ if eq .chezmoi.os "darwin" }}` | Handlebars: `{{#if (eq dotter.os "macos")}}` |
+| Go template syntax: `{{ if eq .chezmoi.os "darwin" }}` | Handlebars: `{{#if (eq os "macos")}}` |
 | Source files in `~/.local/share/chezmoi` | Files directly in `~/dotfiles` |
 | Complex encapsulation | Simple symlink + template model |
 
@@ -54,7 +54,6 @@ dotter deploy
 ├── zshrc                # Template → ~/.zshrc
 ├── gitconfig            # Template → ~/.gitconfig
 ├── aerospace            # macOS window manager → ~/.aerospace.toml
-├── ideavimrc            # → ~/.ideavimrc
 ├── gitignore_global     # → ~/.gitignore_global
 ├── ssh_config           # → ~/.ssh/config (copied, not symlinked)
 └── config/              # → ~/.config/
@@ -68,17 +67,23 @@ dotter deploy
 OS-specific configuration is much cleaner than chezmoi:
 
 ```handlebars
-{{#if (eq dotter.os "macos")}}
+{{#if (eq os "macos")}}
 # macOS-specific config
 export PATH="/opt/homebrew/bin:$PATH"
 {{/if}}
 ```
 
-Available variables:
-- `dotter.os` - "macos", "linux", "windows"
-- `dotter.hostname` - machine name
-- `dotter.arch` - architecture
-- `name`, `email`, `github_username` - from global.toml
+Template variables are **plain names** (not a `dotter.*` namespace). They come
+from the `[variables]` table you set per machine in `.dotter/local.toml`
+(bootstrap writes this on first run):
+
+- `os` - `"macos"`, `"linux"`, or `"windows"` — set explicitly, not auto-detected
+- `name`, `email` - used by `gitconfig`, etc.
+- `hostname_color` - starship prompt accent
+- `models_base_path` - llama.cpp model cache root
+
+`github_username` is defined only in `[windows.variables]` in `global.toml`.
+Reference any of these as `{{os}}`, `{{name}}`, and so on.
 
 ## Commands
 
@@ -113,8 +118,8 @@ exec zsh
 | Task | Chezmoi | Dotter |
 |------|---------|--------|
 | Rename file | `dot_zshrc.tmpl` | `zshrc` |
-| OS conditional | `{{ if eq .chezmoi.os "darwin" }}` | `{{#if (eq dotter.os "macos")}}` |
-| Variable | `{{ .chezmoi.os }}` | `{{dotter.os}}` |
+| OS conditional | `{{ if eq .chezmoi.os "darwin" }}` | `{{#if (eq os "macos")}}` |
+| Variable | `{{ .chezmoi.os }}` | `{{os}}` |
 | Apply | `chezmoi apply` | `dotter deploy` |
 
 ## What's Not Included

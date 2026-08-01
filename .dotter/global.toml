@@ -64,7 +64,10 @@ npmrc = "~/.npmrc"
 "config/fastfetch" = "~\\.config\\fastfetch"
 
 [unix.files]
-# macOS/Linux-only: full config directory (individual configs are in windows.files)
+# macOS + Linux shared configs. OS-specific dirs live in config-linux/ and
+# config-macos/ (mapped in [linux.files]/[macos.files]) so they don't deploy
+# on the wrong OS. Dotter can't map a parent dir and exclude children, hence
+# the split by directory rather than a blanket ~/.config with exclusions.
 config = "~/.config"
 
 # Local agent tools (not tracked in dotfiles, just wrappers)
@@ -74,6 +77,24 @@ config = "~/.config"
 # CI files — must be symlinks, not templates (dotter parses all config/ files as
 # Handlebars, and these files use {{justfile()}} / ${{ fromJSON(...) }} syntax).
 "config/ci/.github/workflows/ci.yml" = { target = "~/.config/ci/.github/workflows/ci.yml", type = "symbolic" }
+
+# ─────────────────────────────────────────────────────────────────
+# Linux-only configs (Wayland WM/bar/launchers, user systemd, xkb).
+# Enable with the "linux" package in .dotter/local.toml.
+# ─────────────────────────────────────────────────────────────────
+[linux.files]
+"config-linux/sway"    = "~/.config/sway"
+"config-linux/waybar"  = "~/.config/waybar"
+"config-linux/wofi"    = "~/.config/wofi"
+"config-linux/walker"  = "~/.config/walker"
+"config-linux/systemd" = "~/.config/systemd"
+"config-linux/xkb"     = "~/.config/xkb"
+
+# ─────────────────────────────────────────────────────────────────
+# macOS-only configs. Enable with the "macos" package in local.toml.
+# ─────────────────────────────────────────────────────────────────
+[macos.files]
+"config-macos/borders" = "~/.config/borders"
 
 [windows.variables]
 name = "Juan Benjumea"
