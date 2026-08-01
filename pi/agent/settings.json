@@ -17,7 +17,7 @@
       }
     }
   },
-  "defaultThinkingLevel": "off",
+  "defaultThinkingLevel": "high",
   "enabledModels": [
     "openai-codex/gpt-5.6-sol",
     "openai-codex/gpt-5.6-luna",
