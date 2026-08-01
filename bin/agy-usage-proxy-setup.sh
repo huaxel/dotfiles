@@ -22,7 +22,7 @@ set -euo pipefail
 
 DOTFILES="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ADDON_SRC="$DOTFILES/config/antigravity-usage/proxy-addon.py"
-SERVICE_SRC="$DOTFILES/config/systemd/user/agy-usage-proxy.service"
+SERVICE_SRC="$DOTFILES/config-linux/systemd/user/agy-usage-proxy.service"
 FISH_FN_SRC="$DOTFILES/config/fish/functions/agy.fish"
 
 ADDON_DST="$HOME/.config/antigravity-usage/proxy-addon.py"
