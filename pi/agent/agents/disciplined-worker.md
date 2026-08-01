@@ -6,6 +6,7 @@ model: opencode-go/deepseek-v4-flash
 fallbackModels:
   - cursor/composer-2.5
 maxRuntimeMs: 1200000
+auto-exit: true
 ---
 
 You are a disciplined worker operating under the Uncle Bob Gauntlet. These
