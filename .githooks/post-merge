@@ -9,7 +9,18 @@ set -e
 
 DOTFILES_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
-if ! command -v dotter &>/dev/null; then
+# Git hooks run with a minimal, non-interactive PATH, so dotter installed to
+# ~/.cargo/bin (cargo) or a package prefix may not be on PATH. Resolve it from
+# PATH first, then fall back to the usual install locations.
+DOTTER="$(command -v dotter 2>/dev/null || true)"
+if [ -z "$DOTTER" ]; then
+    for cand in "$HOME/.cargo/bin/dotter" /usr/local/bin/dotter \
+                /opt/homebrew/bin/dotter /usr/bin/dotter; do
+        [ -x "$cand" ] && { DOTTER="$cand"; break; }
+    done
+fi
+
+if [ -z "$DOTTER" ]; then
     echo "⚠️  post-merge: dotter not found — skipping auto-deploy"
     exit 0
 fi
@@ -19,4 +30,4 @@ if [ ! -f "$DOTFILES_DIR/.dotter/global.toml" ]; then
 fi
 
 cd "$DOTFILES_DIR"
-dotter deploy
+"$DOTTER" deploy
