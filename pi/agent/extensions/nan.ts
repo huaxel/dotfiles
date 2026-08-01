@@ -22,7 +22,7 @@ const BASE_URL = "https://api.nan.builders/v1";
 // ---------------------------------------------------------------------------
 type ModelSpec = {
   reasoning: boolean;
-  input: ("text" | "image")[];
+  input: ("text" | "image" | "audio")[];
   contextWindow: number;
   maxTokens: number;
   thinkingFormat?: "deepseek" | "qwen";
@@ -33,46 +33,34 @@ const KNOWN_SPECS: Record<string, ModelSpec> = {
     reasoning: true,
     input: ["text"],
     contextWindow: 1_000_000,
-    maxTokens: 32_000,
+    maxTokens: 65_536,
     thinkingFormat: "deepseek",
   },
-  "deepseek-v4-pro": {
+  "deepseek-v4-flash-0731": {
     reasoning: true,
     input: ["text"],
     contextWindow: 1_000_000,
-    maxTokens: 32_000,
+    maxTokens: 65_536,
     thinkingFormat: "deepseek",
   },
   "mimo-v2.5": {
     reasoning: true,
-    input: ["text", "image"],
+    input: ["text", "image", "audio"],
     contextWindow: 1_000_000,
-    maxTokens: 32_000,
-  },
-  "mimo-v2.5-free": {
-    reasoning: false,
-    input: ["text"],
-    contextWindow: 262_144,
-    maxTokens: 16_384,
-  },
-  "glm5.2": {
-    reasoning: true,
-    input: ["text"],
-    contextWindow: 262_144,
-    maxTokens: 32_000,
+    maxTokens: 65_536,
   },
   "qwen3.6": {
     reasoning: true,
     input: ["text", "image"],
     contextWindow: 262_144,
-    maxTokens: 32_000,
+    maxTokens: 65_536,
     thinkingFormat: "qwen",
   },
   "gemma4": {
     reasoning: true,
     input: ["text", "image"],
     contextWindow: 262_144,
-    maxTokens: 32_000,
+    maxTokens: 65_536,
   },
 };
 
