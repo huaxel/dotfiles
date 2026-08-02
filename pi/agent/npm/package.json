@@ -12,7 +12,6 @@
     "@ogulcancelik/pi-ghostty-theme-sync": "^0.1.2",
     "@ogulcancelik/pi-herdr": "^0.4.0",
     "@ogulcancelik/pi-session-recall": "^1.0.6",
-    "@quintinshaw/pi-dynamic-workflows": "^3.5.0",
     "@tifan/pi-rename": "^0.4.2",
     "pi-ask-herdr": "^0.2.2",
     "pi-autoresearch": "^1.6.2",
