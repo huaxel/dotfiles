@@ -8,6 +8,7 @@ include ~/.config/sway/config.d/*
 bindsym $mod+b exec ~/.config/sway/scripts/wofi-bluetooth.sh
 
 # Status Bar (use Waybar as swaybar replacement)
+exec waybar
 exec systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP DISPLAY XDG_SESSION_TYPE
 exec dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP DISPLAY XDG_SESSION_TYPE
 
