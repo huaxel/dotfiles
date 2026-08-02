@@ -114,7 +114,7 @@ test("non-quota errors do not arm the auto-continue", async () => {
 });
 
 test("debug command arms the flag and reports status", async () => {
-  const { handlers, commands, sent, ctx } = await bootWithClock(env.tmpAgentDir);
+  const { handlers, commands, sent } = await bootWithClock(env.tmpAgentDir);
   const cmd = commands.get("opencode-autocontinue-test");
   assert.ok(cmd, "debug command registered");
 
