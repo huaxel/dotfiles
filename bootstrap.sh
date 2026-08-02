@@ -59,6 +59,10 @@ if [ -d .githooks ]; then
     info "Git hooks enabled from .githooks/"
 fi
 
+# Linear history: rebase local commits on pull instead of merging (avoids
+# spurious merge commits/conflicts when 3 machines drift independently)
+git config pull.rebase true
+
 git config filter.strip-pi-machine-config.smudge \
     'node scripts/strip-pi-machine-config.mjs 2>/dev/null || cat' 2>/dev/null || true
 
