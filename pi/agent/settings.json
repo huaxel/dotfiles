@@ -76,6 +76,7 @@
     "npm:@ogulcancelik/pi-codex-compaction",
     "npm:@tifan/pi-rename",
     "npm:pi-eta",
-    "npm:pi-ollama-cloud"
+    "npm:pi-ollama-cloud",
+    "npm:@narumitw/pi-goal"
   ]
 }
