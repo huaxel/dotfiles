@@ -65,3 +65,24 @@
 ### Improvements for next time
 - Run `dotter --dry-run` before any deployment and apply a single generated target manually when unrelated templates have drifted.
 - Distinguish expected metadata from secret payloads consistently in every hygiene gate.
+
+## 2026-08-02: npm token leak + broken publish (file: deps)
+
+### What went well
+- Push protection caught a real leak (npm auth token committed in tracked `npmrc`); amend + strip fixed it without history rewrite of pushed commits.
+- Diagnosed the 403 publish: classic tokens were revoked Dec 2025; granular token needed "Bypass 2FA" (now deprecated for direct publishing ~Jan 2027; 90-day write-token cap). Fixed via browser-driven token creation + gitignored `.npmrc`.
+- Caught that `file:` deps publish fine but break consumers; republished with `^0.1.0`, deprecated the broken versions.
+
+### What was frustrating / slow
+- Grepping the *current* session jsonl for startup errors matched my own tool calls (self-referential noise) — wasted several rounds. Startup region only, next time.
+- Fresh scoped-package 404s on `npm view` right after publish (registry edge lag); publish-time errors were the ground truth. Verify via `curl` packument.
+- Driving Zen/Firefox via AX keystrokes was flaky (background drops, duplicated text); AXValue writes on the address bar worked, clipboard copy didn't.
+
+### What config change would have helped
+- `~/.npmrc` symlink → tracked `npmrc` was the leak vector; now documented in AGENTS.md (Secrets hygiene) with tokens forced into gitignored `.npmrc`.
+- justfile comment claimed npm rejects file: deps — wrong; corrected.
+
+### Improvements for next time
+- Never put tokens in the tracked npmrc; keep registry auth in gitignored root `.npmrc`.
+- Before any publish, flip file: deps to registry ranges and verify published metadata with `npm view <pkg>@<ver> dependencies`.
+- Remember npm's 90-day write-token expiry and the Jan 2027 bypass-2FA cutoff when publishing after ~Oct 30, 2026.
