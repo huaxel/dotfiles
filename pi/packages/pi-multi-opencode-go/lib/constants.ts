@@ -20,3 +20,9 @@ export const AUTH_FAILOVER_KEY = "opencode-go-failover";
 export const AUTO_CONTINUE_ENABLED = true;
 export const AUTO_CONTINUE_PROMPT =
   "(auto-continue) The previous turn failed with a usage-limit error and the provider account was switched. Please retry your last request, continuing from the current conversation state without repeating work already done.";
+
+// Overnight resume: when ALL accounts are on cooldown, wait for the earliest
+// reset and fire one safe retry (same nudge style as auto-continue).
+export const RESUME_PROMPT =
+  "(auto-resume) All OpenCode Go accounts were on cooldown and the earliest has now reset. Please retry your last request, continuing from the current conversation state without repeating work already done.";
+export const RESUME_GRACE_MS = 5_000;

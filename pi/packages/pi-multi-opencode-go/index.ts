@@ -5,6 +5,8 @@ import {
   AUTO_CONTINUE_PROMPT,
   FETCH_INTERVAL_MS,
   PROVIDER,
+  RESUME_GRACE_MS,
+  RESUME_PROMPT,
 } from "./lib/constants.ts";
 import { fetchAccountUsage } from "./lib/fetch-usage.ts";
 import { formatReset, formatUsageWindow } from "./lib/format.ts";
@@ -17,6 +19,7 @@ import {
   pickBestAccount,
   publishCoordinationFlags,
 } from "./lib/rotation.ts";
+import { computeEarliestReset, createResumeScheduler } from "./lib/resume.ts";
 import {
   loadPersistedCooldowns,
   mergePersistedCooldowns,
@@ -30,7 +33,17 @@ export type { OpenCodeGoAccount, AccountUsage, OpenCodeGoWindow } from "./lib/ty
 const QUOTA_ERROR_RE =
   /quota|insufficient|rate limit|too many requests|429|exceeded|limit/i;
 
-export default function (pi: ExtensionAPI) {
+/** Test seam: injectable timer/clock for the resume scheduler. */
+export interface ResumeSchedulerDeps {
+  now?: () => number;
+  setTimer?: (fn: () => void, ms: number) => unknown;
+  clearTimer?: (handle: unknown) => void;
+}
+
+export default function (
+  pi: ExtensionAPI,
+  deps: ResumeSchedulerDeps = {},
+) {
   let accounts: OpenCodeGoAccount[] = [];
   let usages: AccountUsage[] = [];
   let activeAccount: OpenCodeGoAccount | null = null;
@@ -41,6 +54,39 @@ export default function (pi: ExtensionAPI) {
   // fires only after pi's own retry/compaction/queued continuations settled.
   let pendingSwitchRetry = false;
   let currentTurnIndex = 0;
+
+  // Overnight resume (ROADMAP): when ALL accounts are on cooldown, wait for
+  // the earliest reset and queue one safe retry. Fires at most once per
+  // exhaustion cycle (reset() happens when a refresh sees an account back).
+  const resume = createResumeScheduler({
+    graceMs: RESUME_GRACE_MS,
+    now: deps.now,
+    setTimer: deps.setTimer,
+    clearTimer: deps.clearTimer,
+    onFire: async () => {
+      log(`resume: earliest reset reached, queueing retry prompt`);
+      await pi.sendUserMessage(RESUME_PROMPT, { deliverAs: "followUp" });
+    },
+  });
+
+  function maybeArmResume(): void {
+    const now = Date.now();
+    const g = globalThis as Record<string, unknown>;
+    const allExhausted = g.__opencode_go_all_exhausted === true;
+    if (!allExhausted) {
+      resume.reset();
+      return;
+    }
+    const earliest = computeEarliestReset(usages, now);
+    if (earliest === null) {
+      resume.reset();
+      return;
+    }
+    resume.arm(earliest);
+    log(
+      `resume armed until=${new Date(earliest).toISOString()} state=${resume.state}`,
+    );
+  }
 
   async function refresh(_ctx: ExtensionContext): Promise<void> {
     if (accounts.length === 0) return;
@@ -53,6 +99,16 @@ export default function (pi: ExtensionAPI) {
     mergePersistedCooldowns(usages);
     publishCoordinationFlags(usages, now, activeAccount);
     setActiveAccountLabel(activeAccount);
+    // Accounts recovered (or cooldowns cleared) → ready for the next cycle.
+    if (
+      (globalThis as Record<string, unknown>).__opencode_go_all_exhausted !==
+      true
+    ) {
+      if (resume.state !== "idle") {
+        log(`resume reset by refresh (state=${resume.state})`);
+      }
+      resume.reset();
+    }
   }
 
   function markExhausted(
@@ -71,6 +127,9 @@ export default function (pi: ExtensionAPI) {
     );
     forceRefresh = true;
     publishCoordinationFlags(usages, now, activeAccount);
+    // Only quota failures arm the overnight resume; auth failures (e.g. a bad
+    // key) would just fail again after the cooldown, so don't wake the user.
+    if (reason === "quota") maybeArmResume();
   }
 
   function clearCooldowns(): void {
@@ -78,6 +137,7 @@ export default function (pi: ExtensionAPI) {
     for (const usage of usages) usage.exhaustedUntil = undefined;
     savePersistedCooldowns({});
     publishCoordinationFlags(usages, now, activeAccount);
+    resume.reset();
   }
 
   pi.on("session_start", async (_event, ctx) => {
@@ -242,12 +302,23 @@ export default function (pi: ExtensionAPI) {
           !isAccountExhausted(u, now) &&
           u.account.label !== activeAccount?.label,
       ).length;
-      const allExhausted = (globalThis as Record<string, unknown>)
-        .__opencode_go_all_exhausted;
+      const g = globalThis as Record<string, unknown>;
+      const allExhausted = g.__opencode_go_all_exhausted === true;
+      const earliest = computeEarliestReset(usages, now);
+      const earliestInfo =
+        allExhausted && earliest !== null
+          ? ` earliest_reset=${formatReset(
+              Math.max(0, Math.floor((earliest - now) / 1000)),
+            )}`
+          : "";
+      const resumeState =
+        allExhausted && resume.state !== "idle"
+          ? ` resume=${resume.state}`
+          : "";
       ctx.ui.notify(
         `OpenCode Go failover: active=${activeAccount?.label ?? "—"} ` +
           `accounts=${accounts.length} alternates=${alternates} ` +
-          `all_exhausted=${allExhausted ? "yes" : "no"}`,
+          `all_exhausted=${allExhausted ? "yes" : "no"}${earliestInfo}${resumeState}`,
         "info",
       );
     },

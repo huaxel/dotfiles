@@ -4,6 +4,7 @@ import {
   MAX_COOLDOWN_MS,
   MIN_COOLDOWN_MS,
 } from "./constants.ts";
+import { computeEarliestReset } from "./resume.ts";
 import type {
   AccountUsage,
   ExhaustReason,
@@ -54,6 +55,8 @@ export function publishCoordinationFlags(
     alternates.length > 0;
   (globalThis as Record<string, unknown>).__opencode_go_all_exhausted =
     usages.length > 0 && usages.every((u) => isAccountExhausted(u, now));
+  (globalThis as Record<string, unknown>).__opencode_go_earliest_reset =
+    computeEarliestReset(usages, now);
 }
 
 function scoreAccount(usage: AccountUsage, now: number): number[] {
