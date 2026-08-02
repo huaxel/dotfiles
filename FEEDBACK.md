@@ -93,3 +93,11 @@
 - Fix: test-only `tests/resolve-hook.mjs` using `registerHooks` retries failed relative `.js` resolutions against `.ts` siblings; `npm test` = `node --import ./tests/resolve-hook.mjs --test tests/*.test.ts`. 12/12 pass; `just ci` green.
 - Note: `--test tests/` (trailing-slash dir) fails with ERR_UNSUPPORTED_DIR_IMPORT — use the `*.test.ts` glob (sibling package convention).
 - Sibling `opencode-go-usage` already uses `.ts` specifiers + `--experimental-strip-types`; unaffected.
+
+## 2026-08-02 follow-up: item 6 spike — auto-continue after in-turn account switch
+
+- Session API verified: `pi.sendUserMessage(content, { deliverAs: "followUp" })` (ExtensionAPI) + `agent_settled` event + `ctx.isIdle()` — no deeper session-API surgery needed.
+- Critical finding: pi's own auto-retry (on by default, 3 retries, 2s base) re-runs the turn and picks up the switched account via `before_provider_headers`, so extension-level auto-continue is only the last-resort path after that budget is spent — this is what makes it safe.
+- Prototype shipped in pi-multi-opencode-go: arm flag on quota/auth switch paths (after_provider_response 429/401/403, message_end quota error), consume at agent_settled with all_exhausted + once-per-run guards, nudge-style prompt (no user-text replay — avoids tool side-effect duplication).
+- Verification: strict tsc (npx typescript, module nodenext, allowImportingTsExtensions) clean; module graph loads under node --experimental-strip-types; `just ci` green. Deno absent → `check-ts-packages` skips locally.
+- Remaining: live smoke test via `/opencode-autocontinue-test` after a /reload (log line `auto-continue turn=…` in opencode-go-failover.log).
