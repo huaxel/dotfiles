@@ -1,6 +1,6 @@
 {
   "name": "@juanbenjumea/pi-multi-opencode-go",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Multi-account failover and rotation for the OpenCode Go provider in Pi.",
   "type": "module",
   "license": "MIT",
@@ -35,7 +35,7 @@
     "@earendil-works/pi-coding-agent": ">=0.80.0"
   },
   "dependencies": {
-    "@juanbenjumea/opencode-go-usage": "file:../opencode-go-usage"
+    "@juanbenjumea/opencode-go-usage": "^0.1.0"
   },
   "files": [
     "index.ts",
