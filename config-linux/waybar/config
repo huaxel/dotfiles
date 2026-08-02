@@ -17,7 +17,7 @@
         "network",
         "bluetooth",
         "pulseaudio",
-        "sway/keyboard-layout",
+        "sway/language",
         "clock",
         "custom/weather",
         "tray"
@@ -151,11 +151,9 @@
             "paused": "⏸"
         }
     },
-    "sway/keyboard-layout": {
-        "format": "{}  ⌨",
-        "format-click": "{}  ⌨",
-        "on-click": "~/.config/sway/scripts/switch-kb-layout.sh",
-        "xkb-layout-names": ["COLEMAK", "UK"]
+    "sway/language": {
+        "format": "{long}  ⌨",
+        "on-click": "~/.config/sway/scripts/switch-kb-layout.sh"
     },
     "tray": {
         "spacing": 10
