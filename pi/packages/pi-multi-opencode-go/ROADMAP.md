@@ -1,6 +1,11 @@
 # Roadmap
 
-- Pre-stream retry when Pi exposes provider-level retry hooks that re-run header injection
+- ~~Pre-stream retry when Pi exposes provider-level retry hooks that re-run header injection~~ — **closed 2026-08-02: investigated, blocked on pi core, not worth upstream work**:
+  - Evidence (pi v0.80+ source): `before_provider_headers` runs via `prepareRequest`'s `transformHeaders`, **once per stream call**. `maxRetries` is forwarded to the OpenAI SDK client, whose transport retries **reuse the prepared headers** — so after an in-turn switch, SDK-level retries replay the stale account's token.
+  - No per-attempt header hook exists: `before_provider_request` is a payload transform only; `before_provider_headers` is per-stream.
+  - Correctness already holds: pi's **agent-level** retry (default 3) re-runs the whole stream → `prepareRequest` → `before_provider_headers` → the switched account's token. That is the load-bearing recovery path (auto-continue only fires when it is exhausted).
+  - Cost of the gap: only latency — 1–2 wasted SDK transport retries with the stale token (~backoff) before agent-level retry succeeds.
+  - Mitigation not cleanly available: `settings.retry.provider.maxRetries` is **global across providers** (not per-provider); setting 0 would kill transport retries everywhere. Upstream wish: per-provider `retry.provider` config and/or a per-attempt header hook in `streamSimple`.
 - ~~Auto-continue after account switch (safe queued user prompt)~~ — **implemented 2026-08-02** (spike + prototype):
   - Session API confirmed: `pi.sendUserMessage(msg, { deliverAs: "steer" | "followUp" })` always triggers a turn; `agent_settled` fires only after pi's own retry/compaction/queued-continuation chains settle; `ctx.isIdle()` guards busy state.
   - Pi already auto-retries error-stop turns in-process (default 3 retries, 2s base delay), and `before_provider_headers` re-injects the switched account's token per request — so this extension-level path is the **last resort** after pi's retry budget is spent.
