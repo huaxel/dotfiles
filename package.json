@@ -1,0 +1,8 @@
+{
+  "name": "dotfiles",
+  "private": true,
+  "description": "Workspace root so pi/packages/* shared libs resolve on any clone via one npm install.",
+  "workspaces": [
+    "pi/packages/*"
+  ]
+}

@@ -91,3 +91,6 @@ pi/agent/state/extensions/pi-eta/events.jsonl
 __pycache__/
 *.pyc
 pi/agent/models-store.json
+
+# npm workspace installs (created by `npm install` at repo root)
+node_modules/
