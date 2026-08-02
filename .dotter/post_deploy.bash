@@ -33,6 +33,7 @@ if [ -d "$SECRETS_DIR" ]; then
     # generic ~/.config/secrets/ dir — skip them here.
     case "$filename" in
       llama-webui-config.json) continue ;;
+      environment.d) continue ;;
     esac
 
     decrypt_path="$DECRYPT_DIR/$filename"
@@ -75,6 +76,7 @@ if [ -d "$SECRETS_DIR" ]; then
   # (enc basename -> destination; mirrors post_deploy.ps1 on Windows)
   app_secret "llama-webui-config.json" "$HOME/.config/llama.cpp/webui-config.json"
   app_secret "pi-auth.json" "$HOME/dotfiles/pi/agent/auth.json"
+  app_secret "environment.d" "$HOME/.config/environment.d/99-environment.conf"
 
 fi
 
