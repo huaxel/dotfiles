@@ -102,12 +102,55 @@ export async function loadAccountsFromAuthJson(): Promise<OpenCodeGoAccount[]> {
   return accounts;
 }
 
+/**
+ * Optional dedup of identical API keys (ROADMAP). Two accounts sharing one
+ * key draw on the same quota — keeping both would waste failover alternates.
+ * Gated by OPENCODE_GO_DEDUP_KEYS (truthy enables). Keeps the first
+ * occurrence; returns dropped labels for logging.
+ */
+export function dedupeAccounts(
+  accounts: OpenCodeGoAccount[],
+  enabled: boolean,
+): { accounts: OpenCodeGoAccount[]; dropped: string[] } {
+  if (!enabled || accounts.length < 2) {
+    return { accounts, dropped: [] };
+  }
+  const seen = new Set<string>();
+  const kept: OpenCodeGoAccount[] = [];
+  const dropped: string[] = [];
+  for (const account of accounts) {
+    if (seen.has(account.key)) {
+      dropped.push(account.label);
+      continue;
+    }
+    seen.add(account.key);
+    kept.push(account);
+  }
+  return { accounts: kept, dropped };
+}
+
+function dedupEnabled(): boolean {
+  const value = process.env.OPENCODE_GO_DEDUP_KEYS;
+  return typeof value === "string" && value.trim() !== "" &&
+    !["0", "false", "no", "off"].includes(value.trim().toLowerCase());
+}
+
 export async function loadAccounts(): Promise<OpenCodeGoAccount[]> {
   const fromEnv = loadAccountsFromEnv();
   log(`env accounts: ${fromEnv.length}`);
-  if (fromEnv.length > 0) return fromEnv;
+  if (fromEnv.length > 0) {
+    const { accounts, dropped } = dedupeAccounts(fromEnv, dedupEnabled());
+    if (dropped.length > 0) {
+      log(`dedup dropped (env): ${dropped.join(", ")}`);
+    }
+    return accounts;
+  }
 
   const fromAuth = await loadAccountsFromAuthJson();
   log(`auth.json accounts: ${fromAuth.length}`);
-  return fromAuth;
+  const { accounts, dropped } = dedupeAccounts(fromAuth, dedupEnabled());
+  if (dropped.length > 0) {
+    log(`dedup dropped (auth.json): ${dropped.join(", ")}`);
+  }
+  return accounts;
 }
