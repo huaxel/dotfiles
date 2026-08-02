@@ -69,6 +69,11 @@ local/
 # Pi agent machine-local settings (not shared across machines)
 pi/agent/pi-goal.json
 
+# Pi npm extension manifest + lockfile — pi-managed, per-machine, regenerated
+# by `pi update --extensions` / `pi install` (source of truth: settings.json)
+pi/agent/npm/package.json
+pi/agent/npm/package-lock.json
+
 # Nested git repos (pi extensions cloned separately)
 
 # ─────────────────────────────────────────────────────────────
