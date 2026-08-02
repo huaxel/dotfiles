@@ -2,8 +2,7 @@
 name: worker
 description: General-purpose subagent with full capabilities, isolated context.
 model: opencode-go/deepseek-v4-flash
-fallbackModels:
-  - llamacpp/Qwen3.6-35B-A3B-MTP
+session-mode: lineage-only
 auto-exit: true
 spawning: false
 ---

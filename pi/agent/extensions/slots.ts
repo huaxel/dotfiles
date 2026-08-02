@@ -20,55 +20,56 @@ type Slot = {
 
 const SLOTS: Record<string, Slot> = {
 	fast: {
-		description: "quick fixes — flash → local → umans",
+		description: "quick fixes — flash → free → luna → cursor",
 		thinkingLevel: "off",
 		models: [
 			{ provider: "opencode-go", model: "deepseek-v4-flash", path: "go", prompt: "FAST — quick fix. Minimal changes, skip deep analysis." },
-			{ provider: "nan", model: "qwen3.6", path: "local", prompt: "FAST — quick fix. Minimal changes, skip deep analysis." },
-			{ provider: "umans", model: "umans-kimi-k2.7", path: "umans", prompt: "FAST — quick fix. Minimal changes." },
+			{ provider: "opencode", model: "deepseek-v4-flash-free", path: "free", prompt: "FAST (free) — quick fix. Minimal changes, skip deep analysis." },
+			{ provider: "openai-codex", model: "gpt-5.6-luna", path: "codex", prompt: "FAST (luna) — quick fix when Go quota is tight." },
+			{ provider: "cursor", model: "composer-2.5", path: "cursor", prompt: "FAST (cursor) — quick fix. Minimal changes." },
 		],
 	},
 	work: {
-		description: "implement — flash → local → umans → luna",
+		description: "implement — flash → free → luna → cursor",
 		thinkingLevel: "off",
 		models: [
 			{ provider: "opencode-go", model: "deepseek-v4-flash", path: "go", prompt: "WORK (flash) — focused implementation. Run tests." },
-			{ provider: "nan", model: "qwen3.6", path: "local", prompt: "WORK (local) — focused implementation." },
-			{ provider: "umans", model: "umans-kimi-k2.7", path: "umans", prompt: "WORK (umans) — focused implementation. Run tests." },
-			{ provider: "openai-codex", model: "gpt-5.6-luna", path: "codex", prompt: "WORK (heavy) — complex. Think through edge cases." },
+			{ provider: "opencode", model: "deepseek-v4-flash-free", path: "free", prompt: "WORK (free) — focused implementation. Run tests." },
+			{ provider: "openai-codex", model: "gpt-5.6-luna", path: "codex", prompt: "WORK (luna) — complex. Think through edge cases." },
+			{ provider: "cursor", model: "composer-2.5", path: "cursor", prompt: "WORK (cursor) — focused implementation. Run tests." },
 		],
 	},
 	think: {
-		description: "analyze — pro → glm-5.2 → terra → sol",
+		description: "analyze — pro → luna → terra → sol",
 		thinkingLevel: "max",
 		models: [
 			{ provider: "opencode-go", model: "deepseek-v4-pro", path: "go", prompt: "THINK (pro) — read fully, explore. Do NOT edit." },
-			{ provider: "umans", model: "umans-glm-5.2", path: "umans", prompt: "THINK (glm-5.2) — read fully, trace architecture. Do NOT edit." },
+			{ provider: "openai-codex", model: "gpt-5.6-luna", path: "codex", prompt: "THINK (luna) — read fully, trace architecture. Do NOT edit." },
 			{ provider: "openai-codex", model: "gpt-5.6-terra", path: "codex", prompt: "THINK (terra) — deep analysis. Do NOT edit." },
 			{ provider: "openai-codex", model: "gpt-5.6-sol", path: "codex", prompt: "THINK (sol) — max reasoning. Do NOT edit." },
 		],
 	},
 	review: {
-		description: "review — flash → glm-5.2 → pro → commandcode",
+		description: "review — flash → glm → pro → luna → commandcode",
 		thinkingLevel: "off",
 		models: [
 			{ provider: "opencode-go", model: "deepseek-v4-flash", path: "go", prompt: "REVIEW (flash) — quick pass. Obvious issues." },
-			{ provider: "umans", model: "umans-glm-5.2", path: "umans", prompt: "REVIEW (glm-5.2) — thorough. Cite lines, suggest fixes." },
+			{ provider: "opencode-go", model: "glm-5.2", path: "go", prompt: "REVIEW (glm-5.2) — thorough. Cite lines, suggest fixes." },
 			{ provider: "opencode-go", model: "deepseek-v4-pro", path: "go", prompt: "REVIEW (pro) — thorough. Cite lines, suggest fixes." },
-			{ provider: "commandcode", model: "deepseek/deepseek-v4-pro", path: "go", prompt: "REVIEW (thorough) — security, architecture, style." },
+			{ provider: "openai-codex", model: "gpt-5.6-luna", path: "codex", prompt: "REVIEW (luna) — security, correctness, style. Cite lines." },
+			{ provider: "commandcode", model: "deepseek/deepseek-v4-pro", path: "go", prompt: "REVIEW (commandcode) — security, architecture, style." },
 		],
 	},
 };
 
 // Path keys in the quota file. The agentq quota.json uses these top-level keys
-// under `paths`. The slots `path` field ("go", "local", "umans", "codex") is a
-// short alias; this maps it to the real quota-file key. `local` has no quota
-// concept (free local model). `go` is served by opencode-go, whose quota lives
-// under "openrouter" in the shared quota file when present.
+// under `paths`. The slots `path` field is a short alias mapped to quota-file
+// keys. `free` has no quota row (OpenCode free tier). `go` is opencode-go
+// (quota often under "openrouter" when present).
 const QUOTA_PATH_MAP: Record<string, string | null> = {
 	go: "openrouter",
-	local: null,
-	umans: "umans",
+	free: null,
+	cursor: "cursor",
 	codex: "codex",
 };
 
