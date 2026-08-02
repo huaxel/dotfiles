@@ -107,3 +107,7 @@ pi/agent/models-store.json
 
 # npm workspace installs (created by `npm install` at repo root)
 node_modules/
+
+# Root npm workspace lockfile — generated per-machine by `npm install`
+# (pi/packages workspace deps resolve on any clone; lock is not shared)
+package-lock.json
