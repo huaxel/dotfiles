@@ -2,6 +2,7 @@
 // The base layout supplies the standard Colemak accent and symbol layer.
 partial alphanumeric_keys
 xkb_symbols "basic" {
+    name[Group1] = "English (Colemak)";
     include "us(colemak_base)"
 
     // Match the Windows/Mac physical modifier arrangement: swap only the
