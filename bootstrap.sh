@@ -239,6 +239,18 @@ if command -v mise &>/dev/null && [ -f "$HOME/.config/mise/config.toml" ]; then
     mise install 2>/dev/null || warn "mise install had issues — run 'mise install' manually"
 fi
 
+# Materialize pi extensions from settings.json. Regenerates the untracked
+# pi/agent/npm manifest and installs missing packages (pi's update logic
+# installs anything listed but not present). No-op when pi is missing or
+# everything is already up to date.
+if command -v pi &>/dev/null; then
+    info "Syncing pi extensions (pi update --extensions)..."
+    (cd "$SCRIPT_DIR" && pi update --extensions) || \
+        warn "pi extension sync failed — run manually: pi update --extensions"
+else
+    warn "pi not found — skipping extension sync (install pi, then run: pi update --extensions)"
+fi
+
 # Set fish as default shell
 FISH_PATH=$(command -v fish 2>/dev/null)
 if [ -n "$FISH_PATH" ] && [ "$OS" = "Darwin" ]; then
