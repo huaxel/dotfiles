@@ -23,6 +23,10 @@ walking up from any package dir under this repo.
 - npm publish auth: granular access token with **Bypass 2FA** enabled, `Read and
 write` on all packages, max 90-day lifetime. The `just pi-publish-*` recipes
 need nothing extra once `.npmrc` holds the token.
+- Current token (`dotfiles-publish`, …dgQL) expires **~Oct 30 2026**; publish
+will silently 403 after that — regenerate and update `~/.npmrc` before then.
+- npm deprecates bypass-2FA *direct publishing* around **Jan 2027** (staging +
+human approval, or OIDC trusted publishing for CI) — revisit before the cutoff.
 
 ## Cross-project patterns (shared docs)
 
