@@ -126,6 +126,11 @@ check-ts:
     fi
     echo "  ✅ All TypeScript files pass"
 
+# Install npm workspace deps for pi/packages/* (creates node_modules symlinks so
+# shared libs like @juanbenjumea/opencode-go-usage resolve on any clone).
+pi-install:
+    npm install
+
 # Test and verify pi-multi-opencode-go npm package
 pi-test-multi-opencode-go:
     #!/usr/bin/env bash
