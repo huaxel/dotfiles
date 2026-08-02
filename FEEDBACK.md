@@ -115,3 +115,10 @@
 - Flaky-test lesson: fake clock based on `Date.now()` drifts between calls → exact `remainingMs()` assertions failed intermittently; fixed by injectable fixed base for pure unit tests.
 - Seam mismatch found: extension computes exhaustion with real `Date.now()` while the scheduler uses injected time — recovery can only be observed via cooldowns clearing (state file/clearCooldowns), not fake-time advance. Documented; keep the scheduler's time source the only fake one.
 - Limitation documented: in-process scheduler — no cross-restart persistence (pi must stay open across the cooldown).
+
+## 2026-08-02 follow-up: key dedup + shared fetchDashboardUsage + publish batch
+
+- Dedup (OPENCODE_GO_DEDUP_KEYS, opt-in): dedupeAccounts keeps first occurrence per API key, applied to env + auth.json sources, dropped labels logged; 4 unit tests. Committed d14f74c.
+- Shared fetch: opencode-go-usage@0.1.1 adds lib/fetch.ts fetchDashboardUsage (timeout, injectable fetchImpl, auth-expired, never throws). Extension fetch-usage.ts wraps it; footer drops 3 duplicated helpers + UA const (~90 lines removed). Behavior note: footer previously used redirect:"error" (invalid cookie → "fetch failed"); now follows redirects → "auth-expired", matching the extension.
+- Published + verified via curl packument (npm view 404 lag): opencode-go-usage@0.1.1, pi-multi-opencode-go@0.1.3 (also carries auto-continue + overnight resume + dedup), pi-dynamic-footer@0.1.6. Tarball check: lib/fetch.ts ships.
+- Tooling gap noted: footer + usage packages have no strict-tsc baseline (no tsconfig/@types/node in their dirs; deno gate is syntax-only). Extension stays strict-tsc clean. Adding @types/node devDeps there is optional cleanup, not required for correctness (all runtime suites green).
