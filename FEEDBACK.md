@@ -101,3 +101,8 @@
 - Prototype shipped in pi-multi-opencode-go: arm flag on quota/auth switch paths (after_provider_response 429/401/403, message_end quota error), consume at agent_settled with all_exhausted + once-per-run guards, nudge-style prompt (no user-text replay — avoids tool side-effect duplication).
 - Verification: strict tsc (npx typescript, module nodenext, allowImportingTsExtensions) clean; module graph loads under node --experimental-strip-types; `just ci` green. Deno absent → `check-ts-packages` skips locally.
 - Remaining: live smoke test via `/opencode-autocontinue-test` after a /reload (log line `auto-continue turn=…` in opencode-go-failover.log).
+
+## 2026-08-02 follow-up: item 6 auto-continue — live smoke test VERIFIED
+
+- `/opencode-autocontinue-test` armed at 12:57:11 (turn=0); `agent_settled` queued the retry at 12:59:53 (`auto-continue turn=16: queueing retry prompt`); the prompt landed as a real user turn that woke the agent — full chain works in production (arm → agent_settled → sendUserMessage → new turn).
+- Observation: `turnIndex` is session-file-cumulative (survives reload; closure starts at 0) — arming logged turn=0, firing logged turn=16. Cosmetic; logging only.
