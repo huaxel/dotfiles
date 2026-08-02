@@ -9,6 +9,8 @@
 # Private / sensitive configs
 # ─────────────────────────────────────────────────────────────
 config/gh/private_*
+# npm registry auth token — secret, never commit (~/.npmrc symlinks to npmrc, keep tokens here)
+/.npmrc
 config/zed/private_*
 config/zed/conversations/
 config/zed/embeddings/
