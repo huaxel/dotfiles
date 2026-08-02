@@ -16,7 +16,7 @@
     "@tifan/pi-rename": "^0.4.2",
     "pi-ask-herdr": "^0.2.2",
     "pi-autoresearch": "^1.6.2",
-    "pi-commandcode-provider": "^0.4.2",
+    "pi-commandcode-provider": "^0.4.3",
     "pi-cursor-sdk": "^0.1.62",
     "pi-eta": "^0.1.1",
     "pi-herdr-subagents": "^0.1.5",
