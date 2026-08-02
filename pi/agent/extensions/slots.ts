@@ -167,6 +167,11 @@ function isExhausted(entry: ModelEntry, quota: Record<string, WorstWindow> | nul
 const QUOTA_ERROR_RE =
 	/quota|insufficient|rate limit|too many requests|429|exceeded|limit/i;
 
+/** OpenCode Go failover extension sets this when another Go sub is still usable. */
+function opencodeGoHasAlternate(): boolean {
+	return (globalThis as any).__opencode_go_has_fallback === true;
+}
+
 /** Whether a model is registered/enabled in pi's model registry. */
 function isRegistered(entry: ModelEntry, ctx: any): boolean {
 	try {
@@ -457,6 +462,9 @@ export default function (pi: ExtensionAPI) {
 	 * Returns true if a fallback was actually switched to.
 	 */
 	async function failOver(entry: ModelEntry, ctx: any): Promise<boolean> {
+		if (entry.provider === "opencode-go" && opencodeGoHasAlternate()) {
+			return false;
+		}
 		const key = entryKey(entry);
 		const now = Date.now();
 		if (lastFailoverKey === key && now - lastFailoverAt < FAILOVER_DEDUPE_MS) {

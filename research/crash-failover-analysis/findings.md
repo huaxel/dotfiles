@@ -5,7 +5,7 @@
 **Sources:**
 - `~/.pi/agent/pi-crash.log` (1,432 lines, 1 crash headline)
 - `~/dotfiles/pi/agent/opencode-go-failover.log` (10,405 lines, ~7 days)
-- `~/dotfiles/pi/agent/extensions/opencode-go-failover/index.ts` (failover extension source)
+- `~/dotfiles/pi/packages/pi-multi-opencode-go/index.ts` (failover extension source; formerly `pi/agent/extensions/opencode-go-failover/index.ts`)
 
 ---
 

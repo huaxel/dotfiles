@@ -37,7 +37,7 @@ install:
 # ──────────── Check recipes ────────────
 
 # Run ALL checks (the full CI pipeline)
-ci: check-sh check-ts check-dotter check-secrets check-gitignore check-templates check-brewfile
+ci: check-sh check-ts check-ts-packages check-dotter check-secrets check-gitignore check-templates check-brewfile
     @echo ""
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     @echo "  🟢  All CI checks passed!  🟢"
@@ -125,6 +125,54 @@ check-ts:
         echo "  ⚠️  $lint_errors files have lint warnings (not blocking)"
     fi
     echo "  ✅ All TypeScript files pass"
+
+# Test and verify pi-multi-opencode-go npm package
+pi-test-multi-opencode-go:
+    #!/usr/bin/env bash
+    cd "{{dotfiles-dir}}/pi/packages/opencode-go-usage"
+    npm test
+    cd "{{dotfiles-dir}}/pi/packages/pi-multi-opencode-go"
+    npm pack --dry-run 2>&1 | tail -12
+
+# Publish shared usage lib first, then Pi extensions
+pi-publish-opencode-go-usage:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "{{dotfiles-dir}}/pi/packages/opencode-go-usage"
+    npm test
+    npm publish --access public
+
+# Publish order: opencode-go-usage → multi-opencode-go → dynamic-footer.
+# Before publishing, flip each package's "@juanbenjumea/opencode-go-usage" dep
+# from file:../opencode-go-usage to "^0.1.0" (npm rejects publishing file: deps).
+pi-publish-multi-opencode-go:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "{{dotfiles-dir}}/pi/packages/pi-multi-opencode-go"
+    npm pack --dry-run >/dev/null
+    npm publish --access public
+
+# ── Pi packages (monorepo) ──
+
+# Syntax-check pi/packages TypeScript
+check-ts-packages:
+    #!/usr/bin/env bash
+    echo "=== TypeScript (pi/packages) ==="
+    if ! command -v deno &>/dev/null; then
+        echo "  ⚠️  deno not installed — skipping"
+        exit 0
+    fi
+    errors=0; count=0
+    for f in $(find pi/packages -type f -name '*.ts' ! -path '*/node_modules/*' -print | sort); do
+        count=$((count + 1))
+        if deno eval "import 'file://$(realpath "$f")'" 2>&1 | grep -q 'SyntaxError'; then
+            echo "  ❌ $f has syntax errors"
+            errors=$((errors + 1))
+        fi
+    done
+    echo "  Checked $count package TypeScript files"
+    if [ "$errors" -gt 0 ]; then exit 1; fi
+    echo "  ✅ All package TypeScript files pass"
 
 # ── Dotter config ──
 
