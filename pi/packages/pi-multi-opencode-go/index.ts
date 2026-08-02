@@ -1,6 +1,11 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { loadAccounts } from "./lib/accounts.ts";
-import { FETCH_INTERVAL_MS, PROVIDER } from "./lib/constants.ts";
+import {
+  AUTO_CONTINUE_ENABLED,
+  AUTO_CONTINUE_PROMPT,
+  FETCH_INTERVAL_MS,
+  PROVIDER,
+} from "./lib/constants.ts";
 import { fetchAccountUsage } from "./lib/fetch-usage.ts";
 import { formatReset, formatUsageWindow } from "./lib/format.ts";
 import { setActiveAccountLabel, setInitialActiveLabel } from "./lib/globals.ts";
@@ -31,6 +36,11 @@ export default function (pi: ExtensionAPI) {
   let activeAccount: OpenCodeGoAccount | null = null;
   let lastFetch = 0;
   let forceRefresh = false;
+  // Auto-continue state (ROADMAP item 6): armed when a quota/auth error
+  // caused an in-turn account switch; consumed at agent_settled so the retry
+  // fires only after pi's own retry/compaction/queued continuations settled.
+  let pendingSwitchRetry = false;
+  let currentTurnIndex = 0;
 
   async function refresh(_ctx: ExtensionContext): Promise<void> {
     if (accounts.length === 0) return;
@@ -85,7 +95,8 @@ export default function (pi: ExtensionAPI) {
     await refresh(ctx);
   });
 
-  pi.on("turn_start", async (_event, ctx) => {
+  pi.on("turn_start", async (event, ctx) => {
+    currentTurnIndex = event.turnIndex;
     if (accounts.length === 0) return;
     if (forceRefresh || Date.now() - lastFetch > FETCH_INTERVAL_MS) {
       await refresh(ctx);
@@ -120,6 +131,7 @@ export default function (pi: ExtensionAPI) {
     activeAccount = pickBestAccount(usages, accounts, now);
     publishCoordinationFlags(usages, now, activeAccount);
     setActiveAccountLabel(activeAccount);
+    pendingSwitchRetry = true;
   });
 
   pi.on("message_end", async (event, ctx) => {
@@ -141,6 +153,35 @@ export default function (pi: ExtensionAPI) {
     activeAccount = pickBestAccount(usages, accounts, now);
     publishCoordinationFlags(usages, now, activeAccount);
     setActiveAccountLabel(activeAccount);
+    pendingSwitchRetry = true;
+  });
+
+  // Safe auto-continue: fires only when a switch happened this run, an
+  // alternate account is available, and the run has fully settled (pi's own
+  // auto-retry already ran its budget). Sends a user-level retry prompt via
+  // followUp so it queues cleanly; cleared immediately to guarantee at most
+  // one auto-continue per error.
+  pi.on("agent_settled", async (_event, ctx) => {
+    if (!pendingSwitchRetry) return;
+    // Consume immediately (synchronously) so a re-entrant agent_settled can
+    // never double-fire, and a stale flag can't survive into a later turn.
+    pendingSwitchRetry = false;
+    if (!AUTO_CONTINUE_ENABLED) return;
+    const g = globalThis as Record<string, unknown>;
+    if (g.__opencode_go_all_exhausted === true) {
+      log(
+        `auto-continue skipped turn=${currentTurnIndex}: all accounts exhausted`,
+      );
+      return;
+    }
+    if (!ctx.isIdle()) {
+      log(
+        `auto-continue turn=${currentTurnIndex}: agent not idle, queueing via followUp`,
+      );
+    } else {
+      log(`auto-continue turn=${currentTurnIndex}: queueing retry prompt`);
+    }
+    await pi.sendUserMessage(AUTO_CONTINUE_PROMPT, { deliverAs: "followUp" });
   });
 
   pi.registerCommand("opencode-accounts", {
@@ -229,6 +270,28 @@ export default function (pi: ExtensionAPI) {
         setActiveAccountLabel(next);
         ctx.ui.notify(`Switched to OpenCode Go account: ${next.label}`, "info");
       }
+    },
+  });
+
+  // Debug harness for the auto-continue spike: arms the switch-retry flag so
+  // the next agent_settled runs the real auto-continue path (same code as a
+  // genuine quota-error switch). No args = arm, "status" = show flag state.
+  pi.registerCommand("opencode-autocontinue-test", {
+    description:
+      "Debug: arm the auto-continue-after-switch retry (next agent_settled fires it)",
+    handler: async (args, ctx) => {
+      const sub = args.trim().toLowerCase();
+      if (sub === "status") {
+        ctx.ui.notify(
+          `auto-continue: enabled=${AUTO_CONTINUE_ENABLED} pending=${pendingSwitchRetry}`, "info",
+        );
+        return;
+      }
+      pendingSwitchRetry = true;
+      log(`auto-continue armed by debug command (turn=${currentTurnIndex})`);
+      ctx.ui.notify(
+        "Armed auto-continue — send a normal prompt; when it settles, a retry turn will auto-queue", "info",
+      );
     },
   });
 }
