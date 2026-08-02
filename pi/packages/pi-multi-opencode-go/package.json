@@ -1,0 +1,47 @@
+{
+  "name": "@juanbenjumea/pi-multi-opencode-go",
+  "version": "0.1.1",
+  "description": "Multi-account failover and rotation for the OpenCode Go provider in Pi.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Juan Benjumea",
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "opencode",
+    "opencode-go",
+    "failover",
+    "multi-account",
+    "coding-agent"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/juanbenjumea/dotfiles.git",
+    "directory": "pi/packages/pi-multi-opencode-go"
+  },
+  "bugs": {
+    "url": "https://github.com/juanbenjumea/dotfiles/issues"
+  },
+  "homepage": "https://github.com/juanbenjumea/dotfiles/tree/main/pi/packages/pi-multi-opencode-go#readme",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": ">=0.80.0"
+  },
+  "dependencies": {
+    "@juanbenjumea/opencode-go-usage": "file:../opencode-go-usage"
+  },
+  "files": [
+    "index.ts",
+    "lib/",
+    "README.md",
+    "LICENSE",
+    "ROADMAP.md"
+  ]
+}
