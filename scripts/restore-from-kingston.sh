@@ -16,14 +16,13 @@ VOL="/Volumes/KingstonPhotos"
 # Find backup data — supports both old and new layouts
 # New:  /Volumes/KingstonPhotos/projects/backup-<host>-<date>/
 # Old:  /Volumes/KingstonPhotos/projects/agent-state/  + root-level files
-if ls "$VOL/projects/backup-"* >/dev/null 2>&1; then
+if compgen -G "$VOL/projects/backup-"* >/dev/null 2>&1; then
     # New timestamped backup dir — use the latest one
-    BACKUP=$(ls -dt "$VOL/projects/backup-"* 2>/dev/null | head -1)
+    BACKUP=$(find "$VOL/projects" -maxdepth 1 -type d -name 'backup-*' -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
     echo "  📂 Using backup: $(basename "$BACKUP")"
     KEYS="$BACKUP/keys"
     AGENTS="$BACKUP"
     APP_DATA="$BACKUP"
-    HISTORY="$BACKUP"
     PROJECTS_SRC="$BACKUP/projects"
 elif [ -d "$VOL/projects/agent-state" ]; then
     # Old flat layout
@@ -31,10 +30,7 @@ elif [ -d "$VOL/projects/agent-state" ]; then
     KEYS="$VOL/sops"
     AGENTS="$VOL/projects/agent-state"
     APP_DATA="$VOL/projects/agent-state"
-    HISTORY="$VOL"
     PROJECTS_SRC="$VOL/projects"
-    # Old layout has .claude .codex at root
-    OLD_ROOT="$VOL"
 else
     echo "  ❌ No backup found on $VOL"
     echo "     Expected: $VOL/projects/backup-*/ or $VOL/projects/agent-state/"
@@ -196,7 +192,7 @@ if [ -d "$PROJECTS_SRC" ]; then
     for dir in "$PROJECTS_SRC"/*/; do
         name=$(basename "$dir")
         [ "$name" = "agent-state" ] && continue
-        [ "$name" = "backup-"* ] && continue
+        [[ "$name" == "backup-"* ]] && continue
         [ "$name" = ".DS_Store" ] && continue
         target="$HOME/projects/$name"
         if [ -d "$target" ]; then

@@ -31,7 +31,7 @@ if command -v npm &>/dev/null; then
             info "✅ $pkg already installed"
         else
             info "Installing $pkg..."
-            npm install -g "$pkg" 2>/dev/null && info "  ✅ $pkg" || warn "Failed to install $pkg"
+            if npm install -g "$pkg" 2>/dev/null; then info "  ✅ $pkg"; else warn "Failed to install $pkg"; fi
         fi
     done
 else
@@ -52,7 +52,7 @@ if command -v pnpm &>/dev/null; then
             info "✅ $pkg already installed (pnpm)"
         else
             info "Installing $pkg via pnpm..."
-            pnpm add -g "$pkg" 2>/dev/null && info "  ✅ $pkg" || warn "Failed to install $pkg via pnpm"
+            if pnpm add -g "$pkg" 2>/dev/null; then info "  ✅ $pkg"; else warn "Failed to install $pkg via pnpm"; fi
         fi
     done
 else
@@ -72,7 +72,7 @@ if command -v uv &>/dev/null; then
             info "✅ $tool already installed (uv)"
         else
             info "Installing $tool via uv..."
-            uv tool install "$tool" 2>/dev/null && info "  ✅ $tool" || warn "Failed to install $tool"
+            if uv tool install "$tool" 2>/dev/null; then info "  ✅ $tool"; else warn "Failed to install $tool"; fi
         fi
     done
 else

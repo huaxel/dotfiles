@@ -17,7 +17,7 @@ DEST="$VOL/projects/backup-$HOST-$DATE"
 info()  { echo "  $*"; }
 ok()    { echo "  ✅ $*"; }
 warn()  { echo "  ⚠️  $*"; }
-backup() { cp -R "$1" "$DEST/$2" 2>/dev/null && ok "$3" || warn "Failed: $3"; true; }
+backup() { if cp -R "$1" "$DEST/$2" 2>/dev/null; then ok "$3"; else warn "Failed: $3"; fi; true; }
 backup_dir() {
   mkdir -p "$(dirname "$DEST/$2")" 2>/dev/null
   if rsync -a --ignore-errors "$1"/ "$DEST/$2"/ 2>/dev/null; then
@@ -91,7 +91,7 @@ fi
 # OpenCodeBar (single binary) + CodexBar
 if [ -f ~/.local/bin/opencodebar ]; then
     mkdir -p "$DEST/opencodebar" 2>/dev/null
-    cp ~/.local/bin/opencodebar "$DEST/opencodebar/opencodebar" 2>/dev/null && ok "OpenCodeBar" || warn "Failed: OpenCodeBar"
+    if cp ~/.local/bin/opencodebar "$DEST/opencodebar/opencodebar" 2>/dev/null; then ok "OpenCodeBar"; else warn "Failed: OpenCodeBar"; fi
 elif [ -d ~/.local/bin/opencodebar ]; then
     backup_dir ~/.local/bin/opencodebar opencodebar "OpenCodeBar"
 fi
@@ -151,7 +151,7 @@ if [ -d "$MC_DIR/saves" ]; then
     MC_DEST="$DEST/minecraft"
     mkdir -p "$MC_DEST" 2>/dev/null
     rsync -a "$MC_DIR/saves"/ "$MC_DEST/saves"/ 2>/dev/null; rc1=$?
-    [ "$rc1" -eq 0 ] || [ "$rc1" -eq 23 ] || [ "$rc1" -eq 24 ] && ok "Minecraft worlds ($(du -sh "$MC_DIR/saves" | cut -f1))" || warn "Minecraft worlds backup had issues"
+    if [ "$rc1" -eq 0 ] || [ "$rc1" -eq 23 ] || [ "$rc1" -eq 24 ]; then ok "Minecraft worlds ($(du -sh "$MC_DIR/saves" | cut -f1))"; else warn "Minecraft worlds backup had issues"; fi
     
     for cfg in launcher_accounts.json launcher_profiles.json options.txt servers.dat; do
         [ -f "$MC_DIR/$cfg" ] && cp -n "$MC_DIR/$cfg" "$MC_DEST/$cfg" 2>/dev/null
