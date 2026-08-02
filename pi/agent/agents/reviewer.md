@@ -3,10 +3,8 @@ name: reviewer
 description: Code review specialist for quality and security analysis.
 tools: read, grep, find, ls
 model: openai-codex/gpt-5.6-luna
-fallbackModels:
-  - cursor/composer-2.5
-  - cursor/grok-4.5
-maxRuntimeMs: 600000
+thinking: high
+session-mode: lineage-only
 auto-exit: true
 spawning: false
 ---

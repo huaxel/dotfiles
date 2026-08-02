@@ -3,21 +3,7 @@
   "theme": "ghostty-sync-b59692fc",
   "defaultProvider": null,
   "defaultModel": null,
-  "subagents": {
-    "defaultModel": "opencode-go/deepseek-v4-flash",
-    "agentOverrides": {
-      "worker": {
-        "model": "opencode-go/deepseek-v4-flash"
-      },
-      "disciplined-worker": {
-        "model": "opencode-go/deepseek-v4-flash"
-      },
-      "reviewer": {
-        "model": "opencode-go/deepseek-v4-pro"
-      }
-    }
-  },
-  "defaultThinkingLevel": "high",
+  "defaultThinkingLevel": "max",
   "enabledModels": [
     "openai-codex/gpt-5.6-sol",
     "openai-codex/gpt-5.6-luna",
@@ -80,14 +66,8 @@
     "npm:@amaster.ai/pi-computer-use",
     "npm:pi-cursor-sdk",
     "npm:@ogulcancelik/pi-session-recall",
-    {
-      "source": "npm:@ogulcancelik/pi-codex-subagents",
-      "extensions": [
-        "-index.ts"
-      ]
-    },
-    "npm:pi-herdr-subagents",
     "npm:pi-ask-herdr",
+    "npm:pi-herdr-subagents",
     "npm:@ogulcancelik/pi-codex-compaction",
     "npm:@tifan/pi-rename",
     "npm:pi-eta",
