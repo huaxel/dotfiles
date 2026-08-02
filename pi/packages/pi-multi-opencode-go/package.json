@@ -4,6 +4,9 @@
   "description": "Multi-account failover and rotation for the OpenCode Go provider in Pi.",
   "type": "module",
   "license": "MIT",
+  "scripts": {
+    "test": "node --experimental-strip-types --test tests/*.test.ts"
+  },
   "author": "Juan Benjumea",
   "keywords": [
     "pi-package",
