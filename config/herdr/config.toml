@@ -68,4 +68,7 @@ command = "herdr plugin action invoke open-file-viewer-tab --plugin herdr-file-v
 delivery = "terminal"
 
 [experimental]
+# Experimental local Kitty graphics rendering for attached clients.
+# Requires a Kitty graphics-compatible outer terminal.
+kitty_graphics = true
 pane_history = false
