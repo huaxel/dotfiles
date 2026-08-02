@@ -131,6 +131,27 @@ check-ts:
 pi-install:
     npm install
 
+# Sync pi extensions from the dotfiles repo to the auto-discovery dir
+# (~/.pi/agent/extensions). Run after changing pi/agent/extensions/*.ts,
+# or call just ci afterwards to re-lint. herdr-managed files are left alone.
+pi-sync-extensions:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    src="pi/agent/extensions"
+    dst="$HOME/.pi/agent/extensions"
+    mkdir -p "$dst"
+    synced=0
+    for f in "$src"/*.ts; do
+        name=$(basename "$f")
+        case "$name" in
+            herdr-agent-state.ts|herdr-omp-agent-state.ts) echo "  ↪ skipping herdr-managed: $name"; continue ;;
+        esac
+        cp "$f" "$dst/$name"
+        echo "  ✅ $name"
+        synced=$((synced + 1))
+    done
+    echo "Synced $synced extensions to $dst (reload pi with /reload to pick them up)"
+
 # Test and verify pi-multi-opencode-go npm package
 pi-test-multi-opencode-go:
     #!/usr/bin/env bash
