@@ -106,3 +106,12 @@
 
 - `/opencode-autocontinue-test` armed at 12:57:11 (turn=0); `agent_settled` queued the retry at 12:59:53 (`auto-continue turn=16: queueing retry prompt`); the prompt landed as a real user turn that woke the agent — full chain works in production (arm → agent_settled → sendUserMessage → new turn).
 - Observation: `turnIndex` is session-file-cumulative (survives reload; closure starts at 0) — arming logged turn=0, firing logged turn=16. Cosmetic; logging only.
+
+## 2026-08-02 follow-up: overnight-resume (wait for earliest reset) implemented
+
+- `lib/resume.ts` scheduler (injectable clock/timer) + wiring: armed on quota exhaustion when ALL accounts on cooldown, fires ONE nudge retry at earliest reset + 5s grace, once per cycle; reset on recovery/`/opencode-failover reset`.
+- `__opencode_go_earliest_reset` coordination flag published; `/opencode-failover` shows `earliest_reset=… resume=armed|fired`.
+- Test seam added: extension factory now takes optional `deps {now,setTimer,clearTimer}`; shared `tests/harness.ts` (fake pi + fetch stub + temp agent dir + fake clock). All test boots inject the fake clock — a real `setTimeout` would keep the node --test process alive forever (caught live: first run hung; "takes forever" was this).
+- Flaky-test lesson: fake clock based on `Date.now()` drifts between calls → exact `remainingMs()` assertions failed intermittently; fixed by injectable fixed base for pure unit tests.
+- Seam mismatch found: extension computes exhaustion with real `Date.now()` while the scheduler uses injected time — recovery can only be observed via cooldowns clearing (state file/clearCooldowns), not fake-time advance. Documented; keep the scheduler's time source the only fake one.
+- Limitation documented: in-process scheduler — no cross-restart persistence (pi must stay open across the cooldown).
