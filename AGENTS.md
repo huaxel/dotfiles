@@ -14,6 +14,16 @@ Every project has a standalone `AGENTS.md` covering:
 - **Deployment** — `git push` to acerpepe / liedelpi servers
 - **Agent tools** — small scripts in `bin/` that agents build as they go
 
+## Secrets hygiene
+
+- `~/.npmrc` is a **symlink to `npmrc`** (git-tracked) — never put registry
+tokens there; they'd get committed and GitHub push protection will reject the
+push. Registry auth lives in `.npmrc` (root, gitignored) which npm picks up by
+walking up from any package dir under this repo.
+- npm publish auth: granular access token with **Bypass 2FA** enabled, `Read and
+write` on all packages, max 90-day lifetime. The `just pi-publish-*` recipes
+need nothing extra once `.npmrc` holds the token.
+
 ## Cross-project patterns (shared docs)
 
 These live in `$HOME/dotfiles/docs/patterns/` and are referenced by project
