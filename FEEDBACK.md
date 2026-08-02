@@ -122,3 +122,8 @@
 - Shared fetch: opencode-go-usage@0.1.1 adds lib/fetch.ts fetchDashboardUsage (timeout, injectable fetchImpl, auth-expired, never throws). Extension fetch-usage.ts wraps it; footer drops 3 duplicated helpers + UA const (~90 lines removed). Behavior note: footer previously used redirect:"error" (invalid cookie → "fetch failed"); now follows redirects → "auth-expired", matching the extension.
 - Published + verified via curl packument (npm view 404 lag): opencode-go-usage@0.1.1, pi-multi-opencode-go@0.1.3 (also carries auto-continue + overnight resume + dedup), pi-dynamic-footer@0.1.6. Tarball check: lib/fetch.ts ships.
 - Tooling gap noted: footer + usage packages have no strict-tsc baseline (no tsconfig/@types/node in their dirs; deno gate is syntax-only). Extension stays strict-tsc clean. Adding @types/node devDeps there is optional cleanup, not required for correctness (all runtime suites green).
+
+## 2026-08-02 follow-up: footer all-exhausted display + models catalog tracked
+
+- pi-dynamic-footer@0.1.7: fetchOpencodeGoUsage now reads __opencode_go_all_exhausted + __opencode_go_earliest_reset (extension coordination flags) — when every account is on cooldown it returns provider "opencode-go (all exhausted)" with a full Cooldown window showing the earliest reset countdown (falls back to label-only when earliest is absent). 3 new tests via fetchQuota("opencode-go") with temp-agent-dir auth fixture + fetch stub (15/15 footer suite). Published + verified (0.1.7; registry edge lag showed stale latest for ~8s).
+- Committed pi/agent/commandcode-models.json (f4e2334) — benign generated model catalog (355 lines), now tracked.
