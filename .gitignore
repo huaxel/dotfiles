@@ -63,6 +63,12 @@ local/
 # Pi subagents runtime artifacts
 .pi-subagents/
 
+# Pi goal/session runtime artifacts (machine-local: pids, instance ids)
+.pi-glla/
+
+# Pi agent machine-local settings (not shared across machines)
+pi/agent/pi-goal.json
+
 # Nested git repos (pi extensions cloned separately)
 
 # ─────────────────────────────────────────────────────────────
