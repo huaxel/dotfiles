@@ -7,8 +7,7 @@ include ~/.config/sway/config.d/*
 # Bluetooth Manager (Modifier + B)
 bindsym $mod+b exec ~/.config/sway/scripts/wofi-bluetooth.sh
 
-# Status Bar (use Waybar as swaybar replacement)
-exec waybar
+# Status Bar — waybar is launched from 07-autostart.conf (not here, to avoid duplicates)
 exec systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP DISPLAY XDG_SESSION_TYPE
 exec dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP DISPLAY XDG_SESSION_TYPE
 

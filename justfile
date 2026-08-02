@@ -71,7 +71,7 @@ check-sh:
             echo "  ❌ $f has issues"
             errors=$((errors + 1))
         fi
-    done < <(find . \( -path ./node_modules -o -path ./pi/agent/npm/node_modules -o -path ./.git -o -path ./.dotter/cache \) -prune -o -type f \( -name '*.sh' -o -name '*.bash' \) -print 2>/dev/null | sort || true)
+    done < <(find . \( -path ./node_modules -o -path ./pi/agent/npm/node_modules -o -path ./pi/agent/git -o -path ./pi/agent/herdr-plugins -o -path ./pi_npm/node_modules -o -path ./.git -o -path ./.dotter/cache \) -prune -o -type f \( -name '*.sh' -o -name '*.bash' \) -print 2>/dev/null | sort || true)
     echo "  Checked $count shell scripts"
     if [ "$errors" -gt 0 ]; then echo "  ❌ $errors files have issues"; exit 1; fi
     echo "  ✅ All shell scripts pass ShellCheck"
@@ -215,8 +215,19 @@ check-dotter:
             echo "  ✅ dotter deploy --dry-run OK (up to date)"
         fi
     else
-        echo "$output" | sed 's/^/    /'
-        echo "  ❌ dotter deploy --dry-run failed"; exit 1
+        # Tolerate the known machine-local gitconfig divergence (e.g. git-lfs filter
+        # added by `git lfs install`): dotter refuses to overwrite a locally-edited
+        # gitconfig and exits non-zero. Only treat it as failure if OTHER errors exist.
+        if echo "$output" | grep -E '\[ERROR\]' | grep -vE 'gitconfig|Some files were skipped' | grep -q .; then
+            echo "$output" | sed 's/^/    /'
+            echo "  ❌ dotter deploy --dry-run failed"; exit 1
+        elif echo "$output" | grep -q '\[ERROR\]'; then
+            echo "  ⚠️  gitconfig locally modified (machine-local, e.g. git-lfs) — dotter skips it"
+            echo "  ✅ dotter deploy --dry-run OK (gitconfig divergence only)"
+        else
+            echo "$output" | sed 's/^/    /'
+            echo "  ❌ dotter deploy --dry-run failed"; exit 1
+        fi
     fi
     # 5. Pre/post deploy hook syntax
     for hook in .dotter/pre_deploy.sh .dotter/post_deploy.sh; do

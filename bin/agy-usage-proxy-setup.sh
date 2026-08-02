@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2024,SC2317  # sudo tee is intentional; function invoked indirectly
 # agy-usage-proxy-setup.sh — Install/update the agy usage interceptor on any machine.
 #
 # Run this once on each machine where you use `agy`:
@@ -123,7 +124,7 @@ if [ ! -f "$MITM_CERT" ] || [ ! -s "$MITM_CERT" ]; then
   mitmdump --listen-port 8081 --set block_global=false &
   PID=$!
   # Wait up to 10s for the cert file to appear and be non-empty
-  for i in $(seq 1 20); do
+  for _ in $(seq 1 20); do
     if [ -s "$MITM_CERT" ]; then break; fi
     sleep 0.5
   done

@@ -10,7 +10,7 @@
 #   SKIP_MACOS_DEFAULTS=1 don't apply macOS system defaults
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+cd "$SCRIPT_DIR" || exit 1
 
 # Clear stale env vars from Homebrew pi wrapper (migrated to pnpm global)
 unset PI_SKIP_VERSION_CHECK
@@ -158,7 +158,8 @@ case "$OS" in
         else
             # Trust any taps in the Brewfile (e.g. steipete/tap for codexbar)
             grep '^tap ' "$BREWFILE" 2>/dev/null | while IFS= read -r tap_line; do
-                tap="$(echo "$tap_line" | sed "s/^tap \"\(.*\)\"/\1/")"
+                tap="${tap_line#tap \"}"
+                tap="${tap%\"}"
                 brew trust "$tap" 2>/dev/null || true
             done
 
@@ -199,8 +200,9 @@ case "$OS" in
                 age gnupg sops
                 make curl wget tree htop
             )
-            extra=($(pacman -Qi git-lfs &>/dev/null || echo "git-lfs"))
-            extra+=($(pacman -Qi usage &>/dev/null || echo "usage"))
+            extra=()
+            pacman -Qi git-lfs &>/dev/null || extra+=("git-lfs")
+            pacman -Qi usage &>/dev/null || extra+=("usage")
 
             missing=()
             for pkg in "${packages[@]}" "${extra[@]}"; do
