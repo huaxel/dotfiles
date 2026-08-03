@@ -87,12 +87,23 @@ interface WorstWindow {
 	resetsAt: string | null;
 }
 
+interface SlotsCtx {
+	modelRegistry: { find: (provider: string, model: string) => unknown };
+	sessionManager: { getEntries: () => unknown[] };
+	ui: {
+		notify: (message: string, kind?: string) => void;
+		setStatus?: (key: string, value: unknown) => void;
+	};
+}
+
 interface QuotaState {
 	data: Record<string, WorstWindow> | null;
 	readAt: number;
 }
 
-function worstWindow(wins: any[] | undefined): WorstWindow | null {
+function worstWindow(
+	wins: Array<{ usedPercent?: number; label?: string; resetsAt?: string | null }> | undefined,
+): WorstWindow | null {
 	if (!wins?.length) return null;
 	let worst = wins[0];
 	for (const w of wins) {
@@ -119,7 +130,9 @@ function readQuota(force = false): Record<string, WorstWindow> | null {
 		}
 		const raw = JSON.parse(readFileSync(QUOTA_FILE, "utf8"));
 		const out: Record<string, WorstWindow> = {};
-		for (const [p, d] of Object.entries(raw.paths || {}) as any) {
+		for (const [p, d] of Object.entries(raw.paths || {}) as Array<
+			[string, { windows?: Array<{ usedPercent?: number; label?: string; resetsAt?: string | null }> }],
+		>) {
 			const w = worstWindow(d.windows);
 			if (w) out[p] = w;
 		}
@@ -169,11 +182,11 @@ const QUOTA_ERROR_RE =
 
 /** OpenCode Go failover extension sets this when another Go sub is still usable. */
 function opencodeGoHasAlternate(): boolean {
-	return (globalThis as any).__opencode_go_has_fallback === true;
+	return (globalThis as Record<string, unknown>).__opencode_go_has_fallback === true;
 }
 
 /** Whether a model is registered/enabled in pi's model registry. */
-function isRegistered(entry: ModelEntry, ctx: any): boolean {
+function isRegistered(entry: ModelEntry, ctx: SlotsCtx | undefined): boolean {
 	try {
 		return !!ctx?.modelRegistry?.find(entry.provider, entry.model);
 	} catch {
@@ -204,13 +217,16 @@ export default function (pi: ExtensionAPI) {
 	}
 
 	async function switchModel(
-		ctx: any,
+		ctx: SlotsCtx,
 		slotName: string,
 		index: number,
 	): Promise<boolean> {
 		const entry = SLOTS[slotName]?.models[index];
 		if (!entry) return false;
-		const m = ctx.modelRegistry.find(entry.provider, entry.model);
+		const m = ctx.modelRegistry.find(
+			entry.provider,
+			entry.model,
+		) as Parameters<typeof pi.setModel>[0] | undefined;
 		if (!m || !(await pi.setModel(m))) return false;
 		pi.setThinkingLevel(SLOTS[slotName].thinkingLevel);
 		slot = slotName;
@@ -231,11 +247,15 @@ export default function (pi: ExtensionAPI) {
 	}
 
 	/** Restore slot state from the most recent persisted entry. */
-	function restore(ctx: any): void {
+	function restore(ctx: SlotsCtx): void {
 		try {
 			const entries = ctx.sessionManager.getEntries();
 			for (let i = entries.length - 1; i >= 0; i--) {
-				const e: any = entries[i];
+				const e = entries[i] as {
+					type?: string;
+					customType?: string;
+					data?: { slot?: unknown };
+				};
 				if (e?.type === "custom" && e.customType === CUSTOM_TYPE && e.data) {
 					const s = typeof e.data.slot === "string" ? e.data.slot : undefined;
 					const idx = Number.isFinite(e.data.modelIdx) ? Number(e.data.modelIdx) : 0;
@@ -263,7 +283,7 @@ export default function (pi: ExtensionAPI) {
 	const STATUS_KEY = "slot";
 
 	/** Footer indicator: shows active slot + model, or clears it. */
-	function updateFooter(ctx: any): void {
+	function updateFooter(ctx: SlotsCtx | undefined): void {
 		try {
 			if (!slot || !slotOwnsModel) {
 				ctx?.ui?.setStatus(STATUS_KEY, undefined);
@@ -282,7 +302,7 @@ export default function (pi: ExtensionAPI) {
 		}
 	}
 
-	function showTable(ctx: any, quota: Record<string, WorstWindow> | null) {
+	function showTable(ctx: SlotsCtx, quota: Record<string, WorstWindow> | null) {
 		const lines: string[] = [];
 		for (const [s, entry] of Object.entries(SLOTS)) {
 			const active = s === slot ? "→" : " ";
@@ -303,7 +323,7 @@ export default function (pi: ExtensionAPI) {
 	}
 
 	/** Detailed per-model status across all slots. */
-	function showStatus(ctx: any, quota: Record<string, WorstWindow> | null) {
+	function showStatus(ctx: SlotsCtx, quota: Record<string, WorstWindow> | null) {
 		const lines: string[] = ["── slots status ──"];
 		for (const [s, entry] of Object.entries(SLOTS)) {
 			lines.push(`▸ ${s} — ${entry.description}`);
@@ -337,7 +357,7 @@ export default function (pi: ExtensionAPI) {
 		slotName: string,
 		fromIdx: number,
 		quota: Record<string, WorstWindow> | null,
-		ctx: any,
+		ctx: SlotsCtx | undefined,
 	): { idx: number; entry: ModelEntry } | null {
 		const models = SLOTS[slotName].models;
 		for (let step = 1; step <= models.length; step++) {
@@ -363,7 +383,7 @@ export default function (pi: ExtensionAPI) {
 	function bestAvailable(
 		slotName: string,
 		quota: Record<string, WorstWindow> | null,
-		ctx: any,
+		ctx: SlotsCtx | undefined,
 	): { idx: number; entry: ModelEntry } | null {
 		const models = SLOTS[slotName].models;
 		let best: { idx: number; entry: ModelEntry; pct: number } | null = null;
@@ -461,7 +481,7 @@ export default function (pi: ExtensionAPI) {
 	 * current slot. Deduped so a retry storm doesn't cascade multiple switches.
 	 * Returns true if a fallback was actually switched to.
 	 */
-	async function failOver(entry: ModelEntry, ctx: any): Promise<boolean> {
+	async function failOver(entry: ModelEntry, ctx: SlotsCtx): Promise<boolean> {
 		if (entry.provider === "opencode-go" && opencodeGoHasAlternate()) {
 			return false;
 		}
@@ -503,7 +523,11 @@ export default function (pi: ExtensionAPI) {
 
 	// Detect quota exhaustion on the active slot model and auto-cycle.
 	pi.on("message_end", async (event, ctx) => {
-		const message = event.message as any;
+		const message = event.message as {
+			role?: string;
+			stopReason?: string;
+			errorMessage?: string;
+		};
 		if (message?.role !== "assistant") return;
 		if (message?.stopReason !== "error") return;
 		if (!slot || !slotOwnsModel) return;
@@ -522,7 +546,7 @@ export default function (pi: ExtensionAPI) {
 
 	// If the user changes model via /model or Ctrl+P, stop injecting the slot
 	// prompt — it no longer describes the active model's role.
-	pi.on("model_select", async (event, ctx) => {
+	pi.on("model_select", (event, ctx) => {
 		if (event.source === "restore") {
 			// On session restore, let restore() reconcile ownership instead.
 			return;
@@ -536,7 +560,7 @@ export default function (pi: ExtensionAPI) {
 		updateFooter(ctx);
 	});
 
-	pi.on("session_start", async (_event, ctx) => {
+	pi.on("session_start", (_event, ctx) => {
 		restore(ctx);
 		updateFooter(ctx);
 	});
