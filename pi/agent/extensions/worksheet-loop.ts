@@ -89,7 +89,7 @@ export default function (pi: ExtensionAPI) {
   // end event lacks the input fields.
   const armedPaths = new Map<string, string>();
 
-  pi.on("tool_call", async (event) => {
+  pi.on("tool_call", (event) => {
     if (!event.toolName || !["write", "edit"].includes(event.toolName)) return;
     const args = (event.input ?? {}) as Record<string, unknown>;
     const targetPath = (args.path ?? args.file ?? "") as string;
@@ -99,7 +99,7 @@ export default function (pi: ExtensionAPI) {
     }
   });
 
-  pi.on("tool_execution_end", async (event) => {
+  pi.on("tool_execution_end", (event) => {
     if (!event.toolName || !["write", "edit"].includes(event.toolName)) return;
     const armedPath = armedPaths.get(event.toolCallId);
     if (armedPath) {
@@ -126,7 +126,7 @@ export default function (pi: ExtensionAPI) {
     }
   }
 
-  pi.on("before_agent_start", async (event) => {
+  pi.on("before_agent_start", (event) => {
     const instructions = loadSkillContent();
     if (instructions) {
       event.systemPrompt += `\n\n${instructions}`;
@@ -135,7 +135,7 @@ export default function (pi: ExtensionAPI) {
 
   // ── watch .worksheets/ for human edits ──────────────────────────────────
 
-  pi.on("session_start", async (_event, ctx) => {
+  pi.on("session_start", (_event, ctx) => {
     const worksheetsAbs = path.resolve(WORKSHEETS_DIR);
 
     // Seed hashes for any existing files so we don't re-inject them

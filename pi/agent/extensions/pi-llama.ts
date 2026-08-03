@@ -253,7 +253,7 @@ async function fetchModels(
   }
 }
 
-async function discover(pi: ExtensionAPI): Promise<DiscoveredModel[] | undefined> {
+function discover(pi: ExtensionAPI): Promise<DiscoveredModel[] | undefined> {
   if (discoveryPromise) return discoveryPromise;
 
   discoveryPromise = (async () => {
@@ -303,11 +303,7 @@ async function postLlama(
   }
 }
 
-async function loadModel(modelId: string): Promise<PostResult> {
-  return postLlama("/models/load", { model: modelId });
-}
-
-async function unloadModel(modelId?: string): Promise<PostResult> {
+function unloadModel(modelId?: string): Promise<PostResult> {
   return postLlama("/models/unload", modelId ? { model: modelId } : {});
 }
 
@@ -323,7 +319,7 @@ function findModel(models: DiscoveredModel[], target: string): DiscoveredModel |
 /** Connect to /models/sse for live load progress. */
 async function watchLoadProgress(
   modelId: string,
-  ctx: any,
+  _ctx: unknown,
   loader: Loader,
 ): Promise<AbortController> {
   const abort = new AbortController();
@@ -393,7 +389,7 @@ async function watchLoadProgress(
 /** Fetch /props?model=...&autoload=true and update context window. */
 async function fetchModelProps(
   modelId: string,
-  ctx: any,
+  _ctx: unknown,
   shouldAutoload: boolean,
 ): Promise<{ ok: boolean; nCtx?: number }> {
   const abortController = new AbortController();
@@ -419,7 +415,7 @@ async function fetchModelProps(
 /** Auto-load and discover props for a model. Shows SSE progress if autoloading. */
 async function autoLoadModel(
   modelId: string,
-  ctx: any,
+  _ctx: unknown,
   pi: ExtensionAPI,
 ): Promise<boolean> {
   if (pendingMetadata.has(modelId)) return true;
@@ -517,7 +513,7 @@ async function autoLoadModel(
 
 // ── Extension ────────────────────────────────────────────────────────────
 
-export default async function (pi: ExtensionAPI) {
+export default function (pi: ExtensionAPI) {
   // Register a shell provider immediately so the factory resolves fast.
   registerProvider(pi);
   triggerDiscovery(pi);

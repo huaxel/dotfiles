@@ -131,7 +131,7 @@ export default function (pi: ExtensionAPI) {
 
   pi.registerShortcut("ctrl+shift+r", {
     description: "Prepare /restart command",
-    handler: async (ctx) => {
+    handler: (ctx) => {
       ctx.ui.setEditorText("/restart");
       ctx.ui.notify("Restart ready. Press Enter.", "info");
     },

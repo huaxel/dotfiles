@@ -98,7 +98,7 @@ function toProviderModel(id: string, spec: ModelSpec): ProviderModelConfig {
   };
 }
 
-export default async function (pi: ExtensionAPI) {
+export default function (pi: ExtensionAPI) {
   // Hardcode known models — no startup fetch needed.
   // The model list barely changes; /reload picks up new ones if needed.
   const models: ProviderModelConfig[] = Object.entries(KNOWN_SPECS).map(

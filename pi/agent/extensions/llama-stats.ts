@@ -92,7 +92,12 @@ export default function (pi: ExtensionAPI) {
     ],
   );
 
-  function shouldShowFor(ctx: any): boolean {
+  type StatusCtx = {
+    model?: { provider?: string };
+    ui?: { setWidget: (id: string, widget: unknown) => void };
+  };
+
+  function shouldShowFor(ctx: StatusCtx | undefined): boolean {
     const provider = ctx?.model?.provider ?? "";
     return WATCHED_PROVIDERS.has(provider);
   }
@@ -245,7 +250,7 @@ export default function (pi: ExtensionAPI) {
 
   // ── UI update ────────────────────────────────────────────────────────────
 
-  function updateUI(ctx: any) {
+  function updateUI(ctx: StatusCtx | undefined) {
     try {
       if (!ctx?.ui?.setWidget) {
         return;
@@ -268,7 +273,7 @@ export default function (pi: ExtensionAPI) {
       // gets fresh content on each render cycle.  The simple string-array
       // form can cause the differential renderer to miss updates because
       // it compares stale snapshots.
-      ctx.ui.setWidget("llama-stats", (_tui: any, _theme: any) => ({
+      ctx.ui.setWidget("llama-stats", (_tui: unknown, _theme: unknown) => ({
         render: (width: number) => {
           if (!lastStats || !isActive) return [];
           return formatWidget(lastStats, lastHistory, width);
@@ -276,9 +281,9 @@ export default function (pi: ExtensionAPI) {
         invalidate: () => {},
         dispose: () => {},
       }));
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Stale context after session reload — ignore
-      if (err?.message?.includes("stale")) {
+      if (err instanceof Error && err.message.includes("stale")) {
         return;
       }
       throw err;
@@ -287,7 +292,7 @@ export default function (pi: ExtensionAPI) {
 
   // ── Polling mode ─────────────────────────────────────────────────────────
 
-  async function refresh(ctx: any, signal?: AbortSignal) {
+  async function refresh(_ctx: unknown, signal?: AbortSignal) {
     const stats = await fetchStats(signal);
     // Guard: if polling was stopped while we were in-flight, skip updates
     if (!isPolling) return;
@@ -312,7 +317,7 @@ export default function (pi: ExtensionAPI) {
     }
   }
 
-  async function startPolling(ctx: any) {
+  async function startPolling(ctx: StatusCtx | undefined) {
     await stopPolling();
     isPolling = true;
     bgAbortController = new AbortController();
@@ -347,7 +352,7 @@ export default function (pi: ExtensionAPI) {
 
   // ── SSE reconnection ──────────────────────────────────────────────────
 
-  function scheduleSSEReconnect(ctx: any) {
+  function scheduleSSEReconnect(ctx: StatusCtx | undefined) {
     if (sseRetryTimer || !autoReconnect) return;
     sseRetryTimer = setTimeout(() => {
       sseRetryTimer = null;
@@ -365,7 +370,7 @@ export default function (pi: ExtensionAPI) {
 
   // ── SSE mode ───────────────────────────────────────────────────────────
 
-  async function startSSE(ctx: any) {
+  function startSSE(ctx: StatusCtx | undefined) {
     isActive = true;
     lastStats = null; // clear stale data on reconnect
     try {
