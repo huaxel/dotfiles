@@ -247,6 +247,13 @@
       "maxTokens": 65536
     },
     {
+      "id": "Qwen/Qwen3.8-Max",
+      "name": "Qwen 3.8 Max (CC)",
+      "reasoning": true,
+      "contextWindow": 1000000,
+      "maxTokens": 65536
+    },
+    {
       "id": "stepfun/Step-3.7-Flash",
       "name": "Step 3.7 Flash (CC)",
       "reasoning": true,
