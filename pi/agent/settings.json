@@ -78,5 +78,8 @@
     "npm:pi-eta",
     "npm:pi-ollama-cloud",
     "npm:@narumitw/pi-goal"
+  ],
+  "extensions": [
+    "-extensions/nan.ts"
   ]
 }
