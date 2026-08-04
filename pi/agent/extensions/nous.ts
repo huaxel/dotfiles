@@ -135,8 +135,13 @@ const KNOWN_SPECS: Record<string, ModelSpec> = {
     name: "StepFun Step 3.7 Flash (free)",
     reasoning: true,
     input: ["text", "image"],
+    // Catalog top_provider.max_completion_tokens is 256000, but the endpoint's
+    // total budget (input + output) is also 256000 — a 256k output can never
+    // fit. pi sends max_tokens = contextWindow - prompt - 4096, which exceeds
+    // the total budget and gets rejected (and the unparseable 400 body makes
+    // pi hang instead of erroring). Cap at half the context.
     contextWindow: 262_144,
-    maxTokens: 256_000,
+    maxTokens: 128_000,
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
     thinkingLevelMap: {
       off: "low",
