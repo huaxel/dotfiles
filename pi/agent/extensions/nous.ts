@@ -15,6 +15,11 @@ import type { ExtensionAPI, ProviderModelConfig } from "@earendil-works/pi-codin
  *   1. Get an API key from https://portal.nousresearch.com
  *   2. Export it:  export NOUS_API_KEY="nk-..."
  *   3. Reload pi (/reload) and pick a `nous/*` model via /model.
+ *
+ * Note: paid models (deepseek, inkling) require credits in the account; with a
+ * zero-balance key they fail with a terse `404 status code (no body)` from the
+ * SDK even though the server's real error is a credits warning. The `*:free`
+ * models work with any key.
  */
 
 const BASE_URL = "https://inference-api.nousresearch.com/v1";
@@ -41,6 +46,7 @@ const COMPAT = {
 };
 
 const KNOWN_SPECS: Record<string, ModelSpec> = {
+  // Paid model — requires credits on the account (see header note).
   // The router's standout deal: $0.01/$0.02 per M (9x cheaper than OpenRouter,
   // ~14x cheaper than DeepSeek direct). 1M context, reasoning on by default.
   "deepseek/deepseek-v4-flash-0731": {
@@ -50,8 +56,12 @@ const KNOWN_SPECS: Record<string, ModelSpec> = {
     contextWindow: 1_048_576,
     maxTokens: 65_536,
     cost: { input: 0.01, output: 0.02, cacheRead: 0, cacheWrite: 0 },
-    // Catalog supported_efforts: max, high, low (default high).
+    // Catalog supported_efforts: max, high, low (default high). No "none"/
+    // "off" effort exists and reasoning:false is rejected, so `off` maps to
+    // the lowest supported effort (low) instead of silently falling back to
+    // the default high.
     thinkingLevelMap: {
+      off: "low",
       minimal: "low",
       low: "low",
       medium: "high",
@@ -60,6 +70,7 @@ const KNOWN_SPECS: Record<string, ModelSpec> = {
       max: "max",
     },
   },
+  // Paid model — requires credits on the account (see header note).
   // 1M-context flagship reasoning model (text + image).
   "thinkingmachines/inkling": {
     name: "Thinking Machines Inkling",
@@ -85,7 +96,7 @@ const KNOWN_SPECS: Record<string, ModelSpec> = {
     reasoning: true,
     input: ["text"],
     contextWindow: 262_144,
-    maxTokens: 32_768,
+    maxTokens: 128_000,
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
     // Catalog supported_efforts: high, low, none.
     thinkingLevelMap: {
@@ -104,7 +115,7 @@ const KNOWN_SPECS: Record<string, ModelSpec> = {
     reasoning: true,
     input: ["text"],
     contextWindow: 262_144,
-    maxTokens: 32_768,
+    maxTokens: 128_000,
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
     supportsReasoningEffort: false,
   },
@@ -114,19 +125,21 @@ const KNOWN_SPECS: Record<string, ModelSpec> = {
     reasoning: true,
     input: ["text"],
     contextWindow: 262_144,
-    maxTokens: 32_768,
+    maxTokens: 131_072,
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
     supportsReasoningEffort: false,
   },
-  // Free tier model; reasoning is mandatory (efforts high/medium/low).
+  // Free tier model; reasoning is mandatory (efforts high/medium/low), so
+  // `off` maps to the lowest supported effort (low).
   "stepfun/step-3.7-flash:free": {
     name: "StepFun Step 3.7 Flash (free)",
     reasoning: true,
     input: ["text", "image"],
     contextWindow: 262_144,
-    maxTokens: 32_768,
+    maxTokens: 256_000,
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
     thinkingLevelMap: {
+      off: "low",
       minimal: "low",
       low: "low",
       medium: "medium",
@@ -164,7 +177,7 @@ export default function (pi: ExtensionAPI) {
     baseUrl: BASE_URL,
     apiKey: "$NOUS_API_KEY",
     api: "openai-completions",
-    authHeader: true, // send Authorization: Bearer <key> (not handled by the adapter itself)
+    authHeader: true, // pi sends Authorization: Bearer <key> automatically from $NOUS_API_KEY
     models,
   });
 }
