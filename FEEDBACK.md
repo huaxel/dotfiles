@@ -140,3 +140,7 @@
 - Deploy path confirmed: repo-local `../packages/pi-dynamic-footer` in `pi/agent/settings.json` — no npm publish needed for local use; next pi session picks it up.
 - What was slow: confirming which settings file is live took a few probes (dotfiles `pi/agent/settings.json` vs minimal `~/.pi/agent/settings.json`); the observability history file was the reliable signal that the package loads from the repo path.
 - Note: `just ci` still fails on pre-existing local dotfiles drift (npmrc target not a symlink, gitconfig lfs filter drift) — unrelated to this change; `check-ts` warning is pre-existing in herdr-agent-state.ts.
+
+## 2026-08-05 follow-up: provider moved off the status line
+
+- On narrow terminals the `provider/model` prefix made footer line 1 overflow and the context gauge got right-truncated off. Per user direction, provider is now its own toggleable `provider` segment rendered on the accounting line right next to cost (wide line 2 + narrow-fallback line 3); `modelThink` reverted to bare model + thinking level. Committed 6405661. Lesson: when a status line gets crowded, relocate the new info to a less contended line instead of growing the hottest segment.
