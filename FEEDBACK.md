@@ -144,3 +144,7 @@
 ## 2026-08-05 follow-up: provider moved off the status line
 
 - On narrow terminals the `provider/model` prefix made footer line 1 overflow and the context gauge got right-truncated off. Per user direction, provider is now its own toggleable `provider` segment rendered on the accounting line right next to cost (wide line 2 + narrow-fallback line 3); `modelThink` reverted to bare model + thinking level. Committed 6405661. Lesson: when a status line gets crowded, relocate the new info to a less contended line instead of growing the hottest segment.
+
+## 2026-08-05 follow-up: narrow-screen priority dropping
+
+- Mobile/narrow terminals right-truncated footer line 1, chopping the context gauge (last segment) first. Rewrote defaultAssembler with rank-based dropping: status line drops turn counter then TPS; accounting line drops runtime/pwd/tokens/cache; model, gauge, git, cost and provider always survive, with the model shrunk as last resort so the gauge never disappears. Old 3-line fallback superseded — footer stays 2 lines + bars on small screens. Committed e203c76; 20/20 tests. Lesson: when adding segments, the assembler must degrade by priority, not position.
