@@ -67,7 +67,7 @@
     "npm:@amaster.ai/pi-computer-use",
     "npm:pi-cursor-sdk",
     "npm:@ogulcancelik/pi-session-recall",
-    "npm:pi-ask-herdr",
+    "git:github.com/huaxel/pi-ask-herdr",
     "npm:pi-herdr-subagents",
     "npm:@ogulcancelik/pi-codex-compaction",
     "npm:@tifan/pi-rename",
