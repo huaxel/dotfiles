@@ -133,3 +133,10 @@
 - Traced pi's streaming path end-to-end (sdk.js streamFn → model-runtime prepareRequest → pi-ai openai-responses): `before_provider_headers` (via transformHeaders) fires ONCE per stream call; OpenAI SDK transport retries reuse the prepared headers (stale token after a switch). No per-attempt header hook exists; `before_provider_request` is payload-only.
 - Recovery is correct today via pi's agent-level retry (re-runs the stream → fresh headers → switched account) — auto-continue is the last resort. The item is purely a latency optimization, not implementable extension-side, and global `retry.provider.maxRetries` (no per-provider key) makes a mitigation tradeoff not worth it. Closed with evidence; upstream wish recorded in ROADMAP.
 - Lesson: don't mark items "blocked on internals" on assumption — 10 minutes of source tracing gave a definitive answer and closed the last roadmap item properly.
+
+## 2026-08-05: footer shows provider + /obs dashboard label
+
+- pi-dynamic-footer: `modelThink` segment now renders `provider/model:level` (e.g. `commandcode/claude-sonnet-4-6:med`) instead of dropping `ctx.model.provider`. Added `provider` to `FooterInput`, dedup so inline provider prefixes aren't doubled, legacy short-code fallback when provider unknown, and a shared `modelLabel()` used by the `/obs` dashboard summary too. 3 new tests; 18/18 green. Committed 46a3530, pushed to origin.
+- Deploy path confirmed: repo-local `../packages/pi-dynamic-footer` in `pi/agent/settings.json` — no npm publish needed for local use; next pi session picks it up.
+- What was slow: confirming which settings file is live took a few probes (dotfiles `pi/agent/settings.json` vs minimal `~/.pi/agent/settings.json`); the observability history file was the reliable signal that the package loads from the repo path.
+- Note: `just ci` still fails on pre-existing local dotfiles drift (npmrc target not a symlink, gitconfig lfs filter drift) — unrelated to this change; `check-ts` warning is pre-existing in herdr-agent-state.ts.
