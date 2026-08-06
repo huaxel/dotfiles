@@ -1,0 +1,8 @@
+{
+  "defaultProvider": "opencode-go",
+  "defaultModel": "deepseek-v4-flash",
+  "recentModels": [
+    "opencode-go/deepseek-v4-flash"
+  ],
+  "defaultThinkingLevel": "xhigh"
+}
