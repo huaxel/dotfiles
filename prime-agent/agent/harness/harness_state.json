@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "entries": {
+    "prompt": {},
+    "memory": {
+      "belpolsim/import-time-side-effects": {
+        "id": "belpolsim/import-time-side-effects",
+        "kind": "memory",
+        "title": "BelPolSim: import-time side effects in registration modules",
+        "content": "BelPolSim (huaxel/belpolsim): importing '@/features/shell-logic/logic/registerSystems' runs guarded import-time auto-registration of all 36 systems AND featureBus capabilities (incl. OPPOSITION_FORMATION_SABOTAGE_TICK). The shell-logic barrel deliberately does NOT re-export registerAllSystems — the browser boot registers via src/app/main.tsx (added 2026-08-06), the headless CLI via src/cli/infra/boot.ts. Removing a re-export from any barrel can silently disable boot behavior that depended on the import side effect — when refactoring barrels/exports in this repo, run the Playwright e2e suite (npm run test:e2e), which caught exactly this regression (formation 'Corridor Whispers' spec). Also: e2e tests use dev-hook dispatch with actor:'SYSTEM' (typed GameAction seam since 2026-08-06); 'just ci' is the complete local gate (~60s) and GitHub CI may be disabled (workflow 220090141).",
+        "path": "general",
+        "scope": "global",
+        "reference": {},
+        "arguments": {},
+        "metadata": {},
+        "source": "agent",
+        "created_at": "2026-08-06T07:59:22.802509+00:00",
+        "updated_at": "2026-08-06T07:59:22.802527+00:00",
+        "version": 1
+      },
+      "belpolsim_lie_delpi_deploy_pending": {
+        "id": "belpolsim_lie_delpi_deploy_pending",
+        "kind": "memory",
+        "title": "belpolsim/lie-delpi-deploy-pending",
+        "content": "BelPolSim (huaxel/belpolsim): the `liedelpi` deploy server is OFFLINE and will stay down until the user returns — SSH to liedelpi.bonobo-fort.ts.net times out (confirmed repeatedly: 2026-08-04, 2026-08-06, and again after #1021). Do not attempt `git push liedelpi master` or ping it during a session; a `git push` may even report exit 0 while silently failing (timeout swallowed). The deploy flow is: `git push acerpepe master` (live, verify HTTP 200 at https://acerpepe.bonobo-fort.ts.net:8081) and defer liedelpi until the user is back.",
+        "path": "belpolsim",
+        "scope": "global",
+        "reference": {},
+        "arguments": {},
+        "metadata": {},
+        "source": "agent",
+        "created_at": "2026-08-06T13:02:59.338194+00:00",
+        "updated_at": "2026-08-06T13:02:59.338208+00:00",
+        "version": 1
+      },
+      "belpolsim_events_list_is_an_input_to_rng_consumers_prune_after_the_pipeline": {
+        "id": "belpolsim_events_list_is_an_input_to_rng_consumers_prune_after_the_pipeline",
+        "kind": "memory",
+        "title": "belpolsim events list is an input to RNG consumers — prune after the pipeline",
+        "content": "BelPolSim (huaxel/belpolsim): `globals.events` is NOT a passive log — it feeds RNG-consuming systems. The procedural inbox generator (MorningBriefingSystem -> ProceduralGenerator.balanceAndShuffleInbox) reads events for active crises and the deck/library state evolves with the log, so ANY change to the events list mid-turn changes the number of RNG draws downstream (traced: removing one resolved report event changed the inbox shuffle length by 1 and diverged the seed from turn 5 on). Consequence: event-log GC must run as the LAST TIME-pipeline stage (pruneEvents, TurnPipeline.ts) — never at report generation or mid-pipeline — or every seeded golden run silently shifts. Also: RandomService.nextId() consumes the SAME Mulberry32 stream as next(), so 'cosmetic' id draws affect gameplay randomness; preserving draw COUNT alone is insufficient when the events list itself is an RNG-consumer input. Verified 2026-08-06 in PR #1031 (issues #1014/#1029/#1030).",
+        "path": "general",
+        "scope": "global",
+        "reference": {},
+        "arguments": {},
+        "metadata": {},
+        "source": "agent",
+        "created_at": "2026-08-06T17:27:47.079249+00:00",
+        "updated_at": "2026-08-06T17:27:47.079254+00:00",
+        "version": 1
+      },
+      "belpolsim_pinned_demo_stability_inbox_content_shifts_the_null_bot_hand_hand_rete": {
+        "id": "belpolsim_pinned_demo_stability_inbox_content_shifts_the_null_bot_hand_hand_rete",
+        "kind": "memory",
+        "title": "belpolsim pinned-demo stability: inbox content shifts the null-bot hand (hand retention follows inbox order)",
+        "content": "BelPolSim (huaxel/belpolsim): the seed-pinned balance demos (M27 policy.test.ts \"neglect is fired by turn 25\", #1005/#1009, and the goldens) are sensitive to MORE than the RNG stream. The CLI null bot plays `snap.hand[0]`, and the hand is REBUILT each turn by retention from the inbox (DeckSystem.startNewTurn retains sticky cards in inbox order). ANY content change to the triage inbox (e.g. the #1011 procedural fill drawing from the 75-card library) reorders the retained hand -> the null bot plays a different card -> the whole neglect trajectory shifts (crisis types fired differ, BC bottoms at 13 instead of dying at 0). The 12-turn golden is stream-sensitive too: adding/removing ANY RNG draw (even 'cosmetic' ids) or changing the final inbox-shuffle length (suit top-up count, which depends on fill content) shifts every seeded run. Lesson: content-routing fixes that change the inbox need a deliberate demo re-pin pass, and any fill must keep BOTH zero RNG draws AND the retained-hand order stable (or re-pin consciously). Verified 2026-08-06 on #1010/#1011.",
+        "path": "general",
+        "scope": "global",
+        "reference": {},
+        "arguments": {},
+        "metadata": {},
+        "source": "agent",
+        "created_at": "2026-08-06T19:07:19.815790+00:00",
+        "updated_at": "2026-08-06T19:07:19.815799+00:00",
+        "version": 1
+      }
+    },
+    "skill": {},
+    "subagent": {}
+  },
+  "refinements": []
+}
