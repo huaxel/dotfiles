@@ -72,6 +72,7 @@ set -x EZA_CONFIG_DIR $HOME/.config/eza
 # mapped dir, even gitignored __pycache__). Cache under ~/.cache instead.
 set -x PYTHONPYCACHEPREFIX $HOME/.cache/cpython
 set -x PI_CODING_AGENT_DIR $HOME/dotfiles/pi/agent
+set -x PRIME_AGENT_CODING_AGENT_DIR $HOME/dotfiles/prime-agent/agent
 
 # Fix agy CLI using staging endpoint instead of production
 set -x CLOUD_CODE_URL https://cloudcode-pa.googleapis.com
