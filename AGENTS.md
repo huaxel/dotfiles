@@ -110,3 +110,26 @@ for blocking clarifications, `reason: "interview_request"` for structured
 multi-question answers, and `reason: "progress_update"` for non-blocking
 plan-changing updates.
 </pi-intercom>
+
+## Pi extension loading (2026-08-07)
+
+With `PI_CODING_AGENT_DIR=~/dotfiles/pi/agent` set, pi auto-discovers extensions from
+**both** `~/dotfiles/pi/agent/extensions/*.ts` **and** `~/.pi/agent/extensions/*.ts`.
+Keep them in sync — a file present in only one tree loads from that tree:
+
+- Runtime source of truth: `~/dotfiles/pi/agent/extensions/` (git-tracked).
+- `~/.pi/agent/extensions/` also loads; stale duplicates there are dead weight.
+  (2026-08-07: quarantined `nan.ts` + `herdr-omp-agent-state.ts` → `~/.pi/agent/extensions-quarantine-20260807/`.)
+- `settings.json` `extensions: ["-extensions/nan.ts"]` disables that file (now gone; entry kept for safety).
+
+### llama.cpp — native vs custom
+
+Pi now ships **native llama.cpp support** (`/llama` command, `/login llama.cpp`, `LLAMA_BASE_URL`, HF model download).
+Custom extensions still add value beyond native — do NOT remove blindly:
+
+- `pi-llama.ts` — adds thinking-budget mapping + overflow auto-compaction (native lacks both).
+- `llama-stats.ts` — KV/slot usage monitoring (`/llama-stats`), not in native.
+- `slots.ts` — quota-aware model routing/failover (`/slot`), unrelated to llama. Keep.
+
+When touching llama extensions, prefer native `/llama` for load/unload/download;
+keep the customs only for the extras above.
