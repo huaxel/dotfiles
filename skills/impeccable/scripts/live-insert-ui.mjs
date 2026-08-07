@@ -1,1 +1,0 @@
-/home/juan/dotfiles/skills/impeccable/scripts/live-insert-ui.mjs
