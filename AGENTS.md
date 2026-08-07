@@ -133,3 +133,19 @@ Custom extensions still add value beyond native — do NOT remove blindly:
 
 When touching llama extensions, prefer native `/llama` for load/unload/download;
 keep the customs only for the extras above.
+
+## Skill catalog (2026-08-07)
+
+- **Cloudflare stack** (cloudflare, cloudflare-one, cloudflare-one-migrations, cloudflare-email-service,
+  durable-objects, sandbox-sdk, workers-best-practices, wrangler, turnstile-spin, web-perf) is now
+  **project-scoped to nursultan-web** at `~/.pi/skills/` there (`.pi/skills` in that repo). Do NOT
+  re-add globally — it only applies to nursultan.
+- **`orchestrator` skill parked** at `skills-parked-20260807/orchestrator` — agentq orchestrator is
+  not mature (no `:8090` queue running). The `orchestrator` word in worker.md/reviewer.md refers to
+  the subagent-driver flow, NOT the parked queue skill.
+- On-demand model: pi indexes skill names+descriptions at startup; full SKILL.md loads only when used.
+  Keep the global catalog small (26 skills).
+
+- **`uv` skill (Python tooling) moved to project-atom** `.pi/skills/` — ~99% of uv usage is in atom (its
+  worktrees too). The system prompt still says "prefer uv run over pip" as a general rule; the skill
+  itself lives in atom now.

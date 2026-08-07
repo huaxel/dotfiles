@@ -58,13 +58,13 @@ Building the glossary should be done once you feel confident that the user under
 
 Knowledge and skills usually need to be taught as a 1-2 punch. You teach the knowledge first, then get the user to practice the skills via exercises.
 
-Knowledge should first be gathered from trusted resources, then taught to the user via HTML explainers. These explainers should be beautiful, adhere to the glossary, and be saved to the local file system where they can be reviewed later.
+Knowledge should first be gathered from trusted resources, then taught to the user via explainers. These explainers can be HTML files (beautiful, adhering to the glossary, saved to the local file system so they can be reviewed later) or — when the user prefers — plain-Markdown notes in the workspace.
 
 Explainers should be littered with citations - links to external resources to back up any claim made.
 
 Explainers should be as interactive as possible, with "try this" callouts to let the user try the knowledge.
 
-You should make opening the HTML explainer as easy as possible for the user, ideally with a CLI command they can run.
+You should make opening an HTML explainer as easy as possible for the user, ideally with a CLI command they can run (only when an HTML explainer was chosen).
 
 Once the user has read the knowledge, allow them to ask questions about it. Answer their questions directly, and amend the explainer if needed (or produce another one).
 
@@ -74,8 +74,8 @@ At this point, you can amend the glossary if it appears clear they understand a 
 
 Skills should be taught through interactive exercises. There are several tools at your disposal:
 
-- Interactive HTML explainers, using quizzes and light in-browser exercises
-- HTML explainers which guide the user through a list of real-world steps to take (for instance, yoga poses)
+- HTML explainers (when the user wants them), using quizzes and light in-browser exercises
+- Markdown notes in the workspace (when the user prefers that over HTML)
 - In-agent quizzes, where you ask the user scenario-based questions about what they've learned
 
 Each exercise should be based on a **feedback loop**, where the user receives feedback on their performance. This feedback loop should be as tight as possible, giving feedback immediately.
