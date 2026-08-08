@@ -13,9 +13,8 @@ Run Pi inside Herdr (`HERDR_ENV=1`). Subagents are async: `subagent()` returns i
 **When to delegate**
 
 | Situation | Agent |
-|-----------|--------|
-| General implementation, exploratory fix | `worker` |
-| nursultan-web change that must pass `just quality` / TDD gauntlet | `disciplined-worker` |
+|-----------|-------|
+| General implementation or exploratory fix | `worker` |
 | Code review after non-trivial edits (do not review large diffs yourself) | `reviewer` |
 | Multi-phase feature, unclear requirements | `/plan` or `planner` (interactive pane) |
 | Quick fix with full chat context | `/iterate` |
@@ -24,8 +23,8 @@ Run Pi inside Herdr (`HERDR_ENV=1`). Subagents are async: `subagent()` returns i
 **Parent session rules**
 
 - After spawning subagents, do other independent work or end the turn; do not duplicate the child’s task in the parent.
-- For reviews, pass SHAs or file paths and a short description; let `reviewer` read the code (read-only tools).
-- Do not spawn nested subagents from `worker` or `reviewer` (`spawning: false`). `disciplined-worker` may spawn `reviewer` when the gauntlet requires it.
+- For reviews, pass explicit changed file paths, requirements, and optionally a readable patch artifact. The `reviewer` has read-only file tools and no shell or Git access, so SHAs alone are insufficient.
+- Do not spawn nested subagents from `worker` or `reviewer` (`spawning: false`).
 - Prefer project cwd for nursultan work so children inherit the repo context.
 
-**Global agent definitions:** `$PI_CODING_AGENT_DIR/agents/` (`worker`, `reviewer`, `disciplined-worker` override bundled defaults).
+**Global agent definitions:** `$PI_CODING_AGENT_DIR/agents/` (`worker` and `reviewer` override bundled defaults).

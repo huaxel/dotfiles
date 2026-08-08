@@ -1,7 +1,0 @@
-pyproject.toml
-src/golden_drift/__init__.py
-src/golden_drift.egg-info/PKG-INFO
-src/golden_drift.egg-info/SOURCES.txt
-src/golden_drift.egg-info/dependency_links.txt
-src/golden_drift.egg-info/requires.txt
-src/golden_drift.egg-info/top_level.txt

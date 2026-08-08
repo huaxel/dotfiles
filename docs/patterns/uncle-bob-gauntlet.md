@@ -1,9 +1,9 @@
-# Uncle Bob Gauntlet — Agent Quality Enforcement
+# Uncle Bob Gauntlet — Optional Project Quality Workflow
 
-The gauntlet is a set of **hard mechanical gates** that agents must pass before
-their work is accepted. It is not a skill agents can opt into — it is wired into
-the agent definition itself and enforced by CI. You never read agent code; you
-run the gauntlet.
+The gauntlet is an opt-in set of mechanical checks for projects that configure
+it. It is a project command, not a universal agent requirement or a replacement
+for task-specific judgment. Use the project’s documented verification command
+and report skipped checks explicitly.
 
 ## Philosophy
 
@@ -14,51 +14,36 @@ Agents are fast but sloppy. They ship code you'll never read. The only defense
 is surrounding them with constraints severe enough that passing code is, by
 construction, good enough.
 
-Every gate below is a **binary pass/fail**. An amber/soft-guidance gate is not a
-gate — it's a suggestion the agent will ignore at the worst possible moment.
+Each configured gate should produce an explicit pass, fail, or skipped result.
+A skipped check is visible and requires judgment; it is not silently treated as
+proof of quality.
 
-## The Iron Law of TDD
+## TDD guidance
 
-This is the non-negotiable foundation. An agent **MUST NOT** write production
-code without a failing test first.
-
-```
-Production code exists ONLY to make a failing test pass.
-Tests exist ONLY to drive the next slice of production code.
-```
-
-### Three Laws (Uncle Bob)
-
-| Law | What it means for the agent |
-|-----|---------------------------|
-| 1. You may not write production code unless it is to make a failing unit test pass. | Every `src/` change must be paired with a `test/` change that came FIRST. |
-| 2. You may not write more of a unit test than is sufficient to fail — and compilation failures are failures. | The test must actually fail (red). A test that passes on first run doesn't count. |
-| 3. You may not write more production code than is sufficient to pass the one failing unit test. | No speculative code. No "this might be useful later." |
-
-### Vertical Slices Only
-
-Horizontal slicing (all tests first, then all code) is **forbidden**. It produces
-crap tests that test imagined behavior, not real behavior. The correct sequence:
+For behavior-changing code, prefer a small red-green-refactor loop:
 
 ```
 RED → GREEN → REFACTOR
 test1 → impl1
 test2 → impl2
 test3 → impl3
-...
 ```
 
-One test, one implementation, one refactor. Repeat. Never batch.
+Write one behavior-focused test, make the smallest implementation pass, then
+refactor. Do not batch imagined tests or add speculative code. Docs, config,
+exploration, and other non-behavior changes should use proportionate checks
+instead of being forced through a full TDD ceremony.
 
 ## The Gauntlet Gates
 
-Every gate runs on `just quality`. Any failure blocks the agent from claiming
-completion. Order matters — each gate builds on the previous one.
+Configured gates run through `just quality`. The runner reports all gates and
+exits non-zero when a gate fails; it does not replace project-specific tests or
+make skipped checks equivalent to passing checks.
 
 ### Gate 1: Lint & Format
 
 ```
-just lint
+just quality --gate lint
 ```
 
 - ESLint/Biome/Ruff with zero warnings (not just zero errors)
@@ -71,7 +56,7 @@ just lint
 ### Gate 2: Complexity Budget
 
 ```
-just complexity
+just quality --gate complexity
 ```
 
 Per-module budgets that fail the build:
@@ -90,7 +75,7 @@ Tools: ESLint complexity rules, Radon (Python), cognitive-complexity-ts.
 ### Gate 3: Unit Test Coverage
 
 ```
-just coverage
+just quality --gate coverage
 ```
 
 | Metric | Threshold | Why |
@@ -114,7 +99,7 @@ Exclude patterns must be committed and reviewed:
 ### Gate 4: Mutation Testing
 
 ```
-just mutation
+just quality --gate mutation
 ```
 
 Coverage tells you what ran. Mutation tells you whether the tests actually
@@ -134,7 +119,7 @@ Tools: Stryker (JS/TS), mutmut/cosmic-ray (Python).
 ### Gate 5: BDD / Gherkin Acceptance
 
 ```
-just bdd
+just quality --gate bdd
 ```
 
 Unit tests verify that you built the thing right. BDD verifies that you built
@@ -166,7 +151,7 @@ Tools: Cucumber, Behave (Python), Gauge.
 ### Gate 6: Code Review
 
 ```
-just review
+just quality --gate review
 ```
 
 Every change set goes through an independent reviewer subagent. The reviewer:
@@ -174,21 +159,22 @@ Every change set goes through an independent reviewer subagent. The reviewer:
 - Checks for bugs, security issues, and clean code violations
 - Produces a structured report with severity levels
 
-Reviewer dispatch (from the agent definition):
+Reviewer dispatch:
 ```markdown
 Before claiming completion:
-1. Open a reviewer subagent
-2. Provide: BASE_SHA, HEAD_SHA, description, requirements
+1. Open the read-only `reviewer` subagent
+2. Provide changed file paths, requirements, and optionally a readable patch
 3. Act on Critical and Important issues
-4. Reviewer must return "Ready to proceed"
+4. Run independent verification after review fixes
 ```
 
-The reviewer subagent template lives at `pi/agent/agents/reviewer.md`.
+The reviewer prompt template lives at `skills/requesting-code-review/code-reviewer.md`.
+The configured reviewer has file tools only, so commit SHAs alone are not enough.
 
 ### Gate 7: Verification
 
 ```
-just verify
+just quality --gate verify
 ```
 
 The final gate — the verification-before-completion pattern. The agent must
@@ -199,9 +185,9 @@ NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE
 ```
 
 The agent must:
-1. Run `just quality` (all gates)
-2. Read the full output
-3. Confirm exit code 0
+1. Run the project’s documented quality/verification command
+2. Read the full output, including skips and warnings
+3. Confirm the exit status and relevant requirements
 4. State the result with evidence
 
 No "should pass," "probably fine," "looks good."
@@ -234,51 +220,23 @@ All gates produce a single score:
 └─────────────────────────────────────────┘
 ```
 
-The score is a weighted average of gate results, scaled to 0-100. Below 70
-is a hard fail. 70-84 is "needs improvement" (agent fixes before claiming).
-85+ is "pass."
+The score is a diagnostic summary, not a universal completion threshold.
+The command’s exit status and each gate’s result are authoritative. A skipped
+gate must remain visible in the report and is not evidence that the check passed.
 
 ## Integration with Agents
 
-### Agent Definition (Hard Gate)
+### Agent integration
 
-The `disciplined-worker` agent definition bakes these constraints into every
-prompt. It is NOT a skill — it cannot be unloaded or ignored:
-
-```markdown
-You are a disciplined worker. You MUST follow the Uncle Bob gauntlet.
-
-BEFORE writing ANY code:
-1. Write a failing test
-2. Confirm it fails (red)
-3. Write MINIMAL code to pass it
-4. Confirm it passes (green)
-5. Refactor
-
-BEFORE claiming completion:
-1. Run `just quality`
-2. ALL 7 gates must pass
-3. Quality score must be ≥ 85
-4. Reviewer subagent must approve
-
-You MAY NOT:
-- Write production code without a failing test
-- Write more test than needed to fail
-- Write more code than needed to pass
-- Batch multiple tests before implementation
-- Claim completion without fresh verification
-- Skip any gate for any reason
-```
-
-### Agent Definition File
-
-Create `pi/agent/agents/disciplined-worker.md` with the full constraints.
-Spawn agents using this definition for quality-critical work.
+Use the general `worker` for implementation and the read-only `reviewer` for
+independent review. Apply the gauntlet when the project configures it and the
+change warrants it; do not force TDD or mutation testing onto docs/config work.
 
 ### CI Integration
 
-`just quality` runs every gate in sequence. Fails fast. First failing gate
-stops the pipeline — fix that before moving on.
+`just quality` runs the configured gates in sequence, records failures and
+skips, then exits non-zero if any gate failed. Fix failures and rerun the
+relevant checks before claiming completion.
 
 ```
 just quality          # Run all gates
