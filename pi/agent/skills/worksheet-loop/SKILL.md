@@ -45,9 +45,10 @@ and follows the naming convention `ws-<epoch>-<slug>.md`.
    completed items under `## Progress`, refine next steps, note questions.
 
 3. When the human edits the worksheet and saves, you'll receive a
-   `[Worksheet update]` message.  The **full file content is in that message**
-   — use it directly.  Do NOT call the `read` tool on the file; the content
-   is already in the message.
+   `[Worksheet update]` message that carries the current content. Use it — and
+   read the file to confirm it matches if you're mid-task or the message looks
+   stale. Trust the message for direction; verify against the file before
+   building on it.
 
 4. **Do NOT overwrite** sections the human wrote — add your content underneath
    or alongside theirs (e.g. `## Human notes`).
