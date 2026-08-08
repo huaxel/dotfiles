@@ -70,10 +70,8 @@
     "npm:@ogulcancelik/pi-codex-compaction",
     "npm:@tifan/pi-rename",
     "npm:pi-eta",
-    "npm:pi-ollama-cloud",
     "npm:@narumitw/pi-goal",
-    "npm:pi-next-cue",
-    "npm:pi-meta-oauth"
+    "npm:pi-next-cue"
   ],
   "extensions": [
     "-extensions/nan.ts"
