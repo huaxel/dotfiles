@@ -23,8 +23,7 @@ Give the reviewer only material it can actually read:
 Commit SHAs are useful metadata, but they are not sufficient context: the
 configured reviewer has read-only file tools and no shell/Git access.
 
-Use the project's configured `reviewer` agent/workflow and its dispatch
-contract.
+Use the project's configured `reviewer` agent and its dispatch contract.
 
 ## Dispatch and review
 

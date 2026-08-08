@@ -17,10 +17,9 @@ A repo-local guide exists: `docs/guides/jules-rest-api.md` (nursultan-web).
 
 ## When to use
 
-- User asks to "run/offload a task to Jules", "make Jules do useful stuff",
-  "dispatch Jules", or to review a Jules session/PR.
-- A scoped, bounded task that is mechanical / test-only and reviewable is ideal.
-  Point Jules at the relevant backlog entry / repo docs for setup notes.
+Use when the user asks to run/offload a scoped task to Jules or review a
+Jules session/PR. Ideal: a bounded, mechanical, test-only task you can review
+— point Jules at the backlog entry / repo docs for setup notes.
 
 ## Base + auth — WORKING (verified)
 
@@ -70,16 +69,15 @@ curl -X DELETE -H "$AUTH" "$BASE/sessions/$ID"  # abandon
 
 ## Operating rules — READ THIS BEFORE USE
 
-- **One session → one PR → one issue/backlog item.** Give a single, scoped task.
-- **Never auto-merge a Jules PR.** Always review the diff + CI first (mandatory code
-  review, same as any PR). Jules' patches are usually sound but verify.
+- **One session → one PR → one issue/backlog item** for a single, scoped task;
+  prefer test-only / mechanical work — architecture and concurrency-critical
+  changes stay with a human reviewer.
+- **Never auto-merge a Jules PR** — review the diff + CI first, as with any PR.
 - **Clobber risk (Aug 2025 session):** Jules has reverted external fixes by
   REBUILDING from a stale view on its own PR (re-pushing and deleting fixes).
   If its head branch is actively moving, check it matches the current main
-  before trusting it; consider rebuilding the change on a clean branch + closing
-  the bot PR (pattern: #895 → #905) rather than fighting the bot.
-- Prefer **test-only / mechanical** tasks for reliability; architecture and
-  concurrency-critical work stays with a human reviewer.
+  before trusting it; consider rebuilding the change on a clean branch and
+  closing the bot PR (pattern: #895 → #905) rather than fighting the bot.
 - Do NOT dispatch a task the user or another agent is already doing in parallel
   (conflicting work on the same files).
 
