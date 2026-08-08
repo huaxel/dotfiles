@@ -150,7 +150,6 @@ Pi now ships **native llama.cpp support** (`/llama` command, `/login llama.cpp`,
 Custom extensions still add value beyond native — do NOT remove blindly:
 
 - `pi-llama.ts` — adds thinking-budget mapping + overflow auto-compaction (native lacks both).
-- `llama-stats.ts` — KV/slot usage monitoring (`/llama-stats`), not in native.
 - `slots.ts` — quota-aware model routing/failover (`/slot`), unrelated to llama. Keep.
 
 When touching llama extensions, prefer native `/llama` for load/unload/download;
