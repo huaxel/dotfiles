@@ -75,19 +75,17 @@ Session files live in `pi/agent/sessions/` (~226 MB total across all projects).
 
 ## Agent definitions
 
-- **`disciplined-worker`** (`pi/agent/agents/disciplined-worker.md`) — Hard-gate agent
-  that enforces TDD, `just quality`, and mandatory review. Use for all quality-critical
-  work. Cannot skip gates.
-- **`worker`** (`pi/agent/agents/worker.md`) — General-purpose worker with full
-  capabilities. For non-critical tasks where the gauntlet is overkill.
+- **`worker`** (`pi/agent/agents/worker.md`) — General-purpose implementation,
+  debugging, and exploration.
 - **`reviewer`** (`pi/agent/agents/reviewer.md`) — Read-only code review specialist.
-  Dispatch as a subagent from disciplined-worker.
+  Give it explicit changed file paths and requirements; it has no shell or Git access.
 
 ## Agent preferences
 
-- **disciplined-worker > worker** — Use `disciplined-worker` by default. Fall back to
-  `worker` only when the task genuinely doesn't benefit from TDD (e.g., config changes,
-  research, documentation).
+- Use `worker` for implementation and exploratory work.
+- Use `reviewer` before merging major features, complex fixes, or non-trivial refactors.
+- Apply TDD and project verification commands when the task or project requires them;
+  do not impose a universal hard-gate agent on docs/config work.
 - **Subagent over workflow** — Prefer `subagent` for delegation (single/parallel/chain).
   Only use `workflow` when JS orchestration (loops, retry, quality gates) is genuinely
   needed; otherwise it's redundant ceremony with worse reliability in this setup.

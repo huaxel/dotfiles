@@ -1,102 +1,40 @@
 ---
 name: git-noninteractive
-description: >
-  Handle git operations in non-interactive/agent environments where editors
-  hang. Use for any git command that might open an editor (rebase, commit,
-  merge, revert, cherry-pick).
+description: Use for git operations that might open an editor in a non-interactive agent session.
 ---
 
-# Git Operations in Non-Interactive Environments
+# Non-Interactive Git
 
-## The Problem
+An agent terminal may have `EDITOR=nvim` but no usable TTY. Supply commit
+messages explicitly or disable the editor for operations that continue or
+finalize a commit.
 
-`EDITOR=nvim` and no TTY available. Any git command that opens an editor will **hang forever**.
+## Safe forms
 
-## Iron Rules
-
-**NEVER** run these commands as-is in a non-interactive agent session:
-
-| Dangerous | Why |
-|-----------|-----|
-| `git rebase --continue` | Opens editor for commit message |
-| `git commit` | Opens editor for commit message |
-| `git rebase -i` | Opens interactive todo editor |
-| `git merge` (without `--no-edit`) | May open editor for merge commit |
-| `git revert` | Opens editor for revert message |
-| `git cherry-pick` | May open editor for commit message |
-
-## Safe Alternatives
-
-### Rebase
 ```bash
-# Safe - reuses original message
-git rebase --continue --no-edit
+# Continue a conflict resolution without opening an editor
+GIT_EDITOR=true git rebase --continue
 
-# Or use the alias (if configured)
-git rbc
-```
-
-### Commit
-```bash
-# Safe - inline message
-git commit -m "message"
-
-# Safe - amend without editing
+# Commit or amend with the intended message behavior
+git commit -m "type(scope): summary"
 git commit --amend --no-edit
+git commit --amend -m "replacement message"
 
-# Safe - amend with inline message
-git commit --amend -m "message"
+# Merge/revert/cherry-pick without an editor
+git merge --no-edit branch
+git revert --no-edit <commit>
+git cherry-pick --no-edit <commit>
+
+# Apply a commit without creating it yet
+git cherry-pick --no-commit <commit>
 ```
 
-### Merge
-```bash
-# Safe - no editor
-git merge --no-edit branch-name
+`-m` on `git revert` or `git cherry-pick` selects a parent for a merge
+commit; it is **not** a message flag.
 
-# Safe - inline message
-git merge -m "message" branch-name
-```
+## Do not automate interactively
 
-### Revert
-```bash
-# Safe - inline message
-git revert -m "message" commit-hash
-
-# Safe - no edit
-git revert --no-edit commit-hash
-```
-
-### Cherry-pick
-```bash
-# Safe - no commit, just stage
-git cherry-pick --no-commit commit-hash
-
-# Safe - inline message
-git cherry-pick -m "message" commit-hash
-```
-
-## Interactive Rebase
-
-**NEVER** run `git rebase -i` in a non-interactive session.
-
-If you need to squash, reword, or reorder commits, describe the changes needed and ask the user to run them interactively.
-
-## Quick Reference
-
-| Operation | Safe Command |
-|-----------|-------------|
-| Rebase continue | `git rebase --continue --no-edit` |
-| Commit | `git commit -m "message"` |
-| Amend | `git commit --amend --no-edit` |
-| Merge | `git merge --no-edit branch` |
-| Revert | `git revert --no-edit commit` |
-| Cherry-pick | `git cherry-pick --no-commit commit` |
-| Interactive rebase | **Don't do it** |
-
-## When to Apply
-
-- **Any** git operation that might open an editor
-- **Before** running `git rebase --continue` after resolving conflicts
-- **Before** running `git merge` when a merge commit is expected
-- **Before** running `git commit` without `-m`
-- **When** you see `EDITOR=nvim` or `EDITOR=vim` in the environment
+Do not run `git rebase -i` in an agent session. Ask the user to perform
+interactive history editing, or prepare a non-interactive sequence with their
+explicit approval. If a command fails or conflicts, stop, report the state, and
+preserve the user’s work rather than retrying blindly.
