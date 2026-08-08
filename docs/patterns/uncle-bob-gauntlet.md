@@ -168,8 +168,9 @@ Before claiming completion:
 4. Run independent verification after review fixes
 ```
 
-The reviewer prompt template lives at `skills/requesting-code-review/code-reviewer.md`.
-The configured reviewer has file tools only, so commit SHAs alone are not enough.
+Dispatch the configured read-only `reviewer` subagent with changed file paths,
+requirements, and optionally a readable patch artifact — commit SHAs alone
+are not enough.
 
 ### Gate 7: Verification
 
