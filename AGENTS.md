@@ -144,16 +144,17 @@ stale duplicates in `~/.pi/agent/` are dead weight:
   `~/.pi/agent/extensions-quarantine-20260807/`.)
 - `settings.json` `extensions: ["-extensions/nan.ts"]` disables that file (now gone; entry kept for safety).
 
-### llama.cpp — native vs custom
+### llama.cpp — native support, no custom extensions
 
-Pi now ships **native llama.cpp support** (`/llama` command, `/login llama.cpp`, `LLAMA_BASE_URL`, HF model download).
-Custom extensions still add value beyond native — do NOT remove blindly:
+Pi ships **native llama.cpp** (`/llama` command, `/login llama.cpp`, `LLAMA_BASE_URL`, HF model download).
 
-- `pi-llama.ts` — adds thinking-budget mapping + overflow auto-compaction (native lacks both).
-- `slots.ts` — quota-aware model routing/failover (`/slot`), unrelated to llama. Keep.
+The old custom `pi-llama.ts` (thinking-budget mapping + overflow compaction) and
+`llama-stats.ts` (KV/slot monitoring) are **gone** — removed when llama.cpp
+moved to a native backend (see removal history). No `*.ts` extension references
+llama today; `slots.ts` is unrelated (quota routing across cloud providers).
 
-When touching llama extensions, prefer native `/llama` for load/unload/download;
-keep the customs only for the extras above.
+If new llama needs emerge, route them through native `/llama` first; only
+re-add a custom extension for something native genuinely can't do.
 
 ## Skill catalog (2026-08-07)
 
