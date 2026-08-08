@@ -11,27 +11,21 @@ a ceremony.
 
 ## Workflow
 
-1. **Capture the symptom.** Read the complete error, stack trace, inputs, and
-   environment. Record the expected and actual behavior.
-2. **Reproduce it.** Find the smallest reliable command or test. If it is not
-   reproducible, gather evidence (logs, state, timing, configuration) instead
-   of guessing.
-3. **Localize the boundary.** Trace the bad value or event backward through the
-   call path — the error site is rarely the source. In multi-component systems,
-   inspect what crosses each boundary.
-4. **State one hypothesis.** Write: “I think X causes Y because Z.” Compare the
-   failing path with a nearby working example and recent changes.
-5. **Run one minimal experiment.** Change one variable or add temporary
-   instrumentation. A failed hypothesis is information; return to step 3.
-6. **Lock in the failure.** Add the smallest regression test or reproduction
-   that demonstrates the original symptom when practical.
-7. **Fix and verify.** Make one root-cause fix, run the focused check, then the
-   project’s relevant broader checks. Report failures and pre-existing issues
+1. **Localize the boundary.** Trace the bad value or event backward through
+   the call path — the error site is rarely the source. In multi-component
+   systems, inspect what crosses each boundary.
+2. **One hypothesis, one experiment.** Write "I think X causes Y because Z."
+   Change one variable or add temporary instrumentation. A failed hypothesis
+   is information; re-trace.
+3. **Lock in the failure.** Keep the smallest regression test or reproduction
+   that shows the original symptom. After the root-cause fix, run the focused
+   check, then the project's broader checks; report pre-existing failures
    separately.
 
 ## Guardrails
 
-- Do not propose a fix based only on a plausible symptom.
+- Reproduce or gather evidence (logs, state, timing, config) before proposing
+  a fix; never fix based only on a plausible symptom.
 - Do not bundle unrelated fixes while the cause is uncertain.
 - Replace arbitrary sleeps with condition-based waits when timing is involved:
   poll for the actual condition you care about (`waitFor`), never guess a delay.
