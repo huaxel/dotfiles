@@ -55,12 +55,19 @@ These live in `$HOME/.agents/skills/` or `$HOME/dotfiles/skills/`:
 |---|---|
 | `requesting-code-review` | Before merging any PR |
 | `systematic-debugging` | When debugging a bug or test failure |
-| `performance` | When optimizing slow code |
-| `security` | At trust boundaries (auth, input, secrets) |
 | `tdd` | Test-driven development loop |
 | `verification-before-completion` | Before claiming work is done |
-| `uv` | Python scripts with `uv run`, `uv add` |
 | `git-noninteractive` | Git operations that avoid editor hangs |
+| `using-git-worktrees` | Feature work needing an isolated checkout |
+| `grill-me` | When asked to stress-test a plan/design |
+| `herdr` | Only inside Herdr, for pane/agent control |
+| `jules-orchestration` | Dispatching scoped tasks to Jules |
+| `webapp-testing` | Playwright checks of local web apps |
+| `teach` | Teaching a skill/concept in this workspace |
+
+Parked/scoped: `performance`, `security` (generic priors, see
+`skills-parked-20260807/`), `uv` (moved to project-atom), Cloudflare stack
+(project-scoped to nursultan-web).
 
 ## Pi session management
 
@@ -142,7 +149,7 @@ keep the customs only for the extras above.
   not mature (no `:8090` queue running). The `orchestrator` word in worker.md/reviewer.md refers to
   the subagent-driver flow, NOT the parked queue skill.
 - On-demand model: pi indexes skill names+descriptions at startup; full SKILL.md loads only when used.
-  Keep the global catalog small (26 skills).
+  Keep the global catalog small (~11 live skills).
 
 - **`uv` skill (Python tooling) moved to project-atom** `.pi/skills/` — ~99% of uv usage is in atom (its
   worktrees too). The system prompt still says "prefer uv run over pip" as a general rule; the skill
