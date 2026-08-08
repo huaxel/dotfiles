@@ -69,6 +69,17 @@ Parked/scoped: `performance`, `security` (generic priors, see
 `skills-parked-20260807/`), `uv` (moved to project-atom), Cloudflare stack
 (project-scoped to nursultan-web).
 
+## Before merge / end of session
+
+Before merging or ending a session:
+
+- **Request code review** before merging any PR (`requesting-code-review`).
+- **Verify before claiming success** — run the project's real gate, inspect the
+  diff, and report what was not run (`verification-before-completion`).
+- End of shift: run the `end-of-shift` pattern
+  (`docs/patterns/end-of-shift.md`) and commit session feedback
+  (`docs/patterns/session-feedback.md`) with the work.
+
 ## Pi session management
 
 ```
@@ -120,11 +131,17 @@ plan-changing updates.
 
 With `PI_CODING_AGENT_DIR=~/dotfiles/pi/agent` set, pi auto-discovers extensions from
 **both** `~/dotfiles/pi/agent/extensions/*.ts` **and** `~/.pi/agent/extensions/*.ts`.
-Keep them in sync — a file present in only one tree loads from that tree:
+Keep them in sync — a file present in only one tree loads from that tree, and
+stale duplicates in `~/.pi/agent/` are dead weight:
 
-- Runtime source of truth: `~/dotfiles/pi/agent/extensions/` (git-tracked).
-- `~/.pi/agent/extensions/` also loads; stale duplicates there are dead weight.
-  (2026-08-07: quarantined `nan.ts` + `herdr-omp-agent-state.ts` → `~/.pi/agent/extensions-quarantine-20260807/`.)
+- The git-tracked tree `~/dotfiles/pi/agent/extensions/` is the source of
+  truth for changes; keep `~/.pi/agent/extensions/` in sync with it (same file
+  names, same content) or a stale copy in the runtime tree silently won.
+- It's a two-way hazard: an edit to `~/dotfiles/pi/agent/extensions/*.ts`
+  does nothing at runtime unless the matching `~/.pi/agent/extensions/*.ts`
+  also updates.
+- (2026-08-07: quarantined `nan.ts` + `herdr-omp-agent-state.ts` →
+  `~/.pi/agent/extensions-quarantine-20260807/`.)
 - `settings.json` `extensions: ["-extensions/nan.ts"]` disables that file (now gone; entry kept for safety).
 
 ### llama.cpp — native vs custom
@@ -149,7 +166,7 @@ keep the customs only for the extras above.
   not mature (no `:8090` queue running). The `orchestrator` word in worker.md/reviewer.md refers to
   the subagent-driver flow, NOT the parked queue skill.
 - On-demand model: pi indexes skill names+descriptions at startup; full SKILL.md loads only when used.
-  Keep the global catalog small (~11 live skills).
+  Keep the global catalog small (12 live skills: 11 in the table above + `worksheet-loop`).
 
 - **`uv` skill (Python tooling) moved to project-atom** `.pi/skills/` — ~99% of uv usage is in atom (its
   worktrees too). The system prompt still says "prefer uv run over pip" as a general rule; the skill
