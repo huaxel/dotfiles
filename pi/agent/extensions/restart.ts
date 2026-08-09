@@ -1,7 +1,7 @@
 /**
  * /restart — proactive context guard + handoff to a fresh session.
  * Guard warns at 80%; /restart compresses conversation into a prompt
- * and opens it in the editor. Submit to start fresh.
+ * and sends it straight to a fresh session (no editor review).
  */
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import { uuidv7 } from "@earendil-works/pi-ai";
@@ -125,11 +125,9 @@ export default function (pi: ExtensionAPI) {
         return loader;
       });
       if (!prompt) return ctx.ui.notify("Handoff cancelled", "info");
-
-      const edited = await ctx.ui.editor("Review handoff prompt", prompt);
-      if (edited === undefined || !edited.trim()) return ctx.ui.notify("Cancelled", "info");
-
-      const result = await ctx.newSession({ parentSession: currentFile, withSession: rc => rc.sendUserMessage(edited) });
+      // Fire immediately — no editor review. Abort during generation (Escape)
+      // is the cancellation point; the loader resolves null and we bail above.
+      const result = await ctx.newSession({ parentSession: currentFile, withSession: rc => rc.sendUserMessage(prompt) });
       if (result.cancelled) ctx.ui.notify("New session cancelled", "info");
     },
   });
