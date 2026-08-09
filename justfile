@@ -140,6 +140,17 @@ pi-sync-extensions:
     set -euo pipefail
     src="pi/agent/extensions"
     dst="$HOME/.pi/agent/extensions"
+    # If $dst is a symlink back into the dotfiles tree, the files are already
+    # live there; cp would fail with "are the same file". Compare physical
+    # paths and no-op instead.
+    src_real=$(cd "$src" && pwd -P)
+    if [ -e "$dst" ] || [ -L "$dst" ]; then
+        dst_real=$(cd "$dst" 2>/dev/null && pwd -P || true)
+        if [ -n "$dst_real" ] && [ "$dst_real" = "$src_real" ]; then
+            echo "  ↪ $dst already points at $src — extensions are live, nothing to sync"
+            exit 0
+        fi
+    fi
     mkdir -p "$dst"
     synced=0
     for f in "$src"/*.ts; do

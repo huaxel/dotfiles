@@ -39,35 +39,37 @@ const RE_PROMPT_GAP = 5;
 
 export default function (pi: ExtensionAPI) {
   const lastPct = new Map<string, number>();
-  let guardOpen = false;
+  const guardOpen = new Set<string>();
 
   /* ── Context guard ── */
-  pi.on("session_shutdown", (_e, ctx) => lastPct.delete(ctx.sessionManager.getSessionId()));
+  pi.on("session_shutdown", (_e, ctx) => {
+    const sid = ctx.sessionManager.getSessionId();
+    lastPct.delete(sid);
+    guardOpen.delete(sid);
+  });
 
   pi.on("turn_end", async (_e, ctx) => {
-    if (ctx.mode !== "tui" || guardOpen) return;
+    if (ctx.mode !== "tui") return;
     const usage = ctx.getContextUsage?.();
     if (!usage || usage.percent === null || usage.percent < THRESHOLD_PCT) return;
 
     const sid = ctx.sessionManager.getSessionId();
+    if (guardOpen.has(sid)) return;
     const pct = Math.round(usage.percent);
     const prev = lastPct.get(sid);
     if (prev !== undefined && pct < prev + RE_PROMPT_GAP) return;
     lastPct.set(sid, pct);
 
-    guardOpen = true;
-    const ac = new AbortController();
-    const timer = setTimeout(() => ac.abort(), AFK_MS);
+    guardOpen.add(sid);
     let choice: string | undefined;
     try {
       choice = await ctx.ui.select(
         `Context at ${pct}% — prepare a handoff?`,
         ["Yes, prepare /restart", "Not now"],
-        { signal: ac.signal },
+        { timeout: AFK_MS },
       );
     } catch { /* timeout/dismissal */ } finally {
-      clearTimeout(timer);
-      guardOpen = false;
+      guardOpen.delete(sid);
     }
     if (ctx.sessionManager.getSessionId() !== sid) return;
     if (choice !== "Yes, prepare /restart") {
@@ -88,7 +90,10 @@ export default function (pi: ExtensionAPI) {
     handler: async (args, ctx) => {
       if (ctx.mode !== "tui") return ctx.ui.notify("/restart requires interactive mode", "error");
       if (!ctx.model) return ctx.ui.notify("No model selected", "error");
-      if (!ctx.isIdle()) { ctx.abort(); await ctx.waitForIdle(); }
+      // Extension commands execute immediately, even during streaming. Do NOT
+      // abort here: killing the in-flight turn loses its (uncommitted) content
+      // from the handoff. Wait for the current run to settle instead.
+      if (!ctx.isIdle()) await ctx.waitForIdle();
 
       const context = buildSessionContext(ctx.sessionManager.getBranch(), ctx.sessionManager.getLeafId());
       const msgs: AgentMessage[] = context.messages;
@@ -122,7 +127,7 @@ export default function (pi: ExtensionAPI) {
       if (!prompt) return ctx.ui.notify("Handoff cancelled", "info");
 
       const edited = await ctx.ui.editor("Review handoff prompt", prompt);
-      if (edited === undefined) return ctx.ui.notify("Cancelled", "info");
+      if (edited === undefined || !edited.trim()) return ctx.ui.notify("Cancelled", "info");
 
       const result = await ctx.newSession({ parentSession: currentFile, withSession: rc => rc.sendUserMessage(edited) });
       if (result.cancelled) ctx.ui.notify("New session cancelled", "info");
