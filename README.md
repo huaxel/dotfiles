@@ -59,8 +59,11 @@ dotter deploy
 └── config/              # → ~/.config/
     ├── nvim/
     ├── ghostty/config   # Template for shell integration
-    └── ...              # 1000+ other configs
+    └── ...              # shared application configs
 ```
+
+For a maintained map of responsibilities, deployment boundaries, and cleanup rules,
+see [`docs/repository-map.md`](docs/repository-map.md).
 
 ## Templates (Handlebars)
 

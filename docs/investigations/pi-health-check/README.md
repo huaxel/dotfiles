@@ -5,7 +5,9 @@ A manual on-demand, agent-assisted **pi health check** ritual that covers perfor
 ## Notes
 
 - **Domain:** Pi (coding agent) configuration, extensions, packages, models, cost tracking, session management
-- **Skills:** `systematic-debugging` for investigating crash/failover patterns; `wayfinder` for decision tickets
+- **Skills:** `systematic-debugging` for investigating crash/failover patterns
+- **Findings:** [`findings/`](findings/)
+- **Decision tickets:** [`tickets/`](tickets/)
 - **Dotfiles repo is source of truth** — `~/dotfiles/pi/agent/` is canonical, `~/.pi/agent/` is the runtime deploy target
 - **Agent preference:** Subagent over workflow (per AGENTS.md)
 - Each session resolves exactly one decision ticket (research tickets can be parallel)
@@ -13,7 +15,7 @@ A manual on-demand, agent-assisted **pi health check** ritual that covers perfor
 
 ## Decisions so far
 
-<!-- no tickets closed yet -->
+<!-- no tickets closed yet; findings are retained as historical investigation notes -->
 
 ## Not yet specified
 
