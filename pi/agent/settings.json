@@ -71,7 +71,8 @@
     "npm:@tifan/pi-rename",
     "npm:pi-eta",
     "npm:@narumitw/pi-goal",
-    "npm:pi-next-cue"
+    "npm:pi-next-cue",
+    "npm:@sevten/pi-data-masking"
   ],
   "extensions": [
     "-extensions/nan.ts"
