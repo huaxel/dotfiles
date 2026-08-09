@@ -62,6 +62,7 @@ local/
 
 # Pi subagents runtime artifacts
 .pi-subagents/
+prime-agent/agent/update-restarts/
 
 # Pi goal/session runtime artifacts (machine-local: pids, instance ids)
 .pi-glla/
