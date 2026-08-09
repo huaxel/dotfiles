@@ -148,3 +148,26 @@
 ## 2026-08-05 follow-up: narrow-screen priority dropping
 
 - Mobile/narrow terminals right-truncated footer line 1, chopping the context gauge (last segment) first. Rewrote defaultAssembler with rank-based dropping: status line drops turn counter then TPS; accounting line drops runtime/pwd/tokens/cache; model, gauge, git, cost and provider always survive, with the model shrunk as last resort so the gauge never disappears. Old 3-line fallback superseded — footer stays 2 lines + bars on small screens. Committed e203c76; 20/20 tests. Lesson: when adding segments, the assembler must degrade by priority, not position.
+
+## 2026-08-09: /restart extension bug fixes + no-confirm restart
+
+### What went well
+- Three-scoped batch (32b0662, 27c191a, 5316e61) stayed strictly bug-fixes: no new features beyond the user-requested no-confirm restart. `just ci` fully green.
+- Root cause for "restart during streaming kills the turn": extension commands execute immediately even mid-stream, and the old `ctx.abort(); await ctx.waitForIdle()` discarded uncommitted turn content before the handoff could capture it. Replaced with `if (!ctx.isIdle()) await ctx.waitForIdle()` — a one-line semantic fix with a clear comment.
+- Per-session guard state (`guardOpen` boolean → `Set<string>` cleaned on shutdown) fixed a real cross-session mute bug: a guard prompt in one session was suppressing the guard everywhere.
+- Hand-rolled AbortController+setTimeout → native `{ timeout }` removed a whole class of timer/cleanup code; native timeout shows the countdown.
+- Runtime-settings mystery fully resolved: `~/.pi/agent/settings.json` (166 B, Jul 13) is a STALE leftover — pi reads settings from `PI_CODING_AGENT_DIR` (dotfiles tree) per `dist/config.js` getSettingsPath(). The `from-dotfiles` dir under ~/.pi sessions is a tokscale bind mount (fstab-persisted), not a second live store. No sync mechanism exists because none is needed.
+
+### What was frustrating / slow
+- The reviewer subagent died (exit 1) mid-review on an unhandled exception, with no report. Resumed the session rather than re-spawning.
+- Confirming "which settings file is live" took several probes (stale ~/.pi file looked authoritative until tracing pi's dist code). Mirrors the 2026-08-05 note about the same ambiguity.
+- `deno check` on the extension shows 19 pre-existing errors (pi-internal packages unresolved standalone) — the gate's syntax-fallback path is doing real work; one has to know why.
+
+### What config change would have helped
+- A justfile recipe that prints the RESOLVED pi config dir (agent dir, settings path, session dir) would have collapsed the settings-ambiguity probe to one command.
+
+### Improvements for next time
+- For any future "which of these two dotfiles paths is live" question: read pi's `dist/config.js` getAgentDir()/getSettingsPath() FIRST — it definitively settles it.
+- When the reviewer agent dies without output, resume its session with the same task before re-dispatching.
+- No running pi session has reloaded yet — new /restart behavior activates after `/reload` (or restart); remember to note that for the user in the final report.
+- Follow-up note: the `reviewer` subagent failed twice (original + resume) with exit 1 — resumed sessions also crashed. Diagnosed: the failure is in the subagent harness/reader step, not the review content (it had read the patch and diffed files before dying). Did a rigorous self-review instead; recorded 2 Minor findings (whitespace handoff guard, no wait feedback). For small isolated batches, self-review + documented Minors is acceptable per the requesting-code-review skill; re-try the reviewer for larger batches.
