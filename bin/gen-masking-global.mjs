@@ -50,8 +50,10 @@ for (const k of envKeys) {
 // GitHub CLI oauth token (~/.config/gh/hosts.yml)
 try {
   const gh = fs.readFileSync(path.join(home, ".config", "gh", "hosts.yml"), "utf8");
-  const m = gh.match(/oauth_token:\s*(.+)/);
-  if (m && m[1].trim().length >= 10) {
+  const m = gh.match(
+    /^[ \t]*oauth_token[ \t]*:[ \t]*((?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}))[ \t]*(?:#.*)?$/m,
+  );
+  if (m) {
     rules.push({ id: "gh_oauth_token", description: "GitHub CLI oauth token (~/.config/gh/hosts.yml)", real: m[1].trim(), placeholder: "auto" });
     report.push(`  gh oauth token (len ${m[1].trim().length})`);
   }
@@ -96,8 +98,8 @@ const regexRules = [
   {
     id: "keyword_value_pairs",
     type: "regex",
-    description: "Value portion of key=value / key: value assignments for sensitive keywords. NOTE (upstream pattern, kept verbatim): the bare 'key'/'token' alternatives can match compound field names like sort_key: or foo_token: — intended tradeoff, it also catches my_token: style. Watch the stats panel in atom.",
-    pattern: "(?<![A-Za-z])(?:access_token|auth_token|private_key|api_key|apikey|access_key|account_id|accountid|client_id|credential|password|passwd|secret|token|key)\\s*[:=]\\s*\"?([A-Za-z0-9_./@+\\-]+)\"?",
+    description: "Value portion of key=value / key: value assignments for sensitive keywords. Sensitive names must be standalone fields, so ordinary compound fields such as sort_key: and foo_token: are left intact.",
+    pattern: "(?<![A-Za-z0-9_])(?:access_token|auth_token|private_key|api_key|apikey|access_key|account_id|accountid|client_id|credential|password|passwd|secret|token|key)(?![A-Za-z0-9_])\\s*[:=]\\s*\"?([A-Za-z0-9_./@+\\-]+)\"?",
     flags: "i",
   },
   {
@@ -140,7 +142,7 @@ const regexRules = [
     id: "private_ip_address",
     type: "regex",
     description: "RFC 1918 private IPv4 addresses only (10/8, 172.16/12, 192.168/16).",
-    pattern: "\\b(?:10\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|172\\.(?:1[6-9]|2\\d|3[01])\\.\\d{1,3}\\.\\d{1,3}|192\\.168\\.\\d{1,3}\\.\\d{1,3})\\b",
+    pattern: "\\b(?:10\\.(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)\\.(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)\\.(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)|172\\.(?:1[6-9]|2\\d|3[01])\\.(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)\\.(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)|192\\.168\\.(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)\\.(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d))\\b",
   },
 ];
 
@@ -152,10 +154,61 @@ const config = {
   options: { caseSensitive: true, showStatusBar: true },
 };
 
-fs.mkdirSync(path.dirname(OUT), { recursive: true });
-fs.writeFileSync(OUT, JSON.stringify(config, null, 2) + "\n");
+// Validate the exact payload before touching the existing secret-bearing file.
+const serialized = JSON.stringify(config, null, 2) + "\n";
+const parsed = JSON.parse(serialized);
+if (
+  !parsed.enabled ||
+  !Array.isArray(parsed.rules) ||
+  parsed.rules.some((rule) =>
+    !rule.id ||
+    (rule.type === "regex"
+      ? typeof rule.pattern !== "string"
+      : typeof rule.real !== "string" || typeof rule.placeholder !== "string"),
+  )
+) {
+  throw new Error("Refusing to write invalid masking config");
+}
 
-console.log(`Wrote ${OUT}`);
+const outputDir = path.dirname(OUT);
+fs.mkdirSync(outputDir, { recursive: true, mode: 0o700 });
+try {
+  if (fs.lstatSync(OUT).isSymbolicLink()) {
+    throw new Error(`Refusing to replace symlink at ${OUT}`);
+  }
+} catch (error) {
+  if (error.code !== "ENOENT") throw error;
+}
+
+// Write into a fresh 0700 directory with a 0600 file, fsync, then atomically
+// rename. This prevents truncation on interruption and avoids world-readable
+// permissions on the file containing real API keys.
+let tempDir;
+try {
+  tempDir = fs.mkdtempSync(path.join(outputDir, ".masking-config-"));
+  const tempPath = path.join(tempDir, "masking.config.json");
+  const fd = fs.openSync(
+    tempPath,
+    fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL,
+    0o600,
+  );
+  try {
+    fs.writeFileSync(fd, serialized, "utf8");
+    fs.fsyncSync(fd);
+  } finally {
+    fs.closeSync(fd);
+  }
+  fs.chmodSync(tempPath, 0o600);
+  fs.renameSync(tempPath, OUT);
+  if (fs.lstatSync(OUT).isSymbolicLink()) {
+    throw new Error(`Refusing symlinked output at ${OUT}`);
+  }
+  fs.chmodSync(OUT, 0o600);
+} finally {
+  if (tempDir) fs.rmSync(tempDir, { recursive: true, force: true });
+}
+
+console.log(`Wrote ${OUT} (mode 0600)`);
 console.log(`${rules.length} rules total:`);
 for (const r of report) console.log(r);
 console.log(`  + ${regexRules.length} regex rules`);

@@ -151,8 +151,9 @@ and unmasks at tool boundaries. Two configs, merged project-first:
 
 - **Global** `pi/agent/pi-data-masking/masking.config.json` — literal rules for
   env API keys, GitHub CLI oauth token, internal hostnames (`acerpepe`,
-  `liedelpi`, `*.bonobo-fort.ts.net`), plus format regex rules (connection
-  strings, bearer/JWT/GitHub/npm/HF/AWS tokens, PEM keys, private IPs).
+  `liedelpi`, and the two configured `*.bonobo-fort.ts.net` FQDNs), plus
+  format regex rules (connection strings, bearer/JWT/GitHub/npm/HF/AWS
+  tokens, PEM keys, private IPs).
   **This file embeds REAL secret values: it is gitignored — never commit it.**
   Regenerate after key rotation: `node bin/gen-masking-global.mjs` (reads
   values from env/files without printing them).
@@ -161,8 +162,9 @@ and unmasks at tool boundaries. Two configs, merged project-first:
   as context-level defense-in-depth under the `.pi-pii.yaml` column perimeter.
 
 Extension loads at pi startup (restart to activate). Verify a rule with
-`/masking-test`; monitor over-masking via the stats panel (`keyword_value_pairs`
-can match `sort_key:`-style fields — upstream pattern, kept verbatim).
+`/masking-test`; monitor over-masking via the stats panel. The
+`keyword_value_pairs` rule requires standalone sensitive field names, so
+ordinary `sort_key:`/`foo_token:` fields are not masked.
 
 ### llama.cpp — native support, no custom extensions
 
