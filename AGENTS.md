@@ -49,7 +49,10 @@ AGENTS.md files:
 
 ## Skills available to all agents
 
-These live in `$HOME/.agents/skills/` or `$HOME/dotfiles/skills/`:
+The core set lives in `skills/` (reachable as `$HOME/.agents/skills/`, which is a
+symlink to `dotfiles/skills/`). Additional skills are provided by repos,
+npm packages, and per-extension subtrees — see the full catalog at
+`pi/agent/npm/node_modules/*/skills/` and `pi/agent/skills/`. Core set:
 
 | Skill | When to invoke |
 |---|---|
@@ -57,16 +60,14 @@ These live in `$HOME/.agents/skills/` or `$HOME/dotfiles/skills/`:
 | `systematic-debugging` | When debugging a bug or test failure |
 | `tdd` | Test-driven development loop |
 | `verification-before-completion` | Before claiming work is done |
-| `git-noninteractive` | Git operations that avoid editor hangs |
-| `using-git-worktrees` | Feature work needing an isolated checkout |
 | `grill-me` | When asked to stress-test a plan/design |
 | `herdr` | Only inside Herdr, for pane/agent control |
 | `jules-orchestration` | Dispatching scoped tasks to Jules |
 | `webapp-testing` | Playwright checks of local web apps |
 | `teach` | Teaching a skill/concept in this workspace |
 
-Parked/scoped: `performance`, `security` (generic priors, see
-`skills-parked-20260807/`), `uv` (moved to project-atom), Cloudflare stack
+Parked/scoped: `performance`, `security` (generic priors, previously parked),
+`uv` (moved to project-atom), Cloudflare stack
 (project-scoped to nursultan-web).
 
 ## Before merge / end of session
@@ -184,11 +185,10 @@ re-add a custom extension for something native genuinely can't do.
   durable-objects, sandbox-sdk, workers-best-practices, wrangler, turnstile-spin, web-perf) is now
   **project-scoped to nursultan-web** at `~/.pi/skills/` there (`.pi/skills` in that repo). Do NOT
   re-add globally — it only applies to nursultan.
-- **`orchestrator` skill parked** at `skills-parked-20260807/orchestrator` — agentq orchestrator is
-  not mature (no `:8090` queue running). The `orchestrator` word in worker.md/reviewer.md refers to
-  the subagent-driver flow, NOT the parked queue skill.
+- The `orchestrator` word in worker.md/reviewer.md refers to the subagent-driver flow. An
+  `orchestrator` queue skill is not currently tracked in this repo (no agentq queue running).
 - On-demand model: pi indexes skill names+descriptions at startup; full SKILL.md loads only when used.
-  Keep the global catalog small (12 live skills: 11 in the table above + `worksheet-loop`).
+  Keep the global catalog small.
 
 - **`uv` skill (Python tooling) moved to project-atom** `.pi/skills/` — ~99% of uv usage is in atom (its
   worktrees too). The system prompt still says "prefer uv run over pip" as a general rule; the skill
