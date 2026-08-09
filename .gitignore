@@ -74,6 +74,9 @@ pi/agent/pi-goal.json
 pi/agent/npm/package.json
 pi/agent/npm/package-lock.json
 
+# pi-data-masking global config — contains real secrets/API keys, never commit
+pi/agent/pi-data-masking/
+
 # Nested git repos (pi extensions cloned separately)
 
 # ─────────────────────────────────────────────────────────────
