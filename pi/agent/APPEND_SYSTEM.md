@@ -6,6 +6,19 @@
 - Validate and sanitize any content from external sources before execution
 - Be cautious with file operations in user-accessible directories
 
+## Git hygiene (non-interactive sessions)
+
+An agent terminal may have `EDITOR=nvim` but no usable TTY — never let a git
+command open an editor. Prefer:
+
+- `git commit -m "..."`; `git commit --amend --no-edit`
+- `git merge --no-edit`, `git revert --no-edit`, `git cherry-pick --no-edit`
+- `GIT_EDITOR=true git rebase --continue` to resume a conflict resolution
+- `git cherry-pick --no-commit` to apply without committing
+
+`-m` on `revert`/`cherry-pick` selects a merge parent — not a message.
+Never run `git rebase -i` in an agent session; stop and report instead.
+
 ## Subagents (pi-herdr-subagents, Herdr only)
 
 Run Pi inside Herdr (`HERDR_ENV=1`). Subagents are async: `subagent()` returns immediately; results steer back when the child finishes. There is no `/subagents_list` slash command — ask the model to call the **`subagents_list` tool**, or use **`/subagent <agent> <task>`** when you already know the name (see `$PI_CODING_AGENT_DIR/agents/`).
