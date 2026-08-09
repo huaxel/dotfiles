@@ -144,6 +144,26 @@ stale duplicates in `~/.pi/agent/` are dead weight:
   `~/.pi/agent/extensions-quarantine-20260807/`.)
 - `settings.json` `extensions: ["-extensions/nan.ts"]` disables that file (now gone; entry kept for safety).
 
+### pi-data-masking — global config holds REAL secrets (2026-08-09)
+
+`@sevten/pi-data-masking` (npm package) masks sensitive values in LLM context
+and unmasks at tool boundaries. Two configs, merged project-first:
+
+- **Global** `pi/agent/pi-data-masking/masking.config.json` — literal rules for
+  env API keys, GitHub CLI oauth token, internal hostnames (`acerpepe`,
+  `liedelpi`, `*.bonobo-fort.ts.net`), plus format regex rules (connection
+  strings, bearer/JWT/GitHub/npm/HF/AWS tokens, PEM keys, private IPs).
+  **This file embeds REAL secret values: it is gitignored — never commit it.**
+  Regenerate after key rotation: `node bin/gen-masking-global.mjs` (reads
+  values from env/files without printing them).
+- **Project** `<project>/.pi/pi-data-masking/masking.config.json` — format rules
+  only, no secrets. Atom has Belgian PII rules (NISS, VAT, IBAN, email, phone)
+  as context-level defense-in-depth under the `.pi-pii.yaml` column perimeter.
+
+Extension loads at pi startup (restart to activate). Verify a rule with
+`/masking-test`; monitor over-masking via the stats panel (`keyword_value_pairs`
+can match `sort_key:`-style fields — upstream pattern, kept verbatim).
+
 ### llama.cpp — native support, no custom extensions
 
 Pi ships **native llama.cpp** (`/llama` command, `/login llama.cpp`, `LLAMA_BASE_URL`, HF model download).
