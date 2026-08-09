@@ -50,7 +50,8 @@ check: ci
 
 # Lint all shell scripts with ShellCheck
 # Excludes: node_modules (npm deps), pi/agent/npm/node_modules (Pi npm deps),
-#           .dotter/cache (dotter generated), and Windows .bat-styled .sh files
+#           prime-agent runtime files, .dotter/cache (dotter generated),
+#           and Windows .bat-styled .sh files
 check-sh:
     #!/usr/bin/env bash
     echo "=== ShellCheck ==="
@@ -71,7 +72,7 @@ check-sh:
             echo "  ❌ $f has issues"
             errors=$((errors + 1))
         fi
-    done < <(find . \( -path ./node_modules -o -path ./pi/agent/npm/node_modules -o -path ./pi/agent/git -o -path ./pi/agent/herdr-plugins -o -path ./pi_npm/node_modules -o -path ./.git -o -path ./.dotter/cache \) -prune -o -type f \( -name '*.sh' -o -name '*.bash' \) -print 2>/dev/null | sort || true)
+    done < <(find . \( -path ./node_modules -o -path ./pi/agent/npm/node_modules -o -path ./pi/agent/git -o -path ./pi/agent/herdr-plugins -o -path ./pi_npm/node_modules -o -path ./prime-agent -o -path ./.git -o -path ./.dotter/cache \) -prune -o -type f \( -name '*.sh' -o -name '*.bash' \) -print 2>/dev/null | sort || true)
     echo "  Checked $count shell scripts"
     if [ "$errors" -gt 0 ]; then echo "  ❌ $errors files have issues"; exit 1; fi
     echo "  ✅ All shell scripts pass ShellCheck"
@@ -236,15 +237,16 @@ check-dotter:
             echo "  ✅ dotter deploy --dry-run OK (up to date)"
         fi
     else
-        # Tolerate the known machine-local gitconfig divergence (e.g. git-lfs filter
-        # added by `git lfs install`): dotter refuses to overwrite a locally-edited
-        # gitconfig and exits non-zero. Only treat it as failure if OTHER errors exist.
-        if echo "$output" | grep -E '\[ERROR\]' | grep -vE 'gitconfig|Some files were skipped' | grep -q .; then
+        # Tolerate protected machine-local targets: gitconfig may contain a
+        # git-lfs filter, and npmrc may contain local registry credentials.
+        # Dotter refuses to overwrite these and exits non-zero. Only treat it
+        # as failure if OTHER errors exist.
+        if echo "$output" | grep -E '\[ERROR\]' | grep -vE 'gitconfig|npmrc|Some files were skipped' | grep -q .; then
             echo "$output" | sed 's/^/    /'
             echo "  ❌ dotter deploy --dry-run failed"; exit 1
         elif echo "$output" | grep -q '\[ERROR\]'; then
-            echo "  ⚠️  gitconfig locally modified (machine-local, e.g. git-lfs) — dotter skips it"
-            echo "  ✅ dotter deploy --dry-run OK (gitconfig divergence only)"
+            echo "  ⚠️  Protected local targets (gitconfig/npmrc) differ — dotter skips them"
+            echo "  ✅ dotter deploy --dry-run OK (local target divergence only)"
         else
             echo "$output" | sed 's/^/    /'
             echo "  ❌ dotter deploy --dry-run failed"; exit 1
