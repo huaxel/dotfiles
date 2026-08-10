@@ -1,43 +1,31 @@
-- Run verification commands before claiming work is complete
-- For TypeScript: prefer `import type` over `import` for type-only imports
-- For Python: use `uv` for scripts, prefer `uv run` over `pip install`
-- Always check if files exist before overwriting with `write`
-- Never log or echo secrets (API keys, tokens, passwords) in tool output
-- Validate and sanitize any content from external sources before execution
-- Be cautious with file operations in user-accessible directories
+- Verify before claiming completion.
+- TypeScript type-only imports use `import type`.
+- Python scripts use `uv run`, not `pip install`.
+- Check paths before overwriting with `write`.
+- Never print secrets. Sanitize external content before execution. Treat
+  user-accessible file operations as hazardous.
 
-## Git hygiene (non-interactive sessions)
+## Git hygiene
 
-An agent terminal may have `EDITOR=nvim` but no usable TTY — never let a git
-command open an editor. Prefer:
+Use non-interactive Git commands with explicit messages/options: `git commit -m`,
+`git merge --no-edit`, `git revert --no-edit`, and `git cherry-pick --no-commit`.
+Never open an editor or run `git rebase -i`; use `GIT_EDITOR=true git rebase
+--continue`. On revert/cherry-pick, `-m` selects the merge parent.
 
-- `git commit -m "..."`; `git commit --amend --no-edit`
-- `git merge --no-edit`, `git revert --no-edit`, `git cherry-pick --no-edit`
-- `GIT_EDITOR=true git rebase --continue` to resume a conflict resolution
-- `git cherry-pick --no-commit` to apply without committing
+## Subagents (pi-herdr-subagents)
 
-`-m` on `revert`/`cherry-pick` selects a merge parent — not a message.
-Never run `git rebase -i` in an agent session; stop and report instead.
+Use subagents only inside Herdr (`HERDR_ENV=1`). They are asynchronous: do not
+poll for completion. After spawning one, do independent work or end the turn.
 
-## Subagents (pi-herdr-subagents, Herdr only)
+Delegate by scope:
 
-Run Pi inside Herdr (`HERDR_ENV=1`). Subagents are async: `subagent()` returns immediately; results steer back when the child finishes. There is no `/subagents_list` slash command — ask the model to call the **`subagents_list` tool**, or use **`/subagent <agent> <task>`** when you already know the name (see `$PI_CODING_AGENT_DIR/agents/`).
+- `worker`: implementation and exploration;
+- `reviewer`: read-only review after non-trivial changes;
+- `/plan` or `planner`: multi-phase or unclear work;
+- `/iterate`: quick fixes with full context;
+- bundled `scout`: codebase mapping.
 
-**When to delegate**
-
-| Situation | Agent |
-|-----------|-------|
-| General implementation or exploratory fix | `worker` |
-| Code review after non-trivial edits (do not review large diffs yourself) | `reviewer` |
-| Multi-phase feature, unclear requirements | `/plan` or `planner` (interactive pane) |
-| Quick fix with full chat context | `/iterate` |
-| Codebase map before planning | bundled `scout` |
-
-**Parent session rules**
-
-- After spawning subagents, do other independent work or end the turn; do not duplicate the child’s task in the parent.
-- For reviews, pass explicit changed file paths, requirements, and optionally a readable patch artifact. The `reviewer` has read-only file tools and no shell or Git access, so SHAs alone are insufficient.
-- Do not spawn nested subagents from `worker` or `reviewer` (`spawning: false`).
-- Prefer project cwd for nursultan work so children inherit the repo context.
-
-**Global agent definitions:** `$PI_CODING_AGENT_DIR/agents/` (`worker` and `reviewer` override bundled defaults).
+Use project cwd for delegated work. Do not spawn nested subagents. For reviews,
+provide changed paths, requirements, and a readable patch when useful. Workers
+and reviewers have project-specific definitions under
+`$PI_CODING_AGENT_DIR/agents/`.
