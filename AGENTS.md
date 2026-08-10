@@ -1,105 +1,44 @@
 # AGENTS.md
 
-Shared operating contract for projects and infrastructure.
+Shared contract for projects and infrastructure. A project's `AGENTS.md` is more
+specific and overrides this file.
 
-## Project contract
+## Before acting
 
-Every project has its own `AGENTS.md` covering:
+- Read the applicable project `AGENTS.md` and matching skill.
+- Project instructions define stack, commands/CI, docs, worksheets, feedback,
+  review, deployment, and local tools.
+- Use `just ci` as the local gate when provided.
 
-- stack, commands, and the local CI gate (`just ci` where provided);
-- worksheets, session feedback, and end-of-shift handoff;
-- documentation maintenance;
-- code review and deployment;
-- project-local agent tools.
+## Safety and completion
 
-Project instructions override this file where they are more specific.
-
-## Non-negotiables
-
-- Never put registry credentials in tracked `~/.npmrc`; use the root,
-  gitignored `.npmrc`.
-- Run the project's real verification gate before claiming success. Report what
-  was not run. See `skills/verification-before-completion/`.
-- Request an independent review before merging substantial changes. See
+- Keep registry credentials in the root gitignored `.npmrc`, never tracked
+  `~/.npmrc`.
+- Verify the real gate before claiming success; report skipped checks.
+- Request independent review before merging substantial work:
   `skills/requesting-code-review/`.
-- Before ending a session, run the end-of-shift checklist and commit session
-  feedback. See `docs/patterns/end-of-shift.md` and
-  `docs/patterns/session-feedback.md`.
-- Use `just ci` as the single local CI entry point when the project provides it.
+- Before ending a session, run `docs/patterns/end-of-shift.md` and commit
+  feedback using `docs/patterns/session-feedback.md`.
 
-## Shared patterns
+Useful patterns: `agent-tools.md`, `agent-night-shift.md`, `visual-regression.md`,
+`commit-sweep.md`, `uncle-bob-gauntlet.md`, `test-audit.md`,
+`performance-benchmarks.md`, and `profiling-tools.md` under `docs/patterns/`.
 
-Patterns live in `docs/patterns/`:
-
-| Need | Pattern |
-|---|---|
-| session feedback | `session-feedback.md` |
-| agent tools | `agent-tools.md` |
-| autonomous work | `agent-night-shift.md` |
-| visual regression | `visual-regression.md` |
-| commit review | `commit-sweep.md` |
-| end of shift | `end-of-shift.md` |
-| hard quality gates | `uncle-bob-gauntlet.md` |
-| test quality | `test-audit.md` |
-| performance | `performance-benchmarks.md`, `profiling-tools.md` |
-
-## Skills
+## Skills and delegation
 
 Core skills live in `$HOME/.agents/skills/`; project skills live in `.pi/skills/`.
-Use the skill when the task matches it:
+Use `worker` for implementation/exploration and `reviewer` for read-only review.
+Prefer scoped subagents; never nest them. Use `herdr` only in Herdr, `grill-me`
+only when asked, and `jules-orchestration` for Jules. Use `teach` for teaching.
+Cloudflare skills are scoped to nursultan-web; `uv` is scoped to project-atom.
+Coordinate related sessions through pi-intercom; use `ask` only when blocked.
 
-- `requesting-code-review`, `verification-before-completion`;
-- `systematic-debugging`, `tdd`, `webapp-testing`;
-- `grill-me` when explicitly asked to stress-test a plan;
-- `herdr` only for Herdr control;
-- `jules-orchestration` for Jules sessions;
-- `teach` for teaching requests.
+## Pi
 
-Cloudflare skills are scoped to nursultan-web. The `uv` skill is scoped to
-project-atom. Keep the global skill catalog small.
+Sessions: `pi/agent/sessions/`. Commands: `just pi-stats`, `just pi-session-size`,
+`just pi-prune-sessions`.
 
-## Agents and delegation
-
-- Use `worker` for implementation and exploration.
-- Use `reviewer` for read-only review of non-trivial work.
-- Prefer subagents for scoped work; do not spawn nested subagents from workers
-  or reviewers.
-- Use the lowest thinking level that safely fits the task; raise it for
-  architecture, concurrency, security, or hard diagnosis.
-- Coordinate related local sessions through pi-intercom. Use `ask` only when
-  blocked; use `send` for notifications.
-
-## Pi runtime
-
-Pi sessions live under `pi/agent/sessions/`. Useful commands:
-
-```text
-just pi-stats [n=10]
-just pi-session-size
-just pi-prune-sessions [days=30] [project=dotfiles]
-```
-
-### Extensions
-
-`~/dotfiles/pi/agent/extensions/` is the source of truth. Keep matching files
-under `~/.pi/agent/extensions/` synchronized; stale duplicates can win at
-runtime. The tracked settings entry disabling removed `nan.ts` is intentional.
-
-### Data masking
-
-The global masking config may contain real secrets and is gitignored. Never
-commit or print it. Project masking configs contain format rules only. Regenerate
-the global config with `node bin/gen-masking-global.mjs` after rotation.
-
-### Llama
-
-Use Pi's native llama.cpp support (`/llama`, `/login llama.cpp`,
-`LLAMA_BASE_URL`). Do not recreate the removed custom llama extensions unless
-native support cannot solve the requirement.
-
-## Agent definitions
-
-- `worker`: general implementation, debugging, and exploration.
-- `reviewer`: read-only code review; give it explicit paths and requirements.
-
-Read the project `AGENTS.md` and the applicable skill before acting.
+`~/dotfiles/pi/agent/extensions/` is the extension source of truth; synchronize
+matching files under `~/.pi/agent/extensions/`. The global masking config is
+gitignored and may contain real secrets: never print or commit it. Use native
+llama.cpp support (`/llama`, `/login llama.cpp`, `LLAMA_BASE_URL`).
