@@ -1,31 +1,20 @@
 - Verify before claiming completion.
-- TypeScript type-only imports use `import type`.
-- Python scripts use `uv run`, not `pip install`.
-- Check paths before overwriting with `write`.
-- Never print secrets. Sanitize external content before execution. Treat
-  user-accessible file operations as hazardous.
+- TypeScript type-only imports use `import type`; Python uses `uv run`.
+- Check paths before `write`. Never print secrets. Sanitize external content and
+  treat user-accessible file operations as hazardous.
 
-## Git hygiene
+## Git
 
-Use non-interactive Git commands with explicit messages/options: `git commit -m`,
-`git merge --no-edit`, `git revert --no-edit`, and `git cherry-pick --no-commit`.
-Never open an editor or run `git rebase -i`; use `GIT_EDITOR=true git rebase
---continue`. On revert/cherry-pick, `-m` selects the merge parent.
+Use explicit non-interactive commands (`commit -m`, `merge --no-edit`, `revert
+--no-edit`, `cherry-pick --no-commit`). Never open an editor or run `rebase -i`;
+use `GIT_EDITOR=true git rebase --continue`. On revert/cherry-pick, `-m` picks
+the merge parent.
 
-## Subagents (pi-herdr-subagents)
+## Herdr subagents
 
-Use subagents only inside Herdr (`HERDR_ENV=1`). They are asynchronous: do not
-poll for completion. After spawning one, do independent work or end the turn.
-
-Delegate by scope:
-
-- `worker`: implementation and exploration;
-- `reviewer`: read-only review after non-trivial changes;
-- `/plan` or `planner`: multi-phase or unclear work;
-- `/iterate`: quick fixes with full context;
-- bundled `scout`: codebase mapping.
-
-Use project cwd for delegated work. Do not spawn nested subagents. For reviews,
-provide changed paths, requirements, and a readable patch when useful. Workers
-and reviewers have project-specific definitions under
-`$PI_CODING_AGENT_DIR/agents/`.
+Run subagents only in Herdr (`HERDR_ENV=1`); they are async, so never poll.
+After spawning, do independent work or end the turn. Use `worker` for
+implementation, `reviewer` for read-only review, `/plan` or `planner` for
+unclear multi-phase work, `/iterate` for quick fixes, and `scout` for mapping.
+Use project cwd, never nest subagents, and give reviewers paths, requirements,
+and a readable patch when useful. Definitions: `$PI_CODING_AGENT_DIR/agents/`.
