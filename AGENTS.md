@@ -20,6 +20,24 @@ specific and overrides this file.
 - Before ending a session, run `docs/patterns/end-of-shift.md` and commit
   feedback using `docs/patterns/session-feedback.md`.
 
+## Completion discipline (no "go on" loop)
+
+Treat every prompt as a complete work order, not a single step. Do not stop at
+natural boundaries waiting for a nudge; carry the task through to done.
+
+- **Scope the whole task first**: list the steps, define what done means
+  (tests, gate, commit), and state any assumptions before acting.
+- **Keep going through verification**: implement, run the real gate
+  (`just ci` where provided), fix failures, then commit when green.
+- **Don't fish for permission**: decide with the available context; if a
+  tradeoff needs input, make the sensible default and flag it in the summary
+  instead of round-tripping.
+- **Stop only when genuinely blocked or the work is provably complete** — never
+  because a step happened to finish. If blocked, report the blocker and the
+  minimal unblock, don't ask open-ended questions.
+- For long-running or multi-phase work, prefer `/goal <task>` so continuation
+  is automatic; reserve one-word nudges for steering, not permission.
+
 Useful patterns: `agent-tools.md`, `agent-night-shift.md`, `visual-regression.md`,
 `commit-sweep.md`, `uncle-bob-gauntlet.md`, `test-audit.md`,
 `performance-benchmarks.md`, and `profiling-tools.md` under `docs/patterns/`.
