@@ -1,11 +1,12 @@
 /**
  * go-on — one-key continuation.
  *
- * Binds Ctrl+Shift+G to send "go on" as a user message, replacing the 2,000+
+ * Binds Alt+G to send "go on" as a user message, replacing the 2,000+
  * hand-typed nudges. Falls back to /go-on command.
  *
- * Key:   ctrl+shift+g   (ctrl+g is app.editor.external and reserved)
- * Tools: /go-on
+ * Key:   alt+g   (ctrl+shift+g collides with app.editor.external on
+ *                 terminals without the Kitty protocol — both send
+ *                 the same raw ctrl+g byte)
  */
 import type { ExtensionAPI, ExtensionCommandContext, ExtensionContext } from "@earendil-works/pi-coding-agent";
 
@@ -17,8 +18,8 @@ export default function (pi: ExtensionAPI) {
     pi.sendUserMessage(GO_ON, { deliverAs: "steer" });
   };
 
-  /* Ctrl+Shift+G — the whole point. */
-  pi.registerShortcut("ctrl+shift+g", {
+  /* Alt+G — the whole point. alt+g is unambiguous (ESC g) and unbound. */
+  pi.registerShortcut("alt+g", {
     description: "Send 'go on' as a user message",
     handler: nudge,
   });
