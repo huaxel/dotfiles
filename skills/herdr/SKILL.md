@@ -23,6 +23,18 @@ When the `herdr_layout`, `herdr_pane`, and `herdr_agent` tools are available in 
 
 Keep using the CLI via bash for what the tools do not expose: discovery (`herdr --help`, command groups), worktrees, notifications, sessions, integration, config, and raw terminal edge cases. The installed binary remains the authority for command syntax.
 
+## Delegation: one spawn rule
+
+Choose the spawning surface by role, not by task size. Work gets a name and a workspace; helpers report back; terminals are not agents.
+
+- **Work** (issue, feature, fix in a worktree, long-running) → named Herdr agent (`herdr agent start`, or the `herdr_agent` tool): own workspace, addressable by name, survives the mother session. The mother polls it with `herdr agent get` or bounded `herdr wait agent-status` waits.
+- **Helpers whose result must return** (review gate, scout, quick fork, `/plan`, `/iterate`) → `subagent()` from pi-herdr-subagents: short-lived, result steers back to the mother, tracked in the mother's widget.
+- **Watchers** over worktree agents → only for unattended runs where auto-wake is required. During interactive sessions, poll instead: `herdr agent get <name>` or `herdr wait agent-status <pane> --status done --timeout <ms>` from the mother's own turn. Do not spawn watcher subagents by default.
+- **Terminals and layout** → `herdr_pane` / `herdr_layout` tools. They are not agents; do not treat them as a delegation surface.
+- **CLI** → discovery, worktrees, notifications, sessions, integration.
+
+Completion awareness: a `subagent()` result arrives as a steer when the mother session is idle; if the mother is mid-turn the steer is queued until the turn ends. Do not `/reload` while subagents are in flight (their watchers die and completions are lost); resume interrupted work with `subagent_resume` afterwards. Herdr agents never steer; their completion must be observed via `agent get` / `wait agent-status` / a watcher.
+
 ## Learn the current CLI
 
 The installed binary is the authority for command syntax. Begin with:
