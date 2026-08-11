@@ -6,9 +6,10 @@
  *                 press (press again to stop): pi then keeps sending "go on"
  *                 after every agent settle until the agent has nothing left
  *                 to do, and disarms itself. alt+shift+g or /go-on-mode
- *                 toggle the same mode without the extra nudge. A lighter-
- *                 weight alternative to /goal when goal ceremony is
- *                 overkill.
+ *                 toggle the same mode without the extra nudge (legacy
+ *                 terminals: ctrl+alt+g for the burst, /go-on-mode to
+ *                 toggle). A lighter-weight alternative to /goal when goal
+ *                 ceremony is overkill.
  *
  * Key choices:
  *   - alt+g is unambiguous (ESC g) and unbound; ctrl+shift+g collides with
@@ -17,9 +18,15 @@
  *   - macOS Option+letter types Unicode (© for g) instead of a key event,
  *     so alt+g / alt+shift+g can't fire there; alt+shift+enter is reported
  *     with full modifier info by kitty-protocol terminals (iTerm2/kitty/
- *     WezTerm/Ghostty). Legacy terminals get an alt+enter fallback.
- *   - alt+shift+g stays as the Linux toggle when modifier reporting is
- *     available; ctrl+alt+g is the legacy-terminal fallback.
+ *     WezTerm/Ghostty).
+ *   - Legacy terminals cannot encode Shift+Alt: Alt+Shift+Enter arrives as
+ *     ESC CR, indistinguishable from Alt+Enter, and that key is unusable —
+ *     pi reserves it for app.message.followUp (extensions are skipped on
+ *     that key) and terminals bind it themselves (GNOME Terminal opens a
+ *     new window, Windows Terminal toggles fullscreen). The legacy burst
+ *     is therefore ctrl+alt+g (ESC BEL), the most reliable legacy
+ *     modifier chord. There is no legacy toggle key; use /go-on-mode
+ *     (alt+shift+g still toggles on kitty-protocol terminals).
  *
  * Auto-mode stop heuristic, evaluated at each agent_settled:
  *   - stop immediately on user abort or model error (don't burn calls,
@@ -324,26 +331,25 @@ export default function (pi: ExtensionAPI) {
     handler: burstShortcut,
   });
 
-  // Legacy terminals cannot encode Shift+Alt together; many emit Alt+Enter
-  // (ESC CR) for that chord. This fallback is intentionally equivalent.
-  pi.registerShortcut("alt+enter", {
+  // Legacy terminals cannot encode Shift+Alt, so Alt+Shift+Enter arrives as
+  // ESC CR — indistinguishable from Alt+Enter, which is unusable here: pi
+  // reserves it for app.message.followUp (extension shortcuts on that key
+  // are skipped) and terminals bind it themselves (GNOME Terminal opens a
+  // new window, Windows Terminal toggles fullscreen). Ctrl+Alt+G (ESC BEL)
+  // is the legacy burst instead — reliable, and unclaimed by pi.
+  pi.registerShortcut("ctrl+alt+g", {
     description: "Send 'go on' and enable go-on auto mode (legacy terminal fallback)",
     handler: burstShortcut,
   });
 
-  // Linux/kitty: alt+shift+g toggles without the initial nudge.
+  // Linux/kitty: alt+shift+g toggles without the initial nudge. Legacy
+  // terminals have no spelling of this chord (ESC G is not decodable and
+  // ctrl+alt+g is the burst above); use /go-on-mode there.
   const toggleShortcut = async (ctx: GoOnContext) => {
     await toggle(ctx);
   };
   pi.registerShortcut("alt+shift+g", {
     description: "Toggle go-on auto mode",
-    handler: toggleShortcut,
-  });
-
-  // Legacy terminals cannot encode Alt+Shift+G; Ctrl+Alt+G is their
-  // distinguishable modifier combination (ESC BEL).
-  pi.registerShortcut("ctrl+alt+g", {
-    description: "Toggle go-on auto mode (legacy terminal fallback)",
     handler: toggleShortcut,
   });
 }
