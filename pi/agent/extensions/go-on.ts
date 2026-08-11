@@ -1,7 +1,8 @@
 /**
  * go-on — one-key continuation + "auto" mode for simple conversations.
  *
- * Single nudge:   alt+g (or /go-on) sends "go on" as a user message.
+ * Single nudge:   alt+g (or ctrl+alt+n on macOS/legacy, /go-on command)
+ *                 sends "go on" as a user message.
  * Auto mode:      alt+shift+enter sends "go on" AND arms the burst in one
  *                 press (press again to stop): pi then keeps sending "go on"
  *                 after every agent settle until the agent has nothing left
@@ -18,7 +19,8 @@
  *   - macOS Option+letter types Unicode (© for g) instead of a key event,
  *     so alt+g / alt+shift+g can't fire there; alt+shift+enter is reported
  *     with full modifier info by kitty-protocol terminals (iTerm2/kitty/
- *     WezTerm/Ghostty).
+ *     WezTerm/Ghostty). ctrl+alt+n is the macOS-safe nudge: Control+Option
+ *     +letter sends ESC + ctrl-char (ESC \x0e for n), never Unicode.
  *   - Legacy terminals cannot encode Shift+Alt: Alt+Shift+Enter arrives as
  *     ESC CR, indistinguishable from Alt+Enter, and that key is unusable —
  *     pi reserves it for app.message.followUp (extensions are skipped on
@@ -297,6 +299,16 @@ export default function (pi: ExtensionAPI) {
   // --- Single nudge ---
   pi.registerShortcut("alt+g", {
     description: "Send 'go on' as a user message",
+    handler: async (ctx) => {
+      await nudge(ctx);
+    },
+  });
+
+  // macOS Option+letter types Unicode (© for g), so alt+g can't fire there;
+  // Control+Option+N sends ESC + ctrl-n (\x0e) on Mac terminals — the
+  // legacy-safe spelling of the nudge.
+  pi.registerShortcut("ctrl+alt+n", {
+    description: "Send 'go on' as a user message (macOS/legacy fallback)",
     handler: async (ctx) => {
       await nudge(ctx);
     },
