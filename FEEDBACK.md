@@ -190,3 +190,18 @@
 ### Improvements for next time
 - When testing keybindings: (1) replicate the runner's reserved-key filter, (2) test the actual byte sequence through `matchesKey` in BOTH `setKittyProtocolActive(true|false)` modes, (3) ask whether the terminal emulator binds the key itself.
 - Commit the behavioral tests into the repo (`pi/agent/extensions/go-on.test.mjs`) instead of leaving them in /tmp.
+
+## 2026-08-12: Consolidate Pi instructions
+
+### What went well
+- Moved the Pi-specific overlay rules into the shared `AGENTS.md` contract and replaced the stale subagent README reference with dedicated Herdr skill links.
+- `just ci` passed, including Git hygiene and secret checks.
+
+### What was frustrating / slow
+- The documented `requesting-code-review` skill path is absent from `$HOME/.agents/skills/`, so the required independent-review step could not be followed.
+
+### What config change would have helped
+- Keep every skill path referenced by `AGENTS.md` installed or update the contract when skills move.
+
+### Improvements for next time
+- Treat missing required skills as a verification exception and record the exact path in session feedback.
