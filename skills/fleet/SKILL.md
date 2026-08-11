@@ -28,23 +28,25 @@ herdr worktree create <repo> <branch>          # or: herdr worktree open
 herdr agent start <project>-<issue> --cwd <worktree-path>
 ```
 
-- Name convention: `<project>-<issue>` (e.g. `bel-1300`). Helpers get prefixes: `watch-*`, `review-*`, `scout-*`.
+- Name convention: `<project>-<issue>` (e.g. `bel-1300`). Helpers get prefixes: `review-*`, `scout-*`.
 - Give each agent a scoped task: the issue text, the target branch, and the definition of done. Keep the brief bounded — the worker inherits no conversation.
 - Use a cheap model for implementation agents unless the task warrants a stronger one; use read-only tools for review agents (`--tools read,grep,find,ls`).
 - Cap concurrency: do not start more than ~5 agents at once. Provider overload produces aborted runs ("This operation was aborted") — you will have to retry or resume, which is slower than pacing.
-- Record the returned pane IDs in your todos and register each agent with `fleet_watch add` (see next step) so completion steers back automatically.
+- Record the returned pane IDs in your todos; master mode (`herdr_agents watch/start`) steers back automatically (see next step).
 
 ### 2. Wait
 
-Register every spawned fleet agent with the completion listener so the mother is steered automatically the moment an agent reports `done` — no polling, no watcher subagents, works in unattended runs too:
+The mother is steered automatically when a fleet agent settles — no polling, no watcher subagents, works in unattended runs. Enable master mode once (`/herdr json` in the control directory, or `/herdr master` for the current session), then every `start` is watched automatically and `watch`/`send` on an existing agent opts in:
 
 ```typescript
-fleet_watch({ action: "add", name: "<agent-name>", paneId: "<pane-id>" });
+herdr_agents({ action: "start", name: "<agent-name>", placement: ..., prompt: "<initial task>" });
+// or after herdr agent start:
+herdr_agents({ action: "watch", target: "<agent-name-or-pane-id>" });
 ```
 
-Registry survives `/reload` (persisted to `~/.pi/fleet-listener.json`); the listener re-subscribes at init and on socket reconnect. Between steers, keep discussing with the user; the steer arrives as a new turn when the session is idle.
+Completion and blocked events steer the mother with the full worker response; a blocked event includes the pane ID and concrete herdr commands. Between steers, keep discussing with the user; the steer arrives as a new turn when the session is idle.
 
-If the listener is not available (extension not loaded), fall back to polling from your own turns:
+If master mode is unavailable (extension not loaded), fall back to polling from your own turns:
 
 ```bash
 herdr agent get <name>                          # status: idle/working/blocked/done
@@ -53,7 +55,7 @@ herdr wait agent-status <pane-id> --status done --timeout 120000
 
 A bounded wait blocks only your turn; between checks the user keeps the conversation going. If an agent is `blocked`, it needs input — prompt it or read its pane first.
 
-Do **not** `/reload` while subagents (reviewers, watchers) are in flight — their watchers die and completions are lost. After an unexpected reload, resume interrupted work with `subagent_resume`.
+Do **not** `/reload` while subagents (reviewers) are in flight — their watchers die and completions are lost. After an unexpected reload, resume interrupted work with `subagent_resume`.
 
 ### 3. Review gate
 
