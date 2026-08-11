@@ -33,7 +33,7 @@ Choose the spawning surface by role, not by task size. Work gets a name and a wo
 - **Terminals and layout** → `herdr_pane` / `herdr_layout` tools. They are not agents; do not treat them as a delegation surface.
 - **CLI** → discovery, worktrees, notifications, sessions, integration.
 
-Completion awareness: a `subagent()` result arrives as a steer when the mother session is idle; if the mother is mid-turn the steer is queued until the turn ends. Do not `/reload` while subagents are in flight (their watchers die and completions are lost); resume interrupted work with `subagent_resume` afterwards. Herdr agents never steer; their completion must be observed via `agent get` / `wait agent-status` / a watcher.
+Completion awareness: a `subagent()` result arrives as a steer when the mother session is idle; if the mother is mid-turn the steer is queued until the turn ends. Do not `/reload` while subagents are in flight (their watchers die and completions are lost). `/restart` (custom session-switch extension) while subagents are tracked used to crash pi with a stale-ctx uncaughtException — fixed by the local patch `npm/patches/pi-herdr-subagents+0.1.6.patch`; avoid it anyway and resume interrupted work with `subagent_resume`. Herdr agents never steer; their completion must be observed via `agent get` / `wait agent-status` / the completion-listener (`fleet_watch`).
 
 ## Learn the current CLI
 

@@ -1,0 +1,106 @@
+diff --git a/node_modules/pi-herdr-subagents/pi-extension/subagents/index.ts b/node_modules/pi-herdr-subagents/pi-extension/subagents/index.ts
+index e25e70f..5d2fbd3 100644
+--- a/node_modules/pi-herdr-subagents/pi-extension/subagents/index.ts
++++ b/node_modules/pi-herdr-subagents/pi-extension/subagents/index.ts
+@@ -781,7 +781,9 @@ function renderSubagentWidgetLines(agents: RunningSubagent[], width: number): st
+ 
+ function updateWidget() {
+   const latestCtx = runtime.latestCtx;
+-  if (!latestCtx?.hasUI) return;
++  if (!latestCtx) return;
++  try {
++    if (!latestCtx.hasUI) return;
+ 
+   if (runningSubagents.size === 0) {
+     latestCtx.ui.setWidget("subagent-status", undefined);
+@@ -805,6 +807,11 @@ function updateWidget() {
+     },
+     { placement: "aboveEditor" },
+   );
++  } catch {
++    // Stale ctx after session replacement (/restart) or reload: drop the
++    // reference so intervals and completion callbacks stop touching it.
++    runtime.latestCtx = undefined;
++  }
+ }
+ 
+ /**
+@@ -1017,6 +1024,15 @@ function handleSubagentInterrupt(
+   };
+ }
+ 
++
++function safeSendMessage(api: typeof pi, message: Parameters<typeof pi.sendMessage>[0], options?: Parameters<typeof pi.sendMessage>[1]) {
++  try {
++    api.sendMessage(message, options);
++  } catch {
++    // Stale ctx after session replacement (/restart) or reload — no-op.
++  }
++}
++
+ function startStatusRefresh(pi: ExtensionAPI) {
+   if (!statusConfig.enabled || statusInterval) return;
+ 
+@@ -1066,7 +1082,7 @@ function startStatusRefresh(pi: ExtensionAPI) {
+ 
+     if (transitionLines.length > 0) {
+       const capped = capStatusLines(transitionLines, statusConfig.lineLimit);
+-      pi.sendMessage(
++      safeSendMessage(pi,
+         {
+           customType: "subagent_status",
+           content: formatStatusAggregate(transitionLines, statusConfig.lineLimit),
+@@ -1771,7 +1787,7 @@ export default function subagentsExtension(pi: ExtensionAPI) {
+             if (result.ping) {
+               // Subagent is requesting help — steer a ping message with session path for resume
+               const sessionRef = `\n\nSession: ${result.sessionFile}\nResume: pi --session ${result.sessionFile}`;
+-              completionApi.sendMessage(
++              safeSendMessage(completionApi, 
+                 {
+                   customType: "subagent_ping",
+                   content: `Sub-agent "${result.ping.name}" needs help (${formatElapsed(result.elapsed)}):\n\n${result.ping.message}${sessionRef}`,
+@@ -1793,7 +1809,7 @@ export default function subagentsExtension(pi: ExtensionAPI) {
+               ? `${basePresentation}\n\nRuntime warning: ${running.runtimePlan.runtimeMismatch}`
+               : basePresentation;
+ 
+-            completionApi.sendMessage(
++            safeSendMessage(completionApi, 
+               {
+                 customType: "subagent_result",
+                 content: presentation,
+@@ -1823,7 +1839,7 @@ export default function subagentsExtension(pi: ExtensionAPI) {
+             running.lifecycle = markDelivery(running.lifecycle, "delivered");
+             runningSubagents.delete(running.id);
+             updateWidget();
+-            selectCompletionApi(pi, runtime.pi).sendMessage(
++            safeSendMessage(selectCompletionApi(pi, runtime.pi), 
+               {
+                 customType: "subagent_result",
+                 content: `Sub-agent "${running.name}" error: ${err?.message ?? String(err)}`,
+@@ -2222,7 +2238,7 @@ export default function subagentsExtension(pi: ExtensionAPI) {
+ 
+             if (result.ping) {
+               const sessionRef = `\n\nSession: ${params.sessionPath}\nResume: pi --session ${params.sessionPath}`;
+-              completionApi.sendMessage(
++              safeSendMessage(completionApi, 
+                 {
+                   customType: "subagent_ping",
+                   content: `Sub-agent "${result.ping.name}" needs help (${formatElapsed(result.elapsed)}):\n\n${result.ping.message}${sessionRef}`,
+@@ -2253,7 +2269,7 @@ export default function subagentsExtension(pi: ExtensionAPI) {
+               ? `${basePresentation}\n\nRuntime warning: ${running.runtimePlan.runtimeMismatch}`
+               : basePresentation;
+ 
+-            completionApi.sendMessage(
++            safeSendMessage(completionApi, 
+               {
+                 customType: "subagent_result",
+                 content: presentation,
+@@ -2281,7 +2297,7 @@ export default function subagentsExtension(pi: ExtensionAPI) {
+             running.lifecycle = markDelivery(running.lifecycle, "delivered");
+             runningSubagents.delete(running.id);
+             updateWidget();
+-            selectCompletionApi(pi, runtime.pi).sendMessage(
++            safeSendMessage(selectCompletionApi(pi, runtime.pi), 
+               {
+                 customType: "subagent_result",
+                 content: `Resume error: ${err?.message ?? String(err)}`,
