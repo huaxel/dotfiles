@@ -44,22 +44,28 @@ export default function (pi: ExtensionAPI) {
   const GO_ON = "go on";
   /** Maximum number of automatic "go on" messages per burst. */
   const MAX_NUDGES = 15;
+  /** Avoid wedging auto mode if Pi rejects a nudge before agent_start. */
+  const NUDGE_START_TIMEOUT_MS = 60_000;
   /** Nudge this many purely verbal answers before declaring the agent done. */
   const VERBAL_PASSES = 1;
   type GoOnContext = ExtensionContext | ExtensionCommandContext;
 
-  /** Final answers that declare completion. End-anchored on purpose:
+  /** Explicit completion declarations. End-anchored on purpose:
    *  "I'm done with X, now doing Y" is a pause, not a wrap-up. */
   const DONE_PHRASE =
-    /\b(?:all done|done here|done with everything|everything['’]?s done|task complete|tasks complete|i['’]?m done|i am done|that['’]s (?:it|all)|that is all|all set|wrapped up|finished|completed|complete|done|nothing (?:else|more|left)(?: to do)?|no further (?:work|tasks|steps))\b[.!?]*$/i;
+    /\b(?:all done|done here|done with everything|everything['’]?s done|task complete|tasks complete|i['’]?m done|i am done|that['’]s (?:it|all)|that is all|all set|wrapped up|nothing (?:else|more|left)(?: to do)?|no further (?:work|tasks|steps))\b[.!?]*$/i;
+  const SUBJECT_DONE_PHRASE =
+    /^(?:(?:the|all) )?(?:task|tasks|work|changes|implementation|request|refactor|job|project|goal|deliverable|assignment|everything) (?:is|are|was|were|has been|have been) (?:done|complete|completed|finished)[.!?]*$/i;
+  const STANDALONE_DONE_PHRASE = /^(?:done|finished|completed|complete|all set)[.!?]*$/i;
   const NEGATED_DONE_PHRASE =
-    /\b(?:not|never|isn['’]?t|is not|wasn['’]?t|was not|haven['’]?t|have not|hasn['’]?t|has not|don['’]?t|do not)\s+(?:all\s+)?(?:done|complete(?:d)?|finished|all set)\b[.!?]*$/i;
+    /\b(?:not|never|isn['’]?t|is not|wasn['’]?t|was not|haven['’]?t|have not|hasn['’]?t|has not|don['’]?t|do not)\b[^.!?\n]*\b(?:done|complete|completed|finished|all set)\b[.!?]*$/i;
 
   let mode = false;
   let nudges = 0;
   let toolsSinceSettle = false; // did the settled run execute any tools?
   let verbalStreak = 0; // consecutive settles without tool work
   let idleNudgePending = false; // an idle nudge is in preflight/startup
+  let idleNudgeTimer: ReturnType<typeof setTimeout> | undefined;
 
   const setStatus = (ctx: GoOnContext, text: string | undefined) =>
     ctx.ui.setStatus("go-on-mode", text);
@@ -69,6 +75,14 @@ export default function (pi: ExtensionAPI) {
     msg: string,
     type: "info" | "warning" | "error" = "info",
   ) => ctx.ui.notify(msg, type);
+
+  function clearIdleNudgePending() {
+    idleNudgePending = false;
+    if (idleNudgeTimer !== undefined) {
+      clearTimeout(idleNudgeTimer);
+      idleNudgeTimer = undefined;
+    }
+  }
 
   /** Send "go on", avoiding overlapping idle prompts and preflighting auth. */
   async function nudge(
@@ -84,9 +98,16 @@ export default function (pi: ExtensionAPI) {
       // start, so serialize idle nudges locally.
       if (idleNudgePending) return false;
       idleNudgePending = true;
+      idleNudgeTimer = setTimeout(() => {
+        if (!idleNudgePending) return;
+        clearIdleNudgePending();
+        if (requiresMode && mode) {
+          disarm(ctx, "nudge did not start");
+        }
+      }, NUDGE_START_TIMEOUT_MS);
 
       if (!ctx.model) {
-        idleNudgePending = false;
+        clearIdleNudgePending();
         if (mode) disarm(ctx, "no model selected");
         else notify(ctx, "Go-on unavailable — no model selected", "warning");
         return false;
@@ -94,11 +115,12 @@ export default function (pi: ExtensionAPI) {
 
       const auth = await ctx.modelRegistry.getApiKeyAndHeaders(ctx.model);
       if (requiresMode && !mode) {
-        idleNudgePending = false;
+        clearIdleNudgePending();
         return false;
       }
+      if (!idleNudgePending) return false;
       if (!auth.ok) {
-        idleNudgePending = false;
+        clearIdleNudgePending();
         if (mode) disarm(ctx, "authentication unavailable");
         else notify(ctx, "Go-on unavailable — authentication unavailable", "warning");
         return false;
@@ -107,7 +129,7 @@ export default function (pi: ExtensionAPI) {
       // Another prompt may have started while auth was being resolved. Let
       // that run finish instead of injecting a stale manual/auto nudge into it.
       if (!ctx.isIdle()) {
-        idleNudgePending = false;
+        clearIdleNudgePending();
         return false;
       }
     }
@@ -116,7 +138,7 @@ export default function (pi: ExtensionAPI) {
       pi.sendUserMessage(GO_ON, { deliverAs: "steer" });
       return true;
     } catch (error) {
-      if (startedIdle) idleNudgePending = false;
+      if (startedIdle) clearIdleNudgePending();
       const detail = error instanceof Error ? error.message : String(error);
       if (mode) disarm(ctx, `could not send (${detail})`);
       else notify(ctx, `Could not send 'go on' (${detail})`, "warning");
@@ -183,19 +205,24 @@ export default function (pi: ExtensionAPI) {
 
   function declaresCompletion(text: string): boolean {
     const normalized = text.trim();
-    return DONE_PHRASE.test(normalized) && !NEGATED_DONE_PHRASE.test(normalized);
+    if (NEGATED_DONE_PHRASE.test(normalized)) return false;
+    return (
+      DONE_PHRASE.test(normalized) ||
+      SUBJECT_DONE_PHRASE.test(normalized) ||
+      STANDALONE_DONE_PHRASE.test(normalized)
+    );
   }
 
   // agent_start confirms that an idle nudge passed Pi's asynchronous
   // preflight. agent_settled clears the same guard before considering the
   // next automatic nudge.
   pi.on("agent_start", () => {
-    idleNudgePending = false;
+    clearIdleNudgePending();
   });
 
   pi.on("session_shutdown", () => {
     mode = false;
-    idleNudgePending = false;
+    clearIdleNudgePending();
   });
 
   pi.on("tool_execution_end", () => {
@@ -203,7 +230,7 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.on("agent_settled", async (_event, ctx) => {
-    idleNudgePending = false;
+    clearIdleNudgePending();
     if (!mode) return;
 
     const last = lastAssistantMessage(ctx);
