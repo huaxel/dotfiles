@@ -41,7 +41,7 @@ function buildBuiltinKeybindings(resolvedKeybindings) {
 const GO_ON_KEYS = {
   "0fad716 (alt+enter fallback)": ["alt+g", "alt+shift+enter", "alt+enter", "alt+shift+g", "ctrl+alt+g"],
   "new (ctrl+alt+g legacy burst)": ["alt+g", "alt+shift+enter", "alt+shift+g", "ctrl+alt+g"],
-  "current (+ ctrl+alt+n macOS nudge)": ["alt+g", "ctrl+alt+n", "alt+shift+enter", "alt+shift+g", "ctrl+alt+g"],
+  "current (+ ctrl+alt+n nudge; no toggle keys)": ["alt+g", "ctrl+alt+n", "alt+shift+enter", "ctrl+alt+g"],
 };
 
 // Effective config = defaults (no user keybindings.json overrides present)
@@ -51,7 +51,7 @@ for (const [id, def] of Object.entries(resolved)) effectiveConfig[id] = def.defa
 
 const builtin = buildBuiltinKeybindings(effectiveConfig);
 console.log("=== built-in claims on go-on keys ===");
-for (const key of ["alt+g", "ctrl+alt+n", "alt+shift+enter", "alt+enter", "alt+shift+g", "ctrl+alt+g"]) {
+for (const key of ["alt+g", "ctrl+alt+n", "alt+shift+enter", "alt+enter", "ctrl+alt+g"]) {
   console.log(`  ${key.padEnd(16)} ->`, builtin[key] ? JSON.stringify(builtin[key]) : "(free)");
 }
 
