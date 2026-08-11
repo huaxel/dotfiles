@@ -1,3 +1,5 @@
+// Behavioral tests for go-on.ts. Run: node pi/agent/extensions/go-on.test.mjs
+// (from the repo root). Mocks the pi extension API; no pi install needed.
 import goOn from "./go-on.ts";
 
 function makeHarness({ model = {}, auth = { ok: true } } = {}) {
