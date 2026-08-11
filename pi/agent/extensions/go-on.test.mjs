@@ -70,6 +70,24 @@ for (const text of ["The first phase is complete.", "The work is not yet complet
   assert(h.sent.length === 2, `${text} was incorrectly treated as overall completion`);
 }
 
+// Subject-qualified "all set"/"wrapped up" are NOT overall completion.
+for (const text of ["The environment is all set.", "Phase one is wrapped up.", "The first phase is wrapped up"]) {
+  const h = makeHarness();
+  await h.shortcuts.get("alt+shift+enter")(h.ctx);
+  h.setBranch([assistant(text)]);
+  await h.events.get("agent_settled")({}, h.ctx);
+  assert(h.sent.length === 2, `${text} was incorrectly treated as overall completion`);
+}
+
+// Overall-task subject or standalone "all set"/"wrapped up" DO complete.
+for (const text of ["The task is all set.", "All set.", "Wrapped up."]) {
+  const h = makeHarness();
+  await h.shortcuts.get("alt+shift+enter")(h.ctx);
+  h.setBranch([assistant(text)]);
+  await h.events.get("agent_settled")({}, h.ctx);
+  assert(h.sent.length === 1, `${text} was not treated as completion`);
+}
+
 const positive = makeHarness();
 await positive.shortcuts.get("alt+shift+enter")(positive.ctx);
 positive.setBranch([assistant("The work is done.")]);
