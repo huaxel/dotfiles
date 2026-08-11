@@ -32,10 +32,7 @@
     "cursor/gpt-5.6-luna@272k",
     "cursor/gpt-5.6-luna@1m",
     "nous/deepseek/deepseek-v4-flash-0731",
-    "umans/umans-deepseek-v4-flash-0731",
-    "umans/umans-deepseek-v4-flash-0731-lab",
-    "umans/umans-glm-5.2",
-    "umans/umans-kimi-k3"
+    "openai-codex/gpt-5.6-sol"
   ],
   "defaults": {
     "model": null
@@ -46,7 +43,6 @@
     }
   },
   "packages": [
-    "npm:@juicesharp/rpiv-todo",
     "npm:pi-web-access",
     "npm:@ff-labs/pi-fff",
     "npm:pi-autoresearch",
