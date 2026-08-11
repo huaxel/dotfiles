@@ -3,7 +3,7 @@
   "theme": "ghostty-sync-b59692fc",
   "defaultProvider": null,
   "defaultModel": null,
-  "defaultThinkingLevel": "high",
+  "defaultThinkingLevel": "max",
   "enabledModels": [
     "openai-codex/gpt-5.6-luna",
     "openai-codex/gpt-5.6-terra",
@@ -48,7 +48,6 @@
   "packages": [
     "npm:@juicesharp/rpiv-todo",
     "npm:pi-web-access",
-    "npm:pi-provider-umans",
     "npm:@ff-labs/pi-fff",
     "npm:pi-autoresearch",
     "npm:@mobrienv/pi-tidy-tools",
