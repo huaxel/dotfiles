@@ -1,34 +1,34 @@
 /**
  * go-on — one-key continuation + "auto" mode for simple conversations.
  *
- * Single nudge:   alt+g (or ctrl+alt+n on macOS/legacy, /go-on command)
- *                 sends "go on" as a user message.
- * Auto mode:      alt+shift+enter sends "go on" AND arms the burst in one
- *                 press (press again to stop): pi then keeps sending "go on"
+ * Single nudge:   alt+g (or ctrl+alt+n on macOS where Option+letter types
+ *                 Unicode) sends "go on" as a user message.
+ * Auto mode:      alt+shift+enter (kitty-protocol terminals) or ctrl+alt+g
+ *                 (legacy) sends "go on" AND arms the burst in one press
+ *                 (press again to stop): pi then keeps sending "go on"
  *                 after every agent settle until the agent has nothing left
- *                 to do, and disarms itself. alt+shift+g or /go-on-mode
- *                 toggle the same mode without the extra nudge (legacy
- *                 terminals: ctrl+alt+g for the burst, /go-on-mode to
- *                 toggle). A lighter-weight alternative to /goal when goal
- *                 ceremony is overkill.
+ *                 to do, and disarms itself. The second press is the whole
+ *                 toggle (/go-on-mode on|off is the command fallback). A
+ *                 lighter-weight alternative to /goal when goal ceremony is
+ *                 overkill.
  *
- * Key choices:
+ * Key choices — only two keys matter per terminal (nudge + burst):
  *   - alt+g is unambiguous (ESC g) and unbound; ctrl+shift+g collides with
  *     app.editor.external on terminals without the Kitty protocol (both
  *     send the same raw ctrl+g byte).
- *   - macOS Option+letter types Unicode (© for g) instead of a key event,
- *     so alt+g / alt+shift+g can't fire there; alt+shift+enter is reported
- *     with full modifier info by kitty-protocol terminals (iTerm2/kitty/
- *     WezTerm/Ghostty). ctrl+alt+n is the macOS-safe nudge: Control+Option
- *     +letter sends ESC + ctrl-char (ESC \x0e for n), never Unicode.
+ *   - macOS Option+letter types Unicode (© for g, ˝ for shift+g) instead of
+ *     a key event, so alt+g / alt+shift+g can't fire there; Control+Option
+ *     +letter sends ESC + ctrl-char, never Unicode — ctrl+alt+n is the
+ *     macOS-safe nudge. alt+shift+enter is reported with full modifier
+ *     info by kitty-protocol terminals (iTerm2/kitty/WezTerm/Ghostty).
  *   - Legacy terminals cannot encode Shift+Alt: Alt+Shift+Enter arrives as
  *     ESC CR, indistinguishable from Alt+Enter, and that key is unusable —
  *     pi reserves it for app.message.followUp (extensions are skipped on
  *     that key) and terminals bind it themselves (GNOME Terminal opens a
  *     new window, Windows Terminal toggles fullscreen). The legacy burst
- *     is therefore ctrl+alt+g (ESC BEL), the most reliable legacy
- *     modifier chord. There is no legacy toggle key; use /go-on-mode
- *     (alt+shift+g still toggles on kitty-protocol terminals).
+ *     is therefore ctrl+alt+g (ESC BEL), the most reliable legacy chord.
+ *   - No dedicated toggle keys: the burst key's second press disarms, so a
+ *     separate toggle chord would be redundant on every platform.
  *
  * Auto-mode stop heuristic, evaluated at each agent_settled:
  *   - stop immediately on user abort or model error (don't burn calls,
@@ -343,7 +343,7 @@ export default function (pi: ExtensionAPI) {
   };
 
   pi.registerShortcut("alt+shift+enter", {
-    description: "Send 'go on' and enable go-on auto mode (macOS)",
+    description: "Send 'go on' and enable go-on auto mode (kitty-protocol terminals)",
     handler: burstShortcut,
   });
 
@@ -352,20 +352,10 @@ export default function (pi: ExtensionAPI) {
   // reserves it for app.message.followUp (extension shortcuts on that key
   // are skipped) and terminals bind it themselves (GNOME Terminal opens a
   // new window, Windows Terminal toggles fullscreen). Ctrl+Alt+G (ESC BEL)
-  // is the legacy burst instead — reliable, and unclaimed by pi.
+  // is the legacy burst instead — reliable, and unclaimed by pi. A second
+  // press of either burst key disarms, so there is no separate toggle key.
   pi.registerShortcut("ctrl+alt+g", {
     description: "Send 'go on' and enable go-on auto mode (legacy terminal fallback)",
     handler: burstShortcut,
-  });
-
-  // Linux/kitty: alt+shift+g toggles without the initial nudge. Legacy
-  // terminals have no spelling of this chord (ESC G is not decodable and
-  // ctrl+alt+g is the burst above); use /go-on-mode there.
-  const toggleShortcut = async (ctx: GoOnContext) => {
-    await toggle(ctx);
-  };
-  pi.registerShortcut("alt+shift+g", {
-    description: "Toggle go-on auto mode",
-    handler: toggleShortcut,
   });
 }

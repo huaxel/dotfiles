@@ -146,4 +146,10 @@ assert(positive.sent.length === 1, "subject-based completion was missed");
   assert(!h.shortcuts.has("alt+enter"), "go-on still registers the reserved alt+enter key");
 }
 
+// No dedicated toggle keys are registered (the burst key's second press covers it).
+{
+  const h = makeHarness();
+  assert(!h.shortcuts.has("alt+shift+g") && !h.shortcuts.has("ctrl+alt+o"), "toggle keys still registered");
+}
+
 console.log("go-on behavioral checks passed");
