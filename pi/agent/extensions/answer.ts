@@ -73,38 +73,32 @@ Example output:
   ]
 }`;
 
-const CODEX_MODEL_IDS = ["gpt-5.4-mini", "gpt-5.3-codex-spark", "gpt-5.4", "gpt-5.3-codex"];
-const HAIKU_MODEL_ID = "claude-haiku-4-5";
+// Extraction model preference: fast opencode-go models first, then the
+// current model. (Upstream prefers Codex mini / claude-haiku; those providers
+// are not configured here.)
+const EXTRACTION_PROVIDER = "opencode-go";
+const EXTRACTION_MODEL_IDS = ["deepseek-v4-flash", "gpt-5.6-luna"];
 
 /**
- * Prefer a fast configured Codex model for extraction, then haiku, then the
+ * Prefer a fast configured opencode-go model for extraction, then the
  * current model.
  */
 async function selectExtractionModel(
 	currentModel: Model<Api>,
 	modelRegistry: ModelRegistry,
 ): Promise<Model<Api>> {
-	for (const modelId of CODEX_MODEL_IDS) {
-		const codexModel = modelRegistry.find("openai-codex", modelId);
-		if (codexModel) {
-			const auth = await modelRegistry.getApiKeyAndHeaders(codexModel);
-			if (auth.ok) {
-				return codexModel;
-			}
+	for (const modelId of EXTRACTION_MODEL_IDS) {
+		const model = modelRegistry.find(EXTRACTION_PROVIDER, modelId);
+		if (!model) {
+			continue;
+		}
+		const auth = await modelRegistry.getApiKeyAndHeaders(model);
+		if (auth.ok) {
+			return model;
 		}
 	}
 
-	const haikuModel = modelRegistry.find("anthropic", HAIKU_MODEL_ID);
-	if (!haikuModel) {
-		return currentModel;
-	}
-
-	const auth = await modelRegistry.getApiKeyAndHeaders(haikuModel);
-	if (auth.ok === false) {
-		return currentModel;
-	}
-
-	return haikuModel;
+	return currentModel;
 }
 
 function toExtractedQuestion(value: unknown): ExtractedQuestion | null {
