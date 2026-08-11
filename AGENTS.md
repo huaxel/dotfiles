@@ -14,6 +14,10 @@ specific and overrides this file.
 
 - Keep registry credentials in the root gitignored `.npmrc`, never tracked
   `~/.npmrc`.
+- TypeScript type-only imports use `import type`; Python uses `uv run`.
+- Use explicit non-interactive Git commands. Never open an editor or run
+  `rebase -i`; use `GIT_EDITOR=true git rebase --continue`. On revert or
+  cherry-pick, use `-m` to select the merge parent.
 - Verify the real gate before claiming success; report skipped checks.
 - Request independent review before merging substantial work:
   `skills/requesting-code-review/`.
@@ -45,6 +49,9 @@ Useful patterns: `agent-tools.md`, `agent-night-shift.md`, `visual-regression.md
 ## Skills and delegation
 
 Core skills live in `$HOME/.agents/skills/`; project skills live in `.pi/skills/`.
+Read the applicable skill before acting. In particular, read
+`$HOME/.agents/skills/herdr/SKILL.md` before using Herdr; also read
+`$HOME/.agents/skills/fleet/SKILL.md` for multi-issue fleet orchestration.
 Use `worker` for implementation/exploration and `reviewer` for read-only review.
 Delegate via named Herdr agents (`herdr_agents` from pi-shepherdr); run review agents read-only
 (`--tools read,grep,find,ls`). Never nest agents. Use `herdr` only in Herdr, `grill-me`

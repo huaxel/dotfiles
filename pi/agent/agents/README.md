@@ -9,7 +9,9 @@ Global agent definitions for `pi-herdr-subagents`. Discovery:
 | `reviewer` | Read-only code review (`openai-codex/gpt-5.6-luna`, high thinking) |
 
 Bundled-only (package): `planner`, `scout`, `visual-tester`. Parent delegation
-rules: `../APPEND_SYSTEM.md`.
+rules: `../../AGENTS.md`. Herdr procedures live in
+`$HOME/.agents/skills/herdr/SKILL.md`; fleet orchestration uses
+`$HOME/.agents/skills/fleet/SKILL.md`.
 
 **All names you can pass to `/subagent`:** `worker`, `reviewer`, `planner`,
 `scout`, `visual-tester` (plus any `.pi/agents/` in the project).
