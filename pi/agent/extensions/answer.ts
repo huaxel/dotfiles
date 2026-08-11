@@ -73,22 +73,23 @@ Example output:
   ]
 }`;
 
-// Extraction model preference: fast opencode-go models first, then the
-// current model. (Upstream prefers Codex mini / claude-haiku; those providers
-// are not configured here.)
-const EXTRACTION_PROVIDER = "opencode-go";
-const EXTRACTION_MODEL_IDS = ["deepseek-v4-flash", "gpt-5.6-luna"];
+// Extraction model preference: fast opencode-go flash first, then
+// gpt-5.6-luna via openai-codex (OAuth), then the current model.
+// (Upstream prefers Codex mini / claude-haiku; adapted to configured providers.)
+const EXTRACTION_MODELS: Array<[provider: string, modelId: string]> = [
+	["opencode-go", "deepseek-v4-flash"],
+	["openai-codex", "gpt-5.6-luna"],
+];
 
 /**
- * Prefer a fast configured opencode-go model for extraction, then the
- * current model.
+ * Prefer a fast configured extraction model, then the current model.
  */
 async function selectExtractionModel(
 	currentModel: Model<Api>,
 	modelRegistry: ModelRegistry,
 ): Promise<Model<Api>> {
-	for (const modelId of EXTRACTION_MODEL_IDS) {
-		const model = modelRegistry.find(EXTRACTION_PROVIDER, modelId);
+	for (const [provider, modelId] of EXTRACTION_MODELS) {
+		const model = modelRegistry.find(provider, modelId);
 		if (!model) {
 			continue;
 		}
