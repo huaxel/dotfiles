@@ -60,6 +60,20 @@ export default function (
       const path = await import("node:path");
       const homedir = (await import("node:os")).homedir;
       const agentqDir = path.join(homedir(), "projects", "agentq", "data");
+
+      // Live provider set derived from auth.json keys (names only — never values)
+      try {
+        const authPath = path.join(homedir(), ".pi", "agent", "auth.json");
+        if (fs.existsSync(authPath)) {
+          const keys = Object.keys(JSON.parse(fs.readFileSync(authPath, "utf8")) as Record<string, unknown>).filter(
+            (k) => !k.startsWith("quota") && !k.endsWith("-failover"),
+          );
+          lines.push(`configured providers: ${keys.join(", ") || "(none)"}`);
+        }
+      } catch {
+        // auth.json is best-effort
+      }
+
       const readJson = (name: string): Record<string, unknown> | null => {
         try {
           const p = path.join(agentqDir, name);

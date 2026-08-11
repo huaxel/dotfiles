@@ -90,6 +90,8 @@ Pick helper models with the quota-aware resolver, not by habit:
 - If quota is high or cooldowns are active, spread dispatches or downgrade a tier — provider aborts ("This operation was aborted") are a quota symptom; retrying into a cooled-down provider is slower than pacing.
 - Pass the resolved model explicitly when starting helpers: `herdr agent start <name> --kind pi --pane <id> -- --model <model>`.
 
+**Providers change over time** (added/removed ifv price, e.g. nous portal). The live provider set is derived from `~/.pi/agent/auth.json` — `opencode_usage` lists it; never assume a provider still exists from memory. When the user adds or removes a provider, the agentq data pipeline must follow: refresh pricing/quota collection (agentq `bin/collect-*.js`, cron-update-tiers.sh) and the tier lists in `agentq/src/lib/quota-resolver.js`. If a configured provider is missing from `opencode_usage`'s output, flag it instead of silently picking from the old set.
+
 ### 4. Merge and cleanup
 
 The mother does merge and cleanup directly — do not delegate it:
