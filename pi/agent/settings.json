@@ -63,7 +63,6 @@
     "npm:@amaster.ai/pi-computer-use",
     "npm:pi-cursor-sdk",
     "git:github.com/huaxel/pi-ask-herdr",
-    "npm:pi-herdr-subagents",
     "npm:@ogulcancelik/pi-codex-compaction",
     "npm:@narumitw/pi-goal",
     "npm:pi-provider-openference",

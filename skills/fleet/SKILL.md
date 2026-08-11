@@ -59,18 +59,32 @@ Do **not** `/reload` while subagents (reviewers) are in flight — their watcher
 
 ### 3. Review gate
 
-Every landed PR gets an independent review before merging (AGENTS.md contract). Use a short-lived reviewer subagent with the PR's SHA range:
+Every landed PR gets an independent review before merging (AGENTS.md contract). Start a **read-only review agent** and watch it — the review must never edit files:
 
 ```typescript
-subagent({
+herdr_agents({
+  action: "start",
   name: "review-<issue>",
-  agent: "reviewer",
-  cwd: "<repo-root>",
-  task: "Review PR #N (<base>...<head>, SHAs). Report only actionable findings: correctness, security, regressions.",
+  placement: { kind: "new_tab", workspace: "<fleet-workspace>" },
+  prompt: "Review PR #N (<base>...<head>). Report only actionable findings: correctness, security, regressions.",
 });
+herdr_agents({ action: "watch", target: "review-<issue>" });
 ```
 
-Collect findings, fix Critical/Important items yourself or dispatch a follow-up, then re-review only the delta. Skip nothing: the gate is the reason the fleet is safe.
+Start the review agent with read-only tools (`herdr agent start <name> --kind pi --pane <id> -- --tools read,grep,find,ls`) whenever tool shaping is needed. Collect findings, fix Critical/Important items yourself or dispatch a follow-up, then re-review only the delta. Skip nothing: the gate is the reason the fleet is safe.
+
+### 3b. Model choice: cost and quota
+
+Choose helper models by cost tier, not by habit. Check quota before dispatching a batch:
+
+```typescript
+opencode_usage({}) // daily/weekly/monthly quota windows + provider cooldowns + recent session cost
+```
+
+- **Routine work** (review, scout, quick fixes): cheapest adequate model (e.g. deepseek-v4-flash).
+- **Escalate only when the task warrants it** (architecture, concurrency, security, hard diagnosis).
+- If quota is high (>~80% of a window) or cooldowns are active, spread dispatches or downgrade models — provider aborts ("This operation was aborted") are a quota symptom, and retrying into a cooled-down provider is slower than pacing.
+- Pass the model explicitly when starting helpers: `herdr agent start <name> --kind pi --pane <id> -- --model <model>`.
 
 ### 4. Merge and cleanup
 

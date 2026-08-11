@@ -1,4 +1,5 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { Type } from "typebox";
 import { loadAccounts } from "./lib/accounts.ts";
 import {
   AUTO_CONTINUE_ENABLED,
@@ -44,6 +45,78 @@ export default function (
   pi: ExtensionAPI,
   deps: ResumeSchedulerDeps = {},
 ) {
+  // ── Read-only quota & cost snapshot for model-choice decisions ──
+  pi.registerTool({
+    name: "opencode_usage",
+    label: "OpenCode Usage",
+    description:
+      "Read-only OpenCode Go quota and cost snapshot: per-account usage windows (rolling/weekly/monthly), provider cooldowns, and recent session costs. Call before dispatching batches of model work to pick cheap models and pace quota; high windows (>~80%) or active cooldowns mean provider aborts are likely.",
+    parameters: Type.Object({}),
+    execute: async () => {
+      const lines: string[] = [];
+      const accounts = await loadAccounts();
+      if (accounts.length === 0) {
+        lines.push("No OpenCode Go accounts configured.");
+      } else {
+        const results = await Promise.allSettled(accounts.map((a) => fetchAccountUsage(a)));
+        for (let i = 0; i < results.length; i++) {
+          const r = results[i];
+          const label = accounts[i].label;
+          if (r.status === "rejected") {
+            lines.push(`${label}: fetch failed`);
+            continue;
+          }
+          const u = r.value;
+          const windows = [
+            u.rolling && `rolling ${u.rolling.usagePercent.toFixed(0)}%`,
+            u.weekly && `weekly ${u.weekly.usagePercent.toFixed(0)}%`,
+            u.monthly && `monthly ${u.monthly.usagePercent.toFixed(0)}%`,
+          ]
+            .filter(Boolean)
+            .join(", ");
+          lines.push(`${label}: ${u.error ? `error (${u.error})` : windows || "no data"}`);
+        }
+      }
+      const cooldowns = loadPersistedCooldowns();
+      const nowMs = Date.now();
+      const active = Object.entries(cooldowns).filter(([, until]) => until > nowMs);
+      lines.push(
+        active.length === 0
+          ? "Cooldowns: none active"
+          : `Cooldowns: ${active.map(([k, until]) => `${k} until ${new Date(until).toISOString()}`).join(", ")}`,
+      );
+      try {
+        const { existsSync, readFileSync } = await import("node:fs");
+        const { join } = await import("node:path");
+        const { homedir } = await import("node:os");
+        const historyPath = join(homedir(), ".pi", "agent", "observability", "history.jsonl");
+        if (existsSync(historyPath)) {
+          const recent = readFileSync(historyPath, "utf8")
+            .split("\n")
+            .filter(Boolean)
+            .slice(-5)
+            .map((line) => {
+              try {
+                return JSON.parse(line);
+              } catch {
+                return null;
+              }
+            })
+            .filter((e): e is Record<string, unknown> => !!e && typeof e === "object");
+          if (recent.length > 0) {
+            lines.push("Recent sessions (model, cost):");
+            for (const s of recent) {
+              lines.push(`- ${s.model ?? "?"}: $${Number(s.cost ?? 0).toFixed(2)} (${s.inputTokens ?? 0}↑/${s.outputTokens ?? 0}↓)`);
+            }
+          }
+        }
+      } catch {
+        // history is best-effort
+      }
+      return { content: [{ type: "text" as const, text: lines.join("\n") }] };
+    },
+  });
+
   let accounts: OpenCodeGoAccount[] = [];
   let usages: AccountUsage[] = [];
   let activeAccount: OpenCodeGoAccount | null = null;
