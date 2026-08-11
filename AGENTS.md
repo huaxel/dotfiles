@@ -46,7 +46,8 @@ Useful patterns: `agent-tools.md`, `agent-night-shift.md`, `visual-regression.md
 
 Core skills live in `$HOME/.agents/skills/`; project skills live in `.pi/skills/`.
 Use `worker` for implementation/exploration and `reviewer` for read-only review.
-Prefer scoped subagents; never nest them. Use `herdr` only in Herdr, `grill-me`
+Delegate via named Herdr agents (`herdr_agents` from pi-shepherdr); run review agents read-only
+(`--tools read,grep,find,ls`). Never nest agents. Use `herdr` only in Herdr, `grill-me`
 only when asked, and `jules-orchestration` for Jules. Use `teach` for teaching.
 Cloudflare skills are scoped to nursultan-web; `uv` is scoped to project-atom.
 Coordinate related sessions through pi-intercom; use `ask` only when blocked.

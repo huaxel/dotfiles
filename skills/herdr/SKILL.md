@@ -27,13 +27,13 @@ Keep using the CLI via bash for what the tools do not expose: discovery (`herdr 
 
 Choose the spawning surface by role, not by task size. Work gets a name and a workspace; helpers report back; terminals are not agents.
 
-- **Work** (issue, feature, fix in a worktree, long-running) → named Herdr agent (`herdr agent start`, or the `herdr_agent` tool): own workspace, addressable by name, survives the mother session. The mother polls it with `herdr agent get` or bounded `herdr wait agent-status` waits.
-- **Helpers whose result must return** (review gate, scout, quick fork, `/plan`, `/iterate`) → `subagent()` from pi-herdr-subagents: short-lived, result steers back to the mother, tracked in the mother's widget.
-- **Watchers** over worktree agents → not needed: pi-shepherdr (master mode + `herdr_agents watch/start/send`) steers the mother when a watched agent settles (done or blocked), including in unattended runs. If it is unavailable, fall back to polling (`herdr agent get` / bounded `herdr wait agent-status`).
+- **Work** (issue, feature, fix in a worktree, long-running) → named Herdr agent (`herdr agent start`, or the `herdr_agents` tool from pi-shepherdr): own workspace, addressable by name, survives the mother session. The mother polls it with `herdr agent get` or bounded `herdr wait agent-status` waits.
+- **Helpers whose result must return** (review gate, scout) → also named Herdr agents, started read-only where safety requires it (`--tools read,grep,find,ls`), watched via `herdr_agents watch`. Pick the helper model by cost tier (see the fleet skill).
+- **Watchers** → not needed: pi-shepherdr master mode (`herdr_agents watch/start/send`) steers the mother when a watched agent settles (done or blocked), including in unattended runs. If it is unavailable, fall back to polling (`herdr agent get` / bounded `herdr wait agent-status`).
 - **Terminals and layout** → `herdr_pane` / `herdr_layout` tools. They are not agents; do not treat them as a delegation surface.
 - **CLI** → discovery, worktrees, notifications, sessions, integration.
 
-Completion awareness: a `subagent()` result arrives as a steer when the mother session is idle; if the mother is mid-turn the steer is queued until the turn ends. Do not `/reload` while subagents are in flight (their watchers die and completions are lost). `/restart` (custom session-switch extension) while subagents are tracked used to crash pi with a stale-ctx uncaughtException — fixed by the local patch `npm/patches/pi-herdr-subagents+0.1.6.patch`; avoid it anyway and resume interrupted work with `subagent_resume`. Herdr agents never steer; their completion must be observed via `agent get` / `wait agent-status` / the completion-listener (`fleet_watch`).
+Completion awareness: pi-shepherdr delivers a steer when the mother session is idle; if the mother is mid-turn the steer is queued until the turn ends. Herdr agents never steer on their own; their completion is observed via `agent get` / `wait agent-status` / `herdr_agents watch`.
 
 ## Learn the current CLI
 
