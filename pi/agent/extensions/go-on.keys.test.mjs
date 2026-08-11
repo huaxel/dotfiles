@@ -80,3 +80,41 @@ for (const [label, data, keys] of cases) {
     console.log(`  ${label} vs ${key.padEnd(15)} -> ${matchesKey(data, key)}`);
   }
 }
+
+// === Kitty CSI-u matching (requires npm/patch-pi-tui-keys.sh) ===
+// pi 0.84.1 decoded kitty modifiers with the xterm convention (mod-1), so
+// every modified chord from a kitty-protocol terminal failed to match.
+// The patch fixes parseKittySequence to use the bitmask when the kitty
+// protocol is active. These assertions fail on an unpatched pi install.
+console.log("\n=== kitty CSI-u modifier decoding (patched pi-tui) ===");
+{
+  const { matchesKey, setKittyProtocolActive } = await import(
+    `${PI_ROOT}/node_modules/@earendil-works/pi-tui/dist/keys.js`
+  );
+  setKittyProtocolActive(true);
+  const cases = [
+    ["\x1b[103;6u", "ctrl+alt+g", "kitty ctrl+alt+g (103;6u)"],
+    ["\x1b[110;6u", "ctrl+alt+n", "kitty ctrl+alt+n (110;6u)"],
+    ["\x1b[114;5u", "ctrl+shift+r", "kitty ctrl+shift+r (114;5u)"],
+    ["\x1b[46;4u", "ctrl+.", "kitty ctrl+. (46;4u)"],
+    ["\x1b[99;4u", "ctrl+c", "kitty ctrl+c (99;4u)"],
+    ["\x1b[103;2u", "alt+g", "kitty alt+g (103;2u)"],
+    ["\x1b[1;4C", "ctrl+right", "kitty ctrl+right (1;4C)"],
+  ];
+  let failed = 0;
+  for (const [data, keyId, label] of cases) {
+    const ok = matchesKey(data, keyId);
+    console.log(`  ${ok ? "OK  " : "FAIL"} ${label}: ${ok}`);
+    if (!ok) failed += 1;
+  }
+  // xterm-style values must NOT match while kitty is active (bitmask is the
+  // contract on kitty-protocol terminals)
+  const xtermStyleStillWrong = matchesKey("\x1b[103;7u", "ctrl+alt+g");
+  console.log(`  ${xtermStyleStillWrong ? "FAIL" : "OK  "} kitty-active rejects xterm-style 103;7u for ctrl+alt+g: ${!xtermStyleStillWrong}`);
+  if (xtermStyleStillWrong) failed += 1;
+  if (failed > 0) {
+    console.log(`\n${failed} kitty CSI-u assertion(s) failed — run npm/patch-pi-tui-keys.sh (pi 0.84.1 bug).`);
+    process.exit(1);
+  }
+}
+console.log("\nALL GO-ON KEY TESTS PASSED");
