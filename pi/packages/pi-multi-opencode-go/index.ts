@@ -50,10 +50,72 @@ export default function (
     name: "opencode_usage",
     label: "OpenCode Usage",
     description:
-      "Read-only OpenCode Go quota and cost snapshot: per-account usage windows (rolling/weekly/monthly), provider cooldowns, and recent session costs. Call before dispatching batches of model work to pick cheap models and pace quota; high windows (>~80%) or active cooldowns mean provider aborts are likely.",
-    parameters: Type.Object({}),
-    execute: async () => {
+      "Read-only quota and cost snapshot: per-provider quota windows, recent spend per model, and (with a model argument) that model's price. Sources: ~/projects/agentq/data (quota.json, usage-by-model.json, pricing.json) plus OpenCode Go dashboard windows and provider cooldowns. Call before dispatching batches of model work; pair with the quota-aware resolver ~/projects/agentq/bin/resolve-model.sh (small|medium|big) for concrete model picks.",
+    parameters: Type.Object({
+      model: Type.Optional(Type.String({ description: "Model id or substring to look up pricing for (e.g. deepseek-v4-flash)." })),
+    }),
+    execute: async (_, params) => {
       const lines: string[] = [];
+      const fs = await import("node:fs");
+      const path = await import("node:path");
+      const homedir = (await import("node:os")).homedir;
+      const agentqDir = path.join(homedir(), "projects", "agentq", "data");
+      const readJson = (name: string): Record<string, unknown> | null => {
+        try {
+          const p = path.join(agentqDir, name);
+          return fs.existsSync(p) ? (JSON.parse(fs.readFileSync(p, "utf8")) as Record<string, unknown>) : null;
+        } catch {
+          return null;
+        }
+      };
+
+      // Per-provider quota windows from agentq
+      const quota = readJson("quota.json");
+      if (quota && typeof quota.paths === "object" && quota.paths) {
+        for (const [provider, info] of Object.entries(quota.paths as Record<string, { windows?: { label?: string; usedPercent?: number }[] }>)) {
+          const windows = (info.windows ?? [])
+            .map((w) => `${w.label} ${Number(w.usedPercent ?? 0).toFixed(1)}%`)
+            .join(", ");
+          lines.push(`quota ${provider}: ${windows || "no data"}`);
+        }
+      } else {
+        lines.push("quota: agentq data unavailable");
+      }
+
+      // Recent spend per model from agentq
+      const usage = readJson("usage-by-model.json");
+      if (usage && typeof usage.models === "object" && usage.models) {
+        const models = Object.values(usage.models as Record<string, { cost?: number; tokens?: number; days?: number }>);
+        const total = models.reduce((s, m) => s + Number(m.cost ?? 0), 0);
+        const top = [...models].sort((a, b) => Number(b.cost ?? 0) - Number(a.cost ?? 0)).slice(0, 3);
+        lines.push(`spend since ${usage.since ?? "?"}: $${total.toFixed(2)}`);
+        for (const m of top) lines.push(`- $${Number(m.cost ?? 0).toFixed(2)} ${m.tokens ?? 0} tok`);
+      }
+
+      // Optional per-model price lookup from agentq pricing
+      const want = params.model?.toLowerCase();
+      if (want) {
+        const pricing = readJson("pricing.json");
+        const hit =
+          pricing && typeof pricing.models === "object" && pricing.models
+            ? (Object.entries(pricing.models as Record<string, { openrouter?: { input?: number; output?: number; cache?: number; id?: string }; opencode?: { input?: number; output?: number; id?: string }; nan?: { input?: number; output?: number } }>).find(([id]) =>
+                id.toLowerCase().includes(want) ||
+                (id.toLowerCase().includes("/") && id.toLowerCase().split("/").pop()?.includes(want)),
+              ) ?? null)
+            : null;
+        if (hit) {
+          const [id, prices] = hit;
+          const o = prices.openrouter;
+          const c = prices.opencode;
+          const n = prices.nan;
+          const fmt = (p?: { input?: number; output?: number; cache?: number }) =>
+            p ? `in $${p.input ?? "?"}/M out $${p.output ?? "?"}/M${p.cache !== undefined ? ` cache $${p.cache}/M` : ""}` : null;
+          lines.push(`pricing ${id}: ${[o && `openrouter ${fmt(o)}`, c && `opencode ${fmt(c)}`, n && `nan ${fmt(n)}`].filter(Boolean).join(" | ")}`);
+        } else {
+          lines.push(`pricing: no match for "${params.model}"`);
+        }
+      }
+
       const accounts = await loadAccounts();
       if (accounts.length === 0) {
         lines.push("No OpenCode Go accounts configured.");
