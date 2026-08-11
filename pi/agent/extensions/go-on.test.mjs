@@ -101,6 +101,18 @@ assert(positive.sent.length === 1, "subject-based completion was missed");
   assert(h.sent.length === 1, "concurrent idle nudges overlapped");
 }
 
+// macOS/legacy nudge fallback (ctrl+alt+n) sends the same single nudge.
+{
+  const h = makeHarness();
+  await h.shortcuts.get("ctrl+alt+n")(h.ctx);
+  assert(h.sent.length === 1 && h.sent[0][0] === "go on", "ctrl+alt+n did not send a single nudge");
+  // The real pi fires agent_start when the prompt starts, clearing the
+  // idle-pending guard; simulate it so the second press can nudge again.
+  h.events.get("agent_start")({}, h.ctx);
+  await h.shortcuts.get("ctrl+alt+n")(h.ctx);
+  assert(h.sent.length === 2, "ctrl+alt+n did not send a second nudge after agent_start");
+}
+
 // Invalid mode arguments are rejected.
 {
   const h = makeHarness();

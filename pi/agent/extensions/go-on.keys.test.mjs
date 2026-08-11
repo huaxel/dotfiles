@@ -41,6 +41,7 @@ function buildBuiltinKeybindings(resolvedKeybindings) {
 const GO_ON_KEYS = {
   "0fad716 (alt+enter fallback)": ["alt+g", "alt+shift+enter", "alt+enter", "alt+shift+g", "ctrl+alt+g"],
   "new (ctrl+alt+g legacy burst)": ["alt+g", "alt+shift+enter", "alt+shift+g", "ctrl+alt+g"],
+  "current (+ ctrl+alt+n macOS nudge)": ["alt+g", "ctrl+alt+n", "alt+shift+enter", "alt+shift+g", "ctrl+alt+g"],
 };
 
 // Effective config = defaults (no user keybindings.json overrides present)
@@ -50,7 +51,7 @@ for (const [id, def] of Object.entries(resolved)) effectiveConfig[id] = def.defa
 
 const builtin = buildBuiltinKeybindings(effectiveConfig);
 console.log("=== built-in claims on go-on keys ===");
-for (const key of ["alt+g", "alt+shift+enter", "alt+enter", "alt+shift+g", "ctrl+alt+g"]) {
+for (const key of ["alt+g", "ctrl+alt+n", "alt+shift+enter", "alt+enter", "alt+shift+g", "ctrl+alt+g"]) {
   console.log(`  ${key.padEnd(16)} ->`, builtin[key] ? JSON.stringify(builtin[key]) : "(free)");
 }
 
@@ -71,7 +72,8 @@ setKittyProtocolActive(false);
 const cases = [
   ["\\x1b\\r (Alt+Shift+Enter on legacy)", "\x1b\r", ["alt+enter", "alt+shift+enter", "ctrl+alt+g"]],
   ["\\x1b\\x07 (Ctrl+Alt+G legacy)", "\x1b\x07", ["alt+enter", "alt+shift+enter", "ctrl+alt+g"]],
-  ["\\x1bg (Alt+G)", "\x1bg", ["alt+g", "ctrl+alt+g"]],
+  ["\\x1b\\x0e (Ctrl+Alt+N legacy)", "\x1b\x0e", ["alt+g", "ctrl+alt+n"]],
+  ["\\x1bg (Alt+G)", "\x1bg", ["alt+g", "ctrl+alt+n"]],
 ];
 for (const [label, data, keys] of cases) {
   for (const key of keys) {
