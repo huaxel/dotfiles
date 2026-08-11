@@ -72,6 +72,8 @@ interface TodoFrontMatter {
 	status: string;
 	created_at: string;
 	assigned_to_session?: string;
+	updated_at?: string;
+	due?: string;
 }
 
 interface TodoRecord extends TodoFrontMatter {
@@ -105,6 +107,7 @@ const TodoParams = Type.Object({
 		"delete",
 		"claim",
 		"release",
+		"validate",
 	] as const),
 	id: Type.Optional(
 		Type.String({ description: "Todo id (TODO-<hex> or raw hex filename)" }),
@@ -120,6 +123,8 @@ const TodoParams = Type.Object({
 		Type.String({ description: "Filter list results by fuzzy text query (id, title, tags, status)" }),
 	),
 	limit: Type.Optional(Type.Number({ description: "Cap list results to this many todos" })),
+	due: Type.Optional(Type.String({ description: "Due date (ISO date or datetime)" })),
+	repair: Type.Optional(Type.Boolean({ description: "validate: rewrite malformed todo files (backs up originals first)" })),
 	force: Type.Optional(
 		Type.Boolean({ description: "Override another session's assignment; also steals stale locks" }),
 	),
@@ -134,7 +139,8 @@ type TodoAction =
 	| "append"
 	| "delete"
 	| "claim"
-	| "release";
+	| "release"
+	| "validate";
 
 type TodoOverlayAction = "back" | "work";
 
@@ -155,7 +161,8 @@ type TodoToolDetails =
 			action: "get" | "create" | "update" | "append" | "delete" | "claim" | "release";
 			todo: TodoRecord;
 			error?: string;
-		};
+	  }
+	| { action: "validate"; todos: TodoFrontMatter[]; issues: number; repaired: number; error?: string };
 
 function formatTodoId(id: string): string {
 	return `${TODO_ID_PREFIX}${id}`;
@@ -202,6 +209,10 @@ function sortTodos(todos: TodoFrontMatter[]): TodoFrontMatter[] {
 		const aAssigned = !aClosed && Boolean(a.assigned_to_session);
 		const bAssigned = !bClosed && Boolean(b.assigned_to_session);
 		if (aAssigned !== bAssigned) return aAssigned ? -1 : 1;
+		const aDue = a.due ? Date.parse(a.due) : Number.POSITIVE_INFINITY;
+		const bDue = b.due ? Date.parse(b.due) : Number.POSITIVE_INFINITY;
+		if (Number.isFinite(aDue) && Number.isFinite(bDue) && aDue !== bDue) return aDue - bDue;
+		if (Number.isFinite(aDue) !== Number.isFinite(bDue)) return Number.isFinite(aDue) ? -1 : 1;
 		return (a.created_at || "").localeCompare(b.created_at || "");
 	});
 }
@@ -209,7 +220,8 @@ function sortTodos(todos: TodoFrontMatter[]): TodoFrontMatter[] {
 function buildTodoSearchText(todo: TodoFrontMatter): string {
 	const tags = todo.tags.join(" ");
 	const assignment = todo.assigned_to_session ? `assigned:${todo.assigned_to_session}` : "";
-	return `${formatTodoId(todo.id)} ${todo.id} ${todo.title} ${tags} ${todo.status} ${assignment}`.trim();
+	const due = todo.due ? `due:${todo.due}` : "";
+	return `${formatTodoId(todo.id)} ${todo.id} ${todo.title} ${tags} ${todo.status} ${assignment} ${due}`.trim();
 }
 
 function filterTodos(todos: TodoFrontMatter[], query: string): TodoFrontMatter[] {
@@ -830,6 +842,8 @@ function parseFrontMatter(text: string, idFallback: string): TodoFrontMatter {
 		if (typeof parsed.title === "string") data.title = parsed.title;
 		if (typeof parsed.status === "string" && parsed.status) data.status = parsed.status;
 		if (typeof parsed.created_at === "string") data.created_at = parsed.created_at;
+		if (typeof parsed.updated_at === "string") data.updated_at = parsed.updated_at;
+		if (typeof parsed.due === "string" && parsed.due) data.due = parsed.due;
 		if (typeof parsed.assigned_to_session === "string" && parsed.assigned_to_session.trim()) {
 			data.assigned_to_session = parsed.assigned_to_session;
 		}
@@ -910,6 +924,8 @@ function parseTodoContent(content: string, idFallback: string): TodoRecord {
 		status: parsed.status,
 		created_at: parsed.created_at,
 		assigned_to_session: parsed.assigned_to_session,
+		updated_at: parsed.updated_at,
+		due: parsed.due,
 		body: body ?? "",
 	};
 }
@@ -923,6 +939,8 @@ function serializeTodo(todo: TodoRecord): string {
 			status: todo.status,
 			created_at: todo.created_at,
 			assigned_to_session: todo.assigned_to_session || undefined,
+			updated_at: todo.updated_at || undefined,
+			due: todo.due || undefined,
 		},
 		null,
 		2,
@@ -944,6 +962,7 @@ async function readTodoFile(filePath: string, idFallback: string): Promise<TodoR
 }
 
 async function writeTodoFile(filePath: string, todo: TodoRecord) {
+	todo.updated_at = new Date().toISOString();
 	await fs.writeFile(filePath, serializeTodo(todo), "utf8");
 }
 
@@ -1066,6 +1085,8 @@ async function listTodos(todosDir: string): Promise<TodoFrontMatter[]> {
 				status: parsed.status,
 				created_at: parsed.created_at,
 				assigned_to_session: parsed.assigned_to_session,
+				updated_at: parsed.updated_at,
+				due: parsed.due,
 			});
 		} catch {
 			// ignore unreadable todo
@@ -1099,6 +1120,8 @@ function listTodosSync(todosDir: string): TodoFrontMatter[] {
 				status: parsed.status,
 				created_at: parsed.created_at,
 				assigned_to_session: parsed.assigned_to_session,
+				updated_at: parsed.updated_at,
+				due: parsed.due,
 			});
 		} catch {
 			// ignore
@@ -1134,7 +1157,8 @@ function renderAssignmentSuffix(
 
 function formatTodoHeading(todo: TodoFrontMatter): string {
 	const tagText = todo.tags.length ? ` [${todo.tags.join(", ")}]` : "";
-	return `${formatTodoId(todo.id)} ${getTodoTitle(todo)}${tagText}${formatAssignmentSuffix(todo)}`;
+	const dueText = todo.due ? ` [due ${todo.due.slice(0, 10)}]` : "";
+	return `${formatTodoId(todo.id)} ${getTodoTitle(todo)}${tagText}${dueText}${formatAssignmentSuffix(todo)}`;
 }
 
 function buildRefinePrompt(todoId: string, title: string): string {
@@ -1243,12 +1267,14 @@ function renderTodoHeading(theme: Theme, todo: TodoFrontMatter, currentSessionId
 	const closed = isTodoClosed(getTodoStatus(todo));
 	const titleColor = closed ? "dim" : "text";
 	const tagText = todo.tags.length ? theme.fg("dim", ` [${todo.tags.join(", ")}]`) : "";
+	const dueText = todo.due ? theme.fg("warning", ` [due ${todo.due.slice(0, 10)}]`) : "";
 	const assignmentText = renderAssignmentSuffix(theme, todo, currentSessionId);
 	return (
 		theme.fg("accent", formatTodoId(todo.id)) +
 		" " +
 		theme.fg(titleColor, getTodoTitle(todo)) +
 		tagText +
+		dueText +
 		assignmentText
 	);
 }
@@ -1445,6 +1471,76 @@ async function releaseTodoAssignment(
 	return result;
 }
 
+async function validateTodos(
+	todosDir: string,
+	repair: boolean,
+): Promise<{ issues: Array<{ id: string; problem: string }>; repaired: number; todos: TodoFrontMatter[] }> {
+	const entries = await fs.readdir(todosDir).catch(() => []);
+	const issues: Array<{ id: string; problem: string }> = [];
+	let repaired = 0;
+
+	for (const entry of entries.filter((e) => e.endsWith(".md"))) {
+		const id = entry.slice(0, -3);
+		const filePath = path.join(todosDir, entry);
+		const content = await fs.readFile(filePath, "utf8").catch(() => null);
+		if (content === null) {
+			issues.push({ id, problem: "unreadable" });
+			continue;
+		}
+		const { frontMatter } = splitFrontMatter(content);
+		let frontMatterValid = true;
+		if (!frontMatter) {
+			frontMatterValid = false;
+		} else {
+			try {
+				JSON.parse(frontMatter);
+			} catch {
+				frontMatterValid = false;
+			}
+		}
+		if (frontMatterValid) {
+			continue;
+		}
+		const problem = !frontMatter
+			? "missing or broken JSON front matter"
+			: "invalid JSON front matter";
+		issues.push({ id, problem });
+		if (repair) {
+			const backupDir = path.join(todosDir, ".trash", "backups");
+			await fs.mkdir(backupDir, { recursive: true });
+			const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+			await fs
+				.rename(filePath, path.join(backupDir, `${id}-${stamp}.md`))
+				.catch(() => undefined);
+			const todo = parseTodoContent(content, id);
+			if (!todo.title) todo.title = "(untitled)";
+			if (!todo.created_at) todo.created_at = new Date().toISOString();
+			await writeTodoFile(filePath, todo);
+			repaired += 1;
+		}
+	}
+
+	const todos = repair ? await listTodos(todosDir) : [];
+	return { issues, repaired, todos };
+}
+
+function serializeValidateResult(outcome: {
+	issues: Array<{ id: string; problem: string }>;
+	repaired: number;
+}): string {
+	if (outcome.issues.length === 0) {
+		return "All todo files are valid.";
+	}
+	const lines = [`${outcome.issues.length} todo file(s) with issues:`];
+	for (const issue of outcome.issues) {
+		lines.push(`  ${displayTodoId(issue.id)}: ${issue.problem}`);
+	}
+	if (outcome.repaired > 0) {
+		lines.push(`${outcome.repaired} repaired (originals backed up in .trash/backups).`);
+	}
+	return lines.join("\n");
+}
+
 async function deleteTodo(
 	todosDir: string,
 	id: string,
@@ -1568,6 +1664,7 @@ export default function todosExtension(pi: ExtensionAPI) {
 						tags: params.tags ?? [],
 						status: params.status ?? "open",
 						created_at: new Date().toISOString(),
+						due: params.due || undefined,
 						body: params.body ?? "",
 					};
 
@@ -1625,6 +1722,7 @@ export default function todosExtension(pi: ExtensionAPI) {
 						if (params.status !== undefined) existing.status = params.status;
 						if (params.tags !== undefined) existing.tags = params.tags;
 						if (params.body !== undefined) existing.body = params.body;
+						if (params.due !== undefined) existing.due = params.due || undefined;
 						if (!existing.created_at) existing.created_at = new Date().toISOString();
 						clearAssignmentIfClosed(existing);
 
@@ -1750,6 +1848,19 @@ export default function todosExtension(pi: ExtensionAPI) {
 					return {
 						content: [{ type: "text", text: serializeTodoForAgent(updatedTodo) }],
 						details: { action: "release", todo: updatedTodo },
+					};
+				}
+
+				case "validate": {
+					const outcome = await validateTodos(todosDir, Boolean(params.repair));
+					return {
+						content: [{ type: "text", text: serializeValidateResult(outcome) }],
+						details: {
+							action: "validate",
+							todos: outcome.todos,
+							issues: outcome.issues.length,
+							repaired: outcome.repaired,
+						},
 					};
 				}
 

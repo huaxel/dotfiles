@@ -84,5 +84,37 @@ assert(!readdirSync(td).includes(aId + ".md"), "todo file removed");
 const bFile = readFileSync(path.join(td, bId + ".md"), "utf8");
 assert(bFile.startsWith("{") && bFile.includes('"title": "x"') && bFile.includes('"status": "open"'), "markdown file with JSON front matter");
 
+// --- updated_at + due ---
+const c1 = await run({ action: "create", title: "Due later" });
+const c2 = await run({ action: "create", title: "Due soon", due: "2026-08-01" });
+assert(c1.details.todo.updated_at, "create sets updated_at");
+const upd1 = await run({ action: "update", id: c1.details.todo.id, title: "Due later (edited)" });
+assert(upd1.details.todo.updated_at >= c1.details.todo.updated_at, "update refreshes updated_at");
+r = await run({ action: "list" });
+const dueSoonFirst = r.details.todos[0].id === c2.details.todo.id;
+assert(dueSoonFirst, "open todos sort by due asc (dated before undated)");
+r = await run({ action: "get", id: c2.details.todo.id });
+assert(r.details.todo.due === "2026-08-01", "due persisted in front matter");
+
+// --- validate + repair ---
+const good = await run({ action: "create", title: "Healthy" });
+const badId = "deadbeef";
+writeFileSync(path.join(td, badId + ".md"), "# broken todo\n\nno front matter here\n");
+r = await run({ action: "validate" });
+assert(r.details.action === "validate" && r.details.issues === 1, "validate reports 1 issue");
+assert(r.details.repaired === 0, "validate without repair does nothing");
+r = await run({ action: "validate", repair: true });
+assert(r.details.repaired === 1, "validate repair fixes 1 file");
+const fixed = readFileSync(path.join(td, badId + ".md"), "utf8");
+assert(fixed.startsWith("{") && fixed.includes('"(untitled)"'), "repaired file has JSON front matter");
+const backups = readdirSync(path.join(td, ".trash", "backups"));
+assert(backups.some((f) => f.startsWith(badId)), "original backed up before repair");
+r = await run({ action: "validate" });
+assert(r.details.issues === 0, "validate clean after repair");
+// cleanup extra todos
+await run({ action: "delete", id: c1.details.todo.id });
+await run({ action: "delete", id: c2.details.todo.id });
+await run({ action: "delete", id: good.details.todo.id });
+
 console.log("\nALL TODOS TESTS PASSED");
 process.exit(0);
