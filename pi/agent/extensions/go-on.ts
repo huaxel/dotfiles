@@ -17,14 +17,19 @@
  *     key event, so alt+g / alt+shift+g can never fire there. On
  *     kitty-protocol terminals (iTerm2/kitty/WezTerm/Ghostty) the same
  *     chords arrive as CSI-u sequences and match too.
+ *   - Some SSH clients (notably Termius) drop the Ctrl bit on Ctrl+Alt
+ *     chords and send plain Alt+letter (ESC g / ESC n). The plain-alt
+ *     variants are therefore registered as fallbacks with the same
+ *     handlers. There is no double-fire: the modifier bitmask differs
+ *     (alt=2 vs ctrl+alt=6), so a given sequence matches exactly one.
  *   - alt+shift+enter / alt+enter were rejected: the former needs
  *     Shift+Alt reporting that legacy terminals cannot encode, and the
  *     latter is reserved by pi's app.message.followUp (extensions on that
  *     key are skipped) and bound by terminals themselves (GNOME Terminal
  *     opens a new window, Windows Terminal toggles fullscreen).
- *   - Neither ctrl+alt+n nor ctrl+alt+g collides with any pi built-in or
- *     common terminal binding (verified by go-on.keys.test.mjs against
- *     pi's real reserved-key logic).
+ *   - Neither ctrl+alt+n / alt+n nor ctrl+alt+g / alt+g collides with any
+ *     pi built-in or common terminal binding (verified by
+ *     go-on.keys.test.mjs against pi's real reserved-key logic).
  *
  * Auto-mode stop heuristic, evaluated at each agent_settled:
  *   - stop immediately on user abort or model error (don't burn calls,
@@ -299,6 +304,13 @@ export default function (pi: ExtensionAPI) {
       await nudge(ctx);
     },
   });
+  // Fallback for SSH clients that drop the Ctrl bit (Termius sends ESC n).
+  pi.registerShortcut("alt+n", {
+    description: "Send 'go on' as a user message (Ctrl+Alt fallback)",
+    handler: async (ctx) => {
+      await nudge(ctx);
+    },
+  });
 
   pi.registerCommand("go-on", {
     description: "Send 'go on' as a user message",
@@ -333,6 +345,11 @@ export default function (pi: ExtensionAPI) {
   // by terminals themselves (see header).
   pi.registerShortcut("ctrl+alt+g", {
     description: "Send 'go on' and enable go-on auto mode (press again to stop)",
+    handler: burstShortcut,
+  });
+  // Fallback for SSH clients that drop the Ctrl bit (Termius sends ESC g).
+  pi.registerShortcut("alt+g", {
+    description: "Send 'go on' and enable go-on auto mode (Ctrl+Alt fallback)",
     handler: burstShortcut,
   });
 }

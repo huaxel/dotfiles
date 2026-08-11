@@ -33,19 +33,30 @@ function makeHarness({ model = {}, auth = { ok: true } } = {}) {
 
 const BURST = "ctrl+alt+g"; // the one burst key on every platform
 const NUDGE = "ctrl+alt+n"; // the one nudge key on every platform
+const BURST_ALT = "alt+g"; // fallback for SSH clients that drop the Ctrl bit
+const NUDGE_ALT = "alt+n";
 const assistant = (text, stopReason = "stop") => ({ type: "message", message: { role: "assistant", content: [{ type: "text", text }], stopReason } });
 const assert = (condition, message) => { if (!condition) throw new Error(message); };
 
-// Exactly two keys are registered: nudge + burst. Nothing else.
+// Four keys are registered: nudge + burst, each with a plain-alt fallback.
 {
   const h = makeHarness();
   const keys = [...h.shortcuts.keys()].sort();
   assert(
-    keys.length === 2 &&
+    keys.length === 4 &&
       keys.includes(NUDGE) &&
-      keys.includes(BURST),
+      keys.includes(BURST) &&
+      keys.includes(NUDGE_ALT) &&
+      keys.includes(BURST_ALT),
     `unexpected key set: ${keys.join(", ")}`,
   );
+  // Fallbacks must behave identically to their primary chord.
+  const hBurst = makeHarness();
+  await hBurst.shortcuts.get(BURST_ALT)(hBurst.ctx);
+  assert(hBurst.sent.length === 1, "alt+g fallback did not send its burst nudge");
+  const hNudge = makeHarness();
+  await hNudge.shortcuts.get(NUDGE_ALT)(hNudge.ctx);
+  assert(hNudge.sent.length === 1, "alt+n fallback did not send its nudge");
 }
 
 // Plain toggle (command) arms without sending an initial message; the burst
@@ -158,10 +169,13 @@ assert(positive.sent.length === 1, "subject-based completion was missed");
 
 // Keys that must never be claimed: alt+enter (reserved for app.message.followUp),
 // alt+g / alt+shift+enter (superseded by the universal ctrl+alt pair), and any
-// dedicated toggle chord (the burst key's second press covers it).
+// Keys that must stay unregistered: alt+enter is reserved by pi, alt+shift
+// chords cannot be encoded on legacy terminals, ctrl+alt+o is unused, and
+// alt+g / alt+n are now deliberate Termius fallbacks (SSH clients drop the
+// Ctrl bit on Ctrl+Alt chords), so they are NOT banned anymore.
 {
   const h = makeHarness();
-  for (const banned of ["alt+enter", "alt+g", "alt+shift+enter", "alt+shift+g", "ctrl+alt+o"]) {
+  for (const banned of ["alt+enter", "alt+shift+enter", "alt+shift+g", "ctrl+alt+o"]) {
     assert(!h.shortcuts.has(banned), `go-on still registers banned key ${banned}`);
   }
 }

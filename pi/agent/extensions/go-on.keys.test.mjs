@@ -42,6 +42,7 @@ const GO_ON_KEYS = {
   "0fad716 (alt+enter fallback)": ["alt+g", "alt+shift+enter", "alt+enter", "alt+shift+g", "ctrl+alt+g"],
   "new (ctrl+alt+g legacy burst)": ["alt+g", "alt+shift+enter", "alt+shift+g", "ctrl+alt+g"],
   "current (universal ctrl+alt pair)": ["ctrl+alt+n", "ctrl+alt+g"],
+  "termius fallback (alt variants)": ["ctrl+alt+n", "ctrl+alt+g", "alt+n", "alt+g"],
 };
 
 // Effective config = defaults (no user keybindings.json overrides present)
