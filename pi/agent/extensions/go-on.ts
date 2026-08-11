@@ -2,7 +2,7 @@
  * go-on — one-key continuation + "auto" mode for simple conversations.
  *
  * Single nudge:   alt+g (or /go-on) sends "go on" as a user message.
- * Auto mode:      shift+alt+enter sends "go on" AND arms the burst in one
+ * Auto mode:      alt+shift+enter sends "go on" AND arms the burst in one
  *                 press (press again to stop): pi then keeps sending "go on"
  *                 after every agent settle until the agent has nothing left
  *                 to do, and disarms itself. alt+shift+g or /go-on-mode
@@ -15,11 +15,11 @@
  *     app.editor.external on terminals without the Kitty protocol (both
  *     send the same raw ctrl+g byte).
  *   - macOS Option+letter types Unicode (© for g) instead of a key event,
- *     so alt+g / alt+shift+g can't fire there; shift+alt+enter is reported
+ *     so alt+g / alt+shift+g can't fire there; alt+shift+enter is reported
  *     with full modifier info by kitty-protocol terminals (iTerm2/kitty/
- *     WezTerm/Ghostty), making it the reliable Mac binding.
- *   - alt+shift+g (ESC G) stays as the Linux toggle, adjacent and
- *     unambiguous for the same reason as alt+g.
+ *     WezTerm/Ghostty). Legacy terminals get an alt+enter fallback.
+ *   - alt+shift+g stays as the Linux toggle when modifier reporting is
+ *     available; ctrl+alt+g is the legacy-terminal fallback.
  *
  * Auto-mode stop heuristic, evaluated at each agent_settled:
  *   - stop immediately on user abort or model error (don't burn calls,
@@ -307,27 +307,43 @@ export default function (pi: ExtensionAPI) {
     },
   });
 
-  // macOS: Option+letter types Unicode (© for g), so the reliable Mac key
-  // is shift+alt+enter (kitty-protocol terminals report full modifier
-  // info). One press = send "go on" (immediate when idle, steer-queued
-  // while streaming) + arm the burst; press again to stop it.
-  pi.registerShortcut("shift+alt+enter", {
+  // macOS/kitty: alt+shift+enter reports both modifiers explicitly. One
+  // press = send "go on" (immediate when idle, steer-queued while streaming)
+  // + arm the burst; press again to stop it.
+  const burstShortcut = async (ctx: GoOnContext) => {
+    if (mode) {
+      disarm(ctx, "toggled off");
+      return;
+    }
+    await arm(ctx, { immediateNudge: false });
+    await autoNudge(ctx);
+  };
+
+  pi.registerShortcut("alt+shift+enter", {
     description: "Send 'go on' and enable go-on auto mode (macOS)",
-    handler: async (ctx) => {
-      if (mode) {
-        disarm(ctx, "toggled off");
-        return;
-      }
-      await arm(ctx, { immediateNudge: false });
-      await autoNudge(ctx);
-    },
+    handler: burstShortcut,
   });
 
-  // Linux: alt+shift+g (ESC G) — unambiguous, adjacent to alt+g.
+  // Legacy terminals cannot encode Shift+Alt together; many emit Alt+Enter
+  // (ESC CR) for that chord. This fallback is intentionally equivalent.
+  pi.registerShortcut("alt+enter", {
+    description: "Send 'go on' and enable go-on auto mode (legacy terminal fallback)",
+    handler: burstShortcut,
+  });
+
+  // Linux/kitty: alt+shift+g toggles without the initial nudge.
+  const toggleShortcut = async (ctx: GoOnContext) => {
+    await toggle(ctx);
+  };
   pi.registerShortcut("alt+shift+g", {
     description: "Toggle go-on auto mode",
-    handler: async (ctx) => {
-      await toggle(ctx);
-    },
+    handler: toggleShortcut,
+  });
+
+  // Legacy terminals cannot encode Alt+Shift+G; Ctrl+Alt+G is their
+  // distinguishable modifier combination (ESC BEL).
+  pi.registerShortcut("ctrl+alt+g", {
+    description: "Toggle go-on auto mode (legacy terminal fallback)",
+    handler: toggleShortcut,
   });
 }
