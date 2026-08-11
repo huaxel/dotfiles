@@ -178,6 +178,7 @@ export default function (pi: ExtensionAPI) {
 
   function disarm(ctx: GoOnContext, reason: string) {
     mode = false;
+    clearIdleNudgePending();
     setStatus(ctx, undefined);
     notify(ctx, `Go-on mode OFF (${reason})`);
   }
