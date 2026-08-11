@@ -1,34 +1,30 @@
 /**
  * go-on — one-key continuation + "auto" mode for simple conversations.
  *
- * Single nudge:   alt+g (or ctrl+alt+n on macOS where Option+letter types
- *                 Unicode) sends "go on" as a user message.
- * Auto mode:      alt+shift+enter (kitty-protocol terminals) or ctrl+alt+g
- *                 (legacy) sends "go on" AND arms the burst in one press
- *                 (press again to stop): pi then keeps sending "go on"
- *                 after every agent settle until the agent has nothing left
- *                 to do, and disarms itself. The second press is the whole
- *                 toggle (/go-on-mode on|off is the command fallback). A
- *                 lighter-weight alternative to /goal when goal ceremony is
- *                 overkill.
+ * Universal keys (same on every terminal):
+ *   - ctrl+alt+n — single nudge: sends "go on" as a user message.
+ *   - ctrl+alt+g — burst: sends "go on" AND arms auto mode in one press
+ *     (press again to stop): pi then keeps sending "go on" after every
+ *     agent settle until the agent has nothing left to do, and disarms
+ *     itself. The second press is the whole toggle (/go-on-mode on|off is
+ *     the command fallback). A lighter-weight alternative to /goal when
+ *     goal ceremony is overkill.
  *
- * Key choices — only two keys matter per terminal (nudge + burst):
- *   - alt+g is unambiguous (ESC g) and unbound; ctrl+shift+g collides with
- *     app.editor.external on terminals without the Kitty protocol (both
- *     send the same raw ctrl+g byte).
- *   - macOS Option+letter types Unicode (© for g, ˝ for shift+g) instead of
- *     a key event, so alt+g / alt+shift+g can't fire there; Control+Option
- *     +letter sends ESC + ctrl-char, never Unicode — ctrl+alt+n is the
- *     macOS-safe nudge. alt+shift+enter is reported with full modifier
- *     info by kitty-protocol terminals (iTerm2/kitty/WezTerm/Ghostty).
- *   - Legacy terminals cannot encode Shift+Alt: Alt+Shift+Enter arrives as
- *     ESC CR, indistinguishable from Alt+Enter, and that key is unusable —
- *     pi reserves it for app.message.followUp (extensions are skipped on
- *     that key) and terminals bind it themselves (GNOME Terminal opens a
- *     new window, Windows Terminal toggles fullscreen). The legacy burst
- *     is therefore ctrl+alt+g (ESC BEL), the most reliable legacy chord.
- *   - No dedicated toggle keys: the burst key's second press disarms, so a
- *     separate toggle chord would be redundant on every platform.
+ * Why this pair works everywhere:
+ *   - Ctrl+Alt+letter sends ESC + ctrl-char on every legacy terminal
+ *     (ESC \x07 for g, ESC \x0e for n) — macOS included, where plain
+ *     Option+letter types Unicode (© for g, ˝ for shift+g) instead of a
+ *     key event, so alt+g / alt+shift+g can never fire there. On
+ *     kitty-protocol terminals (iTerm2/kitty/WezTerm/Ghostty) the same
+ *     chords arrive as CSI-u sequences and match too.
+ *   - alt+shift+enter / alt+enter were rejected: the former needs
+ *     Shift+Alt reporting that legacy terminals cannot encode, and the
+ *     latter is reserved by pi's app.message.followUp (extensions on that
+ *     key are skipped) and bound by terminals themselves (GNOME Terminal
+ *     opens a new window, Windows Terminal toggles fullscreen).
+ *   - Neither ctrl+alt+n nor ctrl+alt+g collides with any pi built-in or
+ *     common terminal binding (verified by go-on.keys.test.mjs against
+ *     pi's real reserved-key logic).
  *
  * Auto-mode stop heuristic, evaluated at each agent_settled:
  *   - stop immediately on user abort or model error (don't burn calls,
@@ -297,18 +293,8 @@ export default function (pi: ExtensionAPI) {
   }
 
   // --- Single nudge ---
-  pi.registerShortcut("alt+g", {
-    description: "Send 'go on' as a user message",
-    handler: async (ctx) => {
-      await nudge(ctx);
-    },
-  });
-
-  // macOS Option+letter types Unicode (© for g), so alt+g can't fire there;
-  // Control+Option+N sends ESC + ctrl-n (\x0e) on Mac terminals — the
-  // legacy-safe spelling of the nudge.
   pi.registerShortcut("ctrl+alt+n", {
-    description: "Send 'go on' as a user message (macOS/legacy fallback)",
+    description: "Send 'go on' as a user message",
     handler: async (ctx) => {
       await nudge(ctx);
     },
@@ -330,9 +316,8 @@ export default function (pi: ExtensionAPI) {
     },
   });
 
-  // macOS/kitty: alt+shift+enter reports both modifiers explicitly. One
-  // press = send "go on" (immediate when idle, steer-queued while streaming)
-  // + arm the burst; press again to stop it.
+  // One press = send "go on" (immediate when idle, steer-queued while
+  // streaming) + arm the burst; press again to stop it.
   const burstShortcut = async (ctx: GoOnContext) => {
     if (mode) {
       disarm(ctx, "toggled off");
@@ -342,20 +327,12 @@ export default function (pi: ExtensionAPI) {
     await autoNudge(ctx);
   };
 
-  pi.registerShortcut("alt+shift+enter", {
-    description: "Send 'go on' and enable go-on auto mode (kitty-protocol terminals)",
-    handler: burstShortcut,
-  });
-
-  // Legacy terminals cannot encode Shift+Alt, so Alt+Shift+Enter arrives as
-  // ESC CR — indistinguishable from Alt+Enter, which is unusable here: pi
-  // reserves it for app.message.followUp (extension shortcuts on that key
-  // are skipped) and terminals bind it themselves (GNOME Terminal opens a
-  // new window, Windows Terminal toggles fullscreen). Ctrl+Alt+G (ESC BEL)
-  // is the legacy burst instead — reliable, and unclaimed by pi. A second
-  // press of either burst key disarms, so there is no separate toggle key.
+  // Ctrl+Alt+G (ESC BEL on legacy terminals, CSI-u on kitty terminals) —
+  // the only burst chord that works on every terminal: Shift+Alt cannot be
+  // encoded on legacy terminals, and Alt+Enter is reserved by pi and bound
+  // by terminals themselves (see header).
   pi.registerShortcut("ctrl+alt+g", {
-    description: "Send 'go on' and enable go-on auto mode (legacy terminal fallback)",
+    description: "Send 'go on' and enable go-on auto mode (press again to stop)",
     handler: burstShortcut,
   });
 }
