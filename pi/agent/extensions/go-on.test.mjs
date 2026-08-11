@@ -31,21 +31,48 @@ function makeHarness({ model = {}, auth = { ok: true } } = {}) {
   return { events, shortcuts, commands, sent, statuses, notifications, ctx, setBranch: (value) => { branch = value; }, setIdle: (value) => { idle = value; } };
 }
 
+const BURST = "ctrl+alt+g"; // the one burst key on every platform
+const NUDGE = "ctrl+alt+n"; // the one nudge key on every platform
 const assistant = (text, stopReason = "stop") => ({ type: "message", message: { role: "assistant", content: [{ type: "text", text }], stopReason } });
 const assert = (condition, message) => { if (!condition) throw new Error(message); };
 
-// Plain toggle arms without sending an initial message; combined shortcut sends one.
+// Exactly two keys are registered: nudge + burst. Nothing else.
+{
+  const h = makeHarness();
+  const keys = [...h.shortcuts.keys()].sort();
+  assert(
+    keys.length === 2 &&
+      keys.includes(NUDGE) &&
+      keys.includes(BURST),
+    `unexpected key set: ${keys.join(", ")}`,
+  );
+}
+
+// Plain toggle (command) arms without sending an initial message; the burst
+// key pressed while armed is the toggle-off.
 {
   const h = makeHarness();
   await h.commands.get("go-on-mode")("on", h.ctx);
   assert(h.sent.length === 0, "toggle unexpectedly sent an initial nudge");
-  await h.shortcuts.get("alt+shift+enter")(h.ctx);
+  assert(h.statuses.at(-1)?.[1] === "go-on: armed", "toggle did not arm");
+  await h.shortcuts.get(BURST)(h.ctx);
+  assert(h.statuses.at(-1)?.[1] === undefined, "burst key did not disarm when armed");
+}
+
+// Burst from idle: nudge + arm; second press disarms.
+{
+  const h = makeHarness();
+  await h.shortcuts.get(BURST)(h.ctx);
+  assert(h.sent.length === 1, "burst did not send an initial nudge");
+  assert(h.statuses.at(-1)?.[1] === "go-on: armed (1)", "burst did not arm");
+  await h.shortcuts.get(BURST)(h.ctx);
+  assert(h.statuses.at(-1)?.[1] === undefined, "second burst press did not disarm");
 }
 
 // Completion is honored even after tool work.
 {
   const h = makeHarness();
-  await h.shortcuts.get("alt+shift+enter")(h.ctx);
+  await h.shortcuts.get(BURST)(h.ctx);
   h.events.get("tool_execution_end")({}, h.ctx);
   h.setBranch([assistant("All done.")]);
   await h.events.get("agent_settled")({}, h.ctx);
@@ -55,7 +82,7 @@ const assert = (condition, message) => { if (!condition) throw new Error(message
 // Completion suffixes are not mistaken for completion declarations.
 {
   const h = makeHarness();
-  await h.shortcuts.get("alt+shift+enter")(h.ctx);
+  await h.shortcuts.get(BURST)(h.ctx);
   h.setBranch([assistant("The task is incomplete.")]);
   await h.events.get("agent_settled")({}, h.ctx);
   assert(h.sent.length === 2, "incomplete was incorrectly treated as complete");
@@ -64,7 +91,7 @@ const assert = (condition, message) => { if (!condition) throw new Error(message
 // Generic phase completion and natural negation do not stop the burst.
 for (const text of ["The first phase is complete.", "The work is not yet complete.", "Not everything is complete."]) {
   const h = makeHarness();
-  await h.shortcuts.get("alt+shift+enter")(h.ctx);
+  await h.shortcuts.get(BURST)(h.ctx);
   h.setBranch([assistant(text)]);
   await h.events.get("agent_settled")({}, h.ctx);
   assert(h.sent.length === 2, `${text} was incorrectly treated as overall completion`);
@@ -73,7 +100,7 @@ for (const text of ["The first phase is complete.", "The work is not yet complet
 // Subject-qualified "all set"/"wrapped up" are NOT overall completion.
 for (const text of ["The environment is all set.", "Phase one is wrapped up.", "The first phase is wrapped up"]) {
   const h = makeHarness();
-  await h.shortcuts.get("alt+shift+enter")(h.ctx);
+  await h.shortcuts.get(BURST)(h.ctx);
   h.setBranch([assistant(text)]);
   await h.events.get("agent_settled")({}, h.ctx);
   assert(h.sent.length === 2, `${text} was incorrectly treated as overall completion`);
@@ -82,14 +109,14 @@ for (const text of ["The environment is all set.", "Phase one is wrapped up.", "
 // Overall-task subject or standalone "all set"/"wrapped up" DO complete.
 for (const text of ["The task is all set.", "All set.", "Wrapped up."]) {
   const h = makeHarness();
-  await h.shortcuts.get("alt+shift+enter")(h.ctx);
+  await h.shortcuts.get(BURST)(h.ctx);
   h.setBranch([assistant(text)]);
   await h.events.get("agent_settled")({}, h.ctx);
   assert(h.sent.length === 1, `${text} was not treated as completion`);
 }
 
 const positive = makeHarness();
-await positive.shortcuts.get("alt+shift+enter")(positive.ctx);
+await positive.shortcuts.get(BURST)(positive.ctx);
 positive.setBranch([assistant("The work is done.")]);
 await positive.events.get("agent_settled")({}, positive.ctx);
 assert(positive.sent.length === 1, "subject-based completion was missed");
@@ -97,20 +124,20 @@ assert(positive.sent.length === 1, "subject-based completion was missed");
 // Concurrent idle nudges collapse to one request.
 {
   const h = makeHarness();
-  await Promise.all([h.shortcuts.get("alt+g")(h.ctx), h.shortcuts.get("alt+g")(h.ctx)]);
+  await Promise.all([h.shortcuts.get(NUDGE)(h.ctx), h.shortcuts.get(NUDGE)(h.ctx)]);
   assert(h.sent.length === 1, "concurrent idle nudges overlapped");
 }
 
-// macOS/legacy nudge fallback (ctrl+alt+n) sends the same single nudge.
+// The nudge key sends a single "go on" and can nudge again after agent_start.
 {
   const h = makeHarness();
-  await h.shortcuts.get("ctrl+alt+n")(h.ctx);
-  assert(h.sent.length === 1 && h.sent[0][0] === "go on", "ctrl+alt+n did not send a single nudge");
+  await h.shortcuts.get(NUDGE)(h.ctx);
+  assert(h.sent.length === 1 && h.sent[0][0] === "go on", "nudge did not send a single 'go on'");
   // The real pi fires agent_start when the prompt starts, clearing the
   // idle-pending guard; simulate it so the second press can nudge again.
   h.events.get("agent_start")({}, h.ctx);
-  await h.shortcuts.get("ctrl+alt+n")(h.ctx);
-  assert(h.sent.length === 2, "ctrl+alt+n did not send a second nudge after agent_start");
+  await h.shortcuts.get(NUDGE)(h.ctx);
+  assert(h.sent.length === 2, "nudge did not send a second nudge after agent_start");
 }
 
 // Invalid mode arguments are rejected.
@@ -121,35 +148,22 @@ assert(positive.sent.length === 1, "subject-based completion was missed");
   assert(h.notifications.at(-1)?.[1] === "warning", "invalid mode argument lacked warning");
 }
 
-// Missing model disarms the combined shortcut rather than leaving mode armed.
+// Missing model disarms the burst rather than leaving mode armed.
 {
   const h = makeHarness({ model: null });
-  await h.shortcuts.get("alt+shift+enter")(h.ctx);
+  await h.shortcuts.get(BURST)(h.ctx);
   assert(h.sent.length === 0, "missing model sent a nudge");
   assert(h.statuses.at(-1)?.[1] === undefined, "missing model left mode armed");
 }
 
-// Legacy burst fallback is ctrl+alt+g and behaves exactly like the canonical burst.
+// Keys that must never be claimed: alt+enter (reserved for app.message.followUp),
+// alt+g / alt+shift+enter (superseded by the universal ctrl+alt pair), and any
+// dedicated toggle chord (the burst key's second press covers it).
 {
   const h = makeHarness();
-  await h.shortcuts.get("ctrl+alt+g")(h.ctx);
-  assert(h.sent.length === 1, "legacy burst did not send an initial nudge");
-  assert(h.statuses.at(-1)?.[1] === "go-on: armed (1)", "legacy burst did not arm");
-  // Second press disarms.
-  await h.shortcuts.get("ctrl+alt+g")(h.ctx);
-  assert(h.statuses.at(-1)?.[1] === undefined, "second legacy burst press did not disarm");
-}
-
-// alt+enter must not be claimed by go-on (reserved for app.message.followUp).
-{
-  const h = makeHarness();
-  assert(!h.shortcuts.has("alt+enter"), "go-on still registers the reserved alt+enter key");
-}
-
-// No dedicated toggle keys are registered (the burst key's second press covers it).
-{
-  const h = makeHarness();
-  assert(!h.shortcuts.has("alt+shift+g") && !h.shortcuts.has("ctrl+alt+o"), "toggle keys still registered");
+  for (const banned of ["alt+enter", "alt+g", "alt+shift+enter", "alt+shift+g", "ctrl+alt+o"]) {
+    assert(!h.shortcuts.has(banned), `go-on still registers banned key ${banned}`);
+  }
 }
 
 console.log("go-on behavioral checks passed");
