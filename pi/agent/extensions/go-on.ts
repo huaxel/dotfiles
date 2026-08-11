@@ -58,12 +58,16 @@ export default function (pi: ExtensionAPI) {
   type GoOnContext = ExtensionContext | ExtensionCommandContext;
 
   /** Explicit completion declarations. End-anchored on purpose:
-   *  "I'm done with X, now doing Y" is a pause, not a wrap-up. */
+   *  "I'm done with X, now doing Y" is a pause, not a wrap-up. Unqualified
+   *  "all set" / "wrapped up" are deliberately absent: subject-qualified
+   *  phase statements ("The environment is all set", "Phase one is wrapped
+   *  up") would otherwise disarm mid-task. Whole-message "All set." /
+   *  "Wrapped up." still count via STANDALONE_DONE_PHRASE below. */
   const DONE_PHRASE =
-    /\b(?:all done|done here|done with everything|everything['’]?s done|task complete|tasks complete|i['’]?m done|i am done|that['’]s (?:it|all)|that is all|all set|wrapped up|nothing (?:else|more|left)(?: to do)?|no further (?:work|tasks|steps))\b[.!?]*$/i;
+    /\b(?:all done|done here|done with everything|everything['’]?s done|task complete|tasks complete|i['’]?m done|i am done|that['’]s (?:it|all)|that is all|nothing (?:else|more|left)(?: to do)?|no further (?:work|tasks|steps))\b[.!?]*$/i;
   const SUBJECT_DONE_PHRASE =
-    /^(?:(?:the|all) )?(?:task|tasks|work|changes|implementation|request|refactor|job|project|goal|deliverable|assignment|everything) (?:is|are|was|were|has been|have been) (?:done|complete|completed|finished)[.!?]*$/i;
-  const STANDALONE_DONE_PHRASE = /^(?:done|finished|completed|complete|all set)[.!?]*$/i;
+    /^(?:(?:the|all) )?(?:task|tasks|work|changes|implementation|request|refactor|job|project|goal|deliverable|assignment|everything) (?:is|are|was|were|has been|have been) (?:done|complete|completed|finished|all set|wrapped up)[.!?]*$/i;
+  const STANDALONE_DONE_PHRASE = /^(?:done|finished|completed|complete|all set|wrapped up)[.!?]*$/i;
   const NEGATED_DONE_PHRASE =
     /\b(?:not|never|isn['’]?t|is not|wasn['’]?t|was not|haven['’]?t|have not|hasn['’]?t|has not|don['’]?t|do not)\b[^.!?\n]*\b(?:done|complete|completed|finished|all set)\b[.!?]*$/i;
 
