@@ -17,6 +17,12 @@ If the check fails, say that you are not running inside Herdr and stop. Do not i
 
 When the check passes, the `herdr` binary in `PATH` talks to the running session. Use it to inspect neighboring work, create isolated terminal contexts, start agents and commands, read their output, and wait for state changes.
 
+## Tools-first execution
+
+When the `herdr_layout`, `herdr_pane`, and `herdr_agent` tools are available in the toolset (the `@ogulcancelik/pi-herdr` extension), prefer them for the actions they cover: inspecting and creating layout, running commands in panes, waiting for output, and controlling recognized coding agents with lifecycle settlement. They wrap the same CLI with validated schemas, structured error codes, and bounded output.
+
+Keep using the CLI via bash for what the tools do not expose: discovery (`herdr --help`, command groups), worktrees, notifications, sessions, integration, config, and raw terminal edge cases. The installed binary remains the authority for command syntax.
+
 ## Learn the current CLI
 
 The installed binary is the authority for command syntax. Begin with:
@@ -122,6 +128,9 @@ Use the executable that belongs to the requested agent:
 - pi: `pi`
 - OpenCode: `opencode`
 - OMP: `omp`
+- Cursor: `cursor`
+- AGY: `agy`
+- Copilot: `copilot`
 
 Do not pass the task as an argv prompt by default. Do not add non-interactive flags. Only change the normal interactive launch when the user explicitly asks for a different launch mode or command.
 
