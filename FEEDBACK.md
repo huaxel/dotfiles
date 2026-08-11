@@ -171,3 +171,22 @@
 - When the reviewer agent dies without output, resume its session with the same task before re-dispatching.
 - No running pi session has reloaded yet — new /restart behavior activates after `/reload` (or restart); remember to note that for the user in the final report.
 - Follow-up note: the `reviewer` subagent failed twice (original + resume) with exit 1 — resumed sessions also crashed. Diagnosed: the failure is in the subagent harness/reader step, not the review content (it had read the patch and diffed files before dying). Did a rigorous self-review instead; recorded 2 Minor findings (whitespace handoff guard, no wait feedback). For small isolated batches, self-review + documented Minors is acceptable per the requesting-code-review skill; re-try the reviewer for larger batches.
+
+## 2026-08-11: go-on keybindings — the reserved-key trap + terminal-level keys
+
+### What went well
+- Root-causing "Alt+Shift+Enter does nothing" was fast once I replicated pi's REAL `getShortcuts()` conflict logic against the installed defaults instead of trusting the behavioral harness: the harness records every `registerShortcut` call, so the skipped `alt+enter` registration (reserved by `app.message.followUp`) looked live. A 30-line replica of `buildBuiltinKeybindings` + the RESERVED list from `dist/core/extensions/runner.js` proved the skip with hard output.
+- The user's veto (`alt+enter` = GNOME Terminal new window / Windows Terminal fullscreen) collapsed the design space immediately: legacy ESC CR can only be claimed via the `alt+enter` key id, so the fallback had to move to a different chord entirely. `ctrl+alt+g` (ESC BEL) was already proven to reach pi from the earlier `matchesKey` probe.
+- Verified both protocol modes against pi-tui's parser with the mod+1 kitty encoding (`\x1b[13;4u` etc.) — caught my own off-by-one in the test sequences before reporting.
+- 2285e89 extended the behavioral tests with a regression assertion that `alt+enter` is NOT claimed, plus legacy-burst behavior (arm + nudge + disarm-on-second-press).
+
+### What was frustrating / slow
+- The kitty CSI-u modifier field is `bitmask+1`, and pi-tui subtracts 1 internally — my first verification run used the raw bitmask and produced a confusing all-false table. Cost one extra probe of `parseKittySequence`.
+- The session transcript showed the previous agent had ALREADY concluded "your terminal is not reporting Kitty modifier sequences" but never checked whether the fallback key it picked would actually register — the reserved-key filter is invisible to `matchesKey`-level tests.
+
+### What config change would have helped
+- Nothing config-level; but a tiny committed test that asserts "every registered shortcut survives pi's reserved-key filter" (importing the RESERVED list or replicating it) would have caught 0fad716 at review time.
+
+### Improvements for next time
+- When testing keybindings: (1) replicate the runner's reserved-key filter, (2) test the actual byte sequence through `matchesKey` in BOTH `setKittyProtocolActive(true|false)` modes, (3) ask whether the terminal emulator binds the key itself.
+- Commit the behavioral tests into the repo (`pi/agent/extensions/go-on.test.mjs`) instead of leaving them in /tmp.
