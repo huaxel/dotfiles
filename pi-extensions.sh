@@ -21,7 +21,6 @@ PACKAGES=(
   "npm:pi-speedometer"
   "npm:pi-web-access"
   "npm:@juicesharp/rpiv-ask-user-question"
-  "npm:@juicesharp/rpiv-todo"
   "npm:@narumitw/pi-goal"
 )
 

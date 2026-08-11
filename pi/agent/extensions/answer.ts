@@ -14,6 +14,11 @@
 import { complete, parseJsonWithRepair, type Model, type Api, type UserMessage } from "@earendil-works/pi-ai/compat";
 import type { ExtensionAPI, ExtensionContext, ModelRegistry } from "@earendil-works/pi-coding-agent";
 import { BorderedLoader } from "@earendil-works/pi-coding-agent";
+import path from "node:path";
+import fs from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import {
 	type Component,
 	Editor,
@@ -55,6 +60,8 @@ Output a JSON object with this structure:
 
 Rules:
 - Extract all questions that require user input
+- Skip rhetorical questions and questions already answered in the conversation
+- Skip questions inside code blocks, quoted text, or examples
 - Keep questions in the order they appeared
 - Be concise with question text
 - Include context only when it provides essential information for answering
@@ -81,6 +88,47 @@ const EXTRACTION_MODELS: Array<[provider: string, modelId: string]> = [
 	["openai-codex", "gpt-5.6-luna"],
 ];
 
+// Quota-aware resolver (agentq infra): prints {"model": "provider/model"} for
+// the small tier with headroom. Used first when available; falls back to
+// EXTRACTION_MODELS.
+const QUOTA_RESOLVER_PATH = path.resolve(
+	process.env.HOME ?? "/home/juan",
+	"projects/agentq/bin/resolve-model.sh",
+);
+
+const execFileAsync = promisify(execFile);
+
+async function resolveQuotaModel(
+	modelRegistry: ModelRegistry,
+): Promise<Model<Api> | null> {
+	if (!existsSync(QUOTA_RESOLVER_PATH)) {
+		return null;
+	}
+	try {
+		const { stdout } = await execFileAsync(QUOTA_RESOLVER_PATH, ["small"], {
+			timeout: 5000,
+		});
+		const parsed = JSON.parse(stdout) as { model?: unknown };
+		if (typeof parsed.model !== "string") {
+			return null;
+		}
+		const slash = parsed.model.indexOf("/");
+		if (slash <= 0 || slash === parsed.model.length - 1) {
+			return null;
+		}
+		const provider = parsed.model.slice(0, slash);
+		const modelId = parsed.model.slice(slash + 1);
+		const model = modelRegistry.find(provider, modelId);
+		if (!model) {
+			return null;
+		}
+		const auth = await modelRegistry.getApiKeyAndHeaders(model);
+		return auth.ok ? model : null;
+	} catch {
+		return null;
+	}
+}
+
 /**
  * Prefer a fast configured extraction model, then the current model.
  */
@@ -88,6 +136,10 @@ async function selectExtractionModel(
 	currentModel: Model<Api>,
 	modelRegistry: ModelRegistry,
 ): Promise<Model<Api>> {
+	const quotaModel = await resolveQuotaModel(modelRegistry);
+	if (quotaModel) {
+		return quotaModel;
+	}
 	for (const [provider, modelId] of EXTRACTION_MODELS) {
 		const model = modelRegistry.find(provider, modelId);
 		if (!model) {
@@ -135,6 +187,51 @@ function toExtractionResult(value: unknown): ExtractionResult | null {
 		questions.push(extractedQuestion);
 	}
 	return { questions };
+}
+
+interface AnswerDraft {
+	questions: ExtractedQuestion[];
+	answers: string[];
+}
+
+function getDraftPath(ctx: ExtensionContext): string | null {
+	const sessionFile = ctx.sessionManager.getSessionFile();
+	return sessionFile ? `${sessionFile}.answer-drafts.json` : null;
+}
+
+async function loadAnswerDraft(draftPath: string): Promise<AnswerDraft | null> {
+	try {
+		const raw = await fs.readFile(draftPath, "utf8");
+		const parsed = JSON.parse(raw) as Partial<AnswerDraft> | null;
+		if (!parsed || !Array.isArray(parsed.answers)) {
+			return null;
+		}
+		const answers = parsed.answers.filter((a): a is string => typeof a === "string");
+		const questions = Array.isArray(parsed.questions)
+			? parsed.questions.filter(
+					(q): q is ExtractedQuestion =>
+						typeof q === "object" &&
+						q !== null &&
+						typeof (q as { question?: unknown }).question === "string",
+				)
+			: [];
+		return { questions, answers };
+	} catch {
+		return null;
+	}
+}
+
+async function saveAnswerDraft(
+	draftPath: string,
+	questions: ExtractedQuestion[],
+	answers: string[],
+): Promise<void> {
+	await fs.mkdir(path.dirname(draftPath), { recursive: true });
+	await fs.writeFile(
+		draftPath,
+		JSON.stringify({ questions, answers }, null, 2),
+		"utf8",
+	);
 }
 
 /**
@@ -198,9 +295,13 @@ class QnAComponent implements Component {
 		questions: ExtractedQuestion[],
 		tui: TUI,
 		onDone: (result: string | null) => void,
+		initialAnswers?: string[],
 	) {
 		this.questions = questions;
-		this.answers = questions.map(() => "");
+		this.answers =
+			initialAnswers && initialAnswers.length === questions.length
+				? initialAnswers.map((a) => a ?? "")
+				: questions.map(() => "");
 		this.tui = tui;
 		this.onDone = onDone;
 
@@ -264,6 +365,11 @@ class QnAComponent implements Component {
 
 	private cancel(): void {
 		this.onDone(null);
+	}
+
+	getAnswers(): string[] {
+		this.saveCurrentAnswer();
+		return [...this.answers];
 	}
 
 	invalidate(): void {
@@ -564,14 +670,54 @@ export default function (pi: ExtensionAPI) {
 				return;
 			}
 
+			// Restore a previous draft, if any (same question count and some text).
+			const draftPath = getDraftPath(ctx);
+			let initialAnswers: string[] | undefined;
+			if (draftPath) {
+				const draft = await loadAnswerDraft(draftPath);
+				if (
+					draft &&
+					draft.answers.length === extractionResult.questions.length &&
+					draft.answers.some((a) => a.trim())
+				) {
+					const restore = ctx.hasUI
+						? await ctx.ui.confirm("Answer drafts", "Restore your previous answers?")
+						: false;
+					if (restore) {
+						initialAnswers = draft.answers;
+					} else {
+						await fs.rm(draftPath, { force: true }).catch(() => undefined);
+					}
+				}
+			}
+
 			// Show the Q&A component
+			const qnaComponent: { current: QnAComponent | null } = { current: null };
 			const answersResult = await ctx.ui.custom<string | null>((tui, _theme, _kb, done) => {
-				return new QnAComponent(extractionResult.questions, tui, done);
+				const component = new QnAComponent(
+					extractionResult.questions,
+					tui,
+					done,
+					initialAnswers,
+				);
+				qnaComponent.current = component;
+				return component;
 			});
 
 			if (answersResult === null) {
-				ctx.ui.notify("Cancelled", "info");
+				const savedAnswers = qnaComponent.current?.getAnswers() ?? [];
+				if (draftPath && savedAnswers.some((a) => a.trim())) {
+					await saveAnswerDraft(draftPath, extractionResult.questions, savedAnswers);
+					ctx.ui.notify("Answers saved as draft — run /answer again to restore", "info");
+				} else {
+					ctx.ui.notify("Cancelled", "info");
+				}
 				return;
+			}
+
+			// Submitted: discard any leftover draft
+			if (draftPath) {
+				await fs.rm(draftPath, { force: true }).catch(() => undefined);
 			}
 
 			// Send the answers directly as a message and trigger a turn
@@ -584,6 +730,17 @@ export default function (pi: ExtensionAPI) {
 				{ triggerTurn: true },
 			);
 	};
+
+	// Tell the model what customType "answers" messages are (prompt-generator
+	// pattern: the /answer flow re-injects answers as a user-style message).
+	pi.on("before_agent_start", (event, _ctx) => {
+		const note =
+			'A message with customType "answers" (content typically starts with "I answered your questions in the following way:") contains the user\'s answers to questions you asked. Treat it as authoritative user input and continue your work accordingly.';
+		const existing = event.systemPromptOptions.appendSystemPrompt;
+		event.systemPromptOptions.appendSystemPrompt = existing
+			? `${existing}\n${note}`
+			: note;
+	});
 
 	pi.registerCommand("answer", {
 		description: "Extract questions from last assistant message into interactive Q&A",
