@@ -75,16 +75,20 @@ Start the review agent with read-only tools (`herdr agent start <name> --kind pi
 
 ### 3b. Model choice: cost and quota
 
-Choose helper models by cost tier, not by habit. Check quota before dispatching a batch:
+Pick helper models with the quota-aware resolver, not by habit:
 
-```typescript
-opencode_usage({}) // daily/weekly/monthly quota windows + provider cooldowns + recent session cost
+```bash
+~/projects/agentq/bin/resolve-model.sh small    # → e.g. opencode-go/deepseek-v4-flash
+~/projects/agentq/bin/resolve-model.sh medium
+~/projects/agentq/bin/resolve-model.sh big
+~/projects/agentq/bin/resolve-model.sh check <model>   # validate a model has headroom
 ```
 
-- **Routine work** (review, scout, quick fixes): cheapest adequate model (e.g. deepseek-v4-flash).
-- **Escalate only when the task warrants it** (architecture, concurrency, security, hard diagnosis).
-- If quota is high (>~80% of a window) or cooldowns are active, spread dispatches or downgrade models — provider aborts ("This operation was aborted") are a quota symptom, and retrying into a cooled-down provider is slower than pacing.
-- Pass the model explicitly when starting helpers: `herdr agent start <name> --kind pi --pane <id> -- --model <model>`.
+- **Routine work** (review, scout, quick fixes): `small`/`medium` tier.
+- **Escalate only when the task warrants it** (architecture, concurrency, security, hard diagnosis): `big`.
+- Before a batch, take a snapshot: `opencode_usage({})` — per-provider quota windows, recent spend per model, OpenCode Go dashboard windows and cooldowns. Optionally look up a model's price: `opencode_usage({ model: "deepseek-v4-flash" })`.
+- If quota is high or cooldowns are active, spread dispatches or downgrade a tier — provider aborts ("This operation was aborted") are a quota symptom; retrying into a cooled-down provider is slower than pacing.
+- Pass the resolved model explicitly when starting helpers: `herdr agent start <name> --kind pi --pane <id> -- --model <model>`.
 
 ### 4. Merge and cleanup
 
