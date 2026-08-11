@@ -32,11 +32,19 @@ herdr agent start <project>-<issue> --cwd <worktree-path>
 - Give each agent a scoped task: the issue text, the target branch, and the definition of done. Keep the brief bounded — the worker inherits no conversation.
 - Use a cheap model for implementation agents unless the task warrants a stronger one; use read-only tools for review agents (`--tools read,grep,find,ls`).
 - Cap concurrency: do not start more than ~5 agents at once. Provider overload produces aborted runs ("This operation was aborted") — you will have to retry or resume, which is slower than pacing.
-- Record the returned pane IDs in your todos; you need them for waiting and cleanup.
+- Record the returned pane IDs in your todos and register each agent with `fleet_watch add` (see next step) so completion steers back automatically.
 
 ### 2. Wait
 
-During an interactive session, **poll — do not spawn watchers.** From your own turns:
+Register every spawned fleet agent with the completion listener so the mother is steered automatically the moment an agent reports `done` — no polling, no watcher subagents, works in unattended runs too:
+
+```typescript
+fleet_watch({ action: "add", name: "<agent-name>", paneId: "<pane-id>" });
+```
+
+Registry survives `/reload` (persisted to `~/.pi/fleet-listener.json`); the listener re-subscribes at init and on socket reconnect. Between steers, keep discussing with the user; the steer arrives as a new turn when the session is idle.
+
+If the listener is not available (extension not loaded), fall back to polling from your own turns:
 
 ```bash
 herdr agent get <name>                          # status: idle/working/blocked/done
@@ -45,18 +53,7 @@ herdr wait agent-status <pane-id> --status done --timeout 120000
 
 A bounded wait blocks only your turn; between checks the user keeps the conversation going. If an agent is `blocked`, it needs input — prompt it or read its pane first.
 
-For **unattended runs** (night, long sessions) where auto-wake is required, spawn one watcher subagent per fleet agent:
-
-```typescript
-subagent({
-  name: "watch-<issue>",
-  agent: "worker",
-  task: "Block on `herdr agent wait` for agent <name> (<pane-id>). When it settles done, read its final output and report a one-paragraph summary with the PR number.",
-  thinking: "low",
-});
-```
-
-Watchers are cheap and close on done. Do **not** `/reload` or `/restart` while subagents are in flight — their watchers die and completions are lost. After an unexpected reload, resume interrupted work with `subagent_resume`.
+Do **not** `/reload` while subagents (reviewers, watchers) are in flight — their watchers die and completions are lost. After an unexpected reload, resume interrupted work with `subagent_resume`.
 
 ### 3. Review gate
 
