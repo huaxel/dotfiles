@@ -769,12 +769,21 @@ export default function (pi: ExtensionAPI) {
 				await fs.rm(draftPath, { force: true }).catch(() => undefined);
 			}
 
-			// Send the answers directly as a message and trigger a turn
+			// Send the answers directly as a message and trigger a turn.
+			// details carries the structured Q/A pairs for tooling; the model
+			// consumes the human-readable content.
+			const rawAnswers = qnaComponent.current?.getAnswers() ?? [];
 			pi.sendMessage(
 				{
 					customType: "answers",
 					content: "I answered your questions in the following way:\n\n" + answersResult,
 					display: true,
+					details: {
+						answers: extractionResult.questions.map((q, i) => ({
+							question: q.question,
+							answer: rawAnswers[i]?.trim() ?? "",
+						})),
+					},
 				},
 				{ triggerTurn: true },
 			);
@@ -801,3 +810,11 @@ export default function (pi: ExtensionAPI) {
 		handler: answerHandler,
 	});
 }
+
+// Test-only named exports (the pi loader only uses the default export).
+export {
+	parseExtractionResult,
+	toExtractedQuestion,
+	loadAnswerDraft,
+	saveAnswerDraft,
+};

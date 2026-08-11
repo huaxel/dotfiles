@@ -111,10 +111,23 @@ const backups = readdirSync(path.join(td, ".trash", "backups"));
 assert(backups.some((f) => f.startsWith(badId)), "original backed up before repair");
 r = await run({ action: "validate" });
 assert(r.details.issues === 0, "validate clean after repair");
+// --- configurable lock TTL ---
+writeFileSync(path.join(td, "settings.json"), JSON.stringify({ gc: true, gcDays: 7, lockTtlMs: 5000 }));
+const ttlTodo = await run({ action: "create", title: "TTL test" });
+const ttlId = ttlTodo.details.todo.id;
+const ttlLock = path.join(td, ttlId + ".lock");
+const ttlOld = Date.now() - 20 * 1000;
+writeFileSync(ttlLock, JSON.stringify({ id: ttlId, pid: 1, session: "x", created_at: new Date(ttlOld).toISOString() }));
+utimesSync(ttlLock, new Date(ttlOld), new Date(ttlOld));
+r = await run({ action: "update", id: ttlId, title: "steal via short ttl", force: true });
+assert(!r.details.error, "lockTtlMs from settings applies (20s old lock stale with 5s TTL)");
+await run({ action: "delete", id: ttlId });
+
 // cleanup extra todos
 await run({ action: "delete", id: c1.details.todo.id });
 await run({ action: "delete", id: c2.details.todo.id });
 await run({ action: "delete", id: good.details.todo.id });
+await run({ action: "delete", id: badId });
 
 console.log("\nALL TODOS TESTS PASSED");
 process.exit(0);

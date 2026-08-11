@@ -23,7 +23,8 @@
  * Defaults:
  * {
  *   "gc": true,   // delete closed todos older than gcDays on startup
- *   "gcDays": 7   // age threshold for GC (days since created_at)
+ *   "gcDays": 7,  // age threshold for GC (days since created_at)
+ *   "lockTtlMs": 1800000  // optional lock TTL override (default 30 min)
  * }
  *
  * Use `/todos` to bring up the visual todo manager or just let the LLM use them
@@ -64,6 +65,7 @@ const DEFAULT_TODO_SETTINGS = {
 	gcDays: 7,
 };
 const LOCK_TTL_MS = 30 * 60 * 1000;
+const MIN_LOCK_TTL_MS = 5 * 1000;
 
 interface TodoFrontMatter {
 	id: string;
@@ -90,6 +92,7 @@ interface LockInfo {
 interface TodoSettings {
 	gc: boolean;
 	gcDays: number;
+	lockTtlMs?: number;
 }
 
 type KeybindingMatcher = {
@@ -757,9 +760,14 @@ function normalizeTodoSettings(raw: Partial<TodoSettings>): TodoSettings {
 		typeof raw.gcDays === "number" && Number.isFinite(raw.gcDays)
 			? raw.gcDays
 			: DEFAULT_TODO_SETTINGS.gcDays;
+	const lockTtlMs =
+		typeof raw.lockTtlMs === "number" && Number.isFinite(raw.lockTtlMs) && raw.lockTtlMs >= MIN_LOCK_TTL_MS
+			? Math.floor(raw.lockTtlMs)
+			: undefined;
 	return {
 		gc: Boolean(gc),
 		gcDays: Math.max(0, Math.floor(gcDays)),
+		...(lockTtlMs !== undefined ? { lockTtlMs } : {}),
 	};
 }
 
@@ -993,6 +1001,9 @@ async function acquireLock(
 	const lockPath = getLockPath(todosDir, id);
 	const now = Date.now();
 	const session = ctx.sessionManager.getSessionFile();
+	// Per-directory lock TTL override from <todo-dir>/settings.json.
+	const settings = await readTodoSettings(todosDir);
+	const lockTtlMs = settings.lockTtlMs ?? LOCK_TTL_MS;
 
 	for (let attempt = 0; attempt < 2; attempt += 1) {
 		try {
@@ -1017,8 +1028,8 @@ async function acquireLock(
 				return { error: `Failed to acquire lock: ${error?.message ?? "unknown error"}` };
 			}
 			const stats = await fs.stat(lockPath).catch(() => null);
-			const lockAge = stats ? now - stats.mtimeMs : LOCK_TTL_MS + 1;
-			if (lockAge <= LOCK_TTL_MS) {
+			const lockAge = stats ? now - stats.mtimeMs : lockTtlMs + 1;
+			if (lockAge <= lockTtlMs) {
 				const info = await readLockInfo(lockPath);
 				const owner = info?.session ? ` (session ${info.session})` : "";
 				return { error: `Todo ${displayTodoId(id)} is locked${owner}. Try again later.` };
@@ -1577,6 +1588,27 @@ export default function todosExtension(pi: ExtensionAPI) {
 		await ensureTodosDir(todosDir);
 		const settings = await readTodoSettings(todosDir);
 		await garbageCollectTodos(todosDir, settings);
+	});
+
+	// Tell the agent the project has a shared backlog (only when it does), so
+	// it checks the todo tool for tracked work instead of re-planning blindly.
+	pi.on("before_agent_start", (event, ctx) => {
+		const todosDir = getTodosDir(ctx.cwd);
+		if (!existsSync(todosDir)) {
+			return;
+		}
+		const hasTodos = readdirSync(todosDir).some((e) => e.endsWith(".md"));
+		if (!hasTodos) {
+			return;
+		}
+		const note =
+			"This project has file-backed todos in .pi/todos (todo tool). Before planning new work, " +
+			"check whether the work is already tracked (todo action=list). If it is, claim the todo " +
+			"before working on it and close it when complete.";
+		const existing = event.systemPromptOptions.appendSystemPrompt;
+		event.systemPromptOptions.appendSystemPrompt = existing
+			? `${existing}\n${note}`
+			: note;
 	});
 
 	pi.registerTool({
