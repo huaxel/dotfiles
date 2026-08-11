@@ -25,6 +25,10 @@ commandcode-models.json
 cursor-sdk-model-list.json
 opencode-go-failover-state.json
 
+# web_search tool runtime state (fetch cache + tool config, auto-managed)
+web-search-cache/
+web-search.json
+
 # Editor / OS junk
 .DS_Store
 *.bak
