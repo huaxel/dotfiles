@@ -35,6 +35,7 @@ import {
 interface ExtractedQuestion {
 	question: string;
 	context?: string;
+	options?: string[];
 }
 
 interface ExtractionResult {
@@ -53,7 +54,8 @@ Output a JSON object with this structure:
   "questions": [
     {
       "question": "The question text",
-      "context": "Optional context that helps answer the question"
+      "context": "Optional context that helps answer the question",
+      "options": ["Optional", "choice", "list"]
     }
   ]
 }
@@ -65,6 +67,7 @@ Rules:
 - Keep questions in the order they appeared
 - Be concise with question text
 - Include context only when it provides essential information for answering
+- For multiple-choice questions, include an options array with 2-6 concise choices. Omit options for free-form questions.
 - If no questions are found, return {"questions": []}
 
 Example output:
@@ -72,7 +75,8 @@ Example output:
   "questions": [
     {
       "question": "What is your preferred database?",
-      "context": "We can only configure MySQL and PostgreSQL because of what is implemented."
+      "context": "We can only configure MySQL and PostgreSQL because of what is implemented.",
+      "options": ["MySQL", "PostgreSQL"]
     },
     {
       "question": "Should we use TypeScript or JavaScript?"
@@ -167,7 +171,22 @@ function toExtractedQuestion(value: unknown): ExtractedQuestion | null {
 	if (context !== undefined && context !== null && typeof context !== "string") {
 		return null;
 	}
-	return typeof context === "string" && context.length > 0 ? { question, context } : { question };
+	let options: string[] | undefined;
+	if (Array.isArray(record.options)) {
+		const cleaned = record.options
+			.filter((o): o is string => typeof o === "string" && o.trim().length > 0)
+			.map((o) => o.trim())
+			.slice(0, 6);
+		if (cleaned.length >= 2) {
+			options = cleaned;
+		}
+	}
+	const result: ExtractedQuestion =
+		typeof context === "string" && context.length > 0 ? { question, context } : { question };
+	if (options) {
+		result.options = options;
+	}
+	return result;
 }
 
 function toExtractionResult(value: unknown): ExtractionResult | null {
@@ -448,6 +467,22 @@ class QnAComponent implements Component {
 			return;
 		}
 
+		// Digit keys pick an option when the current question has options and
+		// the editor is empty (so free-form typing is never hijacked).
+		const currentOptions = this.questions[this.currentIndex].options;
+		if (currentOptions && currentOptions.length > 0 && this.editor.getText() === "") {
+			const digitMatch = data.match(/^([1-9])$/);
+			if (digitMatch) {
+				const index = Number(digitMatch[1]) - 1;
+				if (index < currentOptions.length) {
+					this.editor.setText(currentOptions[index]);
+					this.invalidate();
+					this.tui.requestRender();
+					return;
+				}
+			}
+		}
+
 		// Pass to editor
 		this.editor.handleInput(data);
 		this.invalidate();
@@ -521,6 +556,20 @@ class QnAComponent implements Component {
 			for (const line of wrappedContext) {
 				lines.push(padToWidth(boxLine(line)));
 			}
+		}
+
+		// Options if present (digit-selectable)
+		if (q.options && q.options.length > 0) {
+			lines.push(padToWidth(emptyBoxLine()));
+			const optionLines = q.options.map(
+				(option, i) => `${this.green(`${i + 1}`)} ${option}`,
+			);
+			const optionsText = optionLines.join("   ");
+			const wrappedOptions = wrapTextWithAnsi(optionsText, contentWidth - 2);
+			for (const line of wrappedOptions) {
+				lines.push(padToWidth(boxLine(line)));
+			}
+			lines.push(padToWidth(boxLine(this.dim("press a number to pick"))));
 		}
 
 		lines.push(padToWidth(emptyBoxLine()));
