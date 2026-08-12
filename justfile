@@ -498,6 +498,16 @@ deploy-server server branch="main":
     #!/usr/bin/env bash
     git push "{{server}}" "{{branch}}"
 
+# ──────────── Cheap cloud (throwaway dev containers) ────────────
+
+# Spin up or manage a throwaway dev container on a home server.
+# Usage:  just sandbox acerpepe up postgres:16-alpine [name]
+#         just sandbox acerpepe list
+#         just sandbox acerpepe logs <name>
+#         just sandbox acerpepe down <name>
+sandbox server action *args="":
+    bash {{dotfiles-dir}}/bin/sandbox.sh {{server}} {{action}} {{args}}
+
 # ──────────── Quality Gauntlet ────────────
 
 # Run the full Uncle Bob quality gauntlet (all 7 gates).
