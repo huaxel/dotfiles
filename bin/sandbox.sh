@@ -54,6 +54,7 @@ case "$ACTION" in
     [ -n "$TS_IP" ] || { echo "  ❌ no Tailscale IPv4 on $SERVER"; exit 1; }
 
     # First free port in the sandbox range
+    # shellcheck disable=SC2029
     PORT=$(ssh "$SERVER" "seq $PORT_MIN $PORT_MAX | while read -r p; do
         ss -tln 2>/dev/null | grep -qE \":\$p( |\$)\" || { echo \"\$p\"; break; }
       done")
@@ -68,6 +69,7 @@ case "$ACTION" in
     echo "  image : $IMAGE"
     echo "  name  : $NAME"
     echo "  port  : $PORT → http://$TS_IP:$PORT (tailnet only)"
+    # shellcheck disable=SC2029
     ssh "$SERVER" "docker run -d --name '$NAME' --label sandbox=1 -p '$TS_IP:$PORT:$PORT' '$IMAGE'"
     echo "  ✅ $NAME is up → http://$TS_IP:$PORT"
     echo "  logs  : just sandbox $SERVER logs $NAME"
@@ -79,14 +81,17 @@ case "$ACTION" in
     ;;
 
   logs)
+    # shellcheck disable=SC2029
     ssh "$SERVER" "docker logs --tail 50 '$NAME'"
     ;;
 
   ports)
+    # shellcheck disable=SC2029
     ssh "$SERVER" "ss -tln | awk '{split(\$4,a,\":\"); p=a[length(a)]; if (p ~ /^[0-9]+\$/ && p+0 >= $PORT_MIN && p+0 <= $PORT_MAX) print p}' | sort -n | uniq | tr '\n' ' '; echo"
     ;;
 
   down)
+    # shellcheck disable=SC2029
     ssh "$SERVER" "docker rm -f '$NAME' 2>/dev/null && echo '  ✅ removed $NAME' || echo '  no container named $NAME'"
     ;;
 esac
