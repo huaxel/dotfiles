@@ -38,19 +38,23 @@ Auth is unchanged: existing `agy` OAuth (`~/.gemini/oauth_creds.json`).
 
 ## Human-callable `/agy` command
 
-Run agy directly from the Pi TUI without going through the model:
+Run agy directly from the Pi TUI — fast path when fully specified, wizard otherwise:
 
 ```
-/agy flash fix git conflicts
-/agy plan sonnet review the diff
-/agy sandbox pro estimate the refactor
-/agy just run the tests
+/agy flash fix git conflicts        # fully specified → runs immediately
+/agy plan sonnet review the diff    # mode + model + prompt
+/agy plan                           # wizard: model select → task editor
+/agy                                # wizard: mode → model → task editor
 ```
 
 First token optional: `plan` / `sandbox` mode prefix, then a model alias
-(`flash`, `pro`, `sonnet`, `opus`, `gpt-oss`, …; default `flash-medium`), then
-freeform prompt. Result (and diff summary for accept-edits) renders in a
-scrollable panel — `↑↓` scroll, `Esc`/`Enter` close.
+(`flash`, `pro`, `sonnet`, `opus`, `gpt-oss`, …), then the prompt.
+
+Missing pieces open interactive dialogs (mode select, model select with
+descriptions, multi-line task editor). `accept-edits` asks for confirmation
+before writing. Execution runs in a **live progress panel** (streams agy tool
+steps, `↑↓` scroll, `Esc` cancels), then a scrollable result panel shows the
+response + git diff summary + conversation id + token usage.
 
 ## Development
 

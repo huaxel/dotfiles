@@ -6,6 +6,7 @@ import { withDirLock } from "./lib/lock.js";
 import { summarizeGitDiff } from "./lib/postflight.js";
 import { runPreflight } from "./lib/preflight.js";
 import { saveSession } from "./lib/sessions.js";
+import type { AgyRunResult } from "./lib/stream.js";
 
 const MODEL_ALIASES: Record<string, AgyModel> = {
   flash: "flash-medium",
@@ -21,44 +22,76 @@ const MODEL_ALIASES: Record<string, AgyModel> = {
 };
 
 const MODEL_KEYS = Object.keys(MODEL_ALIASES);
+
+const MODEL_OPTIONS = [
+  "flash — fast, cheap (Gemini Flash medium)",
+  "flash-low — trivial / high-volume",
+  "flash-high — harder agentic work",
+  "pro — deep reasoning (Gemini Pro high)",
+  "pro-low — pro, lighter reasoning",
+  "pro-high — max Gemini reasoning",
+  "sonnet — Claude default (review/code)",
+  "opus — Claude hard problems",
+  "gpt-oss — open-model alternative",
+];
+
+const MODE_OPTIONS = [
+  "accept-edits — writes files (default)",
+  "plan — exploration, no edits",
+  "sandbox — isolated preview",
+];
+
 const PANEL_VIEWPORT = 30;
+const PROGRESS_KEEP = 200;
 
 export interface AgyCommandArgs {
-  mode: "plan" | "accept-edits" | "sandbox";
-  model: AgyModel;
-  prompt: string;
+  mode?: "plan" | "accept-edits" | "sandbox";
+  model?: AgyModel;
+  prompt?: string;
 }
 
-/** Parse `/agy [plan|sandbox] [model] <prompt>` — e.g. `/agy flash fix git conflicts`. */
+/** Parse `/agy [plan|sandbox] [model] <prompt>` — e.g. `/agy flash fix git conflicts`. Only fills what was provided. */
 export function parseAgyCommandArgs(args: string): AgyCommandArgs {
   const tokens = args.trim().split(/\s+/).filter(Boolean);
-  let mode: AgyCommandArgs["mode"] = "accept-edits";
+  const parsed: AgyCommandArgs = {};
 
   if (tokens[0] === "plan" || tokens[0] === "sandbox") {
-    mode = tokens.shift() as AgyCommandArgs["mode"];
+    parsed.mode = tokens.shift() as AgyCommandArgs["mode"];
   }
 
-  let model: AgyModel = "flash-medium";
   if (tokens[0] && MODEL_ALIASES[tokens[0].toLowerCase()]) {
-    model = MODEL_ALIASES[tokens[0].toLowerCase()];
+    parsed.model = MODEL_ALIASES[tokens[0].toLowerCase()];
     tokens.shift();
   }
 
-  return { mode, model, prompt: tokens.join(" ") };
+  const prompt = tokens.join(" ");
+  if (prompt) parsed.prompt = prompt;
+  return parsed;
 }
 
 /** Register the human-callable `/agy [plan|sandbox] [model] <prompt>` command. */
 export function registerAgyCommand(pi: ExtensionAPI): void {
   pi.registerCommand("agy", {
     description:
-      "Run agy directly: /agy [plan|sandbox] [model] <prompt> — e.g. /agy flash fix git conflicts",
+      "Run agy: /agy [plan|sandbox] [model] <prompt>. With missing parts, prompts interactively.",
     getArgumentCompletions: (prefix) => {
+      const tokens = prefix.trim().split(/\s+/).filter(Boolean);
       const p = prefix.toLowerCase();
-      const items = MODEL_KEYS.filter((k) => k.startsWith(p)).map((k) => ({
-        value: k,
-        label: k,
-      }));
-      return items.length > 0 ? items : null;
+
+      // After a mode token, suggest models. Otherwise suggest modes first.
+      if (tokens.length === 1 && (tokens[0] === "plan" || tokens[0] === "sandbox")) {
+        return MODEL_KEYS.filter((k) => k.startsWith("")).map((k) => ({
+          value: k,
+          label: k,
+        }));
+      }
+      if (tokens.length <= 1) {
+        const modes = ["plan", "sandbox"].filter((m) => m.startsWith(tokens[0] ?? ""));
+        const models = MODEL_KEYS.filter((k) => k.startsWith(p));
+        const items = [...modes.map((m) => ({ value: m, label: m })), ...models.map((m) => ({ value: m, label: m }))];
+        return items.length > 0 ? items : null;
+      }
+      return null;
     },
     handler: async (args, ctx) => {
       if (ctx.mode !== "tui") {
@@ -66,23 +99,112 @@ export function registerAgyCommand(pi: ExtensionAPI): void {
         return;
       }
 
+      // 1. Fill gaps interactively (mode → model → prompt), or accept fast path when fully specified.
       const parsed = parseAgyCommandArgs(args);
-      if (!parsed.prompt) {
-        ctx.ui.notify("Usage: /agy [plan|sandbox] [model] <prompt>", "warning");
-        return;
+
+      let mode = parsed.mode;
+      if (!mode) {
+        const pick = await ctx.ui.select("agy mode", MODE_OPTIONS);
+        if (!pick) {
+          ctx.ui.notify("agy: cancelled", "info");
+          return;
+        }
+        mode = optionKey(pick) as AgyCommandArgs["mode"];
+      }
+
+      let model = parsed.model;
+      if (!model) {
+        const pick = await ctx.ui.select("agy model", MODEL_OPTIONS);
+        if (!pick) {
+          ctx.ui.notify("agy: cancelled", "info");
+          return;
+        }
+        model = MODEL_ALIASES[optionKey(pick)] ?? "flash-medium";
+      }
+
+      let prompt = parsed.prompt;
+      if (!prompt) {
+        const text = await ctx.ui.editor("agy task", "");
+        if (!text?.trim()) {
+          ctx.ui.notify("agy: cancelled (empty task)", "info");
+          return;
+        }
+        prompt = text.trim();
       }
 
       const cwd = ctx.cwd;
-      ctx.ui.notify(
-        `agy: ${parsed.mode} · ${parsed.model} · ${parsed.prompt.slice(0, 60)}${parsed.prompt.length > 60 ? "…" : ""}`,
-        "info",
-      );
 
-      const progress: string[] = [];
+      // 2. Confirm before writing files.
+      if (mode === "accept-edits") {
+        const ok = await ctx.ui.confirm(
+          "Run agy (accept-edits)?",
+          `model: ${model}\ndir: ${cwd}\n\ntask: ${prompt.slice(0, 200)}${prompt.length > 200 ? "…" : ""}`,
+        );
+        if (!ok) {
+          ctx.ui.notify("agy: cancelled", "info");
+          return;
+        }
+      }
+
+      // 3. Execute with a live, cancellable progress panel.
+      const run = await runAgyLive(ctx, { mode, model, prompt }, cwd);
+      if (!run) {
+        ctx.ui.notify("agy: cancelled", "info");
+        return;
+      }
+
+      // 4. Postflight: diff summary for write mode.
+      let body = run.response || "(empty response)";
+      if (mode === "accept-edits") {
+        const diff = await summarizeGitDiff(cwd);
+        if (diff) body += `\n\n${diff}`;
+      }
+      if (run.conversation_id) body += `\n\nconversation: ${run.conversation_id}`;
+      if (run.usage?.total_tokens != null) {
+        body += `\nusage: ${run.usage.total_tokens} tokens`;
+      }
+
+      await showAgyResultPanel(ctx, { mode, model, prompt }, body);
+      if (run.conversation_id) await saveSession(cwd, run.conversation_id, model);
+      ctx.ui.notify("agy: done", "info");
+    },
+  });
+}
+
+function optionKey(option: string): string {
+  return option.split(" — ")[0] ?? option;
+}
+
+/** Run agy inside a live panel that streams progress and cancels on Esc. */
+async function runAgyLive(
+  ctx: ExtensionCommandContext,
+  parsed: { mode: "plan" | "accept-edits" | "sandbox"; model: AgyModel; prompt: string },
+  cwd: string,
+): Promise<AgyRunResult | null> {
+  return ctx.ui.custom<AgyRunResult | null>((tui, theme, _kb, done) => {
+    const ac = new AbortController();
+    const buffer: string[] = [];
+    let cachedLines: string[] | undefined;
+    let scrollTop = 0;
+    let totalLines = 0;
+    let finished = false;
+
+    const refresh = () => {
+      cachedLines = undefined;
+      tui.requestRender();
+    };
+
+    const onProgress = (msg: string) => {
+      buffer.push(msg);
+      if (buffer.length > PROGRESS_KEEP) buffer.splice(0, buffer.length - PROGRESS_KEEP);
+      refresh();
+    };
+
+    const start = async () => {
       try {
-        const run = await withDirLock(cwd, async () => {
-          await runPreflight(cwd);
-          const result = await spawnAgyStream(
+        const result = await withDirLock(cwd, async () => {
+          await runPreflight(cwd, ac.signal);
+          return spawnAgyStream(
             {
               prompt: parsed.prompt,
               model: parsed.model,
@@ -91,41 +213,88 @@ export function registerAgyCommand(pi: ExtensionAPI): void {
               timeout_ms: 300_000,
               stream: true,
             },
-            new AbortController().signal,
-            (msg) => progress.push(msg),
+            ac.signal,
+            onProgress,
           );
-          if (result.conversation_id) {
-            await saveSession(cwd, result.conversation_id, parsed.model);
-          }
-          return result;
         });
-
-        let body = run.response || "(empty response)";
-        if (parsed.mode === "accept-edits") {
-          const diff = await summarizeGitDiff(cwd);
-          if (diff) body += `\n\n${diff}`;
-        }
-        if (run.conversation_id) {
-          body += `\n\nconversation: ${run.conversation_id}`;
-        }
-
-        await showAgyResultPanel(ctx, parsed, body, progress, false);
-        ctx.ui.notify("agy: done", "info");
+        finished = true;
+        done(result);
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        await showAgyResultPanel(ctx, parsed, `agy failed:\n${msg}`, progress, true);
-        ctx.ui.notify("agy: failed", "error");
+        finished = true;
+        if (ac.signal.aborted) {
+          done(null);
+        } else {
+          buffer.push(`ERROR: ${err instanceof Error ? err.message : String(err)}`);
+          refresh();
+          // Small delay so the user can read the error before the panel closes.
+          setTimeout(() => done(null), 2500);
+        }
       }
-    },
+    };
+
+    const render = (width: number): string[] => {
+      if (cachedLines) return cachedLines;
+      const renderWidth = Math.max(1, width);
+      const lines: string[] = [];
+
+      const title = `agy · ${parsed.mode} · ${parsed.model}${finished ? " · finished" : " · running"}`;
+      lines.push(theme.fg("accent", `─ ${title} ─`));
+      lines.push(theme.fg("dim", `  ${parsed.prompt.slice(0, renderWidth - 4)}`));
+      lines.push("");
+
+      const wrapped: string[] = [];
+      for (const entry of buffer) {
+        wrapped.push(...wrapTextWithAnsi(entry, renderWidth - 4));
+      }
+      totalLines = wrapped.length;
+      const viewport = PANEL_VIEWPORT;
+      for (const line of wrapped.slice(scrollTop, scrollTop + viewport)) {
+        lines.push(theme.fg("text", `  ${line}`));
+      }
+      if (buffer.length === 0 && !finished) {
+        lines.push(theme.fg("dim", "  (waiting for agy…)" + " ".repeat(renderWidth)));
+      }
+
+      const end = Math.min(scrollTop + viewport, totalLines);
+      const scrollInfo = totalLines > viewport ? ` · ${scrollTop + 1}-${end}/${totalLines}` : "";
+      lines.push("");
+      lines.push(theme.fg("dim", `─ ↑↓ scroll · Esc ${finished ? "close" : "cancel"}${scrollInfo} ─`));
+
+      cachedLines = lines;
+      return lines;
+    };
+
+    const handleInput = (data: string) => {
+      if (matchesKey(data, Key.escape)) {
+        if (finished) done(null);
+        else ac.abort();
+        return;
+      }
+      if (matchesKey(data, Key.up)) {
+        if (scrollTop > 0) {
+          scrollTop -= 1;
+          refresh();
+        }
+        return;
+      }
+      if (matchesKey(data, Key.down)) {
+        if (scrollTop < Math.max(0, totalLines - PANEL_VIEWPORT)) {
+          scrollTop += 1;
+          refresh();
+        }
+      }
+    };
+
+    void start();
+    return { render, invalidate: refresh, handleInput };
   });
 }
 
+/** Scrollable result panel with response, diff summary, conversation id. */
 async function showAgyResultPanel(
   ctx: ExtensionCommandContext,
-  parsed: AgyCommandArgs,
+  parsed: { mode: string; model: AgyModel; prompt: string },
   body: string,
-  progress: string[],
-  isError: boolean,
 ): Promise<void> {
   await ctx.ui.custom<void>((tui, theme, _kb, done) => {
     let scrollTop = 0;
@@ -140,28 +309,20 @@ async function showAgyResultPanel(
     const render = (width: number): string[] => {
       if (cachedLines) return cachedLines;
       const renderWidth = Math.max(1, width);
-
-      const title = `agy · ${parsed.mode} · ${parsed.model}`;
-      const progressSuffix = progress.length > 0 ? ` · ${progress.length} steps` : "";
       const lines: string[] = [];
 
-      lines.push(theme.fg("accent", `─ ${title}${progressSuffix} ─`));
-      if (progress.length > 0) {
-        const tail = progress.slice(-4).join("  ");
-        lines.push(theme.fg("dim", wrapTextWithAnsi(`  ${tail}`, renderWidth - 2).join("\n")));
-      }
+      lines.push(theme.fg("accent", `─ agy result · ${parsed.mode} · ${parsed.model} ─`));
       lines.push("");
 
       const wrapped = wrapTextWithAnsi(body, renderWidth - 4);
       totalLines = wrapped.length;
       const viewport = PANEL_VIEWPORT;
       for (const line of wrapped.slice(scrollTop, scrollTop + viewport)) {
-        lines.push(theme.fg(isError ? "warning" : "text", `  ${line}`));
+        lines.push(theme.fg("text", `  ${line}`));
       }
 
       const end = Math.min(scrollTop + viewport, totalLines);
-      const scrollInfo =
-        totalLines > viewport ? ` · ${scrollTop + 1}-${end}/${totalLines}` : "";
+      const scrollInfo = totalLines > viewport ? ` · ${scrollTop + 1}-${end}/${totalLines}` : "";
       lines.push("");
       lines.push(theme.fg("dim", `─ ↑↓ scroll · Esc/Enter close${scrollInfo} ─`));
 
