@@ -1,12 +1,6 @@
-import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
-import { Key, matchesKey, truncateToWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
-import { spawnAgyStream, type AgyModel } from "./lib/cli.js";
-import { withDirLock } from "./lib/lock.js";
-import { summarizeGitDiff } from "./lib/postflight.js";
-import { runPreflight } from "./lib/preflight.js";
-import { saveSession } from "./lib/sessions.js";
-import type { AgyRunResult } from "./lib/stream.js";
+import type { AgyModel } from "./lib/cli.js";
 
 const MODEL_ALIASES: Record<string, AgyModel> = {
   flash: "flash-medium",
@@ -41,9 +35,6 @@ const MODE_OPTIONS = [
   "sandbox — isolated preview",
 ];
 
-const PANEL_VIEWPORT = 30;
-const PROGRESS_KEEP = 200;
-
 export interface AgyCommandArgs {
   mode?: "plan" | "accept-edits" | "sandbox";
   model?: AgyModel;
@@ -69,27 +60,32 @@ export function parseAgyCommandArgs(args: string): AgyCommandArgs {
   return parsed;
 }
 
-/** Register the human-callable `/agy [plan|sandbox] [model] <prompt>` command. */
+/**
+ * Register the human-callable `/agy [plan|sandbox] [model] <prompt>` command.
+ *
+ * The command is a thin shim: it fills missing args with dialogs, then delegates
+ * to the existing `agy_execute` tool via a user message. The tool runs in the
+ * normal chat flow — progress streams inline as a tool row (same as bash/grep),
+ * and the result lands in the transcript — with zero custom TUI surface.
+ */
 export function registerAgyCommand(pi: ExtensionAPI): void {
   pi.registerCommand("agy", {
     description:
-      "Run agy: /agy [plan|sandbox] [model] <prompt>. With missing parts, prompts interactively.",
+      "Run agy via the agy_execute tool: /agy [plan|sandbox] [model] <prompt>. With missing parts, prompts interactively.",
     getArgumentCompletions: (prefix) => {
       const tokens = prefix.trim().split(/\s+/).filter(Boolean);
       const p = prefix.toLowerCase();
 
-      // After a mode token, suggest models. Otherwise suggest modes first.
       if (tokens.length === 1 && (tokens[0] === "plan" || tokens[0] === "sandbox")) {
-        return MODEL_KEYS.filter((k) => k.startsWith("")).map((k) => ({
-          value: k,
-          label: k,
-        }));
+        return MODEL_KEYS.map((k) => ({ value: k, label: k }));
       }
       if (tokens.length <= 1) {
         const modes = ["plan", "sandbox"].filter((m) => m.startsWith(tokens[0] ?? ""));
         const models = MODEL_KEYS.filter((k) => k.startsWith(p));
-        const items = [...modes.map((m) => ({ value: m, label: m })), ...models.map((m) => ({ value: m, label: m }))];
-        return items.length > 0 ? items : null;
+        return [
+          ...modes.map((m) => ({ value: m, label: m })),
+          ...models.map((m) => ({ value: m, label: m })),
+        ];
       }
       return null;
     },
@@ -99,7 +95,7 @@ export function registerAgyCommand(pi: ExtensionAPI): void {
         return;
       }
 
-      // 1. Fill gaps interactively (mode → model → prompt), or accept fast path when fully specified.
+      // 1. Fill gaps interactively (mode → model → prompt), or fast path when fully specified.
       const parsed = parseAgyCommandArgs(args);
 
       let mode = parsed.mode;
@@ -146,216 +142,23 @@ export function registerAgyCommand(pi: ExtensionAPI): void {
         }
       }
 
-      // 3. Execute with a live, cancellable progress panel.
-      const run = await runAgyLive(ctx, { mode, model, prompt }, cwd);
-      if (!run) {
-        ctx.ui.notify("agy: cancelled", "info");
-        return;
-      }
+      // 3. Delegate to the agy_execute tool. The agent calls the tool, which
+      //    renders as a normal tool row with streaming progress in the chat.
+      const instruction = [
+        "Run the agy_execute tool now with exactly these parameters:",
+        `- mode: ${mode}`,
+        `- model: ${model}`,
+        `- dir: ${cwd}`,
+        `- prompt: ${JSON.stringify(prompt)}`,
+        "Report the tool result. Do not skip, paraphrase, or defer the tool call.",
+      ].join("\n");
 
-      // 4. Postflight: diff summary for write mode.
-      let body = run.response || "(empty response)";
-      if (mode === "accept-edits") {
-        const diff = await summarizeGitDiff(cwd);
-        if (diff) body += `\n\n${diff}`;
-      }
-      if (run.conversation_id) body += `\n\nconversation: ${run.conversation_id}`;
-      if (run.usage?.total_tokens != null) {
-        body += `\nusage: ${run.usage.total_tokens} tokens`;
-      }
-
-      // 5. Land the result in the chat so it's visible, durable, and in LLM context.
-      sendAgyResultMessage(pi, { mode, model, prompt }, body, run);
-      if (run.conversation_id) await saveSession(cwd, run.conversation_id, model);
-      ctx.ui.notify("agy: done — result in chat", "info");
+      pi.sendUserMessage(instruction, { deliverAs: "steer" });
+      ctx.ui.notify(`agy: delegated (${model} · ${mode})`, "info");
     },
   });
 }
 
 function optionKey(option: string): string {
   return option.split(" — ")[0] ?? option;
-}
-
-interface PanelLayout {
-  title: string;
-  subtitle?: string;
-  entries: string[];
-  footer: string;
-  viewport: number;
-  scrollTop: number;
-  width: number;
-  colorize: (text: string) => string;
-}
-
-/**
- * Render a bordered scrollable panel. Every emitted line is truncated to the
- * terminal width — custom TUI components that exceed the width crash pi.
- * Returns the rendered lines and the total wrapped content height.
- */
-export function layoutPanel(layout: PanelLayout): { lines: string[]; totalLines: number } {
-  const renderWidth = Math.max(1, layout.width);
-  const lines: string[] = [];
-  const push = (line: string) => lines.push(truncateToWidth(line, renderWidth));
-
-  push(layout.colorize(`─ ${layout.title} ─`));
-  if (layout.subtitle) {
-    for (const sub of wrapTextWithAnsi(layout.subtitle, renderWidth - 4)) {
-      push(layout.colorize(`  ${sub}`));
-    }
-  }
-  push("");
-
-  const wrapped: string[] = [];
-  for (const entry of layout.entries) {
-    wrapped.push(...wrapTextWithAnsi(entry, renderWidth - 4));
-  }
-  const totalLines = wrapped.length;
-  for (const line of wrapped.slice(layout.scrollTop, layout.scrollTop + layout.viewport)) {
-    push(layout.colorize(`  ${line}`));
-  }
-
-  push("");
-  push(layout.colorize(layout.footer));
-  return { lines, totalLines };
-}
-
-/** Run agy inside a live panel that streams progress and cancels on Esc. */
-async function runAgyLive(
-  ctx: ExtensionCommandContext,
-  parsed: { mode: "plan" | "accept-edits" | "sandbox"; model: AgyModel; prompt: string },
-  cwd: string,
-): Promise<AgyRunResult | null> {
-  return ctx.ui.custom<AgyRunResult | null>((tui, theme, _kb, done) => {
-    const ac = new AbortController();
-    const buffer: string[] = [];
-    let cachedLines: string[] | undefined;
-    let scrollTop = 0;
-    let totalLines = 0;
-    let finished = false;
-
-    const refresh = () => {
-      cachedLines = undefined;
-      tui.requestRender();
-    };
-
-    const onProgress = (msg: string) => {
-      buffer.push(msg);
-      if (buffer.length > PROGRESS_KEEP) buffer.splice(0, buffer.length - PROGRESS_KEEP);
-      refresh();
-    };
-
-    const start = async () => {
-      try {
-        const result = await withDirLock(cwd, async () => {
-          await runPreflight(cwd, ac.signal);
-          return spawnAgyStream(
-            {
-              prompt: parsed.prompt,
-              model: parsed.model,
-              mode: parsed.mode,
-              dir: cwd,
-              timeout_ms: 300_000,
-              stream: true,
-            },
-            ac.signal,
-            onProgress,
-          );
-        });
-        finished = true;
-        done(result);
-      } catch (err) {
-        finished = true;
-        if (ac.signal.aborted) {
-          done(null);
-        } else {
-          buffer.push(`ERROR: ${err instanceof Error ? err.message : String(err)}`);
-          refresh();
-          // Small delay so the user can read the error before the panel closes.
-          setTimeout(() => done(null), 2500);
-        }
-      }
-    };
-
-    const render = (width: number): string[] => {
-      if (cachedLines) return cachedLines;
-      const renderWidth = Math.max(1, width);
-      const title = `agy · ${parsed.mode} · ${parsed.model}${finished ? " · finished" : " · running"}`;
-      const entries =
-        buffer.length === 0 && !finished
-          ? ["(waiting for agy…)"]
-          : buffer;
-      const end = Math.min(scrollTop + PANEL_VIEWPORT, totalLines);
-      const scrollInfo = totalLines > PANEL_VIEWPORT ? ` · ${scrollTop + 1}-${end}/${totalLines}` : "";
-      const footer = `↑↓ scroll · Esc ${finished ? "close" : "cancel"}${scrollInfo}`;
-
-      const laid = layoutPanel({
-        title,
-        subtitle: parsed.prompt,
-        entries,
-        footer,
-        viewport: PANEL_VIEWPORT,
-        scrollTop,
-        width: renderWidth,
-        colorize: (t) => theme.fg("dim", t),
-      });
-      totalLines = laid.totalLines;
-      cachedLines = laid.lines;
-      return laid.lines;
-    };
-
-    const handleInput = (data: string) => {
-      if (matchesKey(data, Key.escape)) {
-        if (finished) done(null);
-        else ac.abort();
-        return;
-      }
-      if (matchesKey(data, Key.up)) {
-        if (scrollTop > 0) {
-          scrollTop -= 1;
-          refresh();
-        }
-        return;
-      }
-      if (matchesKey(data, Key.down)) {
-        if (scrollTop < Math.max(0, totalLines - PANEL_VIEWPORT)) {
-          scrollTop += 1;
-          refresh();
-        }
-      }
-    };
-
-    void start();
-    return { render, invalidate: refresh, handleInput };
-  });
-}
-
-/**
- * Inject the agy result into the chat via pi.sendMessage: visible in the TUI,
- * persisted in the session history, and available to the LLM on the next turn.
- * Uses deliverAs "steer" without triggerTurn so the model does not auto-respond.
- */
-function sendAgyResultMessage(
-  pi: ExtensionAPI,
-  parsed: { mode: string; model: AgyModel; prompt: string },
-  body: string,
-  run: AgyRunResult,
-): void {
-  const MAX = 8000;
-  const text = body.length > MAX ? body.slice(0, MAX) + `\n\n(truncated to ${MAX} chars)` : body;
-
-  pi.sendMessage(
-    {
-      customType: "agy-result",
-      content: text,
-      display: true,
-      details: {
-        mode: parsed.mode,
-        model: parsed.model,
-        conversation_id: run.conversation_id,
-        usage: run.usage,
-        duration_seconds: run.duration_seconds,
-      },
-    },
-    { deliverAs: "steer" },
-  );
 }
