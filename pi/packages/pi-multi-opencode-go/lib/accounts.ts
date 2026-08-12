@@ -60,8 +60,11 @@ export function loadAccountsFromEnv(): OpenCodeGoAccount[] {
     const workspaceId = getEnv(`OPENCODE_GO_WORKSPACE_ID_${i}`);
     const authCookie = getEnv(`OPENCODE_GO_AUTH_COOKIE_${i}`);
     const label = getEnv(`OPENCODE_GO_LABEL_${i}`) ?? `account-${i}`;
-    if (!key || !workspaceId || !authCookie) continue;
-    accounts.push({ key, workspaceId, authCookie, label });
+    if (!key) continue;
+    const account: OpenCodeGoAccount = { key, label };
+    if (workspaceId) account.workspaceId = workspaceId;
+    if (authCookie) account.authCookie = authCookie;
+    accounts.push(account);
   }
   return accounts;
 }
@@ -86,18 +89,19 @@ export async function loadAccountsFromAuthJson(): Promise<OpenCodeGoAccount[]> {
     const key = resolveAuthValue(row.key);
     const workspaceId =
       resolveAuthValue(row.workspaceId) ??
-      (fallbackQuota.workspaceId as string | undefined) ??
-      "";
+      (fallbackQuota.workspaceId as string | undefined);
     const authCookie =
       resolveAuthValue(row.authCookie) ??
-      (fallbackQuota.authCookie as string | undefined) ??
-      "";
+      (fallbackQuota.authCookie as string | undefined);
     const label = String(row.label || `account-${i + 1}`);
     log(
-      `account ${label}: key=${key ? "set" : "missing"}, workspace=${workspaceId ? "set" : "missing"}, cookie=${authCookie ? "set" : "missing"}`,
+      `account ${label}: key=${key ? "set" : "missing"}${workspaceId ? `, workspace=${workspaceId ? "set" : "missing"}` : ""}${authCookie ? `, cookie=${authCookie ? "set" : "missing"}` : ""}`,
     );
-    if (!key || !workspaceId || !authCookie) continue;
-    accounts.push({ key, workspaceId, authCookie, label });
+    if (!key) continue;
+    const account: OpenCodeGoAccount = { key, label };
+    if (workspaceId) account.workspaceId = workspaceId;
+    if (authCookie) account.authCookie = authCookie;
+    accounts.push(account);
   }
   return accounts;
 }

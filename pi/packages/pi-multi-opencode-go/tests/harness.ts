@@ -11,12 +11,14 @@ import installExtension, {
 import { PROVIDER } from "../lib/constants.ts";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
-// Same dashboard HTML shape the opencode-go-usage parser expects.
-export const FIXTURE_HTML = `
-rollingUsage:$R[0]={usagePercent:42.5,resetInSec:3600}
-weeklyUsage:$R[1]={resetInSec:86400,usagePercent:10}
-monthlyUsage:$R[2]={usagePercent:5,resetInSec:2592000}
-`;
+// Same shape the official OpenCode Go usage API returns.
+const FIXTURE_USAGE = {
+  usage: {
+    rolling: { status: "ok", percent: 42.5, resetsAt: new Date(Date.now() + 3600_000).toISOString() },
+    weekly: { status: "ok", percent: 10, resetsAt: new Date(Date.now() + 86_400_000).toISOString() },
+    monthly: { status: "ok", percent: 5, resetsAt: new Date(Date.now() + 2_592_000_000).toISOString() },
+  },
+};
 
 export interface SentMessage {
   content: unknown;
@@ -33,12 +35,14 @@ export interface FakePi {
     string,
     { handler: (args: string, ctx: unknown) => Promise<void> | void }
   >;
+  tools: Map<string, unknown>;
   sent: SentMessage[];
 }
 
 export function makeFakePi(): FakePi {
   const handlers: FakePi["handlers"] = new Map();
   const commands: FakePi["commands"] = new Map();
+  const tools: FakePi["tools"] = new Map();
   const sent: SentMessage[] = [];
   const pi = {
     on(
@@ -55,11 +59,14 @@ export function makeFakePi(): FakePi {
     ) {
       commands.set(name, def);
     },
+    registerTool(name: string, def: unknown) {
+      tools.set(name, def);
+    },
     async sendUserMessage(content: unknown, options?: unknown) {
       sent.push({ content, options });
     },
   } as unknown as ExtensionAPI;
-  return { pi, handlers, commands, sent };
+  return { pi, handlers, commands, tools, sent };
 }
 
 export function makeCtx(overrides: Record<string, unknown> = {}) {
@@ -75,14 +82,14 @@ export function makeCtx(overrides: Record<string, unknown> = {}) {
 export function makeFetchStub() {
   return async (input: string | URL | Request) => {
     const url = String(input);
-    const match = /workspace\/([^/]+)\/go/.exec(url);
-    const workspaceId = match?.[1] ?? "unknown";
-    return {
-      ok: true,
-      status: 200,
-      url: `https://opencode.ai/workspace/${workspaceId}/go`,
-      text: async () => FIXTURE_HTML,
-    };
+    if (url.includes("/zen/go/v1/usage")) {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => FIXTURE_USAGE,
+      };
+    }
+    throw new Error(`unexpected fetch: ${url}`);
   };
 }
 
