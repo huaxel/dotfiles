@@ -3,6 +3,8 @@
 return {
   {
     "folke/snacks.nvim",
+    lazy = true,
+    event = "VeryLazy",
     opts = {
       -- These are enabled by default in LazyVim, but you can customize here:
       -- notifier = { enabled = true },
