@@ -43,7 +43,7 @@ return {
   },
   {
     "OXY2DEV/markview.nvim",
-    lazy = false,
+    ft = { "markdown", "mdx" },
     init = function()
       local function quiet_markdown_highlights()
         local function foreground(group)
