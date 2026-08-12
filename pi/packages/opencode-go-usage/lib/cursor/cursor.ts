@@ -1,5 +1,5 @@
-import type { QuotaSnapshot, QuotaWindow } from "../quota-provider.ts";
-import { clampPercent, formatResetTime, safeError } from "../quota-provider.ts";
+import type { CursorLabelStyle, QuotaSnapshot, QuotaWindow } from "../shared/quota-types.ts";
+import { clampPercent, formatResetTime, safeError } from "../shared/format.ts";
 import { resolveCursorCookieHeader } from "./cursor-auth.ts";
 
 interface CursorUsageSummary {
@@ -12,11 +12,20 @@ interface CursorUsageSummary {
       apiPercentUsed?: number;
       totalPercentUsed?: number;
     };
+    onDemand?: {
+      enabled?: boolean;
+      used?: number;
+      limit?: number;
+      remaining?: number;
+    };
     overall?: { used?: number; limit?: number };
   };
   teamUsage?: {
     pooled?: { used?: number; limit?: number };
   };
+  membershipType?: string;
+  isUnlimited?: boolean;
+  billingCycleStart?: string;
 }
 
 function parseIsoDate(value: string | undefined): Date | undefined {
@@ -31,9 +40,30 @@ function cursorPercent(value: number | undefined): number | undefined {
   return clampPercent(value);
 }
 
-export function parseCursorUsageSummary(summary: CursorUsageSummary): QuotaWindow[] {
+const CURSOR_LABELS: Record<
+  CursorLabelStyle,
+  { plan: string; auto: string; api: string }
+> = {
+  footer: { plan: "Plan", auto: "Auto", api: "API" },
+  agentq: { plan: "total", auto: "auto-composer", api: "api-models" },
+};
+
+export function parseCursorUsageSummary(
+  summary: CursorUsageSummary,
+  labelStyle: CursorLabelStyle = "footer",
+): QuotaWindow[] {
+  const labels = CURSOR_LABELS[labelStyle];
   const billingEnd = parseIsoDate(summary.billingCycleEnd);
   const resetsIn = billingEnd ? formatResetTime(billingEnd) : undefined;
+  const resetsAt = billingEnd ? billingEnd.toISOString() : null;
+  const resetDescription = billingEnd
+    ? billingEnd.toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : null;
 
   const plan = summary.individualUsage?.plan;
   const autoPercent = cursorPercent(plan?.autoPercentUsed);
@@ -65,17 +95,55 @@ export function parseCursorUsageSummary(summary: CursorUsageSummary): QuotaWindo
     planPercent = 0;
   }
 
-  const windows: QuotaWindow[] = [{ label: "Plan", usedPercent: planPercent, resetsIn }];
+  const windows: QuotaWindow[] = [{
+    ...(labelStyle === "agentq" ? { slot: "primary" as const } : {}),
+    label: labels.plan,
+    usedPercent: planPercent,
+    resetsIn,
+    resetsAt,
+    resetDescription,
+  }];
+
   if (autoPercent !== undefined) {
-    windows.push({ label: "Auto", usedPercent: autoPercent, resetsIn });
+    windows.push({
+      ...(labelStyle === "agentq" ? { slot: "secondary" as const } : {}),
+      label: labels.auto,
+      usedPercent: autoPercent,
+      resetsIn,
+      resetsAt,
+      resetDescription,
+    });
   }
   if (apiPercent !== undefined) {
-    windows.push({ label: "API", usedPercent: apiPercent, resetsIn });
+    windows.push({
+      ...(labelStyle === "agentq" ? { slot: "tertiary" as const } : {}),
+      label: labels.api,
+      usedPercent: apiPercent,
+      resetsIn,
+      resetsAt,
+      resetDescription,
+    });
   }
+
+  const onDemand = summary.individualUsage?.onDemand;
+  if (onDemand?.enabled) {
+    windows.push({
+      label: "on-demand",
+      usedPercent: onDemand.used != null && onDemand.limit
+        ? clampPercent((onDemand.used / onDemand.limit) * 100)
+        : 0,
+      resetsIn,
+      resetsAt,
+      resetDescription: onDemand.remaining != null
+        ? `$${onDemand.remaining} remaining`
+        : resetDescription,
+    });
+  }
+
   return windows;
 }
 
-async function fetchJsonWithCookie(url: string, cookieHeader: string): Promise<any> {
+async function fetchJsonWithCookie(url: string, cookieHeader: string): Promise<unknown> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 10_000);
   try {
@@ -83,7 +151,7 @@ async function fetchJsonWithCookie(url: string, cookieHeader: string): Promise<a
       headers: {
         Accept: "application/json",
         Cookie: cookieHeader,
-        "User-Agent": "pi-obs-footer",
+        "User-Agent": "pi-provider-usage",
       },
       redirect: "error",
       signal: controller.signal,
@@ -98,7 +166,13 @@ async function fetchJsonWithCookie(url: string, cookieHeader: string): Promise<a
   }
 }
 
-export async function fetchCursorUsage(): Promise<QuotaSnapshot> {
+export interface FetchCursorUsageOptions {
+  labelStyle?: CursorLabelStyle;
+}
+
+export async function fetchCursorUsage(
+  options: FetchCursorUsageOptions = {},
+): Promise<QuotaSnapshot> {
   const cookieHeader = resolveCursorCookieHeader();
   if (!cookieHeader) {
     return { provider: "Cursor", windows: [], error: "no-auth", fetchedAt: Date.now() };
@@ -109,7 +183,7 @@ export async function fetchCursorUsage(): Promise<QuotaSnapshot> {
       "https://cursor.com/api/usage-summary",
       cookieHeader,
     );
-    const windows = parseCursorUsageSummary(data as CursorUsageSummary);
+    const windows = parseCursorUsageSummary(data as CursorUsageSummary, options.labelStyle);
     return { provider: "Cursor", windows, fetchedAt: Date.now() };
   } catch (error) {
     return { provider: "Cursor", windows: [], error: safeError(error), fetchedAt: Date.now() };
