@@ -164,9 +164,10 @@ export function registerAgyCommand(pi: ExtensionAPI): void {
         body += `\nusage: ${run.usage.total_tokens} tokens`;
       }
 
-      await showAgyResultPanel(ctx, { mode, model, prompt }, body);
+      // 5. Land the result in the chat so it's visible, durable, and in LLM context.
+      sendAgyResultMessage(pi, { mode, model, prompt }, body, run);
       if (run.conversation_id) await saveSession(cwd, run.conversation_id, model);
-      ctx.ui.notify("agy: done", "info");
+      ctx.ui.notify("agy: done — result in chat", "info");
     },
   });
 }
@@ -328,63 +329,33 @@ async function runAgyLive(
   });
 }
 
-/** Scrollable result panel with response, diff summary, conversation id. */
-async function showAgyResultPanel(
-  ctx: ExtensionCommandContext,
+/**
+ * Inject the agy result into the chat via pi.sendMessage: visible in the TUI,
+ * persisted in the session history, and available to the LLM on the next turn.
+ * Uses deliverAs "steer" without triggerTurn so the model does not auto-respond.
+ */
+function sendAgyResultMessage(
+  pi: ExtensionAPI,
   parsed: { mode: string; model: AgyModel; prompt: string },
   body: string,
-): Promise<void> {
-  await ctx.ui.custom<void>((tui, theme, _kb, done) => {
-    let scrollTop = 0;
-    let cachedLines: string[] | undefined;
-    let totalLines = 0;
+  run: AgyRunResult,
+): void {
+  const MAX = 8000;
+  const text = body.length > MAX ? body.slice(0, MAX) + `\n\n(truncated to ${MAX} chars)` : body;
 
-    const refresh = () => {
-      cachedLines = undefined;
-      tui.requestRender();
-    };
-
-    const render = (width: number): string[] => {
-      if (cachedLines) return cachedLines;
-      const renderWidth = Math.max(1, width);
-      const end = Math.min(scrollTop + PANEL_VIEWPORT, totalLines);
-      const scrollInfo = totalLines > PANEL_VIEWPORT ? ` · ${scrollTop + 1}-${end}/${totalLines}` : "";
-
-      const laid = layoutPanel({
-        title: `agy result · ${parsed.mode} · ${parsed.model}`,
-        subtitle: parsed.prompt,
-        entries: [body],
-        footer: `↑↓ scroll · Esc/Enter close${scrollInfo}`,
-        viewport: PANEL_VIEWPORT,
-        scrollTop,
-        width: renderWidth,
-        colorize: (t) => theme.fg("text", t),
-      });
-      totalLines = laid.totalLines;
-      cachedLines = laid.lines;
-      return laid.lines;
-    };
-
-    const handleInput = (data: string) => {
-      if (matchesKey(data, Key.escape) || matchesKey(data, Key.enter)) {
-        done();
-        return;
-      }
-      if (matchesKey(data, Key.up)) {
-        if (scrollTop > 0) {
-          scrollTop -= 1;
-          refresh();
-        }
-        return;
-      }
-      if (matchesKey(data, Key.down)) {
-        if (scrollTop < Math.max(0, totalLines - PANEL_VIEWPORT)) {
-          scrollTop += 1;
-          refresh();
-        }
-      }
-    };
-
-    return { render, invalidate: refresh, handleInput };
-  });
+  pi.sendMessage(
+    {
+      customType: "agy-result",
+      content: text,
+      display: true,
+      details: {
+        mode: parsed.mode,
+        model: parsed.model,
+        conversation_id: run.conversation_id,
+        usage: run.usage,
+        duration_seconds: run.duration_seconds,
+      },
+    },
+    { deliverAs: "steer" },
+  );
 }
