@@ -133,10 +133,10 @@ describe("summarizeGitDiff", () => {
 });
 
 describe("parseAgyCommandArgs", () => {
-  it("parses model alias + prompt", () => {
+  it("parses model alias + prompt (no mode)", () => {
     const parsed = parseAgyCommandArgs("flash fix git conflicts");
     assert.equal(parsed.model, "flash-medium");
-    assert.equal(parsed.mode, "accept-edits");
+    assert.equal(parsed.mode, undefined);
     assert.equal(parsed.prompt, "fix git conflicts");
   });
 
@@ -147,17 +147,23 @@ describe("parseAgyCommandArgs", () => {
     assert.equal(parsed.prompt, "review the diff");
   });
 
-  it("defaults model to flash-medium", () => {
+  it("leaves model/mode unset when only prompt given", () => {
     const parsed = parseAgyCommandArgs("just do the thing");
-    assert.equal(parsed.model, "flash-medium");
-    assert.equal(parsed.mode, "accept-edits");
+    assert.equal(parsed.model, undefined);
+    assert.equal(parsed.mode, undefined);
     assert.equal(parsed.prompt, "just do the thing");
   });
 
-  it("handles sandbox + full alias", () => {
+  it("parses sandbox + full alias", () => {
     const parsed = parseAgyCommandArgs("sandbox pro-high estimate the refactor");
     assert.equal(parsed.model, "pro-high");
     assert.equal(parsed.mode, "sandbox");
+    assert.equal(parsed.prompt, "estimate the refactor");
+  });
+
+  it("returns empty object for bare /agy", () => {
+    const parsed = parseAgyCommandArgs("");
+    assert.deepEqual(parsed, {});
   });
 });
 

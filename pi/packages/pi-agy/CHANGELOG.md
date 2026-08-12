@@ -11,3 +11,4 @@
 - Cache preflight health/connectivity checks for 5 minutes.
 - Serialize concurrent calls per working directory.
 - Add human-callable `/agy [plan|sandbox] [model] <prompt>` TUI command with model autocomplete and a scrollable result panel.
+- `/agy` wizard UX: interactive mode select, model select with descriptions, multi-line task editor, accept-edits confirmation, and a live cancellable progress panel streaming agy steps.
