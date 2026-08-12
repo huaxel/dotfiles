@@ -53,8 +53,9 @@ First token optional: `plan` / `sandbox` mode prefix, then a model alias
 Missing pieces open interactive dialogs (mode select, model select with
 descriptions, multi-line task editor). `accept-edits` asks for confirmation
 before writing. Execution runs in a **live progress panel** (streams agy tool
-steps, `↑↓` scroll, `Esc` cancels), then a scrollable result panel shows the
-response + git diff summary + conversation id + token usage.
+steps, `↑↓` scroll, `Esc` cancels), and the finished result lands **in the chat**
+as a durable message (response + git diff summary + conversation id + token
+usage), visible to you and in LLM context for the next turn.
 
 ## Development
 
