@@ -4,9 +4,13 @@ export type { OpenCodeGoWindow };
 
 export interface OpenCodeGoAccount {
   key: string;
-  workspaceId: string;
-  authCookie: string;
   label: string;
+  /**
+   * Legacy dashboard-scraping fields. The official usage API needs only
+   * `key`; these remain for configs that predate it and are ignored now.
+   */
+  workspaceId?: string;
+  authCookie?: string;
 }
 
 export interface AccountUsage {

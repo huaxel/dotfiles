@@ -1,10 +1,10 @@
 # @juanbenjumea/pi-multi-opencode-go
 
-Multi-account failover for Pi’s **`opencode-go`** provider. Rotates API keys using live dashboard usage (rolling / weekly / monthly), overrides `Authorization` per request, and persists cooldowns when limits hit.
+Multi-account failover for Pi’s **`opencode-go`** provider. Rotates API keys using live usage from the **official OpenCode Go usage API** (rolling / weekly / monthly), overrides `Authorization` per request, and persists cooldowns when limits hit.
 
-Inspired by [pi-multicodex](https://pi.dev/packages/@victor-software-house/pi-multicodex) and [pi-multi-account](https://pi.dev/packages/pi-multi-account), but built for OpenCode Go workspace auth.
+Inspired by [pi-multicodex](https://pi.dev/packages/@victor-software-house/pi-multicodex) and [pi-multi-account](https://pi.dev/packages/pi-multi-account), but built for OpenCode Go.
 
-Dashboard HTML parsing lives in [`@juanbenjumea/opencode-go-usage`](../opencode-go-usage) (shared with `@juanbenjumea/pi-dynamic-footer`).
+Usage fetching lives in [`@juanbenjumea/opencode-go-usage`](../opencode-go-usage) (shared with `@juanbenjumea/pi-dynamic-footer`). Since v0.2.0 it uses the official API (`GET https://opencode.ai/zen/go/v1/usage`, same key as chat completions) — no workspace cookies or dashboard HTML scraping.
 
 ## Install
 
@@ -43,10 +43,10 @@ Recommended in `settings.json`:
 
 ```bash
 export OPENCODE_API_KEY_1="oc_..."
-export OPENCODE_GO_WORKSPACE_ID_1="wrk_..."
-export OPENCODE_GO_AUTH_COOKIE_1="Fe26.2**..."
 export OPENCODE_GO_LABEL_1="sub-1"
 ```
+
+(`OPENCODE_GO_WORKSPACE_ID_1` / `OPENCODE_GO_AUTH_COOKIE_1` are optional legacy fields, ignored now.)
 
 **`~/.pi/agent/auth.json`:**
 
@@ -56,16 +56,14 @@ export OPENCODE_GO_LABEL_1="sub-1"
     "accounts": [
       {
         "label": "sub-1",
-        "key": "$OPENCODE_API_KEY_1",
-        "workspaceId": "$OPENCODE_GO_WORKSPACE_ID_1",
-        "authCookie": "$OPENCODE_GO_AUTH_COOKIE_1"
+        "key": "$OPENCODE_API_KEY_1"
       }
     ]
   }
 }
 ```
 
-If `workspaceId` / `authCookie` are omitted on an account, the extension falls back to `quota-status.opencode-go` (same shape as `@juanbenjumea/pi-dynamic-footer`).
+Only `key` is required — the usage API authenticates with the same key as chat completions. Legacy `workspaceId` / `authCookie` fields are accepted but unused.
 
 Values support `$ENV`, `$$literal`, and `!command` (shell — use only if you trust your config).
 
@@ -91,7 +89,7 @@ Debug log: `~/.pi/agent/opencode-go-failover.log` (labels only, no secrets).
 
 ## Security
 
-This extension reads OAuth-style cookies and API keys from your agent directory. Review the source before installing. Do not commit `auth.json` or state files.
+This extension reads API keys from your agent directory. Review the source before installing. Do not commit `auth.json` or state files.
 
 ## Publish
 

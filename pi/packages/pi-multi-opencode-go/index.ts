@@ -50,7 +50,7 @@ export default function (
     name: "opencode_usage",
     label: "OpenCode Usage",
     description:
-      "Read-only quota and cost snapshot: per-provider quota windows, recent spend per model, and (with a model argument) that model's price. Sources: ~/projects/agentq/data (quota.json, usage-by-model.json, pricing.json) plus OpenCode Go dashboard windows and provider cooldowns. Call before dispatching batches of model work; pair with the quota-aware resolver ~/projects/agentq/bin/resolve-model.sh (small|medium|big) for concrete model picks.",
+      "Read-only quota and cost snapshot: per-provider quota windows, recent spend per model, and (with a model argument) that model's price. Sources: ~/projects/agentq/data (quota.json, usage-by-model.json, pricing.json) plus OpenCode Go usage-API windows and provider cooldowns. Call before dispatching batches of model work; pair with the quota-aware resolver ~/projects/agentq/bin/resolve-model.sh (small|medium|big) for concrete model picks.",
     parameters: Type.Object({
       model: Type.Optional(Type.String({ description: "Model id or substring to look up pricing for (e.g. deepseek-v4-flash)." })),
     }),
