@@ -1,8 +1,8 @@
-import type { QuotaSnapshot, QuotaWindow } from "../quota-provider.ts";
-import { clampPercent, formatResetTime, safeError } from "../quota-provider.ts";
-import { loadAuthJson, resolveAuthValue } from "./auth.ts";
-import { codexBarProviderCookie, envCookie } from "./codexbar-config.ts";
-import { quotaSessionCookie } from "./web-sessions.ts";
+import type { QuotaSnapshot, QuotaWindow } from "../shared/quota-types.ts";
+import { clampPercent, formatResetTime, safeError } from "../shared/format.ts";
+import { loadAuthJson, resolveAuthValue } from "../auth/auth.ts";
+import { codexBarProviderCookie, envCookie } from "../auth/codexbar-config.ts";
+import { quotaSessionCookie } from "../auth/web-sessions.ts";
 
 const COMMAND_CODE_ORIGIN = "https://commandcode.ai";
 const COMMAND_CODE_API = "https://api.commandcode.ai";
@@ -104,10 +104,13 @@ function rateWindowFromLimit(
   if (cap === undefined || cap <= 0) return undefined;
   const used = toNumber(limit.used) ?? 0;
   const resetAt = parseDate(limit.resetAt);
+  const resetsAt = resetAt ? resetAt.toISOString() : null;
   return {
     label,
     usedPercent: clampPercent((used / cap) * 100),
     resetsIn: resetAt ? formatResetTime(resetAt) : undefined,
+    resetsAt,
+    resetDescription: resetAt ? formatResetTime(resetAt) : undefined,
   };
 }
 
@@ -149,9 +152,10 @@ export function buildCommandCodeWindows(
   const monthlyTotal = subscription.planId
     ? COMMAND_CODE_PLANS[subscription.planId]
     : undefined;
-  const resetsIn = subscription.periodEnd
-    ? formatResetTime(subscription.periodEnd)
-    : undefined;
+  const periodEnd = subscription.periodEnd;
+  const resetsIn = periodEnd ? formatResetTime(periodEnd) : undefined;
+  const resetsAt = periodEnd ? periodEnd.toISOString() : null;
+  const resetDescription = periodEnd ? formatResetTime(periodEnd) : undefined;
 
   if (monthlyTotal && monthlyTotal > 0) {
     const used = Math.max(0, Math.min(monthlyTotal, monthlyTotal - credits.monthlyRemaining));
@@ -159,9 +163,11 @@ export function buildCommandCodeWindows(
       label: "Month",
       usedPercent: clampPercent((used / monthlyTotal) * 100),
       resetsIn,
+      resetsAt,
+      resetDescription,
     });
   } else if (credits.monthlyRemaining > 0) {
-    windows.push({ label: "Month", usedPercent: 0, resetsIn });
+    windows.push({ label: "Month", usedPercent: 0, resetsIn, resetsAt, resetDescription });
   }
 
   return windows;
@@ -177,7 +183,7 @@ async function fetchCommandCodeJson(path: string, cookieHeader: string): Promise
         Cookie: cookieHeader,
         Origin: COMMAND_CODE_ORIGIN,
         Referer: `${COMMAND_CODE_ORIGIN}/`,
-        "User-Agent": "pi-obs-footer",
+        "User-Agent": "pi-provider-usage",
       },
       redirect: "error",
       signal: controller.signal,

@@ -38,7 +38,7 @@
     "@earendil-works/pi-coding-agent": ">=0.80.0"
   },
   "dependencies": {
-    "@juanbenjumea/opencode-go-usage": "^0.2.0"
+    "@juanbenjumea/opencode-go-usage": "^0.3.0"
   },
   "files": [
     "index.ts",

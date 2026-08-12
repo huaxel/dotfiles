@@ -3,9 +3,9 @@ import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-import { loadAuthJson, resolveAuthValue } from "./auth.ts";
-import { codexBarProviderCookie, envCookie } from "./codexbar-config.ts";
-import { quotaSessionCookie } from "./web-sessions.ts";
+import { loadAuthJson, resolveAuthValue } from "../auth/auth.ts";
+import { codexBarProviderCookie, envCookie } from "../auth/codexbar-config.ts";
+import { quotaSessionCookie } from "../auth/web-sessions.ts";
 
 function cursorDbPath(): string {
   const xdg = process.env.XDG_CONFIG_HOME?.trim();
