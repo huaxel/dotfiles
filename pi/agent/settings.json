@@ -3,7 +3,7 @@
   "theme": "ghostty-sync-b59692fc",
   "defaultProvider": null,
   "defaultModel": null,
-  "defaultThinkingLevel": "max",
+  "defaultThinkingLevel": "high",
   "enabledModels": [
     "openai-codex/gpt-5.6-luna",
     "openai-codex/gpt-5.6-terra",
@@ -59,10 +59,10 @@
     "npm:@amaster.ai/pi-computer-use",
     "npm:pi-cursor-sdk",
     "git:github.com/huaxel/pi-ask-herdr",
-    "npm:@ogulcancelik/pi-codex-compaction",
     "npm:@narumitw/pi-goal",
     "npm:pi-provider-openference",
-    "npm:@howaboua/pi-shepherdr"
+    "npm:@howaboua/pi-shepherdr",
+    "npm:@bacnh85/pi-agy"
   ],
   "extensions": [
     "-extensions/nan.ts"
