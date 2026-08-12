@@ -141,20 +141,22 @@ function dedupEnabled(): boolean {
 
 export async function loadAccounts(): Promise<OpenCodeGoAccount[]> {
   const fromEnv = loadAccountsFromEnv();
-  log(`env accounts: ${fromEnv.length}`);
-  if (fromEnv.length > 0) {
-    const { accounts, dropped } = dedupeAccounts(fromEnv, dedupEnabled());
-    if (dropped.length > 0) {
-      log(`dedup dropped (env): ${dropped.join(", ")}`);
-    }
-    return accounts;
-  }
-
   const fromAuth = await loadAccountsFromAuthJson();
-  log(`auth.json accounts: ${fromAuth.length}`);
-  const { accounts, dropped } = dedupeAccounts(fromAuth, dedupEnabled());
+  log(`env accounts: ${fromEnv.length}, auth.json accounts: ${fromAuth.length}`);
+
+  // Merge both sources. auth.json entries win on key collisions so their
+  // richer metadata (label, optional workspace) is preserved — e.g. an
+  // auth.json `"key": "$OPENCODE_API_KEY_2"` plus a bare `OPENCODE_API_KEY_2`
+  // env var would otherwise shadow it with an anonymous account-N. Env entries
+  // whose key is unique to the env still load, so env-only setups are
+  // unaffected. OPENCODE_GO_DEDUP_KEYS (opt-in) then collapses remaining
+  // duplicates as before.
+  const authKeys = new Set(fromAuth.map((a) => a.key));
+  const envUnique = fromEnv.filter((a) => !authKeys.has(a.key));
+  const merged = [...fromAuth, ...envUnique];
+  const { accounts, dropped } = dedupeAccounts(merged, dedupEnabled());
   if (dropped.length > 0) {
-    log(`dedup dropped (auth.json): ${dropped.join(", ")}`);
+    log(`dedup dropped (merged): ${dropped.join(", ")}`);
   }
   return accounts;
 }
