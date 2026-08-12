@@ -205,3 +205,22 @@
 
 ### Improvements for next time
 - Treat missing required skills as a verification exception and record the exact path in session feedback.
+
+## 2026-08-12: OpenCode Go official usage API migration
+
+### What went well
+- Tweet (@vimtor, 2026-08-11) announced `GET https://opencode.ai/zen/go/v1/usage`; probed the endpoint and confirmed live (401 without key, JSON with real key). Response shape: `{usage:{rolling|weekly|monthly:{status,percent,resetsAt}}}`.
+- Verified per-account live: sub-1 = 15/42/82%, sub-2 = 0/0/100% — API works with the same keys used for chat completions.
+- Migrated all three packages to API-first: `opencode-go-usage@0.2.0` (new `fetchUsageApi`/`parseUsageApiJson`), `pi-multi-opencode-go@0.2.0` (fetch via API, `workspaceId`/`authCookie` now optional legacy fields), `pi-dynamic-footer@0.1.8` (quota-provider API-first with dashboard fallback for keyless configs).
+- Test harness fix: `makeFakePi` lacked a `registerTool` stub, which had broken 8 of 16 extension tests on the clean tree; now 16/16 pass.
+- All gates green: 15 + 16 + 33 tests, `just ci` passes. Committed as d2fe717.
+
+### What was frustrating / slow
+- `formatResetTime` test is a pre-existing time-boundary flake (a minute-boundary crossing flips `now + 90min` to `1h31m`); passes on rerun, unrelated to this change.
+- `pi/agent/settings.json` has an unrelated pre-existing edit (`defaultThinkingLevel: max→high`) left untouched.
+
+### What config change would have helped
+- None this session.
+
+### Improvements for next time
+- Run the full test suites twice when touching time-dependent code to catch boundary flakes before attributing them.
