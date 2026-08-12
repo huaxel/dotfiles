@@ -182,7 +182,7 @@ pi-publish-opencode-go-usage:
 
 # Publish order: opencode-go-usage → multi-opencode-go → dynamic-footer.
 # Before publishing, flip each package's "@juanbenjumea/opencode-go-usage" dep
-# from file:../opencode-go-usage to "^0.1.0" (npm accepts file: deps at publish,
+# from file:../opencode-go-usage to "^0.2.0" (npm accepts file: deps at publish,
 # but they're broken for consumers — the published tarball keeps the relative path).
 pi-publish-multi-opencode-go:
     #!/usr/bin/env bash
