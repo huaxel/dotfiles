@@ -10,3 +10,4 @@
 - Append git diff summary after `accept-edits`.
 - Cache preflight health/connectivity checks for 5 minutes.
 - Serialize concurrent calls per working directory.
+- Add human-callable `/agy [plan|sandbox] [model] <prompt>` TUI command with model autocomplete and a scrollable result panel.
