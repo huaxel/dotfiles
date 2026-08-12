@@ -76,6 +76,7 @@ if [ -d "$SECRETS_DIR" ]; then
   # (enc basename -> destination; mirrors post_deploy.ps1 on Windows)
   app_secret "llama-webui-config.json" "$HOME/.config/llama.cpp/webui-config.json"
   app_secret "pi-auth.json" "$HOME/dotfiles/pi/agent/auth.json"
+  app_secret "pi-quota-sessions.json" "$HOME/dotfiles/pi/agent/quota-sessions.json"
   app_secret "environment.d" "$HOME/.config/environment.d/99-environment.conf"
 
 fi

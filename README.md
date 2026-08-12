@@ -334,6 +334,7 @@ cd ~/dotfiles && ./bootstrap.sh
 | Agent | Path | Size | What's in it |
 |---|---|---|---|
 | **Pi** | `~/dotfiles/pi/agent/auth.json` | 4 KB | Auto-decrypted from encrypted secrets. Already handled. |
+| **Pi quota cookies** | `~/dotfiles/pi/agent/quota-sessions.json` | ~1 KB | Cursor/CommandCode web session cookies for quota bars. SOPS: `pi-quota-sessions.json.enc`. |
 | **GitHub Copilot** | `~/.config/github-copilot/` | 524 KB | Auth tokens, hosts.json |
 | **Cursor** | `~/.cursor/` | 2.3 MB | Skills, hooks.json (re-creatable on sign-in) |
 | **Gemini CLI** | `~/.gemini/` | 26 MB | Auth, cache. Re-auth on first use. |

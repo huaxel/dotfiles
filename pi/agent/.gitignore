@@ -34,6 +34,7 @@ web-search.json
 *.bak
 *.bak-recovery-*
 
-# Secrets — auth.json has API keys
+# Secrets — auth.json has API keys; quota-sessions.json has web session cookies
 auth.json
+quota-sessions.json
 *.pi-fff.json
