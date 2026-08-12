@@ -153,7 +153,7 @@ hostname_color = "fg:#f7768e"
 models_base_path = "/mnt/ai_models/models"
 ```
 
-**macOS (M2 Mac):**
+**macOS (Apple Silicon):**
 ```toml
 packages = ["default"]
 

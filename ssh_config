@@ -24,6 +24,10 @@ Host arch-wsl
     HostName arch-wsl.bonobo-fort.ts.net
     User juan
 
+Host mac-juan
+    HostName mac-juan.bonobo-fort.ts.net
+    User juanbenjumea
+
 Host acerpepe
     HostName acerpepe.bonobo-fort.ts.net
     User juan
