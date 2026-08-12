@@ -65,6 +65,8 @@ export OPENCODE_GO_LABEL_1="sub-1"
 
 Only `key` is required — the usage API authenticates with the same key as chat completions. Legacy `workspaceId` / `authCookie` fields are accepted but unused.
 
+Env and `auth.json` are **merged** (both load). When an env key collides with an `auth.json` key, the `auth.json` entry wins so its label/workspace metadata is kept — e.g. `auth.json` referencing `"key": "$OPENCODE_API_KEY_2"` while `OPENCODE_API_KEY_2` is also exported must not shadow it with an anonymous `account-2`.
+
 Values support `$ENV`, `$$literal`, and `!command` (shell — use only if you trust your config).
 
 ## Commands
