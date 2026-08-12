@@ -17,7 +17,8 @@ import {
   parseStreamLine,
 } from "../extensions/lib/stream.js";
 import { parseJsonResponse } from "../extensions/lib/parse.js";
-import { parseAgyCommandArgs } from "../extensions/commands.js";
+import { parseAgyCommandArgs, layoutPanel } from "../extensions/commands.js";
+import { visibleWidth } from "@earendil-works/pi-tui";
 
 describe("buildAgyArgs", () => {
   it("uses stream-json for plan mode", () => {
@@ -129,6 +130,42 @@ describe("summarizeGitDiff", () => {
     const tmp = await mkdtemp(path.join(os.tmpdir(), "pi-agy-diff-"));
     await execAsync("git", ["init", "-q"], { cwd: tmp });
     assert.equal(await summarizeGitDiff(tmp), null);
+  });
+});
+
+describe("layoutPanel", () => {
+  it("never emits lines wider than the terminal width", () => {
+    const { lines } = layoutPanel({
+      title: "agy · accept-edits · flash-medium · running",
+      subtitle: "a very long prompt ".repeat(20),
+      entries: ["(waiting for agy…)", "x".repeat(500), "▸ write_to_file → /long/path.ts"],
+      footer: "↑↓ scroll · Esc cancel · 1-30/999",
+      viewport: 30,
+      scrollTop: 0,
+      width: 40,
+      colorize: (t) => t,
+    });
+    assert.ok(lines.length > 0);
+    for (const line of lines) {
+      const w = visibleWidth(line);
+      assert.ok(w <= 40, `line exceeds width: ${w} > 40 → ${line.slice(0, 60)}`);
+    }
+  });
+
+  it("truncates long unbroken entries", () => {
+    const { lines, totalLines } = layoutPanel({
+      title: "t",
+      entries: ["A".repeat(200)],
+      footer: "f",
+      viewport: 30,
+      scrollTop: 0,
+      width: 30,
+      colorize: (t) => t,
+    });
+    assert.ok(totalLines >= 6, `expected wrapping, got ${totalLines}`);
+    for (const line of lines) {
+      assert.ok(visibleWidth(line) <= 30);
+    }
   });
 });
 
