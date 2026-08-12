@@ -56,6 +56,12 @@ Use `worker` for implementation/exploration and `reviewer` for read-only review.
 Delegate via named Herdr agents (`herdr_agents` from pi-shepherdr); run review agents read-only
 (`--tools read,grep,find,ls`). Never nest agents. Use `herdr` only in Herdr, `grill-me`
 only when asked, and `jules-orchestration` for Jules. Use `teach` for teaching.
+Use `agy_execute` (pi-agy) for bulk scaffolding, repetitive refactors, and exhaustive
+test generation on Antigravity quota: default to `mode=plan`, use `accept-edits` only
+for scoped batches, and always review the diff and run `just ci` after writes. Reuse
+`conversation_id`/`continue` for multi-step handoffs. Prefer Cursor for interactive
+work and Herdr for multi-agent review; use agy when burning Antigravity quota on
+batch produce.
 Cloudflare skills are scoped to nursultan-web; `uv` is scoped to project-atom.
 Coordinate related sessions through pi-intercom; use `ask` only when blocked.
 
