@@ -36,6 +36,22 @@ Auth is unchanged: existing `agy` OAuth (`~/.gemini/oauth_creds.json`).
 | `new_session` | Force fresh session; set `false` to reuse last ID for dir |
 | `stream` | Use `stream-json` (default `true`) |
 
+## Human-callable `/agy` command
+
+Run agy directly from the Pi TUI without going through the model:
+
+```
+/agy flash fix git conflicts
+/agy plan sonnet review the diff
+/agy sandbox pro estimate the refactor
+/agy just run the tests
+```
+
+First token optional: `plan` / `sandbox` mode prefix, then a model alias
+(`flash`, `pro`, `sonnet`, `opus`, `gpt-oss`, …; default `flash-medium`), then
+freeform prompt. Result (and diff summary for accept-edits) renders in a
+scrollable panel — `↑↓` scroll, `Esc`/`Enter` close.
+
 ## Development
 
 ```bash

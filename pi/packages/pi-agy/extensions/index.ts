@@ -14,6 +14,7 @@ import { summarizeGitDiff } from "./lib/postflight.js";
 import { runPreflight } from "./lib/preflight.js";
 import { getSession, saveSession } from "./lib/sessions.js";
 import { parseJsonResponse } from "./lib/parse.js";
+import { registerAgyCommand } from "./commands.js";
 
 const MAX_OUTPUT_CHARS = 8000;
 const DEFAULT_TIMEOUT_MS = 300_000;
@@ -25,6 +26,8 @@ function truncate(text: string, max = MAX_OUTPUT_CHARS): string {
 }
 
 export default function piAgyExtension(pi: ExtensionAPI) {
+  registerAgyCommand(pi);
+
   pi.registerTool({
     name: "agy_execute",
     label: "Antigravity CLI",

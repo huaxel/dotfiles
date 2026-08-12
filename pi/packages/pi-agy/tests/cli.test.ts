@@ -17,6 +17,7 @@ import {
   parseStreamLine,
 } from "../extensions/lib/stream.js";
 import { parseJsonResponse } from "../extensions/lib/parse.js";
+import { parseAgyCommandArgs } from "../extensions/commands.js";
 
 describe("buildAgyArgs", () => {
   it("uses stream-json for plan mode", () => {
@@ -128,6 +129,35 @@ describe("summarizeGitDiff", () => {
     const tmp = await mkdtemp(path.join(os.tmpdir(), "pi-agy-diff-"));
     await execAsync("git", ["init", "-q"], { cwd: tmp });
     assert.equal(await summarizeGitDiff(tmp), null);
+  });
+});
+
+describe("parseAgyCommandArgs", () => {
+  it("parses model alias + prompt", () => {
+    const parsed = parseAgyCommandArgs("flash fix git conflicts");
+    assert.equal(parsed.model, "flash-medium");
+    assert.equal(parsed.mode, "accept-edits");
+    assert.equal(parsed.prompt, "fix git conflicts");
+  });
+
+  it("parses plan mode + model", () => {
+    const parsed = parseAgyCommandArgs("plan sonnet review the diff");
+    assert.equal(parsed.model, "sonnet");
+    assert.equal(parsed.mode, "plan");
+    assert.equal(parsed.prompt, "review the diff");
+  });
+
+  it("defaults model to flash-medium", () => {
+    const parsed = parseAgyCommandArgs("just do the thing");
+    assert.equal(parsed.model, "flash-medium");
+    assert.equal(parsed.mode, "accept-edits");
+    assert.equal(parsed.prompt, "just do the thing");
+  });
+
+  it("handles sandbox + full alias", () => {
+    const parsed = parseAgyCommandArgs("sandbox pro-high estimate the refactor");
+    assert.equal(parsed.model, "pro-high");
+    assert.equal(parsed.mode, "sandbox");
   });
 });
 
