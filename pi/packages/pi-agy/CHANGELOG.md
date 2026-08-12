@@ -10,5 +10,6 @@
 - Append git diff summary after `accept-edits`.
 - Cache preflight health/connectivity checks for 5 minutes.
 - Serialize concurrent calls per working directory.
-- Add human-callable `/agy [plan|sandbox] [model] <prompt>` TUI command with model autocomplete and a scrollable result panel.
-- `/agy` wizard UX: interactive mode select, model select with descriptions, multi-line task editor, accept-edits confirmation, and a live cancellable progress panel streaming agy steps.
+- Add human-callable `/agy [plan|sandbox] [model] <prompt>` TUI command with model autocomplete.
+- `/agy` wizard UX: interactive mode select, model select with descriptions, multi-line task editor, accept-edits confirmation.
+- `/agy` delegates to the `agy_execute` tool: progress streams inline in the chat as a normal tool row and the result lands in the transcript (removed custom panel/overlay surfaces).

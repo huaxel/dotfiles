@@ -41,7 +41,7 @@ Auth is unchanged: existing `agy` OAuth (`~/.gemini/oauth_creds.json`).
 Run agy directly from the Pi TUI — fast path when fully specified, wizard otherwise:
 
 ```
-/agy flash fix git conflicts        # fully specified → runs immediately
+/agy flash fix git conflicts        # fully specified → delegates immediately
 /agy plan sonnet review the diff    # mode + model + prompt
 /agy plan                           # wizard: model select → task editor
 /agy                                # wizard: mode → model → task editor
@@ -52,10 +52,10 @@ First token optional: `plan` / `sandbox` mode prefix, then a model alias
 
 Missing pieces open interactive dialogs (mode select, model select with
 descriptions, multi-line task editor). `accept-edits` asks for confirmation
-before writing. Execution runs in a **live progress panel** (streams agy tool
-steps, `↑↓` scroll, `Esc` cancels), and the finished result lands **in the chat**
-as a durable message (response + git diff summary + conversation id + token
-usage), visible to you and in LLM context for the next turn.
+before writing. The command then **delegates to the `agy_execute` tool**: the
+agent calls the tool, so progress streams inline in the chat as a normal tool
+row (same as bash/grep) and the result lands in the transcript — no custom
+TUI surface.
 
 ## Development
 
