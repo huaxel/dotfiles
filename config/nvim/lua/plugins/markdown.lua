@@ -37,10 +37,11 @@ return {
     },
   },
   {
-    -- LazyVim's Markdown extra enables this by default; use Markview instead.
+    -- Markview is the configured Markdown renderer; skip the browser preview plugin.
     "MeanderingProgrammer/render-markdown.nvim",
     enabled = false,
   },
+  { "iamcco/markdown-preview.nvim", enabled = false },
   {
     "OXY2DEV/markview.nvim",
     ft = { "markdown", "mdx" },
