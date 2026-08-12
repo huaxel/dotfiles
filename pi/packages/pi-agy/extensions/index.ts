@@ -1,0 +1,206 @@
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { Type } from "@sinclair/typebox";
+import { stat } from "node:fs/promises";
+import * as path from "node:path";
+
+import {
+  buildAgyPrompt,
+  detectVerifyCommand,
+  spawnAgyStream,
+  type AgyModel,
+} from "./lib/cli.js";
+import { withDirLock } from "./lib/lock.js";
+import { summarizeGitDiff } from "./lib/postflight.js";
+import { runPreflight } from "./lib/preflight.js";
+import { getSession, saveSession } from "./lib/sessions.js";
+import { parseJsonResponse } from "./lib/parse.js";
+
+const MAX_OUTPUT_CHARS = 8000;
+const DEFAULT_TIMEOUT_MS = 300_000;
+const MAX_TIMEOUT_MS = 600_000;
+
+function truncate(text: string, max = MAX_OUTPUT_CHARS): string {
+  if (text.length <= max) return text;
+  return text.slice(0, max) + "\n\n(Output truncated to 8000 chars)";
+}
+
+export default function piAgyExtension(pi: ExtensionAPI) {
+  pi.registerTool({
+    name: "agy_execute",
+    label: "Antigravity CLI",
+    description:
+      "Run a task through the Antigravity CLI (agy) for bulk implementation, scaffolding, or test generation.",
+    promptSnippet: "Run a task through the Antigravity CLI (agy)",
+    promptGuidelines: [
+      "Default agy_execute to mode=plan for exploration and review; use accept-edits only for scoped batches.",
+      "Plan or research with one family only when needed; implement with flash-medium or sonnet according to which quota group should carry the work.",
+      "Use flash-medium by default for bulk coding, exploration, tests, and repetitive work.",
+      "Use flash-low for trivial few-step or high-volume work, and flash-high for difficult agentic work.",
+      "Use pro-low or pro-high only when advanced reasoning needs escalation within the Gemini quota group.",
+      "Use sonnet for normal coding or review in the Claude quota group; reserve opus for the hardest architecture, root-cause, or adversarial review.",
+      "Use gpt-oss when an open-model alternative is specifically desired.",
+      "For consequential work, use one family to produce and the opposite family to cross-review in mode=plan; do not spend both quota groups on trivial tasks.",
+      "Reuse conversation_id or continue=true for multi-step plan→implement→review handoffs.",
+      "Batch related work, prefer digest output for non-write calls, and avoid parallel agy_execute calls within one shared-quota group or directory.",
+      "Always review the git diff and run just ci (or the project gate) after agy_execute with mode=accept-edits.",
+      "Never use agy for irreversible production changes.",
+      "Set an appropriate timeout_ms for large tasks (default 5m).",
+    ],
+    parameters: Type.Object({
+      prompt: Type.String({
+        description: "The task instruction for agy.",
+        minLength: 1,
+      }),
+      model: Type.Optional(
+        Type.Union(
+          [
+            Type.Literal("flash-low"),
+            Type.Literal("flash-medium"),
+            Type.Literal("flash-high"),
+            Type.Literal("pro-low"),
+            Type.Literal("pro-high"),
+            Type.Literal("sonnet"),
+            Type.Literal("opus"),
+            Type.Literal("gpt-oss"),
+          ],
+          { description: "Model alias. Defaults to 'flash-medium'.", default: "flash-medium" },
+        ),
+      ),
+      tier: Type.Optional(
+        Type.Union(
+          [Type.Literal("flash"), Type.Literal("flash-lo"), Type.Literal("pro")],
+          { description: "Legacy Gemini tier. Ignored when model is set." },
+        ),
+      ),
+      mode: Type.Optional(
+        Type.Union(
+          [Type.Literal("accept-edits"), Type.Literal("plan"), Type.Literal("sandbox")],
+          { description: "'accept-edits' (default), 'plan', or 'sandbox'.", default: "accept-edits" },
+        ),
+      ),
+      dir: Type.Optional(
+        Type.String({
+          description: "Working directory. Defaults to current project root.",
+        }),
+      ),
+      digest: Type.Optional(
+        Type.Boolean({
+          description:
+            "Request compact digests instead of full output. Defaults on for plan/sandbox and off for accept-edits.",
+        }),
+      ),
+      timeout_ms: Type.Optional(
+        Type.Number({
+          description: "Timeout in milliseconds (default 300000 = 5m, max 600000).",
+          minimum: 1000,
+          maximum: MAX_TIMEOUT_MS,
+        }),
+      ),
+      conversation_id: Type.Optional(
+        Type.String({
+          description: "Resume a previous agy conversation by ID.",
+        }),
+      ),
+      continue: Type.Optional(
+        Type.Boolean({
+          description: "Continue the most recent agy conversation for this workspace.",
+        }),
+      ),
+      new_session: Type.Optional(
+        Type.Boolean({
+          description: "Force a fresh agy conversation (default when no conversation_id/continue).",
+        }),
+      ),
+      stream: Type.Optional(
+        Type.Boolean({
+          description: "Stream agy progress via stream-json (default true).",
+          default: true,
+        }),
+      ),
+    }),
+
+    async execute(_toolCallId, params, signal, onUpdate, ctx) {
+      const cwd = params.dir ? path.resolve(ctx.cwd, params.dir) : ctx.cwd;
+      const abortSignal = signal ?? new AbortController().signal;
+      const timeoutMs = Math.min(params.timeout_ms ?? DEFAULT_TIMEOUT_MS, MAX_TIMEOUT_MS);
+      const mode = params.mode ?? "accept-edits";
+      const model = params.model as AgyModel | undefined;
+
+      return withDirLock(cwd, async () => {
+        if (!(await stat(cwd)).isDirectory()) {
+          throw new Error(`Working directory is not a directory: ${cwd}`);
+        }
+
+        await runPreflight(cwd, abortSignal);
+
+        let conversationId = params.conversation_id;
+        if (!conversationId && !params.continue && params.new_session !== true) {
+          const prior = await getSession(cwd);
+          if (prior?.last_conversation_id && params.new_session === false) {
+            conversationId = prior.last_conversation_id;
+          }
+        }
+
+        const useDigest = params.digest ?? mode !== "accept-edits";
+        const verifyCmd = mode === "accept-edits" ? await detectVerifyCommand(cwd) : null;
+        const finalPrompt = buildAgyPrompt(params.prompt, mode, useDigest, verifyCmd);
+
+        onUpdate?.({
+          content: [
+            {
+              type: "text",
+              text: `agy: starting (${model ?? "flash-medium"}, ${mode})…`,
+            },
+          ],
+        });
+
+        const run = await spawnAgyStream(
+          {
+            prompt: finalPrompt,
+            model,
+            tier: params.tier,
+            mode,
+            dir: cwd,
+            timeout_ms: timeoutMs,
+            conversation_id: conversationId,
+            continue: params.continue,
+            stream: params.stream ?? true,
+          },
+          abortSignal,
+          (progress) => {
+            onUpdate?.({ content: [{ type: "text", text: progress }] });
+          },
+        );
+
+        if (run.conversation_id) {
+          await saveSession(cwd, run.conversation_id, model);
+        }
+
+        let text = run.response;
+        if (mode !== "accept-edits") {
+          text = parseJsonResponse(run.response) || run.response;
+        }
+
+        if (mode === "accept-edits") {
+          const diffSummary = await summarizeGitDiff(cwd, abortSignal);
+          if (diffSummary) text = `${text}\n\n${diffSummary}`;
+        }
+
+        const details = {
+          mode,
+          model: model ?? "flash-medium",
+          dir: cwd,
+          conversation_id: run.conversation_id,
+          verify_cmd: verifyCmd,
+          usage: run.usage,
+          duration_seconds: run.duration_seconds,
+        };
+
+        return {
+          content: [{ type: "text", text: truncate(text || "(empty response)") }],
+          details,
+        };
+      });
+    },
+  });
+}

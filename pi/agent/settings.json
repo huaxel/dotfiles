@@ -62,7 +62,7 @@
     "npm:@narumitw/pi-goal",
     "npm:pi-provider-openference",
     "npm:@howaboua/pi-shepherdr",
-    "npm:@bacnh85/pi-agy"
+    "../packages/pi-agy"
   ],
   "extensions": [
     "-extensions/nan.ts"

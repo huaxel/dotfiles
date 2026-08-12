@@ -1,0 +1,53 @@
+{
+  "name": "@juanbenjumea/pi-agy",
+  "version": "0.4.0",
+  "description": "Enhanced Antigravity CLI (agy) bridge for Pi — streaming progress, conversation continuity, repo-aware verify, and diff summaries.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Juan Benjumea",
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "pi-skill",
+    "agy",
+    "antigravity",
+    "gemini",
+    "google-ai",
+    "cli"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/juanbenjumea/dotfiles.git",
+    "directory": "pi/packages/pi-agy"
+  },
+  "homepage": "https://github.com/juanbenjumea/dotfiles/tree/main/pi/packages/pi-agy#readme",
+  "scripts": {
+    "test": "node --import ./tests/resolve-hook.mjs --test tests/*.test.ts"
+  },
+  "files": [
+    "README.md",
+    "CHANGELOG.md",
+    "extensions/",
+    "skills/"
+  ],
+  "pi": {
+    "extensions": [
+      "./extensions/index.ts"
+    ],
+    "skills": [
+      "./skills"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "@sinclair/typebox": "*"
+  },
+  "devDependencies": {
+    "@sinclair/typebox": "^0.34.41",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
