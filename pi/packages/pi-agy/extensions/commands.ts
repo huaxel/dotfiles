@@ -1,5 +1,5 @@
 import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
-import { Key, matchesKey, wrapTextWithAnsi } from "@earendil-works/pi-tui";
+import { Key, matchesKey, truncateToWidth, wrapTextWithAnsi } from "@earendil-works/pi-tui";
 
 import { spawnAgyStream, type AgyModel } from "./lib/cli.js";
 import { withDirLock } from "./lib/lock.js";
@@ -175,6 +175,49 @@ function optionKey(option: string): string {
   return option.split(" — ")[0] ?? option;
 }
 
+interface PanelLayout {
+  title: string;
+  subtitle?: string;
+  entries: string[];
+  footer: string;
+  viewport: number;
+  scrollTop: number;
+  width: number;
+  colorize: (text: string) => string;
+}
+
+/**
+ * Render a bordered scrollable panel. Every emitted line is truncated to the
+ * terminal width — custom TUI components that exceed the width crash pi.
+ * Returns the rendered lines and the total wrapped content height.
+ */
+export function layoutPanel(layout: PanelLayout): { lines: string[]; totalLines: number } {
+  const renderWidth = Math.max(1, layout.width);
+  const lines: string[] = [];
+  const push = (line: string) => lines.push(truncateToWidth(line, renderWidth));
+
+  push(layout.colorize(`─ ${layout.title} ─`));
+  if (layout.subtitle) {
+    for (const sub of wrapTextWithAnsi(layout.subtitle, renderWidth - 4)) {
+      push(layout.colorize(`  ${sub}`));
+    }
+  }
+  push("");
+
+  const wrapped: string[] = [];
+  for (const entry of layout.entries) {
+    wrapped.push(...wrapTextWithAnsi(entry, renderWidth - 4));
+  }
+  const totalLines = wrapped.length;
+  for (const line of wrapped.slice(layout.scrollTop, layout.scrollTop + layout.viewport)) {
+    push(layout.colorize(`  ${line}`));
+  }
+
+  push("");
+  push(layout.colorize(layout.footer));
+  return { lines, totalLines };
+}
+
 /** Run agy inside a live panel that streams progress and cancels on Esc. */
 async function runAgyLive(
   ctx: ExtensionCommandContext,
@@ -235,33 +278,28 @@ async function runAgyLive(
     const render = (width: number): string[] => {
       if (cachedLines) return cachedLines;
       const renderWidth = Math.max(1, width);
-      const lines: string[] = [];
-
       const title = `agy · ${parsed.mode} · ${parsed.model}${finished ? " · finished" : " · running"}`;
-      lines.push(theme.fg("accent", `─ ${title} ─`));
-      lines.push(theme.fg("dim", `  ${parsed.prompt.slice(0, renderWidth - 4)}`));
-      lines.push("");
+      const entries =
+        buffer.length === 0 && !finished
+          ? ["(waiting for agy…)"]
+          : buffer;
+      const end = Math.min(scrollTop + PANEL_VIEWPORT, totalLines);
+      const scrollInfo = totalLines > PANEL_VIEWPORT ? ` · ${scrollTop + 1}-${end}/${totalLines}` : "";
+      const footer = `↑↓ scroll · Esc ${finished ? "close" : "cancel"}${scrollInfo}`;
 
-      const wrapped: string[] = [];
-      for (const entry of buffer) {
-        wrapped.push(...wrapTextWithAnsi(entry, renderWidth - 4));
-      }
-      totalLines = wrapped.length;
-      const viewport = PANEL_VIEWPORT;
-      for (const line of wrapped.slice(scrollTop, scrollTop + viewport)) {
-        lines.push(theme.fg("text", `  ${line}`));
-      }
-      if (buffer.length === 0 && !finished) {
-        lines.push(theme.fg("dim", "  (waiting for agy…)" + " ".repeat(renderWidth)));
-      }
-
-      const end = Math.min(scrollTop + viewport, totalLines);
-      const scrollInfo = totalLines > viewport ? ` · ${scrollTop + 1}-${end}/${totalLines}` : "";
-      lines.push("");
-      lines.push(theme.fg("dim", `─ ↑↓ scroll · Esc ${finished ? "close" : "cancel"}${scrollInfo} ─`));
-
-      cachedLines = lines;
-      return lines;
+      const laid = layoutPanel({
+        title,
+        subtitle: parsed.prompt,
+        entries,
+        footer,
+        viewport: PANEL_VIEWPORT,
+        scrollTop,
+        width: renderWidth,
+        colorize: (t) => theme.fg("dim", t),
+      });
+      totalLines = laid.totalLines;
+      cachedLines = laid.lines;
+      return laid.lines;
     };
 
     const handleInput = (data: string) => {
@@ -309,25 +347,22 @@ async function showAgyResultPanel(
     const render = (width: number): string[] => {
       if (cachedLines) return cachedLines;
       const renderWidth = Math.max(1, width);
-      const lines: string[] = [];
+      const end = Math.min(scrollTop + PANEL_VIEWPORT, totalLines);
+      const scrollInfo = totalLines > PANEL_VIEWPORT ? ` · ${scrollTop + 1}-${end}/${totalLines}` : "";
 
-      lines.push(theme.fg("accent", `─ agy result · ${parsed.mode} · ${parsed.model} ─`));
-      lines.push("");
-
-      const wrapped = wrapTextWithAnsi(body, renderWidth - 4);
-      totalLines = wrapped.length;
-      const viewport = PANEL_VIEWPORT;
-      for (const line of wrapped.slice(scrollTop, scrollTop + viewport)) {
-        lines.push(theme.fg("text", `  ${line}`));
-      }
-
-      const end = Math.min(scrollTop + viewport, totalLines);
-      const scrollInfo = totalLines > viewport ? ` · ${scrollTop + 1}-${end}/${totalLines}` : "";
-      lines.push("");
-      lines.push(theme.fg("dim", `─ ↑↓ scroll · Esc/Enter close${scrollInfo} ─`));
-
-      cachedLines = lines;
-      return lines;
+      const laid = layoutPanel({
+        title: `agy result · ${parsed.mode} · ${parsed.model}`,
+        subtitle: parsed.prompt,
+        entries: [body],
+        footer: `↑↓ scroll · Esc/Enter close${scrollInfo}`,
+        viewport: PANEL_VIEWPORT,
+        scrollTop,
+        width: renderWidth,
+        colorize: (t) => theme.fg("text", t),
+      });
+      totalLines = laid.totalLines;
+      cachedLines = laid.lines;
+      return laid.lines;
     };
 
     const handleInput = (data: string) => {
