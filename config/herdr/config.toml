@@ -12,6 +12,18 @@ enabled = false
 show_agent_labels_on_pane_borders = true
 agent_panel_sort = "priority"
 
+# ── Sidebar agent rows ──────────────────────────────────────────────────────────
+
+[ui.sidebar.agents.rows_by_agent]
+# pi-ask-herdr reports the pending ask_user question as `ask`/`ask_count` pane
+# metadata tokens. The `$ask` row collapses while no question is pending, and
+# Herdr truncates the question responsively while preserving the `+N` count.
+pi = [
+    ["state_icon", "workspace", "tab"],
+    ["$ask", "$ask_count"],
+    ["agent"],
+]
+
 # ── New workspace/agent keybindings ────────────────────────────────────────────
 
 [keys]
