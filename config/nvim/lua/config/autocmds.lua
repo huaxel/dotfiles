@@ -24,3 +24,21 @@ vim.api.nvim_create_autocmd({ "BufReadPre", "FileReadPre" }, {
     end
   end,
 })
+
+-- Yank stack (from dmtrKovalenko's config): on every yank, cascade the
+-- numbered registers (1→2, 2→3, …, 9→0-1), so `"1p` is always the most recent
+-- yank, `"2p` the one before, and so on — a poor man's yank history that
+-- composes with yanky's ring.
+local function yank_shift()
+  for i = 9, 1, -1 do
+    vim.fn.setreg(tostring(i), vim.fn.getreg(tostring(i - 1)))
+  end
+end
+
+vim.api.nvim_create_autocmd("TextYankPost", {
+  callback = function()
+    if vim.v.event.operator == "y" then
+      yank_shift()
+    end
+  end,
+})
