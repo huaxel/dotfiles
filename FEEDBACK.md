@@ -224,3 +224,54 @@
 
 ### Improvements for next time
 - Run the full test suites twice when touching time-dependent code to catch boundary flakes before attributing them.
+
+## 2026-08-13: nvim rescue + hardening
+
+Long session: user's nvim was 73s to start. Root cause was Mason state
+corruption (36/39 package dirs wiped Apr–Jun → mass GitHub re-downloads on
+every open). Fixed, then hardened the whole setup.
+
+### What went well
+
+- Root-caused the startup stall: Mason broken symlinks → re-download storm.
+  Headless Mason reinstall (waiting on `InstallHandle:is_closed()`) fixed all
+  36 packages; startup 73s → 95ms.
+- pi as CodeCompanion chat adapter via pi-acp (ACP bridge) — verified
+  end-to-end handshake; no external model service needed.
+- Fixed a real LazyVim v16 regression the user's config was hitting (Snacks
+  lazy-load override → `Snacks.keymap.set` nil on every file open).
+- Pinned LazyVim to stable instead of tracking main, disabled the background
+  updater — matches the user's "own the config" preference.
+- neotest verified end-to-end (4 adapters, pytest process proven) after
+  fighting the state API for several probes.
+- Gate `just ci` fixed properly: SSH_OPTS array (SC2086), grouped redirects
+  (SC2129), dotter tolerance for llama-models.ini local divergence.
+
+### What was frustrating / slow
+
+- neotest headless verification burned ~6 probe runs. The state API is
+  confusing: `state.adapter_ids()` populates only after `run.run()`,
+  results are per-adapter via the client (`state:results(adapter_id)` is NOT
+  on the consumer; the tracker calls `client:get_results`). Headless async
+  job output parsing added noise. In hindsight: verify adapter registration
+  (config.adapters) + check for a live pytest process instead of chasing
+  result accessors.
+- Chased "render-markdown.nvim never installed" for a while — user's own
+  `markdown.lua` (markview) explicitly disables it. Lesson: check the user's
+  plugin files BEFORE digging into LazyVim internals.
+- Suggested extras without reading `lazyvim.json` first — docker/yaml/
+  typescript were already enabled. Cheap miss, wasted a suggestion round.
+
+### What config change would have helped
+
+- AGENTS.md or a repo note: "extras suggestions must diff against
+  config/nvim/lazyvim.json first".
+- A justfile recipe for the headless neotest probe would have saved
+  re-typing the verify script.
+
+### Improvements for next time
+
+- Probe order for neotest: config.adapters → adapter.root/is_test_file →
+  live process check; only then results.
+- Always grep the user's config dir before diagnosing "missing" plugins.
+- Sweep `lazyvim.json` extras list before proposing extras.
