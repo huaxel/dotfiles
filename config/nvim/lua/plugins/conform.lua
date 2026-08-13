@@ -7,7 +7,7 @@ return {
     opts = {
       formatters_by_ft = {
         -- Juan's language stack: Python, PHP, JS/TS
-        python = { "ruff_fix" },
+        python = { "ruff_format", "ruff_fix" },
         javascript = { "prettier" },
         javascriptreact = { "prettier" },
         typescript = { "prettier" },
