@@ -15,6 +15,12 @@ return {
               name = "pi",
               formatted_name = "pi",
               commands = { default = { "pi-acp" } },
+              defaults = {
+                -- codex defaults to "api-key", but pi-acp only advertises
+                -- "pi_terminal_login" (a no-op terminal auth). Setting this
+                -- avoids the "Auth method api-key is not advertised" error.
+                auth_method = "pi_terminal_login",
+              },
               env = {},
             })
           end,
