@@ -249,14 +249,15 @@ check-dotter:
         fi
     else
         # Tolerate protected machine-local targets: gitconfig may contain a
-        # git-lfs filter, and npmrc may contain local registry credentials.
+        # git-lfs filter, npmrc may contain local registry credentials, and
+        # llama-models.ini may carry machine-resolved model paths.
         # Dotter refuses to overwrite these and exits non-zero. Only treat it
         # as failure if OTHER errors exist.
-        if echo "$output" | grep -E '\[ERROR\]' | grep -vE 'gitconfig|npmrc|Some files were skipped' | grep -q .; then
+        if echo "$output" | grep -E '\[ERROR\]' | grep -vE 'gitconfig|npmrc|llama-models.ini|Some files were skipped' | grep -q .; then
             echo "$output" | sed 's/^/    /'
             echo "  ❌ dotter deploy --dry-run failed"; exit 1
         elif echo "$output" | grep -q '\[ERROR\]'; then
-            echo "  ⚠️  Protected local targets (gitconfig/npmrc) differ — dotter skips them"
+            echo "  ⚠️  Protected local targets (gitconfig/npmrc/llama-models.ini) differ — dotter skips them"
             echo "  ✅ dotter deploy --dry-run OK (local target divergence only)"
         else
             echo "$output" | sed 's/^/    /'

@@ -11,7 +11,7 @@ LATEST_LINK="${BACKUP_ROOT}/latest"
 PI_HOST="100.127.61.2"
 PI_USER="juan"
 LOG="/data/backups/scripts/backup-pi.log"
-SSH_OPTS="-o StrictHostKeyChecking=accept-new -o ConnectTimeout=10"
+SSH_OPTS=(-o StrictHostKeyChecking=accept-new -o ConnectTimeout=10)
 
 FAILED=0
 
@@ -21,28 +21,28 @@ echo "=== Backup started: $(date) ===" >> "${LOG}"
 
 # 1. Backup Docker compose files and configs
 echo "Backing up Docker configs..." >> "${LOG}"
-rsync -a --delete -e "ssh ${SSH_OPTS}" \
+rsync -a --delete -e "ssh ${SSH_OPTS[*]}" \
   "${PI_USER}@${PI_HOST}:/home/juan/docker/" \
   "${BACKUP_DIR}/docker-configs/" \
   --link-dest="${LATEST_LINK}/docker-configs" 2>>"${LOG}" || FAILED=1
 
 # 2. Backup Pi-hole config
 echo "Backing up Pi-hole..." >> "${LOG}"
-rsync -a --delete -e "ssh ${SSH_OPTS}" \
+rsync -a --delete -e "ssh ${SSH_OPTS[*]}" \
   "${PI_USER}@${PI_HOST}:/data/k3s/pihole/" \
   "${BACKUP_DIR}/pihole/" \
   --link-dest="${LATEST_LINK}/pihole" 2>>"${LOG}" || FAILED=1
 
 # 3. Backup Docker compose files and configs from /home/juan/Data
 echo "Backing up Data dir..." >> "${LOG}"
-rsync -a --delete -e "ssh ${SSH_OPTS}" \
+rsync -a --delete -e "ssh ${SSH_OPTS[*]}" \
   "${PI_USER}@${PI_HOST}:/home/juan/Data/docker/" \
   "${BACKUP_DIR}/data-docker/" \
   --link-dest="${LATEST_LINK}/data-docker" 2>>"${LOG}" || FAILED=1
 
 # 4. Backup important Docker volumes (dump DBs)
 echo "Backing up databases..." >> "${LOG}"
-if ! ssh ${SSH_OPTS} "${PI_USER}@${PI_HOST}" \
+if ! ssh "${SSH_OPTS[@]}" "${PI_USER}@${PI_HOST}" \
   'docker exec immich_postgres pg_dumpall -U root 2>/dev/null' \
   > "${BACKUP_DIR}/immich-db.sql" 2>>"${LOG}"; then
   echo "Immich DB dump failed (non-fatal)" >> "${LOG}"
@@ -51,7 +51,7 @@ fi
 
 # 5. Backup K3s cluster state
 echo "Backing up K3s state..." >> "${LOG}"
-if ! ssh ${SSH_OPTS} "${PI_USER}@${PI_HOST}" \
+if ! ssh "${SSH_OPTS[@]}" "${PI_USER}@${PI_HOST}" \
   'sudo kubectl get all --all-namespaces -o yaml 2>/dev/null' \
   > "${BACKUP_DIR}/k3s-state.yaml" 2>>"${LOG}"; then
   echo "K3s state export failed (non-fatal)" >> "${LOG}"
@@ -60,7 +60,7 @@ fi
 
 # 6. Backup home directory (excluding caches)
 echo "Backing up home dir..." >> "${LOG}"
-rsync -a --delete -e "ssh ${SSH_OPTS}" \
+rsync -a --delete -e "ssh ${SSH_OPTS[*]}" \
   --exclude='.cache' --exclude='.npm' --exclude='.local' \
   --exclude='node_modules' --exclude='.cargo' --exclude='.rustup' \
   "${PI_USER}@${PI_HOST}:/home/juan/" \
@@ -77,11 +77,11 @@ else
   rmdir "${BACKUP_DIR}" 2>/dev/null || true
 fi
 
-# Remove any empty dated dirs left by failed runs.
-find "${BACKUP_ROOT}" -maxdepth 1 -type d -name "????-??-??" -empty -delete 2>>"${LOG}"
-
-# Cleanup backups older than 30 days
-find "${BACKUP_ROOT}" -maxdepth 1 -type d -name "????-??-??" -mtime +30 -exec rm -rf {} \; 2>>"${LOG}"
+# Remove any empty dated dirs left by failed runs, then cleanup backups older than 30 days.
+{
+  find "${BACKUP_ROOT}" -maxdepth 1 -type d -name "????-??-??" -empty -delete
+  find "${BACKUP_ROOT}" -maxdepth 1 -type d -name "????-??-??" -mtime +30 -exec rm -rf {} \;
+} 2>>"${LOG}"
 
 echo "=== Backup completed: $(date) ===" >> "${LOG}"
 if [ "${FAILED}" -eq 0 ]; then
