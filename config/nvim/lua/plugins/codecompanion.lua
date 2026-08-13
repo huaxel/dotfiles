@@ -6,9 +6,24 @@ return {
     },
     -- lazyvim-style opts
     opts = {
-      -- use Copilot adapter (already configured via copilot.lua)
-      -- if you want a different adapter, add it here:
-      -- interactions = { chat = { adapter = "openai" }, inline = { adapter = "openai" } },
+      adapters = {
+        acp = {
+          -- pi via the pi-acp bridge (https://github.com/svkozak/pi-acp)
+          -- pi-acp speaks ACP over stdio and spawns `pi --mode rpc`
+          pi = function()
+            return require("codecompanion.adapters").extend("codex", {
+              name = "pi",
+              formatted_name = "pi",
+              commands = { default = { "pi-acp" } },
+              env = {},
+            })
+          end,
+        },
+      },
+      interactions = {
+        chat = { adapter = "pi" },
+        inline = { adapter = "pi" },
+      },
       opts = {
         log_level = "INFO",
       },
