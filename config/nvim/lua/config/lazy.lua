@@ -32,9 +32,8 @@ require("lazy").setup({
   },
   install = { colorscheme = { "tokyonight" } },
   checker = {
-    enabled = true, -- check for plugin updates periodically
-    notify = false, -- notify on update
-  }, -- automatically check for plugin updates
+    enabled = false, -- update manually with `:Lazy update`
+  }, -- no background update checks
   performance = {
     rtp = {
       -- disable some rtp plugins
