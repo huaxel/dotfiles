@@ -1,10 +1,11 @@
 -- snacks.nvim configuration
 -- Note: notifier, indent, input, scroll, words are enabled by default in LazyVim
+-- LazyVim loads snacks at startup (priority 1000, lazy=false). Keep it that way:
+-- making it lazy breaks LazyVim main, whose lspconfig config calls
+-- `Snacks.keymap.set` on file open before VeryLazy fires.
 return {
   {
     "folke/snacks.nvim",
-    lazy = true,
-    event = "VeryLazy",
     opts = {
       -- These are enabled by default in LazyVim, but you can customize here:
       -- notifier = { enabled = true },
