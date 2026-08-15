@@ -33,6 +33,15 @@ if test (uname) = Darwin
     fish_add_path /opt/homebrew/bin
     fish_add_path /opt/local/bin
     fish_add_path $HOME/.antigravity/antigravity/bin
+
+    # Use the installed .NET 8 SDK/runtime for net8.0 projects.
+    if test -d /opt/homebrew/opt/dotnet@8/libexec
+        fish_add_path --prepend /opt/homebrew/opt/dotnet@8/bin
+        set -gx DOTNET_ROOT /opt/homebrew/opt/dotnet@8/libexec
+    else if test -d /usr/local/opt/dotnet@8/libexec
+        fish_add_path --prepend /usr/local/opt/dotnet@8/bin
+        set -gx DOTNET_ROOT /usr/local/opt/dotnet@8/libexec
+    end
 else
     fish_add_path /usr/local/bin
     fish_add_path /usr/bin

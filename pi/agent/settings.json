@@ -60,5 +60,11 @@
   ],
   "extensions": [
     "-extensions/nan.ts"
-  ]
+  ],
+  "doubleEscapeAction": "tree",
+  "treeFilterMode": "default",
+  "terminal": {
+    "showTerminalProgress": true
+  },
+  "tuiMode": "fullscreen"
 }
