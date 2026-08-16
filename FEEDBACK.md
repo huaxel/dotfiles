@@ -275,3 +275,18 @@ every open). Fixed, then hardened the whole setup.
   live process check; only then results.
 - Always grep the user's config dir before diagnosing "missing" plugins.
 - Sweep `lazyvim.json` extras list before proposing extras.
+
+## 2026-08-16: Commit and push configuration and learning updates
+
+### What went well
+- `just ci` passed all blocking checks.
+- Generated fff databases were identified as machine-local runtime state and excluded from version control.
+
+### What was frustrating / slow
+- None.
+
+### What config change would have helped
+- A pre-existing ignore rule for `pi/agent/fff/` would have avoided classifying its runtime databases during commit preparation.
+
+### Improvements for next time
+- Keep generated agent indexes excluded from the start.
