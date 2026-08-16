@@ -71,6 +71,7 @@ just sandbox acerpepe down <name>
 
 ## Open items
 
-- **Offsite photo copy** (3-2-1): the acer backup is copy #2 at site #1. Immich library needs a third copy offsite (cloud rclone, or a drive elsewhere).
-- Backup freshness alerting (uptime-kuma push monitor) not yet wired — the script fails loud in its log; nothing notifies.
+- **Offsite photo copy (3-2-1)** — PIPELINE READY: rclone installed on liedelpi, `scripts/home-server-deploy/offsite-backup.sh` deployed (`~/scripts/offsite-backup.sh`, weekly Mon 04:00 cron, ntfy-alerted), DB dump verified. **Only remaining step: `ssh liedelpi 'rclone config'` to create the `offsite:` remote** (B2 / Drive / OneDrive / S3). Photos are only ~230 MB at `/mnt/battle_disk/photos` — trivial to upload.
+- Backup freshness alerting: DONE via ntfy (backup-pi.sh pings `ntfy.sh/juan-home-alerts-28e25a99` on success/failure). Kuma's own ntfy provider errors in its logs — cosmetic; the direct curl path bypasses it.
 - Lenovos (Ideapad 100-15IBD ×2): planned CI node (Samsung 870 EVO) + backup/monitoring node. 10/100 NIC, 8 GB max DDR3L, 9 mm ODD caddy for second drive.
+- Portainer on liedelpi: fresh DB after Aug-2026 rescue — re-login + re-add local endpoint needed.
