@@ -1,0 +1,135 @@
+# Reconstructed media stack for liedelpi (2026-08-13).
+# Original compose/media-stack/docker-compose.yml was lost; rebuilt from
+# the Portainer snapshot (images + ports) and existing data dirs.
+# Configs live in ~/Data/docker/data/*, library in ~/media/media/.
+# Verify paths in the arr/jellyfin UIs after first boot.
+
+name: media-stack
+
+networks:
+  media-net:
+    external: true
+
+services:
+  jellyfin:
+    image: jellyfin/jellyfin:latest
+    container_name: jellyfin
+    restart: unless-stopped
+    networks: [media-net]
+    ports:
+      - "8096:8096"
+      - "1900:1900/udp"
+      - "7359:7359/udp"
+    environment:
+      - TZ=Europe/Brussels
+    volumes:
+      - /home/juan/Data/docker/data/jellyfin/config:/config
+      - /home/juan/media/media:/media:ro
+      - /mnt/ai_models:/data:ro
+      - /etc/localtime:/etc/localtime:ro
+
+  qbittorrent:
+    image: linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    restart: unless-stopped
+    networks: [media-net]
+    ports:
+      - "8082:8080"
+      - "6881:6881"
+      - "6881:6881/udp"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Brussels
+      - WEBUI_PORT=8080
+    volumes:
+      - /home/juan/Data/docker/data/qbittorrent/config:/config
+      - /home/juan/media/downloads:/downloads
+      - /home/juan/media/media:/media
+
+  sonarr:
+    image: linuxserver/sonarr:latest
+    container_name: sonarr
+    restart: unless-stopped
+    networks: [media-net]
+    ports:
+      - "8989:8989"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Brussels
+    volumes:
+      - /home/juan/Data/docker/data/arr-stack/sonarr:/config
+      - /home/juan/media/downloads:/downloads
+      - /home/juan/media/media/series:/tv
+
+  radarr:
+    image: linuxserver/radarr:latest
+    container_name: radarr
+    restart: unless-stopped
+    networks: [media-net]
+    ports:
+      - "7878:7878"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Brussels
+    volumes:
+      - /home/juan/Data/docker/data/arr-stack/radarr:/config
+      - /home/juan/media/downloads:/downloads
+      - /home/juan/media/media/movies:/movies
+
+  prowlarr:
+    image: linuxserver/prowlarr:latest
+    container_name: prowlarr
+    restart: unless-stopped
+    networks: [media-net]
+    ports:
+      - "9696:9696"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Brussels
+    volumes:
+      - /home/juan/Data/docker/data/arr-stack/prowlarr:/config
+
+  jellyseerr:
+    image: fallenbagel/jellyseerr:latest
+    container_name: jellyseerr
+    restart: unless-stopped
+    networks: [media-net]
+    ports:
+      - "5055:5055"
+    environment:
+      - TZ=Europe/Brussels
+    volumes:
+      - /home/juan/Data/docker/data/jellyfin/jellyseer/config:/app/config
+
+  whisparr:
+    image: ghcr.io/hotio/whisparr:v3
+    container_name: whisparr
+    restart: unless-stopped
+    networks: [media-net]
+    ports:
+      - "6969:6969"
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Brussels
+    volumes:
+      - /home/juan/Data/docker/data/whisparr/config:/config
+      - /home/juan/media/downloads:/downloads
+      - /home/juan/media/media:/media
+
+  stash:
+    image: stashapp/stash:latest
+    container_name: stash
+    restart: unless-stopped
+    networks: [media-net]
+    ports:
+      - "9999:9999"
+    environment:
+      - TZ=Europe/Brussels
+    volumes:
+      - /home/juan/Data/docker/data/stash:/root/.stash
+      - /home/juan/media/stash:/data
