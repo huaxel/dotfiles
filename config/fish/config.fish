@@ -77,14 +77,16 @@ set -x VISUAL nvim
 set -x PAGER less
 set -x XDG_CONFIG_HOME $HOME/.config
 set -x EZA_CONFIG_DIR $HOME/.config/eza
+# Native Pi llama.cpp router
+set -gx LLAMA_BASE_URL http://127.0.0.1:8000
 # Keep Python bytecode out of the dotfiles tree (dotter symlinks any file in a
 # mapped dir, even gitignored __pycache__). Cache under ~/.cache instead.
 set -x PYTHONPYCACHEPREFIX $HOME/.cache/cpython
 set -x PI_CODING_AGENT_DIR $HOME/dotfiles/pi/agent
 set -x PRIME_AGENT_CODING_AGENT_DIR $HOME/dotfiles/prime-agent/agent
 
-# Fix agy CLI using staging endpoint instead of production
-set -x CLOUD_CODE_URL https://cloudcode-pa.googleapis.com
+# Let agy select its own Cloud Code endpoint; stale overrides cause 429s.
+set -e CLOUD_CODE_URL
 
 # Run pi as restricted pi-agent user
 alias pi-sudo='sudo -iu pi-agent PI_CODING_AGENT_DIR=$HOME/dotfiles/pi/agent -- pi'

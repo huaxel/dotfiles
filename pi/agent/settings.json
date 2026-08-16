@@ -26,7 +26,8 @@
     "cursor/gpt-5.6-terra@272k",
     "cursor/gpt-5.6-luna@272k",
     "nous/deepseek/deepseek-v4-flash-0731",
-    "openai-codex/gpt-5.6-sol"
+    "openai-codex/gpt-5.6-sol",
+    "llama.cpp/Qwen3.8-27B"
   ],
   "defaults": {
     "model": null
