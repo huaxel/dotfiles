@@ -71,7 +71,7 @@ just sandbox acerpepe down <name>
 
 ## Open items
 
-- **Offsite photo copy (3-2-1)** — PIPELINE READY: rclone installed on liedelpi, `scripts/home-server-deploy/offsite-backup.sh` deployed (`~/scripts/offsite-backup.sh`, weekly Mon 04:00 cron, ntfy-alerted), DB dump verified. **Only remaining step: `ssh liedelpi 'rclone config'` to create the `offsite:` remote** (B2 / Drive / OneDrive / S3). Photos are only ~230 MB at `/mnt/battle_disk/photos` — trivial to upload.
+- **Offsite photo copy (3-2-1)** — PIPELINE STAGED: rclone installed on liedelpi and `scripts/home-server-deploy/offsite-backup.sh` deployed (`~/scripts/offsite-backup.sh`, ntfy-alerted); DB dump verified. The weekly cron is intentionally disabled until a backend is chosen/configured. iCloud currently covers photos; future Immich growth may reach 600–800 GB, so choose capacity before enabling `ssh liedelpi 'rclone config'` (B2 / Drive / OneDrive / S3).
 - Backup freshness alerting: DONE via ntfy (backup-pi.sh pings `ntfy.sh/juan-home-alerts-28e25a99` on success/failure). Kuma's own ntfy provider errors in its logs — cosmetic; the direct curl path bypasses it.
 - Lenovos (Ideapad 100-15IBD ×2): planned CI node (Samsung 870 EVO) + backup/monitoring node. 10/100 NIC, 8 GB max DDR3L, 9 mm ODD caddy for second drive.
 - Portainer on liedelpi: fresh DB after Aug-2026 rescue — re-login + re-add local endpoint needed.
