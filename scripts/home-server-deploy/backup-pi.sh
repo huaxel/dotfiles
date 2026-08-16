@@ -21,7 +21,7 @@ echo "=== Backup started: $(date) ===" >> "${LOG}"
 
 # 1. Backup Docker compose files and configs
 echo "Backing up Docker configs..." >> "${LOG}"
-rsync -a --delete -e "ssh ${SSH_OPTS[*]}" \
+rsync -a --delete --rsync-path='sudo rsync' -e "ssh ${SSH_OPTS[*]}" \
   "${PI_USER}@${PI_HOST}:/home/juan/docker/" \
   --exclude='data/portainer/' \
   "${BACKUP_DIR}/docker-configs/" \
@@ -29,14 +29,14 @@ rsync -a --delete -e "ssh ${SSH_OPTS[*]}" \
 
 # 2. Backup Pi-hole config
 echo "Backing up Pi-hole..." >> "${LOG}"
-rsync -a --delete -e "ssh ${SSH_OPTS[*]}" \
+rsync -a --delete --rsync-path='sudo rsync' -e "ssh ${SSH_OPTS[*]}" \
   "${PI_USER}@${PI_HOST}:/data/k3s/pihole/" \
   "${BACKUP_DIR}/pihole/" \
   --link-dest="${LATEST_LINK}/pihole" 2>>"${LOG}" || FAILED=1
 
 # 3. Backup Docker compose files and configs from /home/juan/Data
 echo "Backing up Data dir..." >> "${LOG}"
-rsync -a --delete -e "ssh ${SSH_OPTS[*]}" \
+rsync -a --delete --rsync-path='sudo rsync' -e "ssh ${SSH_OPTS[*]}" \
   "${PI_USER}@${PI_HOST}:/home/juan/Data/docker/" \
   --exclude='data/portainer/' \
   "${BACKUP_DIR}/data-docker/" \
@@ -62,7 +62,7 @@ fi
 
 # 6. Backup home directory (excluding caches)
 echo "Backing up home dir..." >> "${LOG}"
-rsync -a --delete -e "ssh ${SSH_OPTS[*]}" \
+rsync -a --delete --rsync-path='sudo rsync' -e "ssh ${SSH_OPTS[*]}" \
   --exclude='.cache' --exclude='.npm' --exclude='.local' \
   --exclude='node_modules' --exclude='.cargo' --exclude='.rustup' \
   --exclude='Data/docker/data/portainer/' \
