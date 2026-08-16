@@ -23,6 +23,7 @@ echo "=== Backup started: $(date) ===" >> "${LOG}"
 echo "Backing up Docker configs..." >> "${LOG}"
 rsync -a --delete -e "ssh ${SSH_OPTS[*]}" \
   "${PI_USER}@${PI_HOST}:/home/juan/docker/" \
+  --exclude='data/portainer/' \
   "${BACKUP_DIR}/docker-configs/" \
   --link-dest="${LATEST_LINK}/docker-configs" 2>>"${LOG}" || FAILED=1
 
@@ -37,6 +38,7 @@ rsync -a --delete -e "ssh ${SSH_OPTS[*]}" \
 echo "Backing up Data dir..." >> "${LOG}"
 rsync -a --delete -e "ssh ${SSH_OPTS[*]}" \
   "${PI_USER}@${PI_HOST}:/home/juan/Data/docker/" \
+  --exclude='data/portainer/' \
   "${BACKUP_DIR}/data-docker/" \
   --link-dest="${LATEST_LINK}/data-docker" 2>>"${LOG}" || FAILED=1
 
@@ -63,6 +65,7 @@ echo "Backing up home dir..." >> "${LOG}"
 rsync -a --delete -e "ssh ${SSH_OPTS[*]}" \
   --exclude='.cache' --exclude='.npm' --exclude='.local' \
   --exclude='node_modules' --exclude='.cargo' --exclude='.rustup' \
+  --exclude='Data/docker/data/portainer/' \
   "${PI_USER}@${PI_HOST}:/home/juan/" \
   "${BACKUP_DIR}/home/" \
   --link-dest="${LATEST_LINK}/home" 2>>"${LOG}" || FAILED=1
