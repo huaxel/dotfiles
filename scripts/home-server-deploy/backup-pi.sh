@@ -87,7 +87,19 @@ fi
 } 2>>"${LOG}"
 
 echo "=== Backup completed: $(date) ===" >> "${LOG}"
+SIZE=""
 if [ "${FAILED}" -eq 0 ]; then
-  echo "Size: $(du -sh "${BACKUP_DIR}" | cut -f1)" >> "${LOG}"
+  SIZE="$(du -sh "${BACKUP_DIR}" | cut -f1)"
+  echo "Size: ${SIZE}" >> "${LOG}"
 fi
+
+# Notify via ntfy (best-effort; must not affect the exit code)
+NTFY_URL="${NTFY_URL:-https://ntfy.sh/juan-home-alerts-28e25a99}"
+if [ "${FAILED}" -eq 0 ]; then
+  MSG="Backup OK ${DATE} (${SIZE})"
+else
+  MSG="Backup FAILED ${DATE} - check /data/backups/scripts/backup-pi.log"
+fi
+curl -sf -m 10 -H "Title: Pi backup" -d "${MSG}" "${NTFY_URL}" >/dev/null 2>&1 || true
+
 exit "${FAILED}"
