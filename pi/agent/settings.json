@@ -1,71 +1,25 @@
 {
-  "lastChangelogVersion": "0.0.0",
-  "theme": "ghostty-sync-b59692fc",
-  "defaultProvider": null,
-  "defaultModel": null,
-  "defaultThinkingLevel": "high",
   "enabledModels": [
     "openai-codex/gpt-5.6-luna",
     "openai-codex/gpt-5.6-terra",
-    "opencode-go/glm-5.2",
-    "opencode-go/deepseek-v4-flash",
-    "opencode-go/deepseek-v4-pro",
-    "opencode-go/kimi-k2.7-code",
-    "opencode/deepseek-v4-flash-free",
-    "opencode/mimo-v2.5-free",
-    "opencode/nemotron-3-ultra-free",
-    "opencode/north-mini-code-free",
-    "commandcode/deepseek/deepseek-v4-pro",
     "cursor/composer-2.5",
-    "cursor/grok-4.5",
-    "cursor/glm-5.2",
-    "cursor/opus-5@300k",
-    "cursor/fable-5@300k",
-    "cursor/sonnet-5@300k",
-    "cursor/gpt-5.6-sol@272k",
-    "cursor/gpt-5.6-terra@272k",
     "cursor/gpt-5.6-luna@272k",
-    "nous/deepseek/deepseek-v4-flash-0731",
+    "cursor/gpt-5.6-luna@1m",
     "openai-codex/gpt-5.6-sol",
-    "llama.cpp/Qwen3.8-27B"
+    "commandcode/deepseek/deepseek-v4-flash",
+    "commandcode/zai-org/GLM-5.2",
+    "commandcode/MiniMaxAI/MiniMax-M3",
+    "commandcode/xiaomi/mimo-v2.5",
+    "commandcode/tencent/hy3-paid",
+    "commandcode/meta/muse-spark-1.2-contributor",
+    "openference/GLM-5.2",
+    "openference/DeepSeek-V4-Flash",
+    "openference/Kimi K2.7 Code",
+    "openference/DeepSeek-V4-Pro-0813",
+    "cursor/grok-4.6"
   ],
-  "defaults": {
-    "model": null
-  },
-  "retry": {
-    "provider": {
-      "maxRetries": 0
-    }
-  },
-  "packages": [
-    "npm:pi-web-access",
-    "npm:@ff-labs/pi-fff",
-    "npm:pi-autoresearch",
-    "npm:@mobrienv/pi-tidy-tools",
-    {
-      "source": "npm:@ogulcancelik/pi-herdr",
-      "skills": []
-    },
-    "npm:@ogulcancelik/pi-ghostty-theme-sync",
-    "npm:pi-commandcode-provider",
-    "npm:@ogulcancelik/pi-auto-permissions",
-    "../packages/pi-multi-opencode-go",
-    "../packages/pi-dynamic-footer",
-    "npm:@amaster.ai/pi-computer-use",
-    "npm:pi-cursor-sdk",
-    "git:github.com/huaxel/pi-ask-herdr",
-    "npm:@narumitw/pi-goal",
-    "npm:pi-provider-openference",
-    "npm:@howaboua/pi-shepherdr",
-    "../packages/pi-agy"
-  ],
-  "extensions": [
-    "-extensions/nan.ts"
-  ],
-  "doubleEscapeAction": "tree",
-  "treeFilterMode": "default",
-  "terminal": {
-    "showTerminalProgress": true
-  },
-  "tuiMode": "fullscreen"
+  "lastChangelogVersion": "0.0.0",
+  "theme": "dark",
+  "defaultProvider": null,
+  "defaultModel": null
 }
