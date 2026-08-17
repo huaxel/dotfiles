@@ -21,5 +21,43 @@
   "lastChangelogVersion": "0.0.0",
   "theme": "dark",
   "defaultProvider": null,
-  "defaultModel": null
+  "defaultModel": null,
+  "defaults": {
+    "model": null
+  },
+  "retry": {
+    "provider": {
+      "maxRetries": 0
+    }
+  },
+  "packages": [
+    "npm:pi-web-access",
+    "npm:@ff-labs/pi-fff",
+    "npm:pi-autoresearch",
+    "npm:@mobrienv/pi-tidy-tools",
+    {
+      "source": "npm:@ogulcancelik/pi-herdr",
+      "skills": []
+    },
+    "npm:@ogulcancelik/pi-ghostty-theme-sync",
+    "npm:pi-commandcode-provider",
+    "npm:@ogulcancelik/pi-auto-permissions",
+    "../packages/pi-multi-opencode-go",
+    "../packages/pi-dynamic-footer",
+    "npm:@amaster.ai/pi-computer-use",
+    "npm:pi-cursor-sdk",
+    "git:github.com/huaxel/pi-ask-herdr",
+    "npm:pi-provider-openference",
+    "npm:@howaboua/pi-shepherdr",
+    "../packages/pi-agy"
+  ],
+  "extensions": [
+    "-extensions/nan.ts"
+  ],
+  "doubleEscapeAction": "tree",
+  "treeFilterMode": "default",
+  "terminal": {
+    "showTerminalProgress": true
+  },
+  "tuiMode": "fullscreen"
 }

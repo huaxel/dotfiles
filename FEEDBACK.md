@@ -290,3 +290,18 @@ every open). Fixed, then hardened the whole setup.
 
 ### Improvements for next time
 - Keep generated agent indexes excluded from the start.
+
+## 2026-08-17: Resolve settings merge conflict
+
+### What went well
+- JSON validation and `just ci` confirmed the merged settings are valid.
+- The upstream model list was preserved while retaining the stashed runtime configuration.
+
+### What was frustrating / slow
+- Git's clean filter initially obscured status output because the conflicted file was invalid JSON.
+
+### What config change would have helped
+- A conflict-aware validation step for JSON settings could report the conflict more directly.
+
+### Improvements for next time
+- Inspect stage 2 and stage 3 blobs before resolving generated/config files.
