@@ -36,6 +36,7 @@ config/vscode/**/*.vscdb.backup
 config/composer/*.lock
 config/composer/keys.*
 config/tmc/
+config/nvim/lazy-lock.json
 
 # ─────────────────────────────────────────────────────────────
 # OS files
