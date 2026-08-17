@@ -31,6 +31,7 @@ fish_add_path $HOME/.cargo/bin
 # OS-specific PATH
 if test (uname) = Darwin
     fish_add_path /opt/homebrew/bin
+    fish_add_path /opt/homebrew/sbin
     fish_add_path /opt/local/bin
     fish_add_path $HOME/.antigravity/antigravity/bin
 
@@ -59,12 +60,12 @@ end
 switch (hostname)
     case arch-wsl
         set -gx ATOM_DATA_ROOT /mnt/c/Users/jbenjumeamoreno/atom-data
-    # case other-machine-1
-    #     set -gx ATOM_DATA_ROOT /path/to/atom-data
-    # case other-machine-2
-    #     set -gx ATOM_DATA_ROOT /path/to/atom-data
-    # case other-machine-3
-    #     set -gx ATOM_DATA_ROOT /path/to/atom-data
+        # case other-machine-1
+        #     set -gx ATOM_DATA_ROOT /path/to/atom-data
+        # case other-machine-2
+        #     set -gx ATOM_DATA_ROOT /path/to/atom-data
+        # case other-machine-3
+        #     set -gx ATOM_DATA_ROOT /path/to/atom-data
 end
 
 # Enable vi mode
@@ -219,10 +220,5 @@ if test -f ~/.config/secrets/env.fish
     source ~/.config/secrets/env.fish
 end
 
-
 # Added by Antigravity CLI installer
 set -gx PATH "/home/juan/.local/bin" $PATH
-
-
-
-
