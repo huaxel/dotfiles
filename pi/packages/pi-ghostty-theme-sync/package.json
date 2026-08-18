@@ -1,0 +1,38 @@
+{
+  "name": "@juanbenjumea/pi-ghostty-theme-sync",
+  "version": "0.1.3",
+  "description": "Fork of @ogulcancelik/pi-ghostty-theme-sync — sync pi theme with Ghostty terminal colors. Adds a visible scrollbarThumb so the fullscreen scrollbar isn't invisible on low-contrast palettes (Tokyo-Night etc.).",
+  "type": "module",
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "ghostty",
+    "theme",
+    "coding-agent"
+  ],
+  "author": "Juan Benjumea (fork of Can Celik's @ogulcancelik/pi-ghostty-theme-sync)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/juanbenjumea/dotfiles.git",
+    "directory": "pi/packages/pi-ghostty-theme-sync"
+  },
+  "bugs": {
+    "url": "https://github.com/juanbenjumea/dotfiles/issues"
+  },
+  "homepage": "https://github.com/juanbenjumea/dotfiles/tree/main/pi/packages/pi-ghostty-theme-sync#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "files": [
+    "index.ts",
+    "assets/demo.gif",
+    "README.md",
+    "LICENSE"
+  ]
+}
