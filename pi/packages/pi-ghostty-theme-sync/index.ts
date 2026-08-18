@@ -40,7 +40,7 @@ function getGhosttyColors(): GhosttyColors | null {
 	}
 }
 
-function parseGhosttyConfig(output: string): GhosttyColors {
+export function parseGhosttyConfig(output: string): GhosttyColors {
 	const colors: GhosttyColors = {
 		background: "#1e1e1e",
 		foreground: "#d4d4d4",
@@ -120,7 +120,7 @@ function mixColors(color1: string, color2: string, weight: number): string {
 	);
 }
 
-function generatePiTheme(colors: GhosttyColors, themeName: string): object {
+export function generatePiTheme(colors: GhosttyColors, themeName: string): object {
 	const bg = colors.background;
 	const fg = colors.foreground;
 	const isDark = getLuminance(bg) < 0.5;
@@ -139,8 +139,11 @@ function generatePiTheme(colors: GhosttyColors, themeName: string): object {
 
 	// Derive neutrals from bg/fg for consistent readability across themes
 	const muted = mixColors(fg, bg, 0.65);
-	const dim = mixColors(fg, bg, 0.45);
-	const borderMuted = mixColors(fg, bg, 0.25);
+	const dim = mixColors(fg, bg, isDark ? 0.58 : 0.45);
+	const borderMuted = mixColors(fg, bg, isDark ? 0.45 : 0.30);
+	// Calm neutral border so only borderAccent draws the eye; sits a clear step
+	// above borderMuted and below the saturated accent hues.
+	const border = mixColors(fg, bg, isDark ? 0.52 : 0.38);
 
 	// Keep bg/fg for export and derived backgrounds
 	const _fg = fg;
@@ -153,6 +156,8 @@ function generatePiTheme(colors: GhosttyColors, themeName: string): object {
 	const toolPendingBg = adjustBrightness(bg, Math.round(bgShift * 0.4));
 	const toolSuccessBg = mixColors(bg, success, 0.88);
 	const toolErrorBg = mixColors(bg, error, 0.88);
+	// Distinct warm-tinted search-match bg so /search hits pop vs selection.
+	const searchMatchBg = mixColors(bg, warning, 0.80);
 	const customMsgBg = mixColors(bg, accent, 0.92);
 
 	return {
@@ -169,9 +174,11 @@ function generatePiTheme(colors: GhosttyColors, themeName: string): object {
 			warning,
 			muted,
 			dim,
+			border,
 			borderMuted,
 			selectedBg,
 			scrollbarThumb: mixColors(fg, bg, isDark ? 0.55 : 0.5),
+			searchMatchBg,
 			userMsgBg,
 			toolPendingBg,
 			toolSuccessBg,
@@ -181,7 +188,7 @@ function generatePiTheme(colors: GhosttyColors, themeName: string): object {
 		colors: {
 			// Core UI
 			accent: "accent",
-			border: "link",
+			border: "border",
 			borderAccent: "accent",
 			borderMuted: "borderMuted",
 			success: "success",
@@ -195,6 +202,7 @@ function generatePiTheme(colors: GhosttyColors, themeName: string): object {
 			// Backgrounds
 			selectedBg: "selectedBg",
 			scrollbarThumb: "scrollbarThumb",
+			searchMatchBg: "searchMatchBg",
 			userMessageBg: "userMsgBg",
 			userMessageText: "",
 			customMessageBg: "customMsgBg",
@@ -229,7 +237,7 @@ function generatePiTheme(colors: GhosttyColors, themeName: string): object {
 			syntaxFunction: "link",
 			syntaxVariable: "accentAlt",
 			syntaxString: "success",
-			syntaxNumber: "accent",
+			syntaxNumber: "warning",
 			syntaxType: "accentAlt",
 			syntaxOperator: "fg",
 			syntaxPunctuation: "muted",
@@ -240,7 +248,8 @@ function generatePiTheme(colors: GhosttyColors, themeName: string): object {
 			thinkingLow: "link",
 			thinkingMedium: "accentAlt",
 			thinkingHigh: "accent",
-			thinkingXhigh: "accent",
+			thinkingXhigh: "warning",
+			thinkingMax: "error",
 
 			// Bash mode
 			bashMode: "success",
