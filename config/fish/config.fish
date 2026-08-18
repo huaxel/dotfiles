@@ -35,13 +35,11 @@ if test (uname) = Darwin
     fish_add_path /opt/local/bin
     fish_add_path $HOME/.antigravity/antigravity/bin
 
-    # Use the installed .NET 8 SDK/runtime for net8.0 projects.
-    if test -d /opt/homebrew/opt/dotnet@8/libexec
-        fish_add_path --prepend /opt/homebrew/opt/dotnet@8/bin
-        set -gx DOTNET_ROOT /opt/homebrew/opt/dotnet@8/libexec
-    else if test -d /usr/local/opt/dotnet@8/libexec
-        fish_add_path --prepend /usr/local/opt/dotnet@8/bin
-        set -gx DOTNET_ROOT /usr/local/opt/dotnet@8/libexec
+    # Use the Microsoft installer .NET SDKs/runtimes at the canonical
+    # /usr/local/share/dotnet location (covers both 8.0 and 10.0 SDKs).
+    if test -d /usr/local/share/dotnet
+        fish_add_path --prepend /usr/local/share/dotnet
+        set -gx DOTNET_ROOT /usr/local/share/dotnet
     end
 else
     fish_add_path /usr/local/bin
