@@ -58,3 +58,6 @@ that's a good question but for now we can just have ./worksheets in a project an
 - Implemented `/worksheet list`, `/worksheet search <text>`, and named worksheet lookup with `/worksheet open [name]` and `/worksheet path [name]`.
 - For auditability, a deletion should remove an item from the active plan, while a short rejection/supersession note remains under `## Decisions` or `## Progress`. The change summary exposes the deletion; the durable note preserves why it happened.
 - The project-local `.worksheets/` directory is the initial document index. Search is intentionally local and fast rather than trying to infer a global active document.
+
+### Clarification from Discord feedback
+This is not a request to stream every keystroke or expose the model’s hidden input/thinking stream. Saved document revisions are the interaction events, but saving should itself steer Pi without requiring a separate prompt. The document is a persistent, bidirectional task surface; `git diff` is only one implementation detail for describing changes.
