@@ -305,3 +305,21 @@ every open). Fixed, then hardened the whole setup.
 
 ### Improvements for next time
 - Inspect stage 2 and stage 3 blobs before resolving generated/config files.
+
+## 2026-08-19: Windows Pi secret sync
+
+### What went well
+- Mirroring `env.fish` into PowerShell made Pi/Openference use the same encrypted secret source without a manual login step.
+- The default-path fallback for `~/.pi/agent/auth.json` fixed the provider that hardcodes its own lookup.
+
+### What was frustrating / slow
+- Dotter on Windows was confusing: running from `.dotter/` breaks config lookup, and the repo root still needs `.dotter/local.toml` before deploy works.
+- `just ci` surfaced pre-existing dotter target collisions, so the repo-level gate was noisy even though the secret-sync code itself was fine.
+
+### What config change would have helped
+- A documented Windows deploy recipe that always creates `.dotter/local.toml` before `dotter deploy` would have removed one round of confusion.
+- It would help to note which Pi providers read `auth.json` from a hardcoded default path versus `PI_CODING_AGENT_DIR`.
+
+### Improvements for next time
+- Keep the env-to-auth mirror in the shared secret loader, not as a manual repair step.
+- When a provider ignores the custom Pi dir, patch the loader once and mirror to the compatibility path automatically.

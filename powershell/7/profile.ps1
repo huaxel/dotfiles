@@ -150,10 +150,16 @@ if (Get-Command just -ErrorAction SilentlyContinue) {
 # ============================
 # Environment Variables
 # ============================
+$DotfilesRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $env:BAT_THEME = "tokyonight_night"
 $env:EZA_CONFIG_DIR = "$env:USERPROFILE\.config\eza"
-# Keep Pi's source-of-truth config in the dotfiles checkout, including auth.json.
-$env:PI_CODING_AGENT_DIR = "$env:USERPROFILE\dotfiles\pi\agent"
+$env:PI_CODING_AGENT_DIR = (Join-Path $DotfilesRoot "pi\agent")
+
+$SecretsLoader = Join-Path $DotfilesRoot "powershell\Load-Secrets.ps1"
+if (Test-Path -LiteralPath $SecretsLoader) {
+    . $SecretsLoader
+    Import-DotfilesSecrets
+}
 
 # ============================
 # Window Title

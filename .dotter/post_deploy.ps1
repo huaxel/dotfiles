@@ -14,6 +14,47 @@ $PI_AGENT_DIR = if ($env:PI_CODING_AGENT_DIR) {
 } else {
     Join-Path $DOTFILES_DIR "pi\agent"
 }
+$DEFAULT_PI_AGENT_DIR = Join-Path $env:USERPROFILE ".pi\agent"
+
+$appSecrets = @{
+    "llama-webui-config.json" = [System.IO.Path]::Combine($env:USERPROFILE, ".config", "llama.cpp", "webui-config.json")
+    "pi-auth.json" = Join-Path $PI_AGENT_DIR "auth.json"
+    "pi-quota-sessions.json" = Join-Path $PI_AGENT_DIR "quota-sessions.json"
+    "environment.d" = [System.IO.Path]::Combine($env:USERPROFILE, ".config", "environment.d", "99-environment.conf")
+}
+
+function Sync-CompatAuth {
+    param(
+        [string]$Source,
+        [string]$CompatPath
+    )
+
+    if (([System.IO.Path]::GetFullPath($Source)).Equals(([System.IO.Path]::GetFullPath($CompatPath)), [System.StringComparison]::OrdinalIgnoreCase)) {
+        return
+    }
+
+    New-Item -ItemType Directory -Force -Path (Split-Path $CompatPath -Parent) | Out-Null
+    Copy-Item -Force $Source $CompatPath
+}
+
+function Invoke-SopsDecrypt {
+    param(
+        [string]$Source,
+        [string]$Destination
+    )
+
+    New-Item -ItemType Directory -Force -Path (Split-Path $Destination -Parent) | Out-Null
+    if (Test-Path $Destination) { attrib -R $Destination }
+
+    $leafBase = [System.IO.Path]::GetFileNameWithoutExtension($Source)
+    Write-Host "[...] Decrypting $leafBase..." -NoNewline
+    & sops --decrypt --output-type binary --output $Destination $Source 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host " [OK] -> $Destination" -ForegroundColor Green
+    } else {
+        Write-Host " [FAIL]" -ForegroundColor Red
+    }
+}
 
 # Check if sops and age are available
 if (-not (Get-Command sops -ErrorAction SilentlyContinue) -or `
@@ -38,67 +79,32 @@ $env:SOPS_AGE_KEY_FILE = $ageKeyPath
 if (Test-Path $SECRETS_DIR) {
     New-Item -ItemType Directory -Force -Path $DECRYPT_DIR | Out-Null
 
-    Get-ChildItem "$SECRETS_DIR\*.enc" -File | ForEach-Object {
-        $encFile = $_.FullName
-        $filename = $_.BaseName  # name without .enc
+    foreach ($file in Get-ChildItem "$SECRETS_DIR\*.enc" -File) {
+        $encFile = $file.FullName
+        $filename = $file.BaseName  # name without .enc
 
-        # App-specific secrets decrypt to their real config path
-        switch ($filename) {
-            "llama-webui-config.json" {
-                $dest = [System.IO.Path]::Combine($env:USERPROFILE, ".config", "llama.cpp", "webui-config.json")
-                New-Item -ItemType Directory -Force -Path (Split-Path $dest -Parent) | Out-Null
-                # Clear read-only if exists (from a previous deploy)
-                if (Test-Path $dest) { attrib -R $dest }
-                Write-Host "[...] Decrypting $filename..." -NoNewline
-                & sops --decrypt --output-type binary --output $dest $encFile 2>$null
-                if ($LASTEXITCODE -eq 0) {
-                    Write-Host " [OK] -> $dest" -ForegroundColor Green
-                } else {
-                    Write-Host " [FAIL]" -ForegroundColor Red
-                }
-                continue
-            }
-            "pi-auth.json" {
-                $dest = Join-Path $PI_AGENT_DIR "auth.json"
-                New-Item -ItemType Directory -Force -Path (Split-Path $dest -Parent) | Out-Null
-                if (Test-Path $dest) { attrib -R $dest }
-                Write-Host "[...] Decrypting $filename..." -NoNewline
-                & sops --decrypt --output-type binary --output $dest $encFile 2>$null
-                if ($LASTEXITCODE -eq 0) {
-                    Write-Host " [OK] -> $dest" -ForegroundColor Green
-                } else {
-                    Write-Host " [FAIL]" -ForegroundColor Red
-                }
-                continue
-            }
-            "pi-quota-sessions.json" {
-                $dest = Join-Path $PI_AGENT_DIR "quota-sessions.json"
-                New-Item -ItemType Directory -Force -Path (Split-Path $dest -Parent) | Out-Null
-                if (Test-Path $dest) { attrib -R $dest }
-                Write-Host "[...] Decrypting $filename..." -NoNewline
-                & sops --decrypt --output-type binary --output $dest $encFile 2>$null
-                if ($LASTEXITCODE -eq 0) {
-                    Write-Host " [OK] -> $dest" -ForegroundColor Green
-                } else {
-                    Write-Host " [FAIL]" -ForegroundColor Red
-                }
-                continue
-            }
+        if ($appSecrets.ContainsKey($filename)) {
+            continue
         }
 
         $decryptPath = [System.IO.Path]::Combine($DECRYPT_DIR, $filename)
-        # Clear read-only if exists (from a previous deploy)
-        if (Test-Path $decryptPath) { attrib -R $decryptPath }
-        Write-Host "[...] Decrypting $filename..." -NoNewline
-        & sops --decrypt --output-type binary --output $decryptPath $encFile 2>$null
-        if ($LASTEXITCODE -eq 0) {
-            Write-Host " [OK] -> $decryptPath" -ForegroundColor Green
-        } else {
-            Write-Host " [FAIL]" -ForegroundColor Red
+        Invoke-SopsDecrypt -Source $encFile -Destination $decryptPath
+    }
+
+    foreach ($entry in $appSecrets.GetEnumerator()) {
+        $encFile = Join-Path $SECRETS_DIR ($entry.Key + ".enc")
+        if (Test-Path $encFile) {
+            Invoke-SopsDecrypt -Source $encFile -Destination $entry.Value
         }
+    }
+
+    $compatAuth = Join-Path $DEFAULT_PI_AGENT_DIR "auth.json"
+    $sourceAuth = Join-Path $PI_AGENT_DIR "auth.json"
+    if (Test-Path $sourceAuth) {
+        Sync-CompatAuth -Source $sourceAuth -CompatPath $compatAuth
     }
 }
 
 Write-Host ""
 Write-Host "[INFO] To use decrypted secrets in your shell:" -ForegroundColor Cyan
-Write-Host "   Add to PowerShell profile: . `"$DECRYPT_DIR\env.fish`"" -ForegroundColor Cyan
+Write-Host "   PowerShell profiles load ~/.config/secrets/env.fish automatically." -ForegroundColor Cyan

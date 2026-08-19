@@ -63,6 +63,8 @@ Or in `~/.zshrc`:
 [ -f ~/.config/secrets/env.fish ] && . ~/.config/secrets/env.fish
 ```
 
+PowerShell profiles load the same `env.fish` automatically through `powershell/Load-Secrets.ps1`.
+
 ## Files
 
 - `*.enc` — encrypted secrets (committed to git)

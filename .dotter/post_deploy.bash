@@ -5,6 +5,8 @@
 DOTFILES_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 SECRETS_DIR="$DOTFILES_DIR/secrets"
 DECRYPT_DIR="$HOME/.config/secrets"
+PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-$DOTFILES_DIR/pi/agent}"
+DEFAULT_PI_AGENT_DIR="$HOME/.pi/agent"
 
 # Check if sops and age are available
 if ! command -v sops &>/dev/null || ! command -v age &>/dev/null; then
@@ -33,6 +35,8 @@ if [ -d "$SECRETS_DIR" ]; then
     # generic ~/.config/secrets/ dir — skip them here.
     case "$filename" in
       llama-webui-config.json) continue ;;
+      pi-auth.json) continue ;;
+      pi-quota-sessions.json) continue ;;
       environment.d) continue ;;
     esac
 
@@ -75,9 +79,14 @@ if [ -d "$SECRETS_DIR" ]; then
   # App-specific secrets: decrypt to their real config path.
   # (enc basename -> destination; mirrors post_deploy.ps1 on Windows)
   app_secret "llama-webui-config.json" "$HOME/.config/llama.cpp/webui-config.json"
-  app_secret "pi-auth.json" "$HOME/dotfiles/pi/agent/auth.json"
-  app_secret "pi-quota-sessions.json" "$HOME/dotfiles/pi/agent/quota-sessions.json"
+  app_secret "pi-auth.json" "$PI_AGENT_DIR/auth.json"
+  app_secret "pi-quota-sessions.json" "$PI_AGENT_DIR/quota-sessions.json"
   app_secret "environment.d" "$HOME/.config/environment.d/99-environment.conf"
+
+  if [ -f "$PI_AGENT_DIR/auth.json" ] && [ "$PI_AGENT_DIR/auth.json" != "$DEFAULT_PI_AGENT_DIR/auth.json" ]; then
+    mkdir -p "$DEFAULT_PI_AGENT_DIR"
+    ln -sfn "$PI_AGENT_DIR/auth.json" "$DEFAULT_PI_AGENT_DIR/auth.json" 2>/dev/null || cp -f "$PI_AGENT_DIR/auth.json" "$DEFAULT_PI_AGENT_DIR/auth.json"
+  fi
 
 fi
 

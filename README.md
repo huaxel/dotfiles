@@ -333,7 +333,7 @@ cd ~/dotfiles && ./bootstrap.sh
 
 | Agent | Path | Size | What's in it |
 |---|---|---|---|
-| **Pi** | `~/dotfiles/pi/agent/auth.json` | 4 KB | Auto-decrypted from encrypted secrets. Already handled. |
+| **Pi** | `~/dotfiles/pi/agent/auth.json` | 4 KB | Auto-decrypted from encrypted secrets; mirrored to `~/.pi/agent/auth.json` for providers that hardcode the default path. |
 | **Pi quota cookies** | `~/dotfiles/pi/agent/quota-sessions.json` | ~1 KB | Cursor/CommandCode web session cookies for quota bars. SOPS: `pi-quota-sessions.json.enc`. |
 | **GitHub Copilot** | `~/.config/github-copilot/` | 524 KB | Auth tokens, hosts.json |
 | **Cursor** | `~/.cursor/` | 2.3 MB | Skills, hooks.json (re-creatable on sign-in) |
@@ -469,6 +469,8 @@ end
 [ -f ~/.config/secrets/env.fish ] && . ~/.config/secrets/env.fish
 ```
 
+**PowerShell**: the Windows profile loads the same `env.fish` automatically.
+
 ### What gets encrypted vs. what's ignored
 
 | Tracked in git | Ignored |
@@ -508,7 +510,7 @@ cd ~/dotfiles && git pull && dotter deploy
 cat ~/.config/sops/age/keys.txt
 
 # Check which keys the file was encrypted for
-sops --encrypt --show-master-keys secrets/env.sh.enc
+sops --encrypt --show-master-keys secrets/env.fish.enc
 ```
 
 **"sops: command not found"** — install it:
@@ -522,7 +524,7 @@ brew install sops
 **Secrets not decrypting on deploy** — check the post-deploy hook ran:
 ```bash
 cd ~/dotfiles && dotter deploy 2>&1 | tail -20
-# Should show: "🔐 Decrypting env.sh..."
+# Should show: "🔐 Decrypting env.fish..."
 ```
 
 ### Full example: adding a Fireworks API key
