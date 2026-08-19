@@ -323,3 +323,21 @@ every open). Fixed, then hardened the whole setup.
 ### Improvements for next time
 - Keep the env-to-auth mirror in the shared secret loader, not as a manual repair step.
 - When a provider ignores the custom Pi dir, patch the loader once and mirror to the compatibility path automatically.
+
+## 2026-08-19: Document-first worksheet loop
+
+### What went well
+- The existing worksheet watcher provided a strong transport layer for a document-first interaction model.
+- Semantic line summaries make human additions, replacements, and deletions visible to Pi.
+- Explicit attachment lets an existing project Markdown file participate without requiring an Obsidian or Neovim integration.
+- Pause/resume and smoke tests covered the main watcher lifecycle paths.
+
+### What was frustrating / slow
+- Deno and the independent review skill were unavailable locally, so validation used Node type-stripping, smoke tests, and the repository gate.
+
+### What config change would have helped
+- A lightweight committed Pi extension harness would make watcher regression tests easier to maintain.
+
+### Improvements for next time
+- Add focused tests for document diffs, ownership boundaries, comments, and todo transitions.
+- Keep the terminal transcript as an execution log while moving durable collaboration state into the document.
