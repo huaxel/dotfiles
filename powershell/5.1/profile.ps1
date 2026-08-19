@@ -30,5 +30,8 @@ function llama-serve {
   & "$env:USERPROFILE\.config\llama.cpp\start-server.ps1" @args
 }
 
+# Pi source-of-truth config, including the SOPS-decrypted auth.json.
+$env:PI_CODING_AGENT_DIR = "$env:USERPROFILE\dotfiles\pi\agent"
+
 # Window Title
 $host.ui.RawUI.WindowTitle = "PowerShell 5.1 | $env:USERNAME@$env:COMPUTERNAME"

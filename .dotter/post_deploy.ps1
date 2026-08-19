@@ -9,6 +9,11 @@
 $DOTFILES_DIR = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Definition)
 $SECRETS_DIR = Join-Path $DOTFILES_DIR "secrets"
 $DECRYPT_DIR = [System.IO.Path]::Combine($env:USERPROFILE, ".config", "secrets")
+$PI_AGENT_DIR = if ($env:PI_CODING_AGENT_DIR) {
+    $env:PI_CODING_AGENT_DIR
+} else {
+    Join-Path $DOTFILES_DIR "pi\agent"
+}
 
 # Check if sops and age are available
 if (-not (Get-Command sops -ErrorAction SilentlyContinue) -or `
@@ -43,6 +48,32 @@ if (Test-Path $SECRETS_DIR) {
                 $dest = [System.IO.Path]::Combine($env:USERPROFILE, ".config", "llama.cpp", "webui-config.json")
                 New-Item -ItemType Directory -Force -Path (Split-Path $dest -Parent) | Out-Null
                 # Clear read-only if exists (from a previous deploy)
+                if (Test-Path $dest) { attrib -R $dest }
+                Write-Host "[...] Decrypting $filename..." -NoNewline
+                & sops --decrypt --output-type binary --output $dest $encFile 2>$null
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Host " [OK] -> $dest" -ForegroundColor Green
+                } else {
+                    Write-Host " [FAIL]" -ForegroundColor Red
+                }
+                continue
+            }
+            "pi-auth.json" {
+                $dest = Join-Path $PI_AGENT_DIR "auth.json"
+                New-Item -ItemType Directory -Force -Path (Split-Path $dest -Parent) | Out-Null
+                if (Test-Path $dest) { attrib -R $dest }
+                Write-Host "[...] Decrypting $filename..." -NoNewline
+                & sops --decrypt --output-type binary --output $dest $encFile 2>$null
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Host " [OK] -> $dest" -ForegroundColor Green
+                } else {
+                    Write-Host " [FAIL]" -ForegroundColor Red
+                }
+                continue
+            }
+            "pi-quota-sessions.json" {
+                $dest = Join-Path $PI_AGENT_DIR "quota-sessions.json"
+                New-Item -ItemType Directory -Force -Path (Split-Path $dest -Parent) | Out-Null
                 if (Test-Path $dest) { attrib -R $dest }
                 Write-Host "[...] Decrypting $filename..." -NoNewline
                 & sops --decrypt --output-type binary --output $dest $encFile 2>$null
