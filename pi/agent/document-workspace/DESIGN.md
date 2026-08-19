@@ -67,7 +67,7 @@ The extension should eventually send section-aware revisions:
 - current relevant content;
 - whether the change was human-originated or agent-originated.
 
-The current implementation stores prior file contents, reports a bounded line-level addition/removal summary, and includes the current document. It watches `.worksheets` and explicitly attached Markdown files independently of Git, so untracked and gitignored documents are valid collaboration state.
+The current implementation stores prior file contents, reports bounded line-level additions/removals within changed Markdown sections, and points Pi to the full document on disk when broader context is needed. It watches `.worksheets` and explicitly attached Markdown files independently of Git, so untracked and gitignored documents are valid collaboration state.
 
 ## Product boundary
 

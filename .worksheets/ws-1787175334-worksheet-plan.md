@@ -73,3 +73,4 @@ Markdown is robust enough as the human-facing medium, but not as the entire prot
 - Outside Pi, Cairn and agent-work-mem explore Markdown files as shared agent/human state; Moment is a fuller collaborative Markdown workspace with embedded agents.
 - No single Pi package found combines editor-agnostic shared documents, saved-revision steering, bidirectional writes, durable task semantics, and TUI attention routing.
 - Created `pi/agent/document-workspace/` with design, roadmap, decisions, and future-session instructions.
+- Implemented section-aware worksheet updates: Pi now receives changed Markdown sections and bounded additions/removals instead of the full document.
