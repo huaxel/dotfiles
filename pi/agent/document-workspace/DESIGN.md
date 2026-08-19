@@ -1,0 +1,91 @@
+# Design: Document-first Pi
+
+## Core idea
+
+The document is the control plane; the terminal is the execution console.
+
+This does **not** mean streaming every keystroke into the model or exposing hidden model reasoning. Saved Markdown revisions are the interaction events. Saving a meaningful revision should steer Pi without requiring the human to copy the change into a separate prompt.
+
+## Attention policy
+
+There must be one canonical home for substantive collaboration:
+
+- plans, findings, decisions, questions, and durable progress belong in the worksheet;
+- the TUI shows compact status, active tool/execution state, errors, blocking questions, and explicit interruptions;
+- the same full answer should not be duplicated in both the TUI and the worksheet;
+- normal chat remains available as an emergency/quick-command mode.
+
+The current extension provides the file watcher and steering transport, but does not yet enforce this response-routing policy.
+
+## Markdown contract
+
+Markdown is the human-facing medium. It is portable, inspectable, searchable, editor-agnostic, and independent of Git. It is not the entire protocol; the extension supplies revision tracking, ownership, debouncing, loop prevention, and change summaries.
+
+New worksheets use these sections:
+
+```markdown
+## Task
+## Human notes
+## Todos
+## Progress
+## Findings
+## Decisions
+## Questions / Next steps
+```
+
+Ownership:
+
+- `Human notes` is human-owned and must not be overwritten by Pi.
+- `Todos` express task state; unchecked items are work, checked items are completion claims to verify.
+- `Progress`, `Findings`, `Decisions`, and `Questions / Next steps` are Pi-maintained durable state, appended rather than rewritten.
+
+Markdown-native conventions are preferred over hidden HTML metadata. Headings, paragraphs, blockquotes, and checkboxes should carry meaning before introducing machine syntax.
+
+## Deletion and auditability
+
+A deletion removes something from the active plan. The watcher reports removed lines to Pi, but deletion alone does not preserve why something was rejected.
+
+When rationale matters, record it before deleting or superseding the active item:
+
+```markdown
+## Decisions
+
+- Rejected the localStorage approach because settings must sync across devices.
+- Superseded the original plan with the configuration service approach.
+```
+
+This gives the document a clean active state and a lightweight rationale trail. Full append-only event logs are a possible later layer, not an immediate requirement.
+
+## Revision semantics
+
+The extension should eventually send section-aware revisions:
+
+- file path and revision identity;
+- changed sections;
+- additions;
+- removals;
+- current relevant content;
+- whether the change was human-originated or agent-originated.
+
+The current implementation stores prior file contents, reports a bounded line-level addition/removal summary, and includes the current document. It watches `.worksheets` and explicitly attached Markdown files independently of Git, so untracked and gitignored documents are valid collaboration state.
+
+## Product boundary
+
+This is distinct from:
+
+- `git diff`: a passive VCS comparison, not an agent interaction protocol;
+- Zed ACP: an editor/agent transport, not a durable document collaboration model;
+- plan review: an approval UI, not an ongoing bidirectional workspace;
+- memory injection: context retrieval without human-directed document events.
+
+## Prior art
+
+- [`pi-watcher`](https://github.com/vedang/pi-watcher) — explicit `AI!`, `AI?`, and `AI.` saved-comment triggers, queueing, and loop prevention.
+- [`pi-simplewatcher`](https://github.com/studioschade/pi-simplewatcher) — active/passive filesystem watches and inbox delivery.
+- [`pi-doc-review`](https://github.com/danmactough/doc-review) — Markdown review window with comments and raw edits.
+- [`pi-plan-extension`](https://github.com/khoafullstack/pi-plan-extension) — Markdown plans and checklist execution.
+- [`Cairn`](https://github.com/RT64M/cairn) — Markdown protocol for human intervention, plans, TODOs, and archived rationale.
+- [`agent-work-mem`](https://github.com/daystar7777/agent-work-mem) — vendor-neutral Markdown memory and handoffs.
+- [`Moment`](https://moment.dev/) — polished collaborative Markdown workspace with embedded agents.
+
+No single Pi package currently combines the desired document surface, saved-revision steering, bidirectional writes, durable task semantics, and TUI attention routing.
