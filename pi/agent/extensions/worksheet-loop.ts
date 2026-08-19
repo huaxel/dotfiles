@@ -336,20 +336,39 @@ export default function (pi: ExtensionAPI) {
 
   // ── helpers ──────────────────────────────────────────────────────────────
 
-  /** Return the path to the most recently modified .worksheets/*.md file, or null. */
-  function latestWorksheet(): string | null {
+  type WorksheetFile = { name: string; filePath: string; mtime: number };
+
+  function worksheetFiles(): WorksheetFile[] {
     try {
       const dir = path.resolve(WORKSHEETS_DIR);
-      if (!fs.existsSync(dir)) return null;
-      const files = fs
+      if (!fs.existsSync(dir)) return [];
+      return fs
         .readdirSync(dir)
-        .filter((f) => f.endsWith(".md"))
-        .map((f) => ({ name: f, mtime: fs.statSync(path.join(dir, f)).mtimeMs }))
+        .filter((name) => name.endsWith(".md"))
+        .map((name) => {
+          const filePath = path.join(dir, name);
+          return { name, filePath, mtime: fs.statSync(filePath).mtimeMs };
+        })
+        .filter((file) => fs.statSync(file.filePath).isFile())
         .sort((a, b) => b.mtime - a.mtime);
-      return files.length > 0 ? path.join(dir, files[0].name) : null;
     } catch {
+      return [];
+    }
+  }
+
+  /** Return the path to the most recently modified .worksheets/*.md file, or null. */
+  function latestWorksheet(): string | null {
+    return worksheetFiles()[0]?.filePath ?? null;
+  }
+
+  function requestedWorksheet(name: string): string | null {
+    const dir = path.resolve(WORKSHEETS_DIR);
+    const candidate = path.resolve(dir, name);
+    const relative = path.relative(dir, candidate);
+    if (relative.startsWith("..") || path.isAbsolute(relative) || !candidate.endsWith(".md")) {
       return null;
     }
+    return fs.existsSync(candidate) && fs.statSync(candidate).isFile() ? candidate : null;
   }
 
   /** Turn arbitrary text into a short kebab-case slug. */
@@ -442,15 +461,17 @@ ${task}
   const SUBCOMMANDS: { value: string; label: string; description: string }[] = [
     { value: "start", label: "start", description: "Create a new worksheet and open it in a split" },
     { value: "attach", label: "attach", description: "Watch an existing Markdown file" },
-    { value: "open", label: "open", description: "Open the latest worksheet in a split" },
-    { value: "path", label: "path", description: "Show the latest worksheet path" },
+    { value: "list", label: "list", description: "List project worksheets" },
+    { value: "search", label: "search", description: "Search project worksheets" },
+    { value: "open", label: "open", description: "Open a worksheet in a split" },
+    { value: "path", label: "path", description: "Show a worksheet path" },
     { value: "status", label: "status", description: "Show watcher status and latest worksheet" },
     { value: "pause", label: "pause", description: "Pause the worksheet loop" },
     { value: "resume", label: "resume", description: "Resume and scan for worksheet changes" },
   ];
 
   pi.registerCommand("worksheet", {
-    description: "Control the worksheet loop. Subcommands: start, attach, open, path, status, pause, resume",
+    description: "Control the worksheet loop. Subcommands: start, attach, list, search, open, path, status, pause, resume",
     getArgumentCompletions: (prefix: string): AutocompleteItem[] | null => {
       const filtered = SUBCOMMANDS.filter((s) => s.value.startsWith(prefix));
       return filtered.length > 0 ? filtered : null;
@@ -527,11 +548,55 @@ ${task}
         return;
       }
 
-      // ── /worksheet open|path ───────────────────────────────────────────
+      // ── /worksheet list ────────────────────────────────────────────────
+      if (sub === "list") {
+        const files = worksheetFiles();
+        if (files.length === 0) {
+          ctx.ui.notify("No worksheets found in .worksheets/", "warning");
+          return;
+        }
+        const listing = files
+          .map((file, index) => `  ${index + 1}. ${file.name}`)
+          .join("\n");
+        ctx.ui.notify(`📚 Worksheets\n${listing}`, "info");
+        return;
+      }
+
+      // ── /worksheet search <query> ──────────────────────────────────────
+      if (sub === "search") {
+        const query = rest.join(" ").trim().toLowerCase();
+        if (!query) {
+          ctx.ui.notify("Usage: /worksheet search <text>", "warning");
+          return;
+        }
+        const matches: string[] = [];
+        for (const file of worksheetFiles()) {
+          try {
+            const lines = fs.readFileSync(file.filePath, "utf-8").split(/\r?\n/);
+            lines.forEach((line, lineIndex) => {
+              if (line.toLowerCase().includes(query) && matches.length < 40) {
+                matches.push(`  ${file.name}:${lineIndex + 1}: ${line.trim()}`);
+              }
+            });
+          } catch {
+            // file may have disappeared during the search
+          }
+        }
+        ctx.ui.notify(
+          matches.length > 0
+            ? `🔎 Worksheets matching “${query}”\n${matches.join("\n")}`
+            : `No worksheet matches for “${query}”`,
+          matches.length > 0 ? "info" : "warning",
+        );
+        return;
+      }
+
+      // ── /worksheet open|path [name] ────────────────────────────────────
       if (sub === "open" || sub === "path") {
-        const ws = latestWorksheet();
+        const requested = rest.join(" ").trim();
+        const ws = requested ? requestedWorksheet(requested) : latestWorksheet();
         if (!ws) {
-          ctx.ui.notify("No worksheet found in .worksheets/ — try /worksheet start", "warning");
+          ctx.ui.notify("Worksheet not found — try /worksheet list or /worksheet start", "warning");
           return;
         }
         const rel = path.relative(process.cwd(), ws);

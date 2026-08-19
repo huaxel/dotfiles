@@ -21,8 +21,10 @@ and follows the naming convention `ws-<epoch>-<slug>.md`.
    - `/worksheet start` with no slug — prompts you for a kebab-case slug.
    - `/worksheet attach path/to/document.md` — watches an existing project
      Markdown file and makes it part of the shared loop.
-   - Other subcommands: `open` (open latest in a split), `path` (print latest
-     path), `status`, `pause`, `resume`.
+   - `/worksheet list` — lists project worksheets; `/worksheet search <text>`
+     searches their saved Markdown content.
+   - Other subcommands: `open [name]` (open latest or a named worksheet in a
+     split), `path [name]` (print its path), `status`, `pause`, `resume`.
 
    Or create one manually:
    - Grab the current epoch: `date +%s`
@@ -80,6 +82,12 @@ and follows the naming convention `ws-<epoch>-<slug>.md`.
 7. Treat checkbox changes as task-state changes. An unchecked todo is work to
    plan or perform; a checked todo is a completion claim to verify. Treat
    deliberate deletions or replacements as human feedback, not as missing text.
+
+8. Stay Markdown-centric: prefer headings, paragraphs, blockquotes, and
+   checkboxes over hidden HTML metadata. For auditability, record a rejected or
+   superseded suggestion as a short entry under `## Decisions` or `## Progress`
+   before removing it. A deletion can then mean “remove from the active plan”
+   without erasing the historical reason.
 
 ## Not your only interface
 
