@@ -71,6 +71,74 @@ export default function (pi: ExtensionAPI) {
     return changes.length > 0 ? changes.join("\n") : "(content changed)";
   }
 
+  type MarkdownSection = {
+    key: string;
+    heading: string;
+    text: string;
+    body: string;
+  };
+
+  function markdownSections(content: string): Map<string, MarkdownSection> {
+    const sections = new Map<string, MarkdownSection>();
+    const lines = content.split(/\r?\n/);
+    let heading = "Document preamble";
+    let headingLine = "";
+    let body: string[] = [];
+    const headingCounts = new Map<string, number>();
+
+    const flush = (): void => {
+      const baseKey = heading.toLowerCase();
+      const occurrence = headingCounts.get(baseKey) ?? 0;
+      headingCounts.set(baseKey, occurrence + 1);
+      const key = `${baseKey}#${occurrence}`;
+      const bodyText = body.join("\n");
+      sections.set(key, {
+        key,
+        heading,
+        text: headingLine ? `${headingLine}\n${bodyText}` : bodyText,
+        body: bodyText,
+      });
+    };
+
+    for (const line of lines) {
+      const match = /^(#{1,6})\s+(.+?)\s*$/.exec(line);
+      if (match) {
+        flush();
+        heading = match[2];
+        headingLine = line;
+        body = [];
+      } else {
+        body.push(line);
+      }
+    }
+    flush();
+    return sections;
+  }
+
+  /** Describe only the Markdown sections whose saved content changed. */
+  function summarizeSections(previous: string | undefined, current: string): string {
+    const before = markdownSections(previous ?? "");
+    const after = markdownSections(current);
+    const keys = [...new Set([...before.keys(), ...after.keys()])];
+    const changed = keys.filter((key) => before.get(key)?.text !== after.get(key)?.text);
+    if (changed.length === 0) return "(content changed outside a Markdown section)";
+
+    const sections = changed.slice(0, 12).map((key) => {
+      const oldSection = before.get(key);
+      const newSection = after.get(key);
+      const title = newSection?.heading ?? oldSection?.heading ?? "Unknown section";
+      const status = !oldSection ? "added" : !newSection ? "removed" : "changed";
+      const diff = summarizeChange(oldSection?.body, newSection?.body ?? "");
+      const current = newSection?.text ?? "(section removed)";
+      return `## ${title} — ${status}\n${diff}\n\nCurrent section:\n${current}`;
+    });
+
+    if (changed.length > sections.length) {
+      sections.push(`... (${changed.length - sections.length} more changed sections)`);
+    }
+    return sections.join("\n\n");
+  }
+
   function isWorksheetPath(absPath: string): boolean {
     const normalizedPath = path.resolve(absPath);
     const parts = normalizedPath.replace(/\/$/, "").split(path.sep);
@@ -252,10 +320,10 @@ export default function (pi: ExtensionAPI) {
             return;
           }
 
-          const changeSummary = summarizeChange(prev?.content, content);
+          const changeSummary = summarizeSections(prev?.content, content);
           rememberFile(filePath, content);
           pi.sendUserMessage(
-            `[Worksheet update — ${filename}]\n\nChanges since the last state:\n${changeSummary}\n\nCurrent document:\n${content}`,
+            `[Worksheet update — ${filename}]\n\nSaved human changes in focused Markdown sections:\n${changeSummary}\n\nThe full document remains at ${filename}; read it if broader context is needed.`,
             { deliverAs: "steer" },
           );
         } catch {

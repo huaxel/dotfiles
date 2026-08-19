@@ -15,7 +15,7 @@
 - [x] Define human-owned notes and agent-owned durable state.
 - [x] Add todos, findings, decisions, and questions to new worksheets.
 - [x] Report additions and removals to Pi.
-- [ ] Make updates section-aware instead of sending the whole document.
+- [x] Make updates section-aware instead of sending the whole document.
 - [ ] Define stable semantics for comments, questions, and todo transitions.
 - [ ] Decide how much deletion/rejection history belongs in the document.
 - [ ] Add a reusable Pi extension test harness.

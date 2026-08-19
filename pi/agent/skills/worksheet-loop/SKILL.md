@@ -60,11 +60,11 @@ and follows the naming convention `ws-<epoch>-<slug>.md`.
 2. Work on the task.  After each significant milestone **update the file** — add
    completed items under `## Progress`, refine next steps, note questions.
 
-3. When the human edits the worksheet and saves, you'll receive a
-   `[Worksheet update]` message that carries the current content. Use it — and
-   read the file to confirm it matches if you're mid-task or the message looks
-   stale. Trust the message for direction; verify against the file before
-   building on it.
+3. When the human edits a worksheet and saves, you'll receive a
+   `[Worksheet update — filename]` message containing the changed Markdown
+   sections and additions/removals. Use it as steering input. Read the file
+   when you need broader context or when the message looks stale; the full
+   document remains the source of truth on disk.
 
 4. Treat `## Human notes` as human-owned input. Do NOT overwrite it. Keep
    durable agent state in `## Progress` and `## Findings`, and preserve existing
