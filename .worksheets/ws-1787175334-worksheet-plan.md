@@ -61,3 +61,6 @@ that's a good question but for now we can just have ./worksheets in a project an
 
 ### Clarification from Discord feedback
 This is not a request to stream every keystroke or expose the model’s hidden input/thinking stream. Saved document revisions are the interaction events, but saving should itself steer Pi without requiring a separate prompt. The document is a persistent, bidirectional task surface; `git diff` is only one implementation detail for describing changes. In fact, Git is the wrong boundary for this: documents may be untracked, gitignored, generated, or never committed, while still being active collaboration state.
+
+### Markdown and attention design
+Markdown is robust enough as the human-facing medium, but not as the entire protocol. It needs a small convention layer for ownership, todos, questions, decisions, and durable progress. The larger UX risk is duplicate attention: substantive answers should have one canonical home in the worksheet, while the TUI should show compact status, blocking questions, errors, and explicit interruptions.
