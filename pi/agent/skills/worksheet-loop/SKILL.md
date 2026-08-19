@@ -19,8 +19,10 @@ and follows the naming convention `ws-<epoch>-<slug>.md`.
    - `/worksheet start fix-auth` — creates `.worksheets/ws-<epoch>-fix-auth.md`
      from the standard template and opens it in a herdr split.
    - `/worksheet start` with no slug — prompts you for a kebab-case slug.
+   - `/worksheet attach path/to/document.md` — watches an existing project
+     Markdown file and makes it part of the shared loop.
    - Other subcommands: `open` (open latest in a split), `path` (print latest
-     path), `status`, `pause`.
+     path), `status`, `pause`, `resume`.
 
    Or create one manually:
    - Grab the current epoch: `date +%s`
@@ -34,8 +36,20 @@ and follows the naming convention `ws-<epoch>-<slug>.md`.
      ## Task
      <what the human asked>
 
+     ## Human notes
+     <!-- goals, constraints, feedback, or a requested action -->
+
+     ## Todos
+     - [ ] Define the next concrete step
+
      ## Progress
      - Started analysis
+
+     ## Findings
+     <durable research or review results>
+
+     ## Decisions
+     <durable decisions made during the collaboration>
 
      ## Questions / Next steps
      <anything you want to ask or do next>
@@ -50,8 +64,22 @@ and follows the naming convention `ws-<epoch>-<slug>.md`.
    stale. Trust the message for direction; verify against the file before
    building on it.
 
-4. **Do NOT overwrite** sections the human wrote — add your content underneath
-   or alongside theirs (e.g. `## Human notes`).
+4. Treat `## Human notes` as human-owned input. Do NOT overwrite it. Keep
+   durable agent state in `## Progress` and `## Findings`, and preserve existing
+   entries by appending or adding dated updates. Use `## Questions / Next steps`
+   for unresolved decisions and proposed follow-up.
+
+5. Treat a worksheet update as saved human steering input, not as a request to
+   merely acknowledge the file. Decide whether it calls for review, research,
+   implementation, or clarification, and act accordingly.
+
+6. When the worksheet is the shared source of truth, record durable progress,
+   findings, decisions, and next steps back into it so the human can continue
+   from the document without reconstructing state from chat.
+
+7. Treat checkbox changes as task-state changes. An unchecked todo is work to
+   plan or perform; a checked todo is a completion claim to verify. Treat
+   deliberate deletions or replacements as human feedback, not as missing text.
 
 ## Not your only interface
 

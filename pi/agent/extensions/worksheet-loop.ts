@@ -16,11 +16,13 @@ import type { AutocompleteItem } from "@earendil-works/pi-tui";
 
 export default function (pi: ExtensionAPI) {
   const WORKSHEETS_DIR = ".worksheets";
+  const attachedFiles = new Set<string>();
 
   // ── loop guard ──────────────────────────────────────────────────────────
 
-  /** Stored hashes per file — exact + whitespace-normalized. */
-  const fileState = new Map<string, { exact: string; norm: string }>();
+  /** Stored content per file for loop prevention and human change summaries. */
+  type FileState = { exact: string; norm: string; content: string };
+  const fileState = new Map<string, FileState>();
 
   function fileHash(content: string): string {
     return crypto.createHash("sha256").update(content).digest("hex");
@@ -33,9 +35,48 @@ export default function (pi: ExtensionAPI) {
       .digest("hex");
   }
 
+  function rememberFile(filePath: string, content: string): void {
+    fileState.set(filePath, {
+      exact: fileHash(content),
+      norm: normalizedHash(content),
+      content,
+    });
+  }
+
+  /** Summarize the changed line range so deletions become visible to Pi. */
+  function summarizeChange(previous: string | undefined, current: string): string {
+    if (previous === undefined) return "(initial document state)";
+
+    const before = previous.split(/\r?\n/);
+    const after = current.split(/\r?\n/);
+    let start = 0;
+    while (start < before.length && start < after.length && before[start] === after[start]) {
+      start++;
+    }
+
+    let beforeEnd = before.length;
+    let afterEnd = after.length;
+    while (beforeEnd > start && afterEnd > start && before[beforeEnd - 1] === after[afterEnd - 1]) {
+      beforeEnd--;
+      afterEnd--;
+    }
+
+    const removed = before.slice(start, beforeEnd).map((line) => `- ${line}`);
+    const added = after.slice(start, afterEnd).map((line) => `+ ${line}`);
+    const changes = [...removed, ...added];
+    const limit = 80;
+    if (changes.length > limit) {
+      return `${changes.slice(0, limit).join("\n")}\n... (${changes.length - limit} more changed lines)`;
+    }
+    return changes.length > 0 ? changes.join("\n") : "(content changed)";
+  }
+
   function isWorksheetPath(absPath: string): boolean {
-    const parts = absPath.replace(/\/$/, "").split(path.sep);
-    return parts.includes(WORKSHEETS_DIR) && absPath.endsWith(".md");
+    const normalizedPath = path.resolve(absPath);
+    const parts = normalizedPath.replace(/\/$/, "").split(path.sep);
+    return normalizedPath.endsWith(".md") && (
+      parts.includes(WORKSHEETS_DIR) || attachedFiles.has(normalizedPath)
+    );
   }
 
   // ── detect agent writes to .worksheets/ files ───────────────────────────
@@ -135,8 +176,17 @@ export default function (pi: ExtensionAPI) {
 
   // ── watch .worksheets/ for human edits ──────────────────────────────────
 
+  let watcherPaused = false;
+  let closeWatcher: (() => void) | null = null;
+  let rescanWatcher: (() => void) | null = null;
+  let attachWatcher: ((filePath: string) => boolean) | null = null;
+
   pi.on("session_start", (_event, ctx) => {
     const worksheetsAbs = path.resolve(WORKSHEETS_DIR);
+
+    // A reload can emit session_start more than once. Close the old watcher
+    // first so edits are never delivered twice.
+    closeWatcher?.();
 
     // Seed hashes for any existing files so we don't re-inject them
     seedExistingHashes(worksheetsAbs);
@@ -146,15 +196,16 @@ export default function (pi: ExtensionAPI) {
       fs.mkdirSync(worksheetsAbs, { recursive: true });
     }
 
-    // Watch the .worksheets/ directory
-    let debounce: ReturnType<typeof setTimeout> | null = null;
-    fs.watch(worksheetsAbs, (_eventType, filename) => {
-      if (!filename || !filename.endsWith(".md")) return;
+    const debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
+    const fileWatchers = new Map<string, fs.FSWatcher>();
 
-      // Guarded: an agent (this process or another) is writing.  Skip
-      // injection, BUT still update the stored hash so that any later
-      // spurious fs.watch event (after the guard drops) matches the new
-      // content instead of re-injecting the agent's own write.
+    const processChange = (filePath: string): void => {
+      if (watcherPaused) return;
+      const filename = path.relative(process.cwd(), filePath) || path.basename(filePath);
+
+      // Guarded: an agent (this process or another) is writing. Skip
+      // injection, but refresh the stored hash so a later fs.watch event
+      // cannot re-inject the agent's own write.
       if (worksheetGuard.active || fs.existsSync(SENTINEL)) {
         if (fs.existsSync(SENTINEL)) {
           try {
@@ -162,15 +213,10 @@ export default function (pi: ExtensionAPI) {
             if (age >= 30_000) {
               fs.unlinkSync(SENTINEL); // stale lock from a crashed process
             } else {
-              // Live guard — refresh our hash for this file and bail.
-              const filePath = path.join(worksheetsAbs, filename);
               try {
                 const content = fs.readFileSync(filePath, "utf-8");
                 if (content.trim()) {
-                  fileState.set(filePath, {
-                    exact: fileHash(content),
-                    norm: normalizedHash(content),
-                  });
+                  rememberFile(filePath, content);
                 }
               } catch { /* raced */ }
               return;
@@ -183,9 +229,11 @@ export default function (pi: ExtensionAPI) {
         }
       }
 
-      if (debounce) clearTimeout(debounce);
-      debounce = setTimeout(() => {
-        const filePath = path.join(worksheetsAbs, filename);
+      const previousTimer = debounceTimers.get(filePath);
+      if (previousTimer) clearTimeout(previousTimer);
+      debounceTimers.set(filePath, setTimeout(() => {
+        debounceTimers.delete(filePath);
+        if (watcherPaused) return;
         try {
           if (!fs.existsSync(filePath)) return;
           const content = fs.readFileSync(filePath, "utf-8");
@@ -200,25 +248,76 @@ export default function (pi: ExtensionAPI) {
 
           // Only whitespace/formatting changed — update hash, don't inject
           if (prev && prev.norm === norm) {
-            fileState.set(filePath, { exact, norm });
+            rememberFile(filePath, content);
             return;
           }
 
-          fileState.set(filePath, { exact, norm });
-
+          const changeSummary = summarizeChange(prev?.content, content);
+          rememberFile(filePath, content);
           pi.sendUserMessage(
-            `[Worksheet update — ${filename}]\n\n${content}`,
+            `[Worksheet update — ${filename}]\n\nChanges since the last state:\n${changeSummary}\n\nCurrent document:\n${content}`,
             { deliverAs: "steer" },
           );
         } catch {
           // raced — file may have been removed
         }
-      }, 400);
+      }, 400));
+    };
+
+    const scheduleAllFiles = (): void => {
+      try {
+        for (const entry of fs.readdirSync(worksheetsAbs)) {
+          if (entry.endsWith(".md")) processChange(path.join(worksheetsAbs, entry));
+        }
+        for (const filePath of attachedFiles) processChange(filePath);
+      } catch {
+        // directory may have been removed during reload
+      }
+    };
+
+    const watcher = fs.watch(worksheetsAbs, (_eventType, filename) => {
+      const name = filename?.toString();
+      if (name?.endsWith(".md")) processChange(path.join(worksheetsAbs, name));
     });
 
+    const watchAttachedFile = (filePath: string): boolean => {
+      if (!filePath.endsWith(".md") || !fs.existsSync(filePath)) return false;
+      attachedFiles.add(filePath);
+      if (!fileWatchers.has(filePath)) {
+        fileWatchers.set(filePath, fs.watch(filePath, () => processChange(filePath)));
+        try {
+          rememberFile(filePath, fs.readFileSync(filePath, "utf-8"));
+        } catch {
+          // file may have disappeared between existsSync and readFileSync
+        }
+      }
+      return true;
+    };
+
+    for (const filePath of attachedFiles) watchAttachedFile(filePath);
+    attachWatcher = watchAttachedFile;
+    rescanWatcher = scheduleAllFiles;
+    closeWatcher = () => {
+      watcher.close();
+      for (const fileWatcher of fileWatchers.values()) fileWatcher.close();
+      fileWatchers.clear();
+      for (const timer of debounceTimers.values()) clearTimeout(timer);
+      debounceTimers.clear();
+      if (rescanWatcher === scheduleAllFiles) rescanWatcher = null;
+      attachWatcher = null;
+      closeWatcher = null;
+    };
+
     if (ctx.hasUI) {
-      ctx.ui.notify(`📄 Watching ${WORKSHEETS_DIR}/`, "info");
+      const state = watcherPaused ? "paused" : "watching";
+      ctx.ui.notify(`📄 ${state} ${WORKSHEETS_DIR}/`, "info");
     }
+  });
+
+  pi.on("session_shutdown", () => {
+    closeWatcher?.();
+    closeWatcher = null;
+    rescanWatcher = null;
   });
 
   function seedExistingHashes(dir: string): void {
@@ -227,10 +326,7 @@ export default function (pi: ExtensionAPI) {
         const p = path.join(dir, entry);
         if (entry.endsWith(".md") && fs.statSync(p).isFile()) {
           const content = fs.readFileSync(p, "utf-8");
-          fileState.set(p, {
-            exact: fileHash(content),
-            norm: normalizedHash(content),
-          });
+          rememberFile(p, content);
         }
       }
     } catch {
@@ -286,8 +382,18 @@ export default function (pi: ExtensionAPI) {
 ## Task
 ${task}
 
+## Human notes
+<!-- Add goals, constraints, feedback, or a requested action here. -->
+
+## Todos
+- [ ] Define the next concrete step
+
 ## Progress
 - Started
+
+## Findings
+
+## Decisions
 
 ## Questions / Next steps
 
@@ -335,14 +441,16 @@ ${task}
   // Subcommand list shared between autocomplete and the usage hint.
   const SUBCOMMANDS: { value: string; label: string; description: string }[] = [
     { value: "start", label: "start", description: "Create a new worksheet and open it in a split" },
+    { value: "attach", label: "attach", description: "Watch an existing Markdown file" },
     { value: "open", label: "open", description: "Open the latest worksheet in a split" },
     { value: "path", label: "path", description: "Show the latest worksheet path" },
     { value: "status", label: "status", description: "Show watcher status and latest worksheet" },
-    { value: "pause", label: "pause", description: "Pause the worksheet loop (reload to resume)" },
+    { value: "pause", label: "pause", description: "Pause the worksheet loop" },
+    { value: "resume", label: "resume", description: "Resume and scan for worksheet changes" },
   ];
 
   pi.registerCommand("worksheet", {
-    description: "Control the worksheet loop. Subcommands: start, open, path, status, pause",
+    description: "Control the worksheet loop. Subcommands: start, attach, open, path, status, pause, resume",
     getArgumentCompletions: (prefix: string): AutocompleteItem[] | null => {
       const filtered = SUBCOMMANDS.filter((s) => s.value.startsWith(prefix));
       return filtered.length > 0 ? filtered : null;
@@ -387,10 +495,7 @@ ${task}
           fs.writeFileSync(wsPath, worksheetTemplate(title, task), "utf-8");
           // Seed the hash so the agent's own create doesn't trigger injection.
           const content = fs.readFileSync(wsPath, "utf-8");
-          fileState.set(wsPath, {
-            exact: fileHash(content),
-            norm: normalizedHash(content),
-          });
+          rememberFile(wsPath, content);
         } catch (err) {
           ctx.ui.notify(`Failed to create worksheet: ${(err as Error).message}`, "error");
           return;
@@ -399,6 +504,26 @@ ${task}
         const rel = path.relative(process.cwd(), wsPath);
         ctx.ui.notify(`📄 Created ${rel}`, "info");
         await openInSplit(wsPath, ctx);
+        return;
+      }
+
+      // ── /worksheet attach <path> ────────────────────────────────────────
+      if (sub === "attach") {
+        const target = rest.join(" ").trim();
+        if (!target) {
+          ctx.ui.notify("Usage: /worksheet attach path/to/document.md", "warning");
+          return;
+        }
+        const filePath = path.resolve(target);
+        if (!filePath.endsWith(".md")) {
+          ctx.ui.notify("Only Markdown files can be attached", "warning");
+          return;
+        }
+        if (!attachWatcher?.(filePath)) {
+          ctx.ui.notify(`Cannot attach missing file: ${target}`, "warning");
+          return;
+        }
+        ctx.ui.notify(`📎 Attached ${path.relative(process.cwd(), filePath)}`, "info");
         return;
       }
 
@@ -422,16 +547,29 @@ ${task}
 
       // ── /worksheet pause|off ───────────────────────────────────────────
       if (sub === "off" || sub === "pause") {
-        ctx.ui.notify("⏸ Worksheet loop paused (reload to resume)", "info");
+        watcherPaused = true;
+        ctx.ui.notify("⏸ Worksheet loop paused", "info");
+        return;
+      }
+
+      // ── /worksheet resume|on ───────────────────────────────────────────
+      if (sub === "on" || sub === "resume") {
+        watcherPaused = false;
+        rescanWatcher?.();
+        ctx.ui.notify("▶ Worksheet loop resumed", "info");
         return;
       }
 
       // ── /worksheet status ──────────────────────────────────────────────
       if (sub === "status") {
         const latest = latestWorksheet();
+        const state = watcherPaused ? "paused" : "watching";
+        const attached = attachedFiles.size > 0
+          ? ` — attached: ${attachedFiles.size}`
+          : "";
         const info = latest
-          ? `Watching ${path.resolve(WORKSHEETS_DIR)}/ — latest: ${path.basename(latest)}`
-          : `Watching ${path.resolve(WORKSHEETS_DIR)}/ — no worksheets yet`;
+          ? `${state} ${path.resolve(WORKSHEETS_DIR)}/ — latest: ${path.basename(latest)}${attached}`
+          : `${state} ${path.resolve(WORKSHEETS_DIR)}/ — no worksheets yet${attached}`;
         ctx.ui.notify(info, "info");
         return;
       }
