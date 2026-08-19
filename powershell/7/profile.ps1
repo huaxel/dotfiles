@@ -152,6 +152,8 @@ if (Get-Command just -ErrorAction SilentlyContinue) {
 # ============================
 $env:BAT_THEME = "tokyonight_night"
 $env:EZA_CONFIG_DIR = "$env:USERPROFILE\.config\eza"
+# Keep Pi's source-of-truth config in the dotfiles checkout, including auth.json.
+$env:PI_CODING_AGENT_DIR = "$env:USERPROFILE\dotfiles\pi\agent"
 
 # ============================
 # Window Title

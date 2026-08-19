@@ -42,5 +42,11 @@ function Sync-Dir {
     Write-Host "[OK] $Label synced to $TargetDir"
 }
 
+$PI_AGENT_DIR = if ($env:PI_CODING_AGENT_DIR) {
+    $env:PI_CODING_AGENT_DIR
+} else {
+    Join-Path $DOTFILES_DIR "pi\agent"
+}
+
 Sync-Dir -SourceDir (Join-Path $DOTFILES_DIR "skills") -TargetDir "$HOME\.agents\skills" -Label "skills"
-Sync-Dir -SourceDir (Join-Path $DOTFILES_DIR "pi/agent/extensions") -TargetDir "$HOME\.pi\agent\extensions" -Label "pi extensions"
+Sync-Dir -SourceDir (Join-Path $DOTFILES_DIR "pi/agent/extensions") -TargetDir (Join-Path $PI_AGENT_DIR "extensions") -Label "pi extensions"
