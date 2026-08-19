@@ -64,3 +64,11 @@ This is not a request to stream every keystroke or expose the model’s hidden i
 
 ### Markdown and attention design
 Markdown is robust enough as the human-facing medium, but not as the entire protocol. It needs a small convention layer for ownership, todos, questions, decisions, and durable progress. The larger UX risk is duplicate attention: substantive answers should have one canonical home in the worksheet, while the TUI should show compact status, blocking questions, errors, and explicit interruptions.
+
+### Prior art scan
+- `pi-watcher` is the closest Pi-native trigger model: saved `AI!`, `AI?`, and `AI.` comments dispatch focused work, with queueing and loop prevention.
+- `pi-simplewatcher` provides active/passive filesystem watches, especially for agent inboxes, but does not define a document collaboration protocol.
+- `pi-doc-review` provides a Markdown review window with comments and raw edits, but is review-oriented rather than a persistent task workspace.
+- `pi-plan-extension` persists plans and tracks checklist execution, but remains plan-mode oriented.
+- Outside Pi, Cairn and agent-work-mem explore Markdown files as shared agent/human state; Moment is a fuller collaborative Markdown workspace with embedded agents.
+- No single Pi package found combines editor-agnostic shared documents, saved-revision steering, bidirectional writes, durable task semantics, and TUI attention routing.
