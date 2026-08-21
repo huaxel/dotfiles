@@ -44,12 +44,12 @@
     "../packages/pi-multi-opencode-go",
     "../packages/pi-dynamic-footer",
     "../packages/pi-ghostty-theme-sync",
-    "npm:@amaster.ai/pi-computer-use",
     "npm:pi-cursor-sdk",
     "git:github.com/huaxel/pi-ask-herdr",
     "npm:pi-provider-openference",
     "npm:@howaboua/pi-shepherdr",
-    "../packages/pi-agy"
+    "../packages/pi-agy",
+    "npm:pi-context-view"
   ],
   "extensions": [
     "-extensions/nan.ts"
