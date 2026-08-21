@@ -341,3 +341,18 @@ every open). Fixed, then hardened the whole setup.
 ### Improvements for next time
 - Add focused tests for document diffs, ownership boundaries, comments, and todo transitions.
 - Keep the terminal transcript as an execution log while moving durable collaboration state into the document.
+
+## 2026-08-21: AltGr grave accent conflict
+
+### What went well
+- Comparing the working AltGr mappings with the broken R mapping isolated the issue to GlazeWM's `ralt+` and `ctrl+ralt+` bindings.
+- Removing those bindings preserved left-Alt window-manager shortcuts while freeing Right Alt for AutoHotkey.
+
+### What was frustrating / slow
+- The initial diagnosis focused too long on Colemak scan-code and InputHook behavior before checking the window-manager configuration.
+
+### What config change would have helped
+- Document that Right Alt/AltGr is reserved for the AutoHotkey multilingual layer and must not be registered by GlazeWM.
+
+### Improvements for next time
+- Cross-check global hotkey consumers early when one scan-code mapping fails while neighboring mappings work.
