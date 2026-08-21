@@ -158,7 +158,7 @@ binding_modes:
       - commands: ["resize --height -50px"]
         bindings: ["down"]
       - commands: ["wm-disable-binding-mode --name resize"]
-        bindings: ["escape", "enter", "alt+r", "ralt+r", "ctrl+ralt+r"]
+        bindings: ["escape", "enter", "alt+r"]
 
   # Service mode: Alt+Semicolon to enter, Esc to exit
   - name: "service"
@@ -191,112 +191,112 @@ binding_modes:
 keybindings:
   # ---- Focus (Alt + arrows) ----
   - commands: ["focus --direction left"]
-    bindings: ["alt+left", "ralt+left", "ctrl+ralt+left"]
+    bindings: ["alt+left"]
   - commands: ["focus --direction right"]
-    bindings: ["alt+right", "ralt+right", "ctrl+ralt+right"]
+    bindings: ["alt+right"]
   - commands: ["focus --direction up"]
-    bindings: ["alt+up", "ralt+up", "ctrl+ralt+up"]
+    bindings: ["alt+up"]
   - commands: ["focus --direction down"]
-    bindings: ["alt+down", "ralt+down", "ctrl+ralt+down"]
+    bindings: ["alt+down"]
 
   # ---- Move window (Alt + Shift + arrows) ----
   - commands: ["move --direction left"]
-    bindings: ["alt+shift+left", "ralt+shift+left", "ctrl+ralt+shift+left"]
+    bindings: ["alt+shift+left"]
   - commands: ["move --direction right"]
-    bindings: ["alt+shift+right", "ralt+shift+right", "ctrl+ralt+shift+right"]
+    bindings: ["alt+shift+right"]
   - commands: ["move --direction up"]
-    bindings: ["alt+shift+up", "ralt+shift+up", "ctrl+ralt+shift+up"]
+    bindings: ["alt+shift+up"]
   - commands: ["move --direction down"]
-    bindings: ["alt+shift+down", "ralt+shift+down", "ctrl+ralt+shift+down"]
+    bindings: ["alt+shift+down"]
 
   # ---- Resize (Alt + minus/equal) — matches AeroSpace's resize smart ±50 ----
   - commands: ["resize --width -50px"]
-    bindings: ["alt+-", "ralt+-", "ctrl+ralt+-"]
+    bindings: ["alt+-"]
   - commands: ["resize --width +50px"]
-    bindings: ["alt+=", "ralt+=", "ctrl+ralt+="]
+    bindings: ["alt+="]
 
   # ---- Enter resize mode (Alt + R) ----
   - commands: ["wm-enable-binding-mode --name resize"]
-    bindings: ["alt+r", "ralt+r", "ctrl+ralt+r"]
+    bindings: ["alt+r"]
 
   # ---- Reload config (Alt + Shift + R) ----
   - commands: ["wm-reload-config"]
-    bindings: ["alt+shift+r", "ralt+shift+r", "ctrl+ralt+shift+r"]
+    bindings: ["alt+shift+r"]
 
   # ---- Redraw / re-tile all windows (Alt + Shift + W) ----
   - commands: ["wm-redraw"]
-    bindings: ["alt+shift+w", "ralt+shift+w", "ctrl+ralt+shift+w"]
+    bindings: ["alt+shift+w"]
 
   # ---- Switch workspace (Alt + 1-8) ----
   - commands: ["focus --workspace 1"]
-    bindings: ["alt+1", "ralt+1", "ctrl+ralt+1"]
+    bindings: ["alt+1"]
   - commands: ["focus --workspace 2"]
-    bindings: ["alt+2", "ralt+2", "ctrl+ralt+2"]
+    bindings: ["alt+2"]
   - commands: ["focus --workspace 3"]
-    bindings: ["alt+3", "ralt+3", "ctrl+ralt+3"]
+    bindings: ["alt+3"]
   - commands: ["focus --workspace 4"]
-    bindings: ["alt+4", "ralt+4", "ctrl+ralt+4"]
+    bindings: ["alt+4"]
   - commands: ["focus --workspace 5"]
-    bindings: ["alt+5", "ralt+5", "ctrl+ralt+5"]
+    bindings: ["alt+5"]
   - commands: ["focus --workspace 6"]
-    bindings: ["alt+6", "ralt+6", "ctrl+ralt+6"]
+    bindings: ["alt+6"]
   - commands: ["focus --workspace 7"]
-    bindings: ["alt+7", "ralt+7", "ctrl+ralt+7"]
+    bindings: ["alt+7"]
   - commands: ["focus --workspace 8"]
-    bindings: ["alt+8", "ralt+8", "ctrl+ralt+8"]
+    bindings: ["alt+8"]
 
   # ---- Move window to workspace (Alt + Shift + 1-8) ----
   - commands: ["move --workspace 1", "focus --workspace 1"]
-    bindings: ["alt+shift+1", "ralt+shift+1", "ctrl+ralt+shift+1"]
+    bindings: ["alt+shift+1"]
   - commands: ["move --workspace 2", "focus --workspace 2"]
-    bindings: ["alt+shift+2", "ralt+shift+2", "ctrl+ralt+shift+2"]
+    bindings: ["alt+shift+2"]
   - commands: ["move --workspace 3", "focus --workspace 3"]
-    bindings: ["alt+shift+3", "ralt+shift+3", "ctrl+ralt+shift+3"]
+    bindings: ["alt+shift+3"]
   - commands: ["move --workspace 4", "focus --workspace 4"]
-    bindings: ["alt+shift+4", "ralt+shift+4", "ctrl+ralt+shift+4"]
+    bindings: ["alt+shift+4"]
   - commands: ["move --workspace 5", "focus --workspace 5"]
-    bindings: ["alt+shift+5", "ralt+shift+5", "ctrl+ralt+shift+5"]
+    bindings: ["alt+shift+5"]
   - commands: ["move --workspace 6", "focus --workspace 6"]
-    bindings: ["alt+shift+6", "ralt+shift+6", "ctrl+ralt+shift+6"]
+    bindings: ["alt+shift+6"]
   - commands: ["move --workspace 7", "focus --workspace 7"]
-    bindings: ["alt+shift+7", "ralt+shift+7", "ctrl+ralt+shift+7"]
+    bindings: ["alt+shift+7"]
   - commands: ["move --workspace 8", "focus --workspace 8"]
-    bindings: ["alt+shift+8", "ralt+shift+8", "ctrl+ralt+shift+8"]
+    bindings: ["alt+shift+8"]
 
   # ---- Workspace back-and-forth (Alt + Tab) ----
   - commands: ["focus --recent-workspace"]
-    bindings: ["alt+tab", "ralt+tab", "ctrl+ralt+tab"]
+    bindings: ["alt+tab"]
 
   # ---- Move workspace to next monitor (Alt + Shift + Tab) ----
   - commands: ["move-workspace --direction right"]
-    bindings: ["alt+shift+tab", "ralt+shift+tab", "ctrl+ralt+shift+tab"]
+    bindings: ["alt+shift+tab"]
 
   # ---- Open terminal (Alt + Enter) ----
   - commands: ["shell-exec wt"]
-    bindings: ["alt+enter", "ralt+enter", "ctrl+ralt+enter"]
+    bindings: ["alt+enter"]
 
   # ---- Layout toggle (Alt + Slash → tiles, Alt + Comma → accordion approximation) ----
   # GlazeWM doesn't have accordion, but toggle-tiling-direction switches split orientation
   - commands: ["toggle-tiling-direction"]
-    bindings: ["alt+slash", "alt+comma", "ralt+slash", "ralt+comma", "ctrl+ralt+slash", "ctrl+ralt+comma"]
+    bindings: ["alt+slash", "alt+comma"]
 
   # ---- Service mode (Alt + Shift + Semicolon) ----
   - commands: ["wm-enable-binding-mode --name service"]
-    bindings: ["alt+shift+;", "ralt+shift+;", "ctrl+ralt+shift+;"]
+    bindings: ["alt+shift+;"]
 
   # ---- Extra useful bindings ----
   # Toggle floating (Alt + Shift + Space)
   - commands: ["toggle-floating --centered"]
-    bindings: ["alt+shift+space", "ralt+shift+space", "ctrl+ralt+shift+space"]
+    bindings: ["alt+shift+space"]
 
   # Toggle fullscreen (Alt + F)
   - commands: ["toggle-fullscreen"]
-    bindings: ["alt+f", "ralt+f", "ctrl+ralt+f"]
+    bindings: ["alt+f"]
 
   # Close window (Alt + Shift + Q)
   - commands: ["close"]
-    bindings: ["alt+shift+q", "ralt+shift+q", "ctrl+ralt+shift+q"]
+    bindings: ["alt+shift+q"]
 
   # Kill GlazeWM (Alt + Shift + E)
   - commands: ["wm-exit"]
-    bindings: ["alt+shift+e", "ralt+shift+e", "ctrl+ralt+shift+e"]
+    bindings: ["alt+shift+e"]
