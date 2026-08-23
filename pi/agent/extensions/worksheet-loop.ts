@@ -46,6 +46,23 @@ export function buildSystemPrompt(
   return out;
 }
 
+/**
+ * M3 attention routing — build the steering message for a saved worksheet
+ * change.  In document-first mode the TUI gets a compact pointer and the
+ * document carries the detail (no duplication); in normal mode the full
+ * section diff is steered for inspection.  Pure and unit-testable.
+ */
+export function buildSteeringMessage(
+  filename: string,
+  changeSummary: string,
+  documentFirst: boolean,
+): string {
+  if (documentFirst) {
+    return `[Worksheet update — ${filename}] Saved changes. Open the worksheet for the section diff and current state.`;
+  }
+  return `[Worksheet update — ${filename}]\n\nSaved human changes in focused Markdown sections:\n${changeSummary}\n\nThe full document remains at ${filename}; read it if broader context is needed.`;
+}
+
 export type BlockRecord = { id: string; heading: string; body: string };
 export type BlockSection = { heading: string; body: string };
 
@@ -664,10 +681,9 @@ export default function (pi: ExtensionAPI) {
         try {
           const changeSummary = recordRevision(filePath, "human");
           if (!changeSummary) return;
-          pi.sendUserMessage(
-            `[Worksheet update — ${filename}]\n\nSaved human changes in focused Markdown sections:\n${changeSummary}\n\nThe full document remains at ${filename}; read it if broader context is needed.`,
-            { deliverAs: "steer" },
-          );
+          // M3 attention routing: in document-first mode the TUI gets a compact
+          // pointer and the worksheet carries the detail (no duplication).
+          pi.sendUserMessage(buildSteeringMessage(filename, changeSummary, documentFirst), { deliverAs: "steer" });
           setWorksheetStatus(ctx);
         } catch {
           // raced — file may have been removed

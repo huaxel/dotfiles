@@ -21,6 +21,8 @@ The M3 footer status (`ui.setStatus("worksheet", ...)`) begins the attention spl
 
 Document-first mode (`/worksheet mode on|off`, default on when a worksheet exists) enforces the split at the prompt level: when on, a `DOCUMENT_FIRST_DIRECTIVE` is appended to the system prompt instructing Pi to keep findings/decisions/progress in the worksheet, use the TUI for compact status/errors/blocking questions, and never duplicate the same full answer in both channels. The directive is built by the pure `buildSystemPrompt(base, {documentFirst, skillContent})` helper, so routing policy is unit-testable without booting the extension.
 
+Attention routing is enforced at the transport level too: in document-first mode the steering message for a saved worksheet change is a compact pointer (`[Worksheet update — file] Saved changes. Open the worksheet…`) instead of inlining the section diff. The diff is still recorded in the audit event (`ops`) and the full document stays authoritative; the TUI simply stops duplicating it. The pure `buildSteeringMessage(filename, summary, documentFirst)` helper keeps this logic unit-testable.
+
 ## Markdown contract
 
 Markdown is the human-facing medium. It is portable, inspectable, searchable, editor-agnostic, and independent of Git. It is not the entire protocol; the extension supplies revision tracking, ownership, debouncing, loop prevention, and change summaries.

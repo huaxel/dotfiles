@@ -22,12 +22,12 @@
 - [x] Durable audit sidecar per worksheet (`.history/<id>/events.jsonl`) with revision id, parent, actor, changed sections, operation summary, conversation/turn id.
 - [x] Stable block identities reconciled across saves via content+heading similarity, stored out-of-band (`block-ids.json`).
 - [x] Formal spec for the section-aware update format (`SECTION-AWARE-FORMAT.md`).
-## M3 — Attention routing ⬜
+## M3 — Attention routing ✅
 
 - [x] Define a document-first mode versus normal chat mode (`/worksheet mode on|off`; default on when a worksheet exists).
-- [ ] Make substantive Pi responses canonical in the worksheet.
-- [ ] Reduce the TUI to status, execution, errors, blocking questions, and interruptions.
-- [ ] Avoid duplicating full answers in both channels.
+- [x] Make substantive Pi responses canonical in the worksheet (document-first directive routes findings/decisions/progress to the worksheet).
+- [x] Reduce the TUI to status, execution, errors, blocking questions, and interruptions (compact steering message in document-first mode points at the worksheet instead of inlining the diff).
+- [x] Avoid duplicating full answers in both channels (compact steering message + directive both forbid inlining).
 - [x] Prototype compact status and document pointers in the footer (worksheet watcher state + open todo/question counts via `ui.setStatus`).
 
 ## M4 — Real workflow validation ⬜

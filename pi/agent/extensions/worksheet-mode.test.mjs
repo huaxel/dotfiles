@@ -4,7 +4,7 @@ import { register } from "node:module";
 
 register(new URL("./pi-resolve-hook.mjs", import.meta.url), import.meta.url);
 
-const { DOCUMENT_FIRST_DIRECTIVE, buildSystemPrompt } = await import(new URL("./worksheet-loop.ts", import.meta.url));
+const { DOCUMENT_FIRST_DIRECTIVE, buildSystemPrompt, buildSteeringMessage } = await import(new URL("./worksheet-loop.ts", import.meta.url));
 
 const assert = (cond, msg) => { if (!cond) throw new Error(msg); };
 
@@ -31,6 +31,19 @@ assert(DOCUMENT_FIRST_DIRECTIVE.includes("Do not duplicate"), "directive forbids
 {
   const out = buildSystemPrompt("base", { documentFirst: false, skillContent: "" });
   assert(out === "base", "no skill, no directive -> unchanged");
+}
+
+// ── compact vs full steering message (no TUI duplication) ────────────────
+
+{
+  const doc = buildSteeringMessage("ws-a.md", "## Progress\n...", true);
+  assert(!doc.includes("## Progress"), "document-first: section diff NOT inlined");
+  assert(doc.includes("Open the worksheet"), "document-first: points at the worksheet");
+}
+{
+  const full = buildSteeringMessage("ws-a.md", "## Progress\n...", false);
+  assert(full.includes("## Progress"), "normal mode: full section diff inlined");
+  assert(full.includes("full document remains"), "normal mode: points at full document");
 }
 
 console.log("worksheet document-first mode tests passed");
