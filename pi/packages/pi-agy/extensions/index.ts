@@ -20,6 +20,12 @@ const MAX_OUTPUT_CHARS = 8000;
 const DEFAULT_TIMEOUT_MS = 300_000;
 const MAX_TIMEOUT_MS = 600_000;
 
+type AgyMode = "plan" | "accept-edits" | "sandbox";
+
+export function resolveAgyMode(mode?: AgyMode): AgyMode {
+  return mode ?? "plan";
+}
+
 export function truncate(text: string, max = MAX_OUTPUT_CHARS): string {
   if (text.length <= max) return text;
   if (max <= 0) return "";
@@ -90,7 +96,7 @@ export default function piAgyExtension(pi: ExtensionAPI) {
       mode: Type.Optional(
         Type.Union(
           [Type.Literal("accept-edits"), Type.Literal("plan"), Type.Literal("sandbox")],
-          { description: "'accept-edits' (default), 'plan', or 'sandbox'.", default: "accept-edits" },
+          { description: "'plan' (default), 'accept-edits', or 'sandbox'.", default: "plan" },
         ),
       ),
       dir: Type.Optional(
@@ -138,7 +144,9 @@ export default function piAgyExtension(pi: ExtensionAPI) {
       const cwd = params.dir ? path.resolve(ctx.cwd, params.dir) : ctx.cwd;
       const abortSignal = signal ?? new AbortController().signal;
       const timeoutMs = Math.min(params.timeout_ms ?? DEFAULT_TIMEOUT_MS, MAX_TIMEOUT_MS);
-      const mode = params.mode ?? "accept-edits";
+      // Planning is the safe default for an LLM-invoked tool. Callers must
+      // explicitly opt into filesystem writes with accept-edits.
+      const mode = resolveAgyMode(params.mode);
       const model = params.model as AgyModel | undefined;
 
       return withDirLock(cwd, async () => {
