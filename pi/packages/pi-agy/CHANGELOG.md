@@ -9,6 +9,7 @@
 - Accept explicit `/agy accept-edits ...` mode prefixes.
 - Preserve multiline prompt formatting in `/agy` command arguments.
 - Include staged files in postflight change summaries and preserve response endings when truncating output.
+- Serialize session-store updates, write atomically, and keep conversation IDs in a private file.
 
 ## 0.4.0
 

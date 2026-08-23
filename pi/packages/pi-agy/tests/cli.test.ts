@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdtemp, stat as statFile, writeFile } from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { promisify } from "node:util";
@@ -21,6 +21,7 @@ import {
 } from "../extensions/lib/stream.js";
 import { parseJsonResponse } from "../extensions/lib/parse.js";
 import { parseAgyCommandArgs } from "../extensions/commands.js";
+import { createSessionStore } from "../extensions/lib/sessions.js";
 
 describe("buildAgyArgs", () => {
   it("uses stream-json for plan mode", () => {
@@ -248,6 +249,23 @@ describe("parseJsonResponse", () => {
   it("falls back when response is not text", () => {
     const raw = JSON.stringify({ response: { text: "hello" } });
     assert.equal(parseJsonResponse(raw), raw);
+  });
+});
+
+describe("session store", () => {
+  it("serializes concurrent updates and writes a private file", async () => {
+    const tmp = await mkdtemp(path.join(os.tmpdir(), "pi-agy-sessions-"));
+    const store = createSessionStore(path.join(tmp, "agy-sessions.json"));
+
+    await Promise.all([
+      store.saveSession("/project-a", "conversation-a", "flash-medium"),
+      store.saveSession("/project-b", "conversation-b", "sonnet"),
+    ]);
+
+    assert.equal((await store.getSession("/project-a"))?.last_conversation_id, "conversation-a");
+    assert.equal((await store.getSession("/project-b"))?.last_conversation_id, "conversation-b");
+    const mode = (await statFile(path.join(tmp, "agy-sessions.json"))).mode & 0o777;
+    assert.equal(mode, 0o600);
   });
 });
 
