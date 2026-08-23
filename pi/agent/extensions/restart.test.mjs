@@ -1,4 +1,5 @@
 // Behavioral tests for restart.ts pure helpers. Run: node pi/agent/extensions/restart.test.mjs
+import { makePiHarness, assert } from "./pi-test-harness.mjs";
 import { register } from "node:module";
 
 register(new URL("./pi-resolve-hook.mjs", import.meta.url), import.meta.url);
@@ -6,10 +7,6 @@ register(new URL("./pi-resolve-hook.mjs", import.meta.url), import.meta.url);
 const { default: restart, extractHandoffText } = await import(new URL("./restart.ts", import.meta.url));
 const { initTheme } = await import("@earendil-works/pi-coding-agent");
 initTheme();
-
-const assert = (condition, message) => {
-  if (!condition) throw new Error(message);
-};
 
 assert(
   extractHandoffText({
@@ -40,9 +37,7 @@ assert(
 );
 
 function makeHarness({ completion, selectChoice, editorText = "" } = {}) {
-  const events = new Map();
-  const commands = new Map();
-  const shortcuts = new Map();
+  const harness = makePiHarness();
   const notifications = [];
   const completeOptions = [];
   const completeContexts = [];
@@ -116,17 +111,15 @@ function makeHarness({ completion, selectChoice, editorText = "" } = {}) {
     },
   };
 
-  const pi = {
-    on: (name, handler) => events.set(name, handler),
-    registerCommand: (name, definition) => commands.set(name, definition.handler),
-    registerShortcut: (name, definition) => shortcuts.set(name, definition.handler),
-  };
-  restart(pi);
+  // Install restart onto the shared harness mock (pi.on/registerCommand/
+  // registerShortcut/sendUserMessage) instead of duplicating the mock.
+  restart(harness.pi);
   return {
     ctx,
-    commands,
-    shortcuts,
-    events,
+    commands: harness.commands,
+    shortcuts: harness.shortcuts,
+    events: harness.handlers,
+    drive: harness.drive,
     notifications,
     completeOptions,
     completeContexts,
@@ -172,8 +165,8 @@ function makeHarness({ completion, selectChoice, editorText = "" } = {}) {
 
 {
   const h = makeHarness({ selectChoice: undefined });
-  await h.events.get("turn_end")({}, h.ctx);
-  await h.events.get("turn_end")({}, h.ctx);
+  await h.drive("turn_end", {}, h.ctx);
+  await h.drive("turn_end", {}, h.ctx);
   assert(h.getSelectCount() === 1, "dismissed guard does not reopen at the same percentage");
 }
 
