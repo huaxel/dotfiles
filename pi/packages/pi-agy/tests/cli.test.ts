@@ -206,9 +206,9 @@ describe("summarizeGitDiff", () => {
 });
 
 describe("resolveAgyMode", () => {
-  it("defaults direct tool calls to plan", () => {
-    assert.equal(resolveAgyMode(), "plan");
-    assert.equal(resolveAgyMode("accept-edits"), "accept-edits");
+  it("defaults direct tool calls to accept-edits", () => {
+    assert.equal(resolveAgyMode(), "accept-edits");
+    assert.equal(resolveAgyMode("plan"), "plan");
   });
 });
 
