@@ -41,5 +41,6 @@ Useful commands:
 - `AGENTS.md` — instructions for future sessions working in this directory
 - `SECTION-AWARE-FORMAT.md` — the section-aware update format spec (wire shape, change detection, audit schema)
 - `FAILURE-MODES.md` — M4 failure modes and recovery playbook (diagnose/recover common failure states)
+- `RESEARCH.md` — research follow-up findings (pi-watcher semantics, Cairn archive/conventions, pi-doc-review fit)
 
 Read those files before making changes here. Update the roadmap and decisions as the design evolves.
