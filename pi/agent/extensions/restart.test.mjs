@@ -123,6 +123,7 @@ function makeHarness({ completion, selectChoice, editorText = "" } = {}) {
   assert(h.sent[0] === "## Task\nContinue", "generated handoff is sent to the replacement session");
   assert(h.completeOptions[0].signal instanceof AbortSignal, "completion receives cancellation signal");
   assert(!("apiKey" in h.completeOptions[0]), "completion uses registry-managed authentication");
+  assert(h.completeOptions[0].maxTokens === 2048, "handoff completion has a bounded output budget");
   const handoffInput = h.completeContexts[0].messages[0].content[0].text;
   assert(handoffInput.includes("<conversation-history>"), "handoff history has an explicit boundary");
   assert(handoffInput.includes("<goal>\nkeep going\n</goal>"), "handoff goal has an explicit boundary");

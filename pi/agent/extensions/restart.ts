@@ -154,7 +154,7 @@ export default function (pi: ExtensionAPI) {
             ctx.modelRegistry.complete(
               model,
               { systemPrompt: SYSTEM_PROMPT, messages: [userMsg] },
-              { signal: loader.signal, cacheRetention: "none", sessionId: uuidv7() },
+              { signal: loader.signal, cacheRetention: "none", maxTokens: 2048, sessionId: uuidv7() },
             ),
           )
           .then((response) => {
