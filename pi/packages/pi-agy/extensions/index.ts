@@ -203,7 +203,7 @@ export default function piAgyExtension(pi: ExtensionAPI) {
           content: [{ type: "text", text: truncate(text || "(empty response)") }],
           details,
         };
-      });
+      }, abortSignal);
     },
   });
 }

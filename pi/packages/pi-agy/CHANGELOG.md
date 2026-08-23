@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Keep sandbox runs behind agy permission checks instead of bypassing them.
+- Make streamed result statuses visible in progress updates.
+- Preserve clean successful responses when agy emits stderr diagnostics.
+- Allow queued calls to cancel without blocking later runs in the same directory.
+- Accept explicit `/agy accept-edits ...` mode prefixes.
+
 ## 0.4.0
 
 - Fork from `@bacnh85/pi-agy` 0.3.1 into dotfiles local package.

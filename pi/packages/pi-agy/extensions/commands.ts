@@ -35,19 +35,22 @@ const MODE_OPTIONS = [
   "sandbox — isolated preview",
 ];
 
+const MODE_KEYS = ["accept-edits", "plan", "sandbox"] as const;
+
 export interface AgyCommandArgs {
   mode?: "plan" | "accept-edits" | "sandbox";
   model?: AgyModel;
   prompt?: string;
 }
 
-/** Parse `/agy [plan|sandbox] [model] <prompt>` — e.g. `/agy flash fix git conflicts`. Only fills what was provided. */
+/** Parse `/agy [mode] [model] <prompt>` — e.g. `/agy flash fix git conflicts`. Only fills what was provided. */
 export function parseAgyCommandArgs(args: string): AgyCommandArgs {
   const tokens = args.trim().split(/\s+/).filter(Boolean);
   const parsed: AgyCommandArgs = {};
 
-  if (tokens[0] === "plan" || tokens[0] === "sandbox") {
-    parsed.mode = tokens.shift() as AgyCommandArgs["mode"];
+  const mode = tokens[0]?.toLowerCase();
+  if (mode && MODE_KEYS.includes(mode as (typeof MODE_KEYS)[number])) {
+    parsed.mode = tokens.shift()!.toLowerCase() as AgyCommandArgs["mode"];
   }
 
   if (tokens[0] && MODEL_ALIASES[tokens[0].toLowerCase()]) {
@@ -61,7 +64,7 @@ export function parseAgyCommandArgs(args: string): AgyCommandArgs {
 }
 
 /**
- * Register the human-callable `/agy [plan|sandbox] [model] <prompt>` command.
+ * Register the human-callable `/agy [mode] [model] <prompt>` command.
  *
  * The command is a thin shim: it fills missing args with dialogs, then delegates
  * to the existing `agy_execute` tool via a user message. The tool runs in the
@@ -71,16 +74,16 @@ export function parseAgyCommandArgs(args: string): AgyCommandArgs {
 export function registerAgyCommand(pi: ExtensionAPI): void {
   pi.registerCommand("agy", {
     description:
-      "Run agy via the agy_execute tool: /agy [plan|sandbox] [model] <prompt>. With missing parts, prompts interactively.",
+      "Run agy via the agy_execute tool: /agy [mode] [model] <prompt>. With missing parts, prompts interactively.",
     getArgumentCompletions: (prefix) => {
       const tokens = prefix.trim().split(/\s+/).filter(Boolean);
       const p = prefix.toLowerCase();
 
-      if (tokens.length === 1 && (tokens[0] === "plan" || tokens[0] === "sandbox")) {
+      if (tokens.length === 1 && MODE_KEYS.includes(tokens[0] as (typeof MODE_KEYS)[number])) {
         return MODEL_KEYS.map((k) => ({ value: k, label: k }));
       }
       if (tokens.length <= 1) {
-        const modes = ["plan", "sandbox"].filter((m) => m.startsWith(tokens[0] ?? ""));
+        const modes = MODE_KEYS.filter((m) => m.startsWith(tokens[0] ?? ""));
         const models = MODEL_KEYS.filter((k) => k.startsWith(p));
         return [
           ...modes.map((m) => ({ value: m, label: m })),

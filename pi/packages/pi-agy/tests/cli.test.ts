@@ -9,10 +9,12 @@ import { describe, it } from "node:test";
 const execAsync = promisify(execFile);
 
 import { buildAgyArgs, buildAgyPrompt } from "../extensions/lib/cli.js";
+import { withDirLock } from "../extensions/lib/lock.js";
 import { detectVerifyCommand } from "../extensions/lib/verify.js";
 import { summarizeGitDiff } from "../extensions/lib/postflight.js";
 import {
   accumulateRunResult,
+  finalizeRunResult,
   formatStepProgress,
   parseStreamLine,
 } from "../extensions/lib/stream.js";
@@ -51,6 +53,17 @@ describe("buildAgyArgs", () => {
       continue: true,
     });
     assert.ok(args.includes("--continue"));
+  });
+
+  it("does not bypass permissions inside the sandbox", () => {
+    const args = buildAgyArgs({
+      prompt: "preview",
+      mode: "sandbox",
+      dir: "/tmp",
+      timeout_ms: 60_000,
+    });
+    assert.ok(args.includes("--sandbox"));
+    assert.ok(!args.includes("--dangerously-skip-permissions"));
   });
 });
 
@@ -93,6 +106,26 @@ describe("stream parser", () => {
     );
     assert.ok(parsed);
     assert.equal(formatStepProgress(parsed!), "▸ write_to_file → /tmp/a.ts");
+  });
+
+  it("formats result progress", () => {
+    const parsed = parseStreamLine(
+      JSON.stringify({
+        event: "result",
+        result: { status: "SUCCESS", duration_seconds: 1.25 },
+      }),
+    );
+    assert.equal(formatStepProgress(parsed!), "agy: SUCCESS in 1.3s");
+  });
+
+  it("preserves metadata from plain JSON output", () => {
+    const out = finalizeRunResult(
+      JSON.stringify({ conversation_id: "id-2", response: "done", duration_seconds: 2 }),
+      { response: "" },
+    );
+    assert.equal(out.conversation_id, "id-2");
+    assert.equal(out.response, "done");
+    assert.equal(out.duration_seconds, 2);
   });
 
   it("accumulates result conversation id", () => {
@@ -161,6 +194,13 @@ describe("parseAgyCommandArgs", () => {
     assert.equal(parsed.prompt, "estimate the refactor");
   });
 
+  it("parses explicit accept-edits mode case-insensitively", () => {
+    const parsed = parseAgyCommandArgs("ACCEPT-EDITS flash implement the fix");
+    assert.equal(parsed.model, "flash-medium");
+    assert.equal(parsed.mode, "accept-edits");
+    assert.equal(parsed.prompt, "implement the fix");
+  });
+
   it("returns empty object for bare /agy", () => {
     const parsed = parseAgyCommandArgs("");
     assert.deepEqual(parsed, {});
@@ -170,5 +210,38 @@ describe("parseAgyCommandArgs", () => {
 describe("parseJsonResponse", () => {
   it("extracts response field", () => {
     assert.equal(parseJsonResponse(JSON.stringify({ response: "hello" })), "hello");
+  });
+
+  it("falls back when response is not text", () => {
+    const raw = JSON.stringify({ response: { text: "hello" } });
+    assert.equal(parseJsonResponse(raw), raw);
+  });
+});
+
+describe("withDirLock", () => {
+  it("allows a queued call to cancel without blocking later work", async () => {
+    let releaseFirst!: () => void;
+    let firstStarted!: () => void;
+    const started = new Promise<void>((resolve) => {
+      firstStarted = resolve;
+    });
+    const first = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+
+    const running = withDirLock("cancel-test", async () => {
+      firstStarted();
+      await first;
+    });
+    await started;
+
+    const controller = new AbortController();
+    const cancelled = withDirLock("cancel-test", async () => {}, controller.signal);
+    controller.abort();
+    await assert.rejects(cancelled, /cancelled while waiting/);
+
+    releaseFirst();
+    await running;
+    await withDirLock("cancel-test", async () => {});
   });
 });
