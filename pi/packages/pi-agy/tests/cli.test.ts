@@ -125,6 +125,12 @@ describe("stream parser", () => {
     assert.equal(formatStepProgress(parsed!), "▸ write_to_file → /tmp/a.ts");
   });
 
+  it("ignores non-object JSON lines", () => {
+    assert.equal(parseStreamLine("null"), null);
+    assert.equal(parseStreamLine("[1, 2, 3]"), null);
+    assert.equal(parseStreamLine('"text"'), null);
+  });
+
   it("formats result progress", () => {
     const parsed = parseStreamLine(
       JSON.stringify({
