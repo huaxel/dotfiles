@@ -66,10 +66,10 @@ function makeHarness({ completion, selectChoice, editorText = "" } = {}) {
       getSessionId: () => "restart-test",
     },
     modelRegistry: {
-      complete: async (_model, _context, options) => {
+      complete: (_model, _context, options) => {
         completeOptions.push(options);
         if (completion) return completion();
-        return { stopReason: "stop", content: [{ type: "text", text: "## Task\nContinue" }] };
+        return Promise.resolve({ stopReason: "stop", content: [{ type: "text", text: "## Task\nContinue" }] });
       },
     },
     ui: {
@@ -126,6 +126,12 @@ function makeHarness({ completion, selectChoice, editorText = "" } = {}) {
   const h = makeHarness({ completion: async () => ({ stopReason: "stop", content: [] }) });
   await h.commands.get("restart")("", h.ctx);
   assert(h.notifications.at(-1)?.type === "error", "empty completion is reported as an error");
+}
+
+{
+  const h = makeHarness({ completion: () => { throw new Error("sync failure"); } });
+  await h.commands.get("restart")("", h.ctx);
+  assert(h.notifications.at(-1)?.message.includes("sync failure"), "synchronous completion failure is reported");
 }
 
 {

@@ -144,11 +144,13 @@ export default function (pi: ExtensionAPI) {
           content: [{ type: "text", text: `## Conversation History\n\n${conversation}\n\n## Goal\n\n${goal}` }],
           timestamp: Date.now(),
         };
-        ctx.modelRegistry
-          .complete(
-            model,
-            { systemPrompt: SYSTEM_PROMPT, messages: [userMsg] },
-            { signal: loader.signal, cacheRetention: "none", sessionId: uuidv7() },
+        Promise.resolve()
+          .then(() =>
+            ctx.modelRegistry.complete(
+              model,
+              { systemPrompt: SYSTEM_PROMPT, messages: [userMsg] },
+              { signal: loader.signal, cacheRetention: "none", sessionId: uuidv7() },
+            ),
           )
           .then((response) => {
             const text = extractHandoffText(response);
