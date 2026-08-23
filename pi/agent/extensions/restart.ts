@@ -190,6 +190,10 @@ export default function (pi: ExtensionAPI) {
   pi.registerShortcut("ctrl+shift+r", {
     description: "Prepare /restart command",
     handler: (ctx) => {
+      if (ctx.ui.getEditorText().trim()) {
+        ctx.ui.notify("Context is high. Clear your draft before preparing /restart.", "warning");
+        return;
+      }
       ctx.ui.setEditorText("/restart");
       ctx.ui.notify("Restart ready. Press Enter.", "info");
     },

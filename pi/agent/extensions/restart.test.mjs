@@ -35,13 +35,15 @@ assert(
   "non-text completion is rejected",
 );
 
-function makeHarness({ completion, selectChoice } = {}) {
+function makeHarness({ completion, selectChoice, editorText = "" } = {}) {
   const events = new Map();
   const commands = new Map();
+  const shortcuts = new Map();
   const notifications = [];
   const completeOptions = [];
   const sent = [];
   let selectCount = 0;
+  let editor = editorText;
 
   const branch = [{
     id: "entry-1",
@@ -72,8 +74,8 @@ function makeHarness({ completion, selectChoice } = {}) {
     },
     ui: {
       notify: (message, type) => notifications.push({ message, type }),
-      getEditorText: () => "",
-      setEditorText: () => {},
+      getEditorText: () => editor,
+      setEditorText: (text) => { editor = text; },
       select: async () => {
         selectCount += 1;
         return selectChoice;
@@ -96,10 +98,20 @@ function makeHarness({ completion, selectChoice } = {}) {
   const pi = {
     on: (name, handler) => events.set(name, handler),
     registerCommand: (name, definition) => commands.set(name, definition.handler),
-    registerShortcut: () => {},
+    registerShortcut: (name, definition) => shortcuts.set(name, definition.handler),
   };
   restart(pi);
-  return { ctx, commands, events, notifications, completeOptions, sent, getSelectCount: () => selectCount };
+  return {
+    ctx,
+    commands,
+    shortcuts,
+    events,
+    notifications,
+    completeOptions,
+    sent,
+    getEditor: () => editor,
+    getSelectCount: () => selectCount,
+  };
 }
 
 {
@@ -121,6 +133,19 @@ function makeHarness({ completion, selectChoice } = {}) {
   await h.events.get("turn_end")({}, h.ctx);
   await h.events.get("turn_end")({}, h.ctx);
   assert(h.getSelectCount() === 1, "dismissed guard does not reopen at the same percentage");
+}
+
+{
+  const h = makeHarness();
+  await h.shortcuts.get("ctrl+shift+r")(h.ctx);
+  assert(h.getEditor() === "/restart", "shortcut prepares restart in an empty editor");
+}
+
+{
+  const h = makeHarness({ editorText: "unfinished draft" });
+  await h.shortcuts.get("ctrl+shift+r")(h.ctx);
+  assert(h.getEditor() === "unfinished draft", "shortcut preserves an existing draft");
+  assert(h.notifications.at(-1)?.type === "warning", "shortcut warns before preserving the draft");
 }
 
 console.log("restart helper and command tests passed");
