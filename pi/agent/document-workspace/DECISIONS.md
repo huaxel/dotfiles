@@ -23,3 +23,11 @@ Deleting an active item is allowed, but important rejection or supersession rati
 ## 2026-08-23 — Durable audit sidecar (`events.jsonl`) with stable block ids
 
 Revisions are recorded to an append-only `events.jsonl` per worksheet with revision id, parent revision, actor (human/agent), changed section keys, operation summary, changed block ids, conversation and turn id. Block identity is reconciled across saves from content+heading similarity so edits, renames, and reordering do not churn ids — idempots live in the sidecar, never in the visible Markdown. This follows Zed's DeltaDB (append-only deltas over a real worktree) and logical-anchor lessons from the worksheet research, without full CRDT text replication.
+
+## 2026-08-24 — Stable semantics for comments, questions, todos
+
+Markdown-native contract, no hidden HTML metadata:
+- Comments are `> ` blockquotes; `## Human notes` is human-owned, Pi appends under `## Agent response`.
+- Questions are `## Questions / Next steps` items ending in `?`; ticking one closes/answers it, deleting one removes it from the plan (answer first if open).
+- Todos: `- [ ]` open work, `- [x]` a done claim to verify (not proof); flipping back to `- [ ]` is a reopen.
+The extension detects checkbox transitions and surfaces them as a `Semantics:` call-out plus a `semantics` audit field, so Pi needn't re-derive meaning from a raw diff. Codified in SKILL.md and DESIGN.md.

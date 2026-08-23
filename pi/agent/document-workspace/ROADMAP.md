@@ -16,7 +16,7 @@
 - [x] Add todos, findings, decisions, and questions to new worksheets.
 - [x] Report additions and removals to Pi.
 - [x] Make updates section-aware instead of sending the whole document.
-- [ ] Define stable semantics for comments, questions, and todo transitions.
+- [x] Define stable semantics for comments, questions, and todo transitions.
 - [x] Decide how much deletion/rejection history belongs in the document (durable audit sidecar, rationale kept in decisions).
 - [x] Add a reusable Pi extension test harness.
 - [x] Durable audit sidecar per worksheet (`.history/<id>/events.jsonl`) with revision id, parent, actor, changed sections, operation summary, conversation/turn id.

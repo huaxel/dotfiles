@@ -41,6 +41,14 @@ Ownership:
 
 Markdown-native conventions are preferred over hidden HTML metadata. Headings, paragraphs, blockquotes, and checkboxes should carry meaning before introducing machine syntax.
 
+Stable semantics (the machine-meaning contract, taught to Pi via the injected skill):
+
+- **Comments**: a `> ` blockquote is a direct human comment to Pi. `## Human notes` is human-owned and never overwritten; Pi replies append under `## Agent response`.
+- **Questions**: items under `## Questions / Next steps` are open steering asks; ticking one (`- [ ] ?` → `- [x] ?`) closes/answers it. A blank `?` item is a question awaiting an answer; deleting an open question means “remove from plan” (answer first if it was open).
+- **Todos**: `- [ ]` open work, `- [x] done claim (to verify, not proof)`. Flipping back to `- [ ]` reopens the item.
+
+The extension detects checkbox *transitions* and surfaces them as a `Semantics:` call-out in the steering message plus a `semantics` field in the audit event, so Pi doesn't re-derive meaning from a raw diff.
+
 ## Deletion and auditability
 
 A deletion removes something from the active plan. The watcher reports removed lines to Pi, but deletion alone does not preserve why something was rejected.
