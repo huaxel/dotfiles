@@ -45,22 +45,30 @@ export interface AgyCommandArgs {
 
 /** Parse `/agy [mode] [model] <prompt>` — e.g. `/agy flash fix git conflicts`. Only fills what was provided. */
 export function parseAgyCommandArgs(args: string): AgyCommandArgs {
-  const tokens = args.trim().split(/\s+/).filter(Boolean);
+  let rest = args.trim();
   const parsed: AgyCommandArgs = {};
 
-  const mode = tokens[0]?.toLowerCase();
+  const first = readToken(rest);
+  const mode = first?.value.toLowerCase();
   if (mode && MODE_KEYS.includes(mode as (typeof MODE_KEYS)[number])) {
-    parsed.mode = tokens.shift()!.toLowerCase() as AgyCommandArgs["mode"];
+    parsed.mode = mode as AgyCommandArgs["mode"];
+    rest = rest.slice(first.end).trimStart();
   }
 
-  if (tokens[0] && MODEL_ALIASES[tokens[0].toLowerCase()]) {
-    parsed.model = MODEL_ALIASES[tokens[0].toLowerCase()];
-    tokens.shift();
+  const modelToken = readToken(rest);
+  const model = modelToken?.value.toLowerCase();
+  if (model && MODEL_ALIASES[model]) {
+    parsed.model = MODEL_ALIASES[model];
+    rest = rest.slice(modelToken.end).trimStart();
   }
 
-  const prompt = tokens.join(" ");
-  if (prompt) parsed.prompt = prompt;
+  if (rest) parsed.prompt = rest;
   return parsed;
+}
+
+function readToken(value: string): { value: string; end: number } | undefined {
+  const match = /^\S+/.exec(value);
+  return match ? { value: match[0], end: match[0].length } : undefined;
 }
 
 /**
