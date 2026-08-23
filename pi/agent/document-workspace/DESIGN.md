@@ -82,6 +82,10 @@ This is distinct from:
 - plan review: an approval UI, not an ongoing bidirectional workspace;
 - memory injection: context retrieval without human-directed document events.
 
+## Testing
+
+`pi/agent/extensions/pi-test-harness.mjs` is a shared, hermetic test harness for Pi extension tests. It provides `makePiHarness` (mock ExtensionAPI), `makeCtx` (stub command context with recording UI), `fakeClock`, `tempDir`, `runTests`, `assert`, and `registerResolveHook`. Each extension test may import only what it needs; tests run with plain `node` against a `pi-resolve-hook` so `@earendil-works/*` imports resolve from the pi install. See `harness.test.mjs` (self-tests) and `restart.test.mjs` (a consumer) for usage.
+
 ## Prior art
 
 - [`pi-watcher`](https://github.com/vedang/pi-watcher) — explicit `AI!`, `AI?`, and `AI.` saved-comment triggers, queueing, and loop prevention.
