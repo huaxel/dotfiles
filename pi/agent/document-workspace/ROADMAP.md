@@ -10,7 +10,7 @@
 - [x] Attach existing project Markdown files.
 - [x] List, search, and open named project worksheets.
 
-## M2 — Document interaction protocol 🟡
+## M2 — Document interaction protocol ✅
 
 - [x] Define human-owned notes and agent-owned durable state.
 - [x] Add todos, findings, decisions, and questions to new worksheets.
@@ -21,6 +21,7 @@
 - [x] Add a reusable Pi extension test harness.
 - [x] Durable audit sidecar per worksheet (`.history/<id>/events.jsonl`) with revision id, parent, actor, changed sections, operation summary, conversation/turn id.
 - [x] Stable block identities reconciled across saves via content+heading similarity, stored out-of-band (`block-ids.json`).
+- [x] Formal spec for the section-aware update format (`SECTION-AWARE-FORMAT.md`).
 ## M3 — Attention routing ⬜
 
 - [ ] Define a document-first mode versus normal chat mode.
