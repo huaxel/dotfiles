@@ -3,7 +3,9 @@ import { register } from "node:module";
 
 register(new URL("./pi-resolve-hook.mjs", import.meta.url), import.meta.url);
 
-const { extractHandoffText } = await import(new URL("./restart.ts", import.meta.url));
+const { default: restart, extractHandoffText } = await import(new URL("./restart.ts", import.meta.url));
+const { initTheme } = await import("@earendil-works/pi-coding-agent");
+initTheme();
 
 const assert = (condition, message) => {
   if (!condition) throw new Error(message);
@@ -33,4 +35,92 @@ assert(
   "non-text completion is rejected",
 );
 
-console.log("restart helper tests passed");
+function makeHarness({ completion, selectChoice } = {}) {
+  const events = new Map();
+  const commands = new Map();
+  const notifications = [];
+  const completeOptions = [];
+  const sent = [];
+  let selectCount = 0;
+
+  const branch = [{
+    id: "entry-1",
+    type: "message",
+    message: {
+      role: "user",
+      content: [{ type: "text", text: "Continue the task" }],
+      timestamp: Date.now(),
+    },
+  }];
+  const ctx = {
+    mode: "tui",
+    model: { provider: "test", id: "model" },
+    isIdle: () => true,
+    getContextUsage: () => ({ percent: 85 }),
+    sessionManager: {
+      getBranch: () => branch,
+      getLeafId: () => "entry-1",
+      getSessionFile: () => "/tmp/restart-session.jsonl",
+      getSessionId: () => "restart-test",
+    },
+    modelRegistry: {
+      complete: async (_model, _context, options) => {
+        completeOptions.push(options);
+        if (completion) return completion();
+        return { stopReason: "stop", content: [{ type: "text", text: "## Task\nContinue" }] };
+      },
+    },
+    ui: {
+      notify: (message, type) => notifications.push({ message, type }),
+      getEditorText: () => "",
+      setEditorText: () => {},
+      select: async () => {
+        selectCount += 1;
+        return selectChoice;
+      },
+      custom: async (factory) => {
+        let component;
+        const result = await new Promise((resolve) => {
+          component = factory({ requestRender: () => {} }, { fg: (_color, text) => text }, {}, resolve);
+        });
+        component?.dispose?.();
+        return result;
+      },
+    },
+    newSession: async (options) => {
+      await options.withSession({ sendUserMessage: async (message) => sent.push(message) });
+      return { cancelled: false };
+    },
+  };
+
+  const pi = {
+    on: (name, handler) => events.set(name, handler),
+    registerCommand: (name, definition) => commands.set(name, definition.handler),
+    registerShortcut: () => {},
+  };
+  restart(pi);
+  return { ctx, commands, events, notifications, completeOptions, sent, getSelectCount: () => selectCount };
+}
+
+{
+  const h = makeHarness();
+  await h.commands.get("restart")("keep going", h.ctx);
+  assert(h.sent[0] === "## Task\nContinue", "generated handoff is sent to the replacement session");
+  assert(h.completeOptions[0].signal instanceof AbortSignal, "completion receives cancellation signal");
+  assert(!("apiKey" in h.completeOptions[0]), "completion uses registry-managed authentication");
+}
+
+{
+  const h = makeHarness({ completion: async () => ({ stopReason: "stop", content: [] }) });
+  await h.commands.get("restart")("", h.ctx);
+  assert(h.notifications.at(-1)?.type === "error", "empty completion is reported as an error");
+}
+
+{
+  const h = makeHarness({ selectChoice: undefined });
+  await h.events.get("turn_end")({}, h.ctx);
+  await h.events.get("turn_end")({}, h.ctx);
+  assert(h.getSelectCount() === 1, "dismissed guard does not reopen at the same percentage");
+}
+
+console.log("restart helper and command tests passed");
