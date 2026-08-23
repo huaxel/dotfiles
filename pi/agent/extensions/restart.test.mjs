@@ -41,6 +41,7 @@ function makeHarness({ completion, selectChoice, editorText = "" } = {}) {
   const shortcuts = new Map();
   const notifications = [];
   const completeOptions = [];
+  const completeContexts = [];
   const sent = [];
   let selectCount = 0;
   let editor = editorText;
@@ -66,7 +67,8 @@ function makeHarness({ completion, selectChoice, editorText = "" } = {}) {
       getSessionId: () => "restart-test",
     },
     modelRegistry: {
-      complete: (_model, _context, options) => {
+      complete: (_model, context, options) => {
+        completeContexts.push(context);
         completeOptions.push(options);
         if (completion) return completion();
         return Promise.resolve({ stopReason: "stop", content: [{ type: "text", text: "## Task\nContinue" }] });
@@ -108,6 +110,7 @@ function makeHarness({ completion, selectChoice, editorText = "" } = {}) {
     events,
     notifications,
     completeOptions,
+    completeContexts,
     sent,
     getEditor: () => editor,
     getSelectCount: () => selectCount,
@@ -120,6 +123,9 @@ function makeHarness({ completion, selectChoice, editorText = "" } = {}) {
   assert(h.sent[0] === "## Task\nContinue", "generated handoff is sent to the replacement session");
   assert(h.completeOptions[0].signal instanceof AbortSignal, "completion receives cancellation signal");
   assert(!("apiKey" in h.completeOptions[0]), "completion uses registry-managed authentication");
+  const handoffInput = h.completeContexts[0].messages[0].content[0].text;
+  assert(handoffInput.includes("<conversation-history>"), "handoff history has an explicit boundary");
+  assert(handoffInput.includes("<goal>\nkeep going\n</goal>"), "handoff goal has an explicit boundary");
 }
 
 {
