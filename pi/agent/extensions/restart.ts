@@ -4,8 +4,7 @@
  * and sends it straight to a fresh session (no editor review).
  */
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
-import { uuidv7 } from "@earendil-works/pi-ai";
-import { complete, type Message } from "@earendil-works/pi-ai/compat";
+import { contentText, type Message, uuidv7 } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
   BorderedLoader,
@@ -58,7 +57,6 @@ export default function (pi: ExtensionAPI) {
     const pct = Math.round(usage.percent);
     const prev = lastPct.get(sid);
     if (prev !== undefined && pct < prev + RE_PROMPT_GAP) return;
-    lastPct.set(sid, pct);
 
     guardOpen.add(sid);
     let choice: string | undefined;
@@ -73,9 +71,13 @@ export default function (pi: ExtensionAPI) {
     }
     if (ctx.sessionManager.getSessionId() !== sid) return;
     if (choice !== "Yes, prepare /restart") {
-      ctx.ui.notify(`Muted until ${pct + RE_PROMPT_GAP}%`, "info");
+      if (choice === "Not now") {
+        lastPct.set(sid, pct);
+        ctx.ui.notify(`Muted until ${pct + RE_PROMPT_GAP}%`, "info");
+      }
       return;
     }
+    lastPct.set(sid, pct);
     if (!ctx.ui.getEditorText().trim()) {
       ctx.ui.setEditorText("/restart");
       ctx.ui.notify("Restart ready — press Enter.", "warning");
@@ -88,47 +90,96 @@ export default function (pi: ExtensionAPI) {
   pi.registerCommand("restart", {
     description: "Generate a handoff prompt and start a fresh session",
     handler: async (args, ctx) => {
-      if (ctx.mode !== "tui") return ctx.ui.notify("/restart requires interactive mode", "error");
-      if (!ctx.model) return ctx.ui.notify("No model selected", "error");
+      if (ctx.mode !== "tui") {
+        ctx.ui.notify("/restart requires interactive mode", "error");
+        return;
+      }
+      if (!ctx.model) {
+        ctx.ui.notify("No model selected", "error");
+        return;
+      }
       // Extension commands execute immediately, even during streaming. Do NOT
       // abort here: killing the in-flight turn loses its (uncommitted) content
       // from the handoff. Wait for the current run to settle instead.
       if (!ctx.isIdle()) await ctx.waitForIdle();
 
+      const auth = await ctx.modelRegistry.getApiKeyAndHeaders(ctx.model);
+      if (!auth.ok) {
+        ctx.ui.notify(`Authentication failed: ${auth.error}`, "error");
+        return;
+      }
+
       const context = buildSessionContext(ctx.sessionManager.getBranch(), ctx.sessionManager.getLeafId());
       const msgs: AgentMessage[] = context.messages;
-      if (!msgs.length) return ctx.ui.notify("No conversation to transfer", "error");
+      if (!msgs.length) {
+        ctx.ui.notify("No conversation to transfer", "error");
+        return;
+      }
 
       const conversation = serializeConversation(convertToLlm(msgs));
       const currentFile = ctx.sessionManager.getSessionFile();
       const goal = args.trim() || "Continue from where we left off.";
 
+      let generationError: unknown;
       const prompt = await ctx.ui.custom<string | null>((tui, theme, _kb, done) => {
         const loader = new BorderedLoader(tui, theme, "Generating handoff prompt…");
-        loader.onAbort = () => done(null);
-        (async () => {
-          const auth = await ctx.modelRegistry.getApiKeyAndHeaders(ctx.model!);
-          if (!auth.ok || !auth.apiKey) { done(null); return; }
-          const userMsg: Message = {
-            role: "user",
-            content: [{ type: "text", text: `## Conversation History\n\n${conversation}\n\n## Goal\n\n${goal}` }],
-            timestamp: Date.now(),
-          };
-          const response = await complete(
+        let finished = false;
+        const finish = (result: string | null) => {
+          if (finished) return;
+          finished = true;
+          done(result);
+        };
+
+        loader.onAbort = () => finish(null);
+        const userMsg: Message = {
+          role: "user",
+          content: [{ type: "text", text: `## Conversation History\n\n${conversation}\n\n## Goal\n\n${goal}` }],
+          timestamp: Date.now(),
+        };
+        ctx.modelRegistry
+          .complete(
             ctx.model!,
             { systemPrompt: SYSTEM_PROMPT, messages: [userMsg] },
-            { apiKey: auth.apiKey, headers: auth.headers, env: auth.env, signal: loader.signal, cacheRetention: "none", sessionId: uuidv7() },
-          );
-          if (response.stopReason === "aborted") { done(null); return; }
-          done(response.content.filter((c): c is { type: "text"; text: string } => c.type === "text").map(c => c.text).join("\n") || null);
-        })().catch(() => done(null));
+            {
+              apiKey: auth.apiKey,
+              headers: auth.headers,
+              signal: loader.signal,
+              cacheRetention: "none",
+              sessionId: uuidv7(),
+            },
+          )
+          .then((response) => {
+            if (response.stopReason === "aborted") return finish(null);
+            const text = contentText(response.content).trim();
+            if (!text) throw new Error(`Model returned no handoff text (stop reason: ${response.stopReason})`);
+            finish(text);
+          })
+          .catch((error: unknown) => {
+            if (!loader.signal.aborted) generationError = error;
+            finish(null);
+          });
         return loader;
       });
-      if (!prompt) return ctx.ui.notify("Handoff cancelled", "info");
+
+      if (prompt === null) {
+        if (generationError) {
+          const message = generationError instanceof Error ? generationError.message : String(generationError);
+          ctx.ui.notify(`Handoff generation failed: ${message}`, "error");
+          return;
+        }
+        ctx.ui.notify("Handoff cancelled", "info");
+        return;
+      }
+
       // Fire immediately — no editor review. Abort during generation (Escape)
       // is the cancellation point; the loader resolves null and we bail above.
-      const result = await ctx.newSession({ parentSession: currentFile, withSession: rc => rc.sendUserMessage(prompt) });
-      if (result.cancelled) ctx.ui.notify("New session cancelled", "info");
+      try {
+        const result = await ctx.newSession({ parentSession: currentFile, withSession: (rc) => rc.sendUserMessage(prompt) });
+        if (result.cancelled) ctx.ui.notify("New session cancelled", "info");
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        ctx.ui.notify(`Failed to start new session: ${message}`, "error");
+      }
     },
   });
 

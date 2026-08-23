@@ -371,3 +371,19 @@ every open). Fixed, then hardened the whole setup.
 
 ### Improvements for next time
 - Add a subprocess harness for deterministic agy stdout/stderr and abort behavior rather than relying only on pure helpers.
+
+## 2026-08-23: /restart model-registry hardening
+
+### What went well
+- Comparing the extension with Pi’s official handoff example exposed the auth gap quickly.
+- Switching to `ctx.modelRegistry.complete()` preserves OAuth and custom-provider support while keeping cancellation wired to the loader.
+- Full `just ci` passed; restart type-check and lint passed independently.
+
+### What was frustrating / slow
+- The documented independent review skill is missing, and two read-only agy review attempts exited without returning their report.
+
+### What config change would have helped
+- Install or replace `requesting-code-review/SKILL.md` so the required review gate is executable.
+
+### Improvements for next time
+- Add a small extension harness for testing loader cancellation, provider failures, and session replacement without a live TUI.
