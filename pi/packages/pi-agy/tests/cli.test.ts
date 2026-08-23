@@ -9,7 +9,7 @@ import { describe, it } from "node:test";
 const execAsync = promisify(execFile);
 
 import { buildAgyArgs, buildAgyPrompt } from "../extensions/lib/cli.js";
-import { truncate } from "../extensions/index.js";
+import { resolveAgyMode, truncate } from "../extensions/index.js";
 import { withDirLock } from "../extensions/lib/lock.js";
 import { detectVerifyCommand } from "../extensions/lib/verify.js";
 import { summarizeGitDiff } from "../extensions/lib/postflight.js";
@@ -202,6 +202,13 @@ describe("summarizeGitDiff", () => {
     const tmp = await mkdtemp(path.join(os.tmpdir(), "pi-agy-diff-"));
     await execAsync("git", ["init", "-q"], { cwd: tmp });
     assert.equal(await summarizeGitDiff(tmp), null);
+  });
+});
+
+describe("resolveAgyMode", () => {
+  it("defaults direct tool calls to plan", () => {
+    assert.equal(resolveAgyMode(), "plan");
+    assert.equal(resolveAgyMode("accept-edits"), "accept-edits");
   });
 });
 
