@@ -52,6 +52,16 @@ export function extractHandoffText(response: {
   return text || null;
 }
 
+function withoutPrivateReasoning(messages: AgentMessage[]): AgentMessage[] {
+  return messages.map((message) => {
+    if (message.role !== "assistant") return message;
+    return {
+      ...message,
+      content: message.content.filter((block) => block.type !== "thinking"),
+    };
+  });
+}
+
 export default function (pi: ExtensionAPI) {
   const lastPct = new Map<string, number>();
   const guardOpen = new Set<string>();
@@ -126,7 +136,7 @@ export default function (pi: ExtensionAPI) {
         return;
       }
 
-      const conversation = serializeConversation(convertToLlm(msgs));
+      const conversation = serializeConversation(convertToLlm(withoutPrivateReasoning(msgs)));
       const currentFile = ctx.sessionManager.getSessionFile();
       const goal = args.trim() || "Continue from where we left off.";
 

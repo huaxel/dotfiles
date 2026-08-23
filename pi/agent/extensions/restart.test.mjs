@@ -46,15 +46,30 @@ function makeHarness({ completion, selectChoice, editorText = "" } = {}) {
   let selectCount = 0;
   let editor = editorText;
 
-  const branch = [{
-    id: "entry-1",
-    type: "message",
-    message: {
-      role: "user",
-      content: [{ type: "text", text: "Continue the task" }],
-      timestamp: Date.now(),
+  const branch = [
+    {
+      id: "entry-1",
+      type: "message",
+      message: {
+        role: "user",
+        content: [{ type: "text", text: "Continue the task" }],
+        timestamp: Date.now(),
+      },
     },
-  }];
+    {
+      id: "entry-2",
+      parentId: "entry-1",
+      type: "message",
+      message: {
+        role: "assistant",
+        content: [
+          { type: "thinking", thinking: "private reasoning" },
+          { type: "text", text: "Public conclusion" },
+        ],
+        timestamp: Date.now(),
+      },
+    },
+  ];
   const ctx = {
     mode: "tui",
     model: { provider: "test", id: "model" },
@@ -62,7 +77,7 @@ function makeHarness({ completion, selectChoice, editorText = "" } = {}) {
     getContextUsage: () => ({ percent: 85 }),
     sessionManager: {
       getBranch: () => branch,
-      getLeafId: () => "entry-1",
+      getLeafId: () => "entry-2",
       getSessionFile: () => "/tmp/restart-session.jsonl",
       getSessionId: () => "restart-test",
     },
@@ -127,6 +142,8 @@ function makeHarness({ completion, selectChoice, editorText = "" } = {}) {
   const handoffInput = h.completeContexts[0].messages[0].content[0].text;
   assert(handoffInput.includes("<conversation-history>"), "handoff history has an explicit boundary");
   assert(handoffInput.includes("<goal>\nkeep going\n</goal>"), "handoff goal has an explicit boundary");
+  assert(!handoffInput.includes("private reasoning"), "private reasoning is excluded from handoff input");
+  assert(handoffInput.includes("Public conclusion"), "public assistant conclusion is preserved");
 }
 
 {
