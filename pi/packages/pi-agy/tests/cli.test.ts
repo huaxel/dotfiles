@@ -9,6 +9,7 @@ import { describe, it } from "node:test";
 const execAsync = promisify(execFile);
 
 import { buildAgyArgs, buildAgyPrompt } from "../extensions/lib/cli.js";
+import { truncate } from "../extensions/index.js";
 import { withDirLock } from "../extensions/lib/lock.js";
 import { detectVerifyCommand } from "../extensions/lib/verify.js";
 import { summarizeGitDiff } from "../extensions/lib/postflight.js";
@@ -158,10 +159,37 @@ describe("summarizeGitDiff", () => {
     assert.match(summary!, /new\.txt/);
   });
 
+  it("reports staged tracked files", async () => {
+    const tmp = await mkdtemp(path.join(os.tmpdir(), "pi-agy-diff-"));
+    await execAsync("git", ["init", "-q"], { cwd: tmp });
+    await execAsync("git", ["config", "user.email", "t@t"], { cwd: tmp });
+    await execAsync("git", ["config", "user.name", "t"], { cwd: tmp });
+    await writeFile(path.join(tmp, "tracked.txt"), "before\n");
+    await execAsync("git", ["add", "tracked.txt"], { cwd: tmp });
+    await execAsync("git", ["commit", "-qm", "initial"], { cwd: tmp });
+    await writeFile(path.join(tmp, "tracked.txt"), "after\n");
+    await execAsync("git", ["add", "tracked.txt"], { cwd: tmp });
+
+    const summary = await summarizeGitDiff(tmp);
+    assert.ok(summary);
+    assert.match(summary!, /git diff --cached --stat/);
+    assert.match(summary!, /tracked\.txt/);
+  });
+
   it("returns null on a clean repo", async () => {
     const tmp = await mkdtemp(path.join(os.tmpdir(), "pi-agy-diff-"));
     await execAsync("git", ["init", "-q"], { cwd: tmp });
     assert.equal(await summarizeGitDiff(tmp), null);
+  });
+});
+
+describe("truncate", () => {
+  it("keeps the ending of long responses", () => {
+    const result = truncate("START\n" + "x".repeat(200) + "\nFINAL SUMMARY", 80);
+    assert.ok(result.length <= 80);
+    assert.match(result, /START/);
+    assert.match(result, /FINAL SUMMARY/);
+    assert.match(result, /truncated/);
   });
 });
 

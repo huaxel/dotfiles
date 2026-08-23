@@ -8,6 +8,7 @@
 - Allow queued calls to cancel without blocking later runs in the same directory.
 - Accept explicit `/agy accept-edits ...` mode prefixes.
 - Preserve multiline prompt formatting in `/agy` command arguments.
+- Include staged files in postflight change summaries and preserve response endings when truncating output.
 
 ## 0.4.0
 
