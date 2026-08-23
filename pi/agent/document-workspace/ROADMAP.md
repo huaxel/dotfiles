@@ -36,7 +36,7 @@
 - [ ] Use it for a writing/review task.
 - [ ] Use it with both Neovim and an external Markdown editor.
 - [ ] Measure whether it reduces prompt copying and transcript scrolling.
-- [ ] Document failure modes and recovery behavior.
+- [x] Document failure modes and recovery behavior (`FAILURE-MODES.md`).
 
 ## Research follow-ups
 

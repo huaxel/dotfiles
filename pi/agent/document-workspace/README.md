@@ -40,5 +40,6 @@ Useful commands:
 - `DECISIONS.md` — durable design decisions and rejected alternatives
 - `AGENTS.md` — instructions for future sessions working in this directory
 - `SECTION-AWARE-FORMAT.md` — the section-aware update format spec (wire shape, change detection, audit schema)
+- `FAILURE-MODES.md` — M4 failure modes and recovery playbook (diagnose/recover common failure states)
 
 Read those files before making changes here. Update the roadmap and decisions as the design evolves.
