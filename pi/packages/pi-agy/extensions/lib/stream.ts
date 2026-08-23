@@ -48,7 +48,10 @@ export function parseStreamLine(line: string): AgyStreamLine | null {
   const trimmed = line.trim().replace(/^\uFEFF/, "");
   if (!trimmed) return null;
   try {
-    return JSON.parse(trimmed) as AgyStreamLine;
+    const parsed: unknown = JSON.parse(trimmed);
+    return typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
+      ? (parsed as AgyStreamLine)
+      : null;
   } catch {
     return null;
   }

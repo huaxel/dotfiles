@@ -11,6 +11,7 @@
 - Include staged files in postflight change summaries and preserve response endings when truncating output.
 - Serialize session-store updates, write atomically, and keep conversation IDs in a private file.
 - Detect `Justfile`, package `ci` scripts, and npm/pnpm/yarn/bun runners for verification.
+- Ignore non-object JSON lines in streamed agy output safely.
 
 ## 0.4.0
 
