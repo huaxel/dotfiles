@@ -17,6 +17,8 @@ There must be one canonical home for substantive collaboration:
 
 The current extension provides the file watcher and steering transport, but does not yet enforce this response-routing policy.
 
+The M3 footer status (`ui.setStatus("worksheet", ...)`) begins the attention split: it shows watcher state, the active worksheet, and open todo/question counts as a compact document pointer, so the TUI can stay a status/execution surface while the worksheet holds the substance.
+
 ## Markdown contract
 
 Markdown is the human-facing medium. It is portable, inspectable, searchable, editor-agnostic, and independent of Git. It is not the entire protocol; the extension supplies revision tracking, ownership, debouncing, loop prevention, and change summaries.

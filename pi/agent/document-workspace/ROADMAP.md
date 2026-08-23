@@ -28,7 +28,7 @@
 - [ ] Make substantive Pi responses canonical in the worksheet.
 - [ ] Reduce the TUI to status, execution, errors, blocking questions, and interruptions.
 - [ ] Avoid duplicating full answers in both channels.
-- [ ] Prototype compact status and document pointers in the footer.
+- [x] Prototype compact status and document pointers in the footer (worksheet watcher state + open todo/question counts via `ui.setStatus`).
 
 ## M4 — Real workflow validation ⬜
 

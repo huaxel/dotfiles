@@ -4,7 +4,7 @@ import { register } from "node:module";
 
 register(new URL("./pi-resolve-hook.mjs", import.meta.url), import.meta.url);
 
-const { reconcileBlockIds, contentSimilarity, todoItems, todoTransitions } = await import(new URL("./worksheet-loop.ts", import.meta.url));
+const { reconcileBlockIds, contentSimilarity, todoItems, todoTransitions, worksheetCounts } = await import(new URL("./worksheet-loop.ts", import.meta.url));
 
 const assert = (condition, message) => {
   if (!condition) throw new Error(message);
@@ -128,6 +128,19 @@ assert(contentSimilarity("a b c", "a b") > contentSimilarity("a b c", "x y z"), 
 {
   const t = todoTransitions("- [ ] write docs", "- [x] write docs completely");
   assert(t.length === 0 || t[0].from === "open", "renamed+checked item at worst reports open->done");
+}
+
+// ── worksheet-state counts (M3 footer status) ─────────────────────────────
+
+{
+  const c = worksheetCounts("## Todos\n- [ ] open one\n- [x] done one\n## Questions\n- Should we?\n- plain line\n");
+  assert(c.openTodos === 1, "open todos counted");
+  assert(c.openQuestions === 1, "open questions counted");
+}
+{
+  const c = worksheetCounts("- [X] done uppercase\n- [ ] open\n- [ ] another\n- ends with ?\n- [ ] checkbox ending?\n");
+  assert(c.openTodos === 3, "3 open todos (uppercase X not counted open; checkbox question is a todo not a question)");
+  assert(c.openQuestions === 1, "bare '?' line counted as a question; checkbox '?' is a todo");
 }
 
 console.log("worksheet-loop block-identity tests passed");
