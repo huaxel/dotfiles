@@ -4,7 +4,7 @@
  * and sends it straight to a fresh session (no editor review).
  */
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
-import { contentText, type Message, uuidv7 } from "@earendil-works/pi-ai";
+import { type Message, uuidv7 } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
   BorderedLoader,
@@ -36,6 +36,20 @@ const THRESHOLD_PCT = 80;
 const AFK_MS = 60_000;
 const RE_PROMPT_GAP = 5;
 
+/** Extract usable text while preserving an aborted completion as cancellation. */
+export function extractHandoffText(response: {
+  content: ReadonlyArray<{ type: string; text?: string }>;
+  stopReason: string;
+}): string | null {
+  if (response.stopReason === "aborted") return null;
+  const text = response.content
+    .filter((block) => block.type === "text")
+    .map((block) => block.text ?? "")
+    .join("\n")
+    .trim();
+  return text || null;
+}
+
 export default function (pi: ExtensionAPI) {
   const lastPct = new Map<string, number>();
   const guardOpen = new Set<string>();
@@ -57,6 +71,9 @@ export default function (pi: ExtensionAPI) {
     const pct = Math.round(usage.percent);
     const prev = lastPct.get(sid);
     if (prev !== undefined && pct < prev + RE_PROMPT_GAP) return;
+    // Record the prompt before opening UI so timeout/dismissal cannot retrigger
+    // the dialog on every subsequent turn at the same context percentage.
+    lastPct.set(sid, pct);
 
     guardOpen.add(sid);
     let choice: string | undefined;
@@ -71,13 +88,9 @@ export default function (pi: ExtensionAPI) {
     }
     if (ctx.sessionManager.getSessionId() !== sid) return;
     if (choice !== "Yes, prepare /restart") {
-      if (choice === "Not now") {
-        lastPct.set(sid, pct);
-        ctx.ui.notify(`Muted until ${pct + RE_PROMPT_GAP}%`, "info");
-      }
+      if (choice === "Not now") ctx.ui.notify(`Muted until ${pct + RE_PROMPT_GAP}%`, "info");
       return;
     }
-    lastPct.set(sid, pct);
     if (!ctx.ui.getEditorText().trim()) {
       ctx.ui.setEditorText("/restart");
       ctx.ui.notify("Restart ready — press Enter.", "warning");
@@ -94,7 +107,8 @@ export default function (pi: ExtensionAPI) {
         ctx.ui.notify("/restart requires interactive mode", "error");
         return;
       }
-      if (!ctx.model) {
+      const model = ctx.model;
+      if (!model) {
         ctx.ui.notify("No model selected", "error");
         return;
       }
@@ -102,12 +116,6 @@ export default function (pi: ExtensionAPI) {
       // abort here: killing the in-flight turn loses its (uncommitted) content
       // from the handoff. Wait for the current run to settle instead.
       if (!ctx.isIdle()) await ctx.waitForIdle();
-
-      const auth = await ctx.modelRegistry.getApiKeyAndHeaders(ctx.model);
-      if (!auth.ok) {
-        ctx.ui.notify(`Authentication failed: ${auth.error}`, "error");
-        return;
-      }
 
       const context = buildSessionContext(ctx.sessionManager.getBranch(), ctx.sessionManager.getLeafId());
       const msgs: AgentMessage[] = context.messages;
@@ -138,20 +146,16 @@ export default function (pi: ExtensionAPI) {
         };
         ctx.modelRegistry
           .complete(
-            ctx.model!,
+            model,
             { systemPrompt: SYSTEM_PROMPT, messages: [userMsg] },
-            {
-              apiKey: auth.apiKey,
-              headers: auth.headers,
-              signal: loader.signal,
-              cacheRetention: "none",
-              sessionId: uuidv7(),
-            },
+            { signal: loader.signal, cacheRetention: "none", sessionId: uuidv7() },
           )
           .then((response) => {
-            if (response.stopReason === "aborted") return finish(null);
-            const text = contentText(response.content).trim();
-            if (!text) throw new Error(`Model returned no handoff text (stop reason: ${response.stopReason})`);
+            const text = extractHandoffText(response);
+            if (!text) {
+              if (response.stopReason === "aborted") return finish(null);
+              throw new Error(`Model returned no handoff text (stop reason: ${response.stopReason})`);
+            }
             finish(text);
           })
           .catch((error: unknown) => {
