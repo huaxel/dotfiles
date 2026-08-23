@@ -964,17 +964,12 @@ async function ensureTodosDir(todosDir: string) {
 	await fs.mkdir(todosDir, { recursive: true });
 }
 
-async function readTodoFile(filePath: string, idFallback: string): Promise<TodoRecord> {
-	const content = await fs.readFile(filePath, "utf8");
-	return parseTodoContent(content, idFallback);
-}
-
 async function writeTodoFile(filePath: string, todo: TodoRecord) {
 	todo.updated_at = new Date().toISOString();
 	await fs.writeFile(filePath, serializeTodo(todo), "utf8");
 }
 
-async function generateTodoId(todosDir: string): Promise<string> {
+function generateTodoId(todosDir: string): string {
 	for (let attempt = 0; attempt < 10; attempt += 1) {
 		const id = crypto.randomBytes(4).toString("hex");
 		const todoPath = getTodoPath(todosDir, id);
@@ -1023,9 +1018,13 @@ async function acquireLock(
 					// ignore
 				}
 			};
-		} catch (error: any) {
-			if (error?.code !== "EEXIST") {
-				return { error: `Failed to acquire lock: ${error?.message ?? "unknown error"}` };
+		} catch (error: unknown) {
+			const code =
+				error instanceof Error && "code" in error
+					? String((error as { code?: unknown }).code)
+					: undefined;
+			if (code !== "EEXIST") {
+				return { error: `Failed to acquire lock: ${error instanceof Error ? error.message : "unknown error"}` };
 			}
 			const stats = await fs.stat(lockPath).catch(() => null);
 			const lockAge = stats ? now - stats.mtimeMs : lockTtlMs + 1;
@@ -1101,41 +1100,6 @@ async function listTodos(todosDir: string): Promise<TodoFrontMatter[]> {
 			});
 		} catch {
 			// ignore unreadable todo
-		}
-	}
-
-	return sortTodos(todos);
-}
-
-function listTodosSync(todosDir: string): TodoFrontMatter[] {
-	let entries: string[] = [];
-	try {
-		entries = readdirSync(todosDir);
-	} catch {
-		return [];
-	}
-
-	const todos: TodoFrontMatter[] = [];
-	for (const entry of entries) {
-		if (!entry.endsWith(".md")) continue;
-		const id = entry.slice(0, -3);
-		const filePath = path.join(todosDir, entry);
-		try {
-			const content = readFileSync(filePath, "utf8");
-			const { frontMatter } = splitFrontMatter(content);
-			const parsed = parseFrontMatter(frontMatter, id);
-			todos.push({
-				id,
-				title: parsed.title,
-				tags: parsed.tags ?? [],
-				status: parsed.status,
-				created_at: parsed.created_at,
-				assigned_to_session: parsed.assigned_to_session,
-				updated_at: parsed.updated_at,
-				due: parsed.due,
-			});
-		} catch {
-			// ignore
 		}
 	}
 
@@ -1355,9 +1319,15 @@ function appendExpandHint(theme: Theme, text: string): string {
 	return `${text}\n${theme.fg("dim", `(${keyHint("app.tools.expand", "to expand")})`)}`;
 }
 
-async function ensureTodoExists(filePath: string, id: string): Promise<TodoRecord | null> {
+function ensureTodoExists(filePath: string, id: string): TodoRecord | null {
 	if (!existsSync(filePath)) return null;
-	return readTodoFile(filePath, id);
+	let content: string;
+	try {
+		content = readFileSync(filePath, "utf8");
+	} catch {
+		return null;
+	}
+	return parseTodoContent(content, id);
 }
 
 async function appendTodoBody(filePath: string, todo: TodoRecord, text: string): Promise<TodoRecord> {
@@ -1385,7 +1355,7 @@ async function updateTodoStatus(
 	}
 
 	const result = await withTodoLock(todosDir, normalizedId, ctx, async () => {
-		const existing = await ensureTodoExists(filePath, normalizedId);
+		const existing = ensureTodoExists(filePath, normalizedId);
 		if (!existing) return { error: `Todo ${displayTodoId(id)} not found` } as const;
 		existing.status = status;
 		clearAssignmentIfClosed(existing);
@@ -1417,7 +1387,7 @@ async function claimTodoAssignment(
 	}
 	const sessionId = ctx.sessionManager.getSessionId();
 	const result = await withTodoLock(todosDir, normalizedId, ctx, async () => {
-		const existing = await ensureTodoExists(filePath, normalizedId);
+		const existing = ensureTodoExists(filePath, normalizedId);
 		if (!existing) return { error: `Todo ${displayTodoId(id)} not found` } as const;
 		if (isTodoClosed(existing.status)) {
 			return { error: `Todo ${displayTodoId(id)} is closed` } as const;
@@ -1459,7 +1429,7 @@ async function releaseTodoAssignment(
 	}
 	const sessionId = ctx.sessionManager.getSessionId();
 	const result = await withTodoLock(todosDir, normalizedId, ctx, async () => {
-		const existing = await ensureTodoExists(filePath, normalizedId);
+		const existing = ensureTodoExists(filePath, normalizedId);
 		if (!existing) return { error: `Todo ${displayTodoId(id)} not found` } as const;
 		const assigned = existing.assigned_to_session;
 		if (!assigned) {
@@ -1569,7 +1539,7 @@ async function deleteTodo(
 	}
 
 	const result = await withTodoLock(todosDir, normalizedId, ctx, async () => {
-		const existing = await ensureTodoExists(filePath, normalizedId);
+		const existing = ensureTodoExists(filePath, normalizedId);
 		if (!existing) return { error: `Todo ${displayTodoId(id)} not found` } as const;
 		await fs.unlink(filePath);
 		return existing;
@@ -1667,7 +1637,7 @@ export default function todosExtension(pi: ExtensionAPI) {
 					const normalizedId = validated.id;
 					const displayId = formatTodoId(normalizedId);
 					const filePath = getTodoPath(todosDir, normalizedId);
-					const todo = await ensureTodoExists(filePath, normalizedId);
+					const todo = ensureTodoExists(filePath, normalizedId);
 					if (!todo) {
 						return {
 							content: [{ type: "text", text: `Todo ${displayId} not found` }],
@@ -1688,7 +1658,7 @@ export default function todosExtension(pi: ExtensionAPI) {
 						};
 					}
 					await ensureTodosDir(todosDir);
-					const id = await generateTodoId(todosDir);
+					const id = generateTodoId(todosDir);
 					const filePath = getTodoPath(todosDir, id);
 					const todo: TodoRecord = {
 						id,
@@ -1746,7 +1716,7 @@ export default function todosExtension(pi: ExtensionAPI) {
 					normalizedId,
 					ctx,
 					async () => {
-						const existing = await ensureTodoExists(filePath, normalizedId);
+						const existing = ensureTodoExists(filePath, normalizedId);
 						if (!existing) return { error: `Todo ${displayId} not found` } as const;
 
 						existing.id = normalizedId;
@@ -1806,7 +1776,7 @@ export default function todosExtension(pi: ExtensionAPI) {
 						normalizedId,
 						ctx,
 						async () => {
-							const existing = await ensureTodoExists(filePath, normalizedId);
+							const existing = ensureTodoExists(filePath, normalizedId);
 							if (!existing) return { error: `Todo ${displayId} not found` } as const;
 							if (!params.body || !params.body.trim()) {
 								return existing;
@@ -2076,9 +2046,9 @@ export default function todosExtension(pi: ExtensionAPI) {
 					}
 				};
 
-				const resolveTodoRecord = async (todo: TodoFrontMatter): Promise<TodoRecord | null> => {
+				const resolveTodoRecord = (todo: TodoFrontMatter): TodoRecord | null => {
 					const filePath = getTodoPath(todosDir, todo.id);
-					const record = await ensureTodoExists(filePath, todo.id);
+					const record = ensureTodoExists(filePath, todo.id);
 					if (!record) {
 						ctx.ui.notify(`Todo ${formatTodoId(todo.id)} not found`, "error");
 						return null;
@@ -2208,8 +2178,8 @@ export default function todosExtension(pi: ExtensionAPI) {
 					}
 				};
 
-				const showActionMenu = async (todo: TodoFrontMatter | TodoRecord) => {
-					const record = "body" in todo ? todo : await resolveTodoRecord(todo);
+				const showActionMenu = (todo: TodoFrontMatter | TodoRecord) => {
+					const record = "body" in todo ? todo : resolveTodoRecord(todo);
 					if (!record) return;
 					actionMenu = new TodoActionMenuComponent(
 						theme,
@@ -2224,8 +2194,8 @@ export default function todosExtension(pi: ExtensionAPI) {
 					setActiveComponent(actionMenu);
 				};
 
-				const handleSelect = async (todo: TodoFrontMatter) => {
-					await showActionMenu(todo);
+				const handleSelect = (todo: TodoFrontMatter) => {
+					showActionMenu(todo);
 				};
 
 				selector = new TodoSelectorComponent(
