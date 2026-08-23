@@ -47,8 +47,10 @@ Run agy directly from the Pi TUI — fast path when fully specified, wizard othe
 /agy                                # wizard: mode → model → task editor
 ```
 
-First token optional: `plan` / `sandbox` mode prefix, then a model alias
-(`flash`, `pro`, `sonnet`, `opus`, `gpt-oss`, …), then the prompt.
+First token optional: `accept-edits` / `plan` / `sandbox` mode prefix, then a
+model alias (`flash`, `pro`, `sonnet`, `opus`, `gpt-oss`, …), then the prompt.
+`accept-edits` is the default and is confirmed by the wizard; sandbox runs do
+not bypass agy permission checks.
 
 Missing pieces open interactive dialogs (mode select, model select with
 descriptions, multi-line task editor). `accept-edits` asks for confirmation

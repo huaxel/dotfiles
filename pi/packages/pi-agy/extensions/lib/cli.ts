@@ -69,7 +69,7 @@ export function buildAgyArgs(options: AgyOptions): string[] {
       : MODEL_MAP["flash-medium"];
   const timeoutSec = Math.ceil(options.timeout_ms / 1000);
   const mode = options.mode ?? "accept-edits";
-  const writes = mode !== "plan";
+  const writes = mode === "accept-edits";
   const useStream = options.stream ?? true;
   const structured = mode !== "accept-edits" || useStream;
 
@@ -284,7 +284,9 @@ function spawnAgyInternal(
           if (parsed) runResult = accumulateRunResult(parsed, runResult);
         }
 
-        resolve(finalizeRunResult(out + (err ? `\n${err}` : ""), runResult));
+        // agy writes diagnostics to stderr even on successful runs. Keep it
+        // out of the response so JSON/stream parsing remains deterministic.
+        resolve(finalizeRunResult(out, runResult));
       });
     });
   });

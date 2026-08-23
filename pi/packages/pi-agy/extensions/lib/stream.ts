@@ -45,7 +45,7 @@ export interface AgyRunResult {
 export type AgyProgressHandler = (message: string) => void;
 
 export function parseStreamLine(line: string): AgyStreamLine | null {
-  const trimmed = line.trim();
+  const trimmed = line.trim().replace(/^\uFEFF/, "");
   if (!trimmed) return null;
   try {
     return JSON.parse(trimmed) as AgyStreamLine;
@@ -60,6 +60,14 @@ export function formatStepProgress(parsed: AgyStreamLine): string | null {
     return `agy: session started (${model})`;
   }
 
+  // Result events do not contain step_update, so handle them before the
+  // step guard below. This also gives users a visible terminal status.
+  if (parsed.event === "result" && parsed.result?.status) {
+    const secs = parsed.result.duration_seconds;
+    const dur = typeof secs === "number" ? ` in ${secs.toFixed(1)}s` : "";
+    return `agy: ${parsed.result.status}${dur}`;
+  }
+
   const step = parsed.step_update;
   if (!step) return null;
 
@@ -71,12 +79,6 @@ export function formatStepProgress(parsed: AgyStreamLine): string | null {
 
   if (step.step_type === "agent_response" && step.text_delta) {
     return step.text_delta;
-  }
-
-  if (parsed.event === "result" && parsed.result?.status) {
-    const secs = parsed.result.duration_seconds;
-    const dur = secs != null ? ` in ${secs.toFixed(1)}s` : "";
-    return `agy: ${parsed.result.status}${dur}`;
   }
 
   return null;
@@ -115,11 +117,39 @@ export function finalizeRunResult(rawStdout: string, current: AgyRunResult): Agy
   }
 
   try {
-    const parsed = JSON.parse(rawStdout);
-    if (parsed.response) return { ...current, response: parsed.response };
+    const parsed: unknown = JSON.parse(rawStdout);
+    const next = mergeJsonEnvelope(parsed, current);
+    if (next) return next;
   } catch {
     // not json
   }
 
   return { ...current, response: rawStdout.trim() || "(empty response)" };
+}
+
+/** Preserve metadata from agy's non-stream JSON envelope when available. */
+function mergeJsonEnvelope(parsed: unknown, current: AgyRunResult): AgyRunResult | null {
+  if (typeof parsed !== "object" || parsed === null) return null;
+  const record = parsed as Record<string, unknown>;
+  let next = { ...current };
+  let found = false;
+
+  if (typeof record.conversation_id === "string") {
+    next.conversation_id = record.conversation_id;
+    found = true;
+  }
+  if (typeof record.response === "string") {
+    next.response = record.response;
+    found = true;
+  }
+  if (typeof record.duration_seconds === "number") {
+    next.duration_seconds = record.duration_seconds;
+    found = true;
+  }
+  if (typeof record.usage === "object" && record.usage !== null) {
+    next.usage = record.usage as AgyUsage;
+    found = true;
+  }
+
+  return found ? next : null;
 }

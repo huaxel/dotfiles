@@ -356,3 +356,18 @@ every open). Fixed, then hardened the whole setup.
 
 ### Improvements for next time
 - Cross-check global hotkey consumers early when one scan-code mapping fails while neighboring mappings work.
+
+## 2026-08-23: agy delegate safety and reliability
+
+### What went well
+- The package already had focused tests and a clear CLI boundary, making safety fixes small and verifiable.
+- The full repository gate passed after adding sandbox, stream, JSON, command, and lock regressions.
+
+### What was frustrating / slow
+- The independent agy review terminated before producing findings, so the final review had to be manual.
+
+### What config change would have helped
+- Keep the requesting-code-review skill available at its documented path, or provide a repository-local fallback.
+
+### Improvements for next time
+- Add a subprocess harness for deterministic agy stdout/stderr and abort behavior rather than relying only on pure helpers.
