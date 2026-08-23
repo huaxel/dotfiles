@@ -24,7 +24,7 @@
 - [x] Formal spec for the section-aware update format (`SECTION-AWARE-FORMAT.md`).
 ## M3 — Attention routing ⬜
 
-- [ ] Define a document-first mode versus normal chat mode.
+- [x] Define a document-first mode versus normal chat mode (`/worksheet mode on|off`; default on when a worksheet exists).
 - [ ] Make substantive Pi responses canonical in the worksheet.
 - [ ] Reduce the TUI to status, execution, errors, blocking questions, and interruptions.
 - [ ] Avoid duplicating full answers in both channels.

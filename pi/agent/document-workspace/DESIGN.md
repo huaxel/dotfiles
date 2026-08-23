@@ -19,6 +19,8 @@ The current extension provides the file watcher and steering transport, but does
 
 The M3 footer status (`ui.setStatus("worksheet", ...)`) begins the attention split: it shows watcher state, the active worksheet, and open todo/question counts as a compact document pointer, so the TUI can stay a status/execution surface while the worksheet holds the substance.
 
+Document-first mode (`/worksheet mode on|off`, default on when a worksheet exists) enforces the split at the prompt level: when on, a `DOCUMENT_FIRST_DIRECTIVE` is appended to the system prompt instructing Pi to keep findings/decisions/progress in the worksheet, use the TUI for compact status/errors/blocking questions, and never duplicate the same full answer in both channels. The directive is built by the pure `buildSystemPrompt(base, {documentFirst, skillContent})` helper, so routing policy is unit-testable without booting the extension.
+
 ## Markdown contract
 
 Markdown is the human-facing medium. It is portable, inspectable, searchable, editor-agnostic, and independent of Git. It is not the entire protocol; the extension supplies revision tracking, ownership, debouncing, loop prevention, and change summaries.

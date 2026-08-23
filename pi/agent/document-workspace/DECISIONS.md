@@ -31,3 +31,7 @@ Markdown-native contract, no hidden HTML metadata:
 - Questions are `## Questions / Next steps` items ending in `?`; ticking one closes/answers it, deleting one removes it from the plan (answer first if open).
 - Todos: `- [ ]` open work, `- [x]` a done claim to verify (not proof); flipping back to `- [ ]` is a reopen.
 The extension detects checkbox transitions and surfaces them as a `Semantics:` call-out plus a `semantics` audit field, so Pi needn't re-derive meaning from a raw diff. Codified in SKILL.md and DESIGN.md.
+
+## 2026-08-24 — Document-first mode (M3 attention routing)
+
+Substantive responses belong in the worksheet; the TUI is a status/execution/error/interrupt surface. `/worksheet mode on|off` toggles it (default on when a worksheet exists). When on, a `DOCUMENT_FIRST_DIRECTIVE` is appended to the system prompt via the pure `buildSystemPrompt()` helper, enforcing: findings/decisions/progress go in the worksheet, TUI prose stays short with document pointers, quick clarifications can stay in chat, and no content is duplicated across both channels.
