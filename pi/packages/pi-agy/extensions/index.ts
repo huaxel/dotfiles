@@ -20,9 +20,21 @@ const MAX_OUTPUT_CHARS = 8000;
 const DEFAULT_TIMEOUT_MS = 300_000;
 const MAX_TIMEOUT_MS = 600_000;
 
-function truncate(text: string, max = MAX_OUTPUT_CHARS): string {
+export function truncate(text: string, max = MAX_OUTPUT_CHARS): string {
   if (text.length <= max) return text;
-  return text.slice(0, max) + "\n\n(Output truncated to 8000 chars)";
+  if (max <= 0) return "";
+
+  const markerPrefix = "\n\n(Output truncated: ";
+  const markerSuffix = " chars omitted)\n\n";
+  let marker = `${markerPrefix}${text.length - max}${markerSuffix}`;
+  const available = max - marker.length;
+  if (available <= 0) return text.slice(0, max);
+
+  const headLength = Math.ceil(available / 2);
+  const tailLength = available - headLength;
+  const omitted = text.length - headLength - tailLength;
+  marker = `${markerPrefix}${omitted}${markerSuffix}`;
+  return text.slice(0, headLength) + marker + (tailLength > 0 ? text.slice(-tailLength) : "");
 }
 
 export default function piAgyExtension(pi: ExtensionAPI) {
