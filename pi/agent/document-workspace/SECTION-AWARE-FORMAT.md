@@ -124,4 +124,5 @@ the stable identities that changed.
   degrade to a count.
 - The `Semantics:` layer currently detects todo transitions only; questions
   and comment routing are covered by the skill contract but not yet encoded as
-  machine events.
+  machine events. A checkbox item ending in `?` is a *question-todo* (tracked
+  work whose content is a question) and counts as a todo, not an open question.

@@ -118,6 +118,24 @@ export function todoTransitions(previous: string, current: string): TodoTransiti
   return transitions;
 }
 
+// ── pure worksheet-state counts (module scope, unit-testable) ──────────────
+// Counts open todos and unticked questions from worksheet content, used by the
+// M3 compact footer status (the TUI shows counts; the worksheet holds meaning).
+
+export function worksheetCounts(content: string): { openTodos: number; openQuestions: number } {
+  let openTodos = 0;
+  let openQuestions = 0;
+  for (const line of content.split(/\r?\n/)) {
+    const todo = /^-\s*\[( |x|X)\s*\]\s*(.+)\s*$/.exec(line);
+    if (todo) {
+      if (todo[1].trim() === "") openTodos += 1;
+      continue;
+    }
+    if (line.trim().endsWith("?")) openQuestions += 1;
+  }
+  return { openTodos, openQuestions };
+}
+
 export default function (pi: ExtensionAPI) {
   const WORKSHEETS_DIR = ".worksheets";
   const attachedFiles = new Set<string>();
@@ -616,6 +634,7 @@ export default function (pi: ExtensionAPI) {
             `[Worksheet update — ${filename}]\n\nSaved human changes in focused Markdown sections:\n${changeSummary}\n\nThe full document remains at ${filename}; read it if broader context is needed.`,
             { deliverAs: "steer" },
           );
+          setWorksheetStatus(ctx);
         } catch {
           // raced — file may have been removed
         }
@@ -669,6 +688,7 @@ export default function (pi: ExtensionAPI) {
     if (ctx.hasUI) {
       const state = watcherPaused ? "paused" : "watching";
       ctx.ui.notify(`📄 ${state} ${WORKSHEETS_DIR}/`, "info");
+      setWorksheetStatus(ctx);
     }
   });
 
@@ -727,6 +747,39 @@ export default function (pi: ExtensionAPI) {
   /** Return the path to the most recently modified .worksheets/*.md file, or null. */
   function latestWorksheet(): string | null {
     return worksheetFiles()[0]?.filePath ?? null;
+  }
+
+  function readWorksheetCounts(filePath: string): { openTodos: number; openQuestions: number } {
+    try {
+      return worksheetCounts(fs.readFileSync(filePath, "utf-8"));
+    } catch {
+      // unreadable/missing — report zero
+      return { openTodos: 0, openQuestions: 0 };
+    }
+  }
+
+  /**
+   * M3: compact worksheet status in the footer (via setStatus).  Shows the
+   * watcher state, the active worksheet, and open todo/question counts as a
+   * document pointer — the TUI stays a status view while the worksheet holds
+   * the substantive state.
+   */
+  function setWorksheetStatus(ctx: { ui?: { setStatus?: (key: string, text: string | undefined) => void } } | undefined): void {
+    if (!ctx?.ui?.setStatus) return;
+    const ws = latestWorksheet();
+    if (!ws) {
+      ctx.ui.setStatus("worksheet", `${watcherPaused ? "⏸" : "📄"} no worksheets`);
+      return;
+    }
+    const counts = readWorksheetCounts(ws);
+    const name = path.basename(ws).replace(/\.md$/i, "");
+    const parts = [
+      watcherPaused ? "⏸" : "📄",
+      name,
+      `${counts.openTodos} todo${counts.openTodos === 1 ? "" : "s"}`,
+      `${counts.openQuestions} q`,
+    ];
+    ctx.ui.setStatus("worksheet", parts.join(" · "));
   }
 
   function requestedWorksheet(name: string): string | null {
@@ -892,6 +945,7 @@ ${task}
 
         const rel = path.relative(process.cwd(), wsPath);
         ctx.ui.notify(`📄 Created ${rel}`, "info");
+        setWorksheetStatus(ctx);
         await openInSplit(wsPath, ctx);
         return;
       }
@@ -913,6 +967,7 @@ ${task}
           return;
         }
         ctx.ui.notify(`📎 Attached ${path.relative(process.cwd(), filePath)}`, "info");
+        setWorksheetStatus(ctx);
         return;
       }
 
@@ -982,6 +1037,7 @@ ${task}
       if (sub === "off" || sub === "pause") {
         watcherPaused = true;
         ctx.ui.notify("⏸ Worksheet loop paused", "info");
+        setWorksheetStatus(ctx);
         return;
       }
 
@@ -990,6 +1046,7 @@ ${task}
         watcherPaused = false;
         rescanWatcher?.();
         ctx.ui.notify("▶ Worksheet loop resumed", "info");
+        setWorksheetStatus(ctx);
         return;
       }
 
