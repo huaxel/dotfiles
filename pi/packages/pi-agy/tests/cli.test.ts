@@ -91,6 +91,21 @@ describe("detectVerifyCommand", () => {
     );
     assert.equal(await detectVerifyCommand(tmp), "npm test");
   });
+
+  it("prefers a package ci script and package manager", async () => {
+    const tmp = await mkdtemp(path.join(os.tmpdir(), "pi-agy-verify-"));
+    await writeFile(
+      path.join(tmp, "package.json"),
+      JSON.stringify({ packageManager: "pnpm@9", scripts: { ci: "pnpm lint && pnpm test" } }),
+    );
+    assert.equal(await detectVerifyCommand(tmp), "pnpm run ci");
+  });
+
+  it("recognizes uppercase Justfile aliases", async () => {
+    const tmp = await mkdtemp(path.join(os.tmpdir(), "pi-agy-verify-"));
+    await writeFile(path.join(tmp, "Justfile"), "alias ci := check\n");
+    assert.equal(await detectVerifyCommand(tmp), "just ci");
+  });
 });
 
 describe("stream parser", () => {
