@@ -35,7 +35,7 @@ Auth is unchanged: existing `agy` OAuth (`~/.gemini/oauth_creds.json`).
 | `continue` | `--continue` most recent conversation |
 | `new_session` | Force fresh session; set `false` to reuse last ID for dir |
 | `stream` | Use `stream-json` (default `true`) |
-| `mode` | `plan` by default; use `accept-edits` explicitly to write files |
+| `mode` | `accept-edits` by default; use `plan` for exploration/review |
 
 ## Human-callable `/agy` command
 
@@ -50,9 +50,9 @@ Run agy directly from the Pi TUI — fast path when fully specified, wizard othe
 
 First token optional: `accept-edits` / `plan` / `sandbox` mode prefix, then a
 model alias (`flash`, `pro`, `sonnet`, `opus`, `gpt-oss`, …), then the prompt.
-The interactive wizard defaults to `accept-edits` and confirms before writing;
-direct `agy_execute` tool calls default to the safer `plan` mode. Sandbox runs
-do not bypass agy permission checks.
+The interactive wizard and direct `agy_execute` calls default to
+`accept-edits`; the wizard confirms before writing. Use `plan` explicitly for
+exploration/review. Sandbox runs do not bypass agy permission checks.
 
 Missing pieces open interactive dialogs (mode select, model select with
 descriptions, multi-line task editor). `accept-edits` asks for confirmation

@@ -23,7 +23,7 @@ const MAX_TIMEOUT_MS = 600_000;
 type AgyMode = "plan" | "accept-edits" | "sandbox";
 
 export function resolveAgyMode(mode?: AgyMode): AgyMode {
-  return mode ?? "plan";
+  return mode ?? "accept-edits";
 }
 
 export function truncate(text: string, max = MAX_OUTPUT_CHARS): string {
@@ -53,7 +53,7 @@ export default function piAgyExtension(pi: ExtensionAPI) {
       "Run a task through the Antigravity CLI (agy) for bulk implementation, scaffolding, or test generation.",
     promptSnippet: "Run a task through the Antigravity CLI (agy)",
     promptGuidelines: [
-      "Default agy_execute to mode=plan for exploration and review; use accept-edits only for scoped batches.",
+      "Use agy_execute with accept-edits for scoped implementation; use plan for exploration and review.",
       "Plan or research with one family only when needed; implement with flash-medium or sonnet according to which quota group should carry the work.",
       "Use flash-medium by default for bulk coding, exploration, tests, and repetitive work.",
       "Use flash-low for trivial few-step or high-volume work, and flash-high for difficult agentic work.",
@@ -96,7 +96,7 @@ export default function piAgyExtension(pi: ExtensionAPI) {
       mode: Type.Optional(
         Type.Union(
           [Type.Literal("accept-edits"), Type.Literal("plan"), Type.Literal("sandbox")],
-          { description: "'plan' (default), 'accept-edits', or 'sandbox'.", default: "plan" },
+          { description: "'accept-edits' (default), 'plan', or 'sandbox'.", default: "accept-edits" },
         ),
       ),
       dir: Type.Optional(
@@ -144,8 +144,6 @@ export default function piAgyExtension(pi: ExtensionAPI) {
       const cwd = params.dir ? path.resolve(ctx.cwd, params.dir) : ctx.cwd;
       const abortSignal = signal ?? new AbortController().signal;
       const timeoutMs = Math.min(params.timeout_ms ?? DEFAULT_TIMEOUT_MS, MAX_TIMEOUT_MS);
-      // Planning is the safe default for an LLM-invoked tool. Callers must
-      // explicitly opt into filesystem writes with accept-edits.
       const mode = resolveAgyMode(params.mode);
       const model = params.model as AgyModel | undefined;
 

@@ -12,7 +12,7 @@
 - Serialize session-store updates, write atomically, and keep conversation IDs in a private file.
 - Detect `Justfile`, package `ci` scripts, and npm/pnpm/yarn/bun runners for verification.
 - Ignore non-object JSON lines in streamed agy output safely.
-- Default direct `agy_execute` calls to plan mode; writes require explicit `accept-edits`.
+- Keep direct `agy_execute` calls implementation-oriented with `accept-edits` as the default; use `plan` explicitly for review.
 
 ## 0.4.0
 
