@@ -14,6 +14,76 @@ import * as path from "node:path";
 import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import type { AutocompleteItem } from "@earendil-works/pi-tui";
 
+// ── pure block-identity core (module scope, unit-testable) ────────────────
+// Marks a Markdown section with a stable id that survives edits, heading
+// renames, block-shift/reordering, and rewrites within a section.  Ids are
+// stored in a sidecar (`block-ids.json`) rather than in the visible Markdown.
+
+export type BlockRecord = { id: string; heading: string; body: string };
+export type BlockSection = { heading: string; body: string };
+
+export function normalizeBlockHeading(heading: string): string {
+  return heading.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function blockTokens(text: string): Set<string> {
+  return new Set((text.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []));
+}
+
+/** Jaccard overlap of lowercase word tokens in [0, 1]. */
+export function contentSimilarity(a: string, b: string): number {
+  if (a === b) return 1;
+  const ta = blockTokens(a);
+  const tb = blockTokens(b);
+  if (ta.size === 0 || tb.size === 0) return 0;
+  let inter = 0;
+  for (const t of ta) if (tb.has(t)) inter++;
+  return inter / Math.max(ta.size, tb.size);
+}
+
+/**
+ * Reconcile current sections against previously persisted block ids.  Each
+ * section is matched to the best unused existing block by heading match
+ * (0.5) plus body similarity; a match preserves the id across edits,
+ * renames, and reordering.  Unmatched sections get a fresh id (first save or
+ * a genuinely new block).  Returns the reconciled records plus the ids whose
+ * body changed this revision.
+ */
+export function reconcileBlockIds(
+  existing: BlockRecord[],
+  sections: BlockSection[],
+  makeId: (heading: string, body: string) => string,
+): { records: BlockRecord[]; changed: string[] } {
+  const taken = new Set<string>();
+  const records: BlockRecord[] = [];
+  const changed: string[] = [];
+
+  for (const section of sections) {
+    const heading = normalizeBlockHeading(section.heading);
+    let best: BlockRecord | null = null;
+    let bestScore = 0;
+    for (const cand of existing) {
+      if (taken.has(cand.id)) continue;
+      const sameHeading = normalizeBlockHeading(cand.heading) === heading ? 0.5 : 0;
+      const score = sameHeading + contentSimilarity(cand.body, section.body);
+      if (score > bestScore) {
+        bestScore = score;
+        best = cand;
+      }
+    }
+    if (best && bestScore >= 0.35) {
+      taken.add(best.id);
+      if (best.body !== section.body) changed.push(best.id);
+      records.push({ id: best.id, heading: section.heading, body: section.body });
+    } else {
+      const id = makeId(heading, section.body);
+      records.push({ id, heading: section.heading, body: section.body });
+      changed.push(id); // a brand-new block counts as a content change
+    }
+  }
+  return { records, changed };
+}
+
 export default function (pi: ExtensionAPI) {
   const WORKSHEETS_DIR = ".worksheets";
   const attachedFiles = new Set<string>();
@@ -139,6 +209,152 @@ export default function (pi: ExtensionAPI) {
     return sections.join("\n\n");
   }
 
+  // ── durable history sidecar + stable block identities ──────────────────
+  //
+  // Append-only audit log per worksheet:
+  //   .worksheets/.history/<id>/events.jsonl   — revision event log
+  //   .worksheets/.history/<id>/block-ids.json — stable block id map
+  //
+  // The human-facing Markdown stays the live view; the sidecar is the
+  // materialized/durable state (Zed's DeltaDB ~append-only deltas over a
+  // real worktree).  Block ids are reconciled across saves by content+
+  // heading similarity so edits, heading renames, and section reordering do
+  // NOT churn the ids, and the ids are kept OUT of the visible Markdown
+  // (Zed's logical-anchors lesson: stable identities, not heading occurrence
+  // keys).
+
+  let currentConversation = "unknown";
+  let currentTurn = 0;
+
+  const HISTORY_ROOT = path.resolve(WORKSHEETS_DIR, ".history");
+
+  function shortHash(hex: string): string {
+    return hex.slice(0, 12);
+  }
+
+  function historyIdFor(filePath: string): string {
+    const rel = path.relative(process.cwd(), filePath).replace(/\.md$/i, "");
+    return slugify(rel.replace(/[\\/]+/g, "-")) || "worksheet";
+  }
+  function historyDirFor(filePath: string): string {
+    return path.join(HISTORY_ROOT, historyIdFor(filePath));
+  }
+  function eventsPathFor(filePath: string): string {
+    return path.join(historyDirFor(filePath), "events.jsonl");
+  }
+  function blockIdsPathFor(filePath: string): string {
+    return path.join(historyDirFor(filePath), "block-ids.json");
+  }
+
+  function loadBlockRecords(filePath: string): BlockRecord[] {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(blockIdsPathFor(filePath), "utf-8"));
+      if (parsed && Array.isArray(parsed.blocks)) return parsed.blocks;
+    } catch {
+      // first save
+    }
+    return [];
+  }
+  function saveBlockRecords(filePath: string, blocks: BlockRecord[]): void {
+    try {
+      fs.mkdirSync(historyDirFor(filePath), { recursive: true });
+      fs.writeFileSync(
+        blockIdsPathFor(filePath),
+        JSON.stringify({ version: 1, blocks }, null, 2),
+        "utf-8",
+      );
+    } catch {
+      // storage is best-effort
+    }
+  }
+
+  /**
+   * Reconcile the saved revision against persisted block ids so identity
+   * survives edits, renames, and reordering.  Returns the current block
+   * records and the subset of ids whose content changed this revision.
+   */
+  function reconcileBlocks(filePath: string, current: Map<string, MarkdownSection>): {
+    records: BlockRecord[];
+    changed: string[];
+  } {
+    const existing = loadBlockRecords(filePath);
+    const sections: BlockSection[] = [...current.values()].map((s) => ({
+      heading: s.heading,
+      body: s.body,
+    }));
+    const makeId = (heading: string, body: string): string => {
+      const digest = crypto.createHash("sha256")
+        .update(`${filePath}:${heading}:${body}`)
+        .digest("hex");
+      return `block-${shortHash(digest)}`;
+    };
+    const result = reconcileBlockIds(existing, sections, makeId);
+    saveBlockRecords(filePath, result.records);
+    return result;
+  }
+
+  function appendEventLine(filePath: string, event: Record<string, unknown>): void {
+    try {
+      fs.mkdirSync(historyDirFor(filePath), { recursive: true });
+      fs.appendFileSync(eventsPathFor(filePath), JSON.stringify(event) + "\n", "utf-8");
+    } catch {
+      // audit log is best-effort
+    }
+  }
+
+  function changedSectionKeys(previous: string | undefined, current: string): string[] {
+    const before = markdownSections(previous ?? "");
+    const after = markdownSections(current);
+    const keys = [...new Set([...before.keys(), ...after.keys()])];
+    return keys.filter((key) => before.get(key)?.text !== after.get(key)?.text);
+  }
+
+  /**
+   * Persist the current save as an event (revision id, parent revision,
+   * actor, changed sections, operation summary, conversation/turn id) and
+   * reconcile stable block identities.  Returns the human-facing change
+   * summary, or null when there is no meaningful change to surface.
+   */
+  function recordRevision(filePath: string, actor: "human" | "agent"): string | null {
+    try {
+      if (!fs.existsSync(filePath)) return null;
+      const content = fs.readFileSync(filePath, "utf-8");
+      if (!content.trim()) return null;
+      const prev = fileState.get(filePath);
+      const exact = fileHash(content);
+      if (prev && prev.exact === exact) return null; // no change
+      const norm = normalizedHash(content);
+      if (prev && prev.norm === norm) {
+        rememberFile(filePath, content); // whitespace-only: don't log or steer
+        return null;
+      }
+
+      const sections = changedSectionKeys(prev?.content, content);
+      const ops = summarizeChange(prev?.content, content);
+      const revision = shortHash(exact);
+      const parent = prev ? shortHash(prev.exact) : null;
+      const changeSummary = summarizeSections(prev?.content, content);
+      const { changed } = reconcileBlocks(filePath, markdownSections(content));
+
+      appendEventLine(filePath, {
+        revision,
+        parent,
+        actor,
+        sections,
+        ops,
+        blocks: changed,
+        conversation: currentConversation,
+        turn: currentTurn,
+        ts: new Date().toISOString(),
+      });
+
+      rememberFile(filePath, content);
+      return changeSummary;
+    } catch {
+      return null;
+    }
+  }
+
   function isWorksheetPath(absPath: string): boolean {
     const normalizedPath = path.resolve(absPath);
     const parts = normalizedPath.replace(/\/$/, "").split(path.sep);
@@ -214,6 +430,11 @@ export default function (pi: ExtensionAPI) {
     if (armedPath) {
       armedPaths.delete(event.toolCallId);
       worksheetGuard.disarm();
+      // Record the agent's own write in the audit log.  Recording is
+      // distinct from steering: we log actor "agent" but never re-inject
+      // the change as a worksheet update.  This also refreshes the stored
+      // hash, so a later spurious fs.watch event cannot re-inject it.
+      recordRevision(armedPath, "agent");
     }
   });
 
@@ -251,6 +472,8 @@ export default function (pi: ExtensionAPI) {
 
   pi.on("session_start", (_event, ctx) => {
     const worksheetsAbs = path.resolve(WORKSHEETS_DIR);
+    currentConversation = ctx.sessionManager.getSessionFile() ?? "unknown";
+    currentTurn = 0;
 
     // A reload can emit session_start more than once. Close the old watcher
     // first so edits are never delivered twice.
@@ -303,25 +526,8 @@ export default function (pi: ExtensionAPI) {
         debounceTimers.delete(filePath);
         if (watcherPaused) return;
         try {
-          if (!fs.existsSync(filePath)) return;
-          const content = fs.readFileSync(filePath, "utf-8");
-          if (!content.trim()) return;
-
-          const exact = fileHash(content);
-          const norm = normalizedHash(content);
-          const prev = fileState.get(filePath);
-
-          // No change at all
-          if (prev && prev.exact === exact) return;
-
-          // Only whitespace/formatting changed — update hash, don't inject
-          if (prev && prev.norm === norm) {
-            rememberFile(filePath, content);
-            return;
-          }
-
-          const changeSummary = summarizeSections(prev?.content, content);
-          rememberFile(filePath, content);
+          const changeSummary = recordRevision(filePath, "human");
+          if (!changeSummary) return;
           pi.sendUserMessage(
             `[Worksheet update — ${filename}]\n\nSaved human changes in focused Markdown sections:\n${changeSummary}\n\nThe full document remains at ${filename}; read it if broader context is needed.`,
             { deliverAs: "steer" },
@@ -386,6 +592,16 @@ export default function (pi: ExtensionAPI) {
     closeWatcher?.();
     closeWatcher = null;
     rescanWatcher = null;
+    currentConversation = "unknown";
+    currentTurn = 0;
+  });
+
+  // Track actor context: conversation/turn identity for the audit log.
+  pi.on("turn_start", (_event, ctx) => {
+    currentTurn += 1;
+    if (currentConversation === "unknown") {
+      currentConversation = ctx.sessionManager.getSessionFile() ?? "unknown";
+    }
   });
 
   function seedExistingHashes(dir: string): void {

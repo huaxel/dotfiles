@@ -117,3 +117,8 @@ node_modules/
 # Root npm workspace lockfile — generated per-machine by `npm install`
 # (pi/packages workspace deps resolve on any clone; lock is not shared)
 package-lock.json
+
+# Worksheet audit sidecar — derived per-machine state, not collaboration content.
+# The visible Markdown worksheets remain tracked; only the .history event log
+# and block-id map are regenerable local artifacts.
+.worksheets/.history/

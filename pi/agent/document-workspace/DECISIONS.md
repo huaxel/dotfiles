@@ -19,3 +19,7 @@ Plans, findings, decisions, questions, and durable progress belong in the worksh
 ## 2026-08-19 — Keep rationale before deletion
 
 Deleting an active item is allowed, but important rejection or supersession rationale should be recorded under `## Decisions` or `## Progress` before removal.
+
+## 2026-08-23 — Durable audit sidecar (`events.jsonl`) with stable block ids
+
+Revisions are recorded to an append-only `events.jsonl` per worksheet with revision id, parent revision, actor (human/agent), changed section keys, operation summary, changed block ids, conversation and turn id. Block identity is reconciled across saves from content+heading similarity so edits, renames, and reordering do not churn ids — idempots live in the sidecar, never in the visible Markdown. This follows Zed's DeltaDB (append-only deltas over a real worktree) and logical-anchor lessons from the worksheet research, without full CRDT text replication.

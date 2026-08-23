@@ -54,7 +54,11 @@ When rationale matters, record it before deleting or superseding the active item
 - Superseded the original plan with the configuration service approach.
 ```
 
-This gives the document a clean active state and a lightweight rationale trail. Full append-only event logs are a possible later layer, not an immediate requirement.
+This gives the document a clean active state and a lightweight rationale trail. For full event history, each worksheet also gets an append-only sidecar under `.worksheets/.history/<id>/events.jsonl` (revision id, parent revision, actor, changed sections, operation summary, changed block ids, conversation/turn id) plus a `block-ids.json` map. The sidecar is regenerable local state (gitignored); the visible Markdown remains the canonical collaboration surface.
+
+## Block identity
+
+Sections are matched across saves by heading+content similarity so a block keeps a stable id through in-place edits, heading renames, section reordering, and additions/deletions. Ids live in the sidecar map, not in the visible Markdown — the document stays human-clean while machine identity stays stable (Zed's logical-anchor lesson, without full CRDT replication).
 
 ## Revision semantics
 
