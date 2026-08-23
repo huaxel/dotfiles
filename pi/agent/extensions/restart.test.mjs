@@ -31,6 +31,10 @@ assert(
   "aborted completion remains cancellation",
 );
 assert(
+  extractHandoffText({ stopReason: "error", content: [{ type: "text", text: "partial" }] }) === null,
+  "errored completion is never used as context",
+);
+assert(
   extractHandoffText({ stopReason: "stop", content: [{ type: "toolCall" }] }) === null,
   "non-text completion is rejected",
 );
@@ -150,6 +154,14 @@ function makeHarness({ completion, selectChoice, editorText = "" } = {}) {
   const h = makeHarness({ completion: async () => ({ stopReason: "stop", content: [] }) });
   await h.commands.get("restart")("", h.ctx);
   assert(h.notifications.at(-1)?.type === "error", "empty completion is reported as an error");
+}
+
+{
+  const h = makeHarness({ completion: async () => ({ stopReason: "error", content: [{ type: "text", text: "partial" }], errorMessage: "rate limited" }) });
+  await h.commands.get("restart")("", h.ctx);
+  assert(h.sent.length === 0, "errored completion never seeds a new session");
+  assert(h.notifications.at(-1)?.type === "error", "errored completion is reported as an error");
+  assert(h.notifications.at(-1)?.message.includes("rate limited"), "provider error message is surfaced");
 }
 
 {

@@ -38,12 +38,14 @@ const THRESHOLD_PCT = 80;
 const AFK_MS = 60_000;
 const RE_PROMPT_GAP = 5;
 
-/** Extract usable text while preserving an aborted completion as cancellation. */
+/** Extract usable text while treating aborted/errored completions as non-handoffs. */
 export function extractHandoffText(response: {
   content: ReadonlyArray<{ type: string; text?: string }>;
   stopReason: string;
 }): string | null {
-  if (response.stopReason === "aborted") return null;
+  // Never seed a fresh session from an aborted or errored completion, even if
+  // partial/echo text was emitted.
+  if (response.stopReason === "aborted" || response.stopReason === "error") return null;
   const text = response.content
     .filter((block) => block.type === "text")
     .map((block) => block.text ?? "")
@@ -168,6 +170,12 @@ export default function (pi: ExtensionAPI) {
             ),
           )
           .then((response) => {
+            // Surface the provider error message rather than silently discarding
+            // the errored completion as an empty/partial handoff.
+            if (response.stopReason === "error") {
+              generationError = new Error(response.errorMessage ?? "Handoff generation returned an error");
+              return finish(null);
+            }
             const text = extractHandoffText(response);
             if (!text) {
               if (response.stopReason === "aborted") return finish(null);
