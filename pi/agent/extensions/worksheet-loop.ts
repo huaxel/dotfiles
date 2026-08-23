@@ -19,6 +19,33 @@ import type { AutocompleteItem } from "@earendil-works/pi-tui";
 // renames, block-shift/reordering, and rewrites within a section.  Ids are
 // stored in a sidecar (`block-ids.json`) rather than in the visible Markdown.
 
+// M3 attention routing directive, appended to the system prompt in
+// document-first mode.  Keeps substantive responses canonical in the
+// worksheet and the TUI a status/execution surface.
+export const DOCUMENT_FIRST_DIRECTIVE = `You are in document-first mode. There is a shared Markdown worksheet that is the canonical home for substantive collaboration with the human.
+
+Routing rules:
+1. Keep findings, decisions, progress, and durable next steps in the worksheet (append under ## Findings, ## Decisions, ## Progress, or ## Questions / Next steps as appropriate). Do not reproduce the same full answer in both the TUI and the worksheet.
+2. The TUI is a status/execution surface: use it for compact status, active tool/execution state, errors, blocking questions, and explicit interruptions. Keep TUI prose short and point at the worksheet for detail.
+3. Answer a question as chat only when it is a quick clarification; if it deserves a documentable outcome, put the substantive answer in the worksheet and give a one-line pointer in the TUI.
+4. When the human ticks or untick a checkbox, verify the claimed state and update the worksheet accordingly rather than replying expansively in the TUI.
+5. Do not duplicate: one canonical home per piece of content.`;
+
+/**
+ * M3 attention routing — build the effective system prompt for a turn.
+ * Appends the worksheet skill (if available) and, when document-first mode is
+ * on, the attention-routing directive.  Pure and unit-testable.
+ */
+export function buildSystemPrompt(
+  base: string,
+  opts: { documentFirst: boolean; skillContent: string },
+): string {
+  let out = base;
+  if (opts.skillContent) out += `\n\n${opts.skillContent}`;
+  if (opts.documentFirst) out += `\n\n${DOCUMENT_FIRST_DIRECTIVE}`;
+  return out;
+}
+
 export type BlockRecord = { id: string; heading: string; body: string };
 export type BlockSection = { heading: string; body: string };
 
@@ -559,15 +586,19 @@ export default function (pi: ExtensionAPI) {
   }
 
   pi.on("before_agent_start", (event) => {
-    const instructions = loadSkillContent();
-    if (instructions) {
-      event.systemPrompt += `\n\n${instructions}`;
-    }
+    event.systemPrompt = buildSystemPrompt(event.systemPrompt, {
+      documentFirst,
+      skillContent: loadSkillContent(),
+    });
   });
 
   // ── watch .worksheets/ for human edits ──────────────────────────────────
 
   let watcherPaused = false;
+  // M3 document-first mode: when on, Pi routes substantive responses to the
+  // worksheet (canonical home) and keeps the TUI a status/execution surface.
+  // Default: on when a worksheet exists, off otherwise.
+  let documentFirst = false;
   let closeWatcher: (() => void) | null = null;
   let rescanWatcher: (() => void) | null = null;
   let attachWatcher: ((filePath: string) => boolean) | null = null;
@@ -576,6 +607,9 @@ export default function (pi: ExtensionAPI) {
     const worksheetsAbs = path.resolve(WORKSHEETS_DIR);
     currentConversation = ctx.sessionManager.getSessionFile() ?? "unknown";
     currentTurn = 0;
+    // Default document-first to on when a worksheet exists; explicit /worksheet
+    // mode overrides for the rest of the process.
+    documentFirst = latestWorksheet() !== null;
 
     // A reload can emit session_start more than once. Close the old watcher
     // first so edits are never delivered twice.
@@ -768,13 +802,14 @@ export default function (pi: ExtensionAPI) {
     if (!ctx?.ui?.setStatus) return;
     const ws = latestWorksheet();
     if (!ws) {
-      ctx.ui.setStatus("worksheet", `${watcherPaused ? "⏸" : "📄"} no worksheets`);
+      ctx.ui.setStatus("worksheet", `${watcherPaused ? "⏸" : "📄"} no worksheets${documentFirst ? " · doc" : ""}`);
       return;
     }
     const counts = readWorksheetCounts(ws);
     const name = path.basename(ws).replace(/\.md$/i, "");
     const parts = [
       watcherPaused ? "⏸" : "📄",
+      documentFirst ? "doc" : "chat",
       name,
       `${counts.openTodos} todo${counts.openTodos === 1 ? "" : "s"}`,
       `${counts.openQuestions} q`,
@@ -889,10 +924,11 @@ ${task}
     { value: "status", label: "status", description: "Show watcher status and latest worksheet" },
     { value: "pause", label: "pause", description: "Pause the worksheet loop" },
     { value: "resume", label: "resume", description: "Resume and scan for worksheet changes" },
+    { value: "mode", label: "mode", description: "Set document-first mode: on|off|status" },
   ];
 
   pi.registerCommand("worksheet", {
-    description: "Control the worksheet loop. Subcommands: start, attach, list, search, open, path, status, pause, resume",
+    description: "Control the worksheet loop. Subcommands: start, attach, list, search, open, path, status, pause, resume, mode",
     getArgumentCompletions: (prefix: string): AutocompleteItem[] | null => {
       const filtered = SUBCOMMANDS.filter((s) => s.value.startsWith(prefix));
       return filtered.length > 0 ? filtered : null;
@@ -1046,6 +1082,25 @@ ${task}
         watcherPaused = false;
         rescanWatcher?.();
         ctx.ui.notify("▶ Worksheet loop resumed", "info");
+        setWorksheetStatus(ctx);
+        return;
+      }
+
+      // ── /worksheet mode on|off|status ─────────────────────────────────
+      if (sub === "mode") {
+        const choice = rest.join(" ").trim().toLowerCase();
+        if (choice === "on") {
+          documentFirst = true;
+          ctx.ui.notify("📄 Document-first mode ON — substantive answers go to the worksheet", "info");
+        } else if (choice === "off") {
+          documentFirst = false;
+          ctx.ui.notify("💬 Normal chat mode ON — TUI carries the full answer", "info");
+        } else {
+          ctx.ui.notify(
+            `Document-first mode is ${documentFirst ? "ON" : "OFF"}. Usage: /worksheet mode on|off`,
+            "info",
+          );
+        }
         setWorksheetStatus(ctx);
         return;
       }
