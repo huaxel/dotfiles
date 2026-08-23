@@ -40,7 +40,7 @@
 
 ## Research follow-ups
 
-- [ ] Compare `pi-watcher` trigger/queue semantics with the worksheet watcher.
-- [ ] Study Cairn’s archive and rationale conventions.
-- [ ] Evaluate whether `pi-doc-review` can be used as an optional review surface.
+- [x] Compare `pi-watcher` trigger/queue semantics with the worksheet watcher (`RESEARCH.md` — queue_until_idle, consumed-marker loop prevention vs sentinel+hash; steering richness).
+- [x] Study Cairn’s archive and rationale conventions (`RESEARCH.md` — `.cairn/archive/`, decision status transitions, HUMAN.md handoff, provenance chains).
+- [x] Evaluate whether `pi-doc-review` can be used as an optional review surface (`RESEARCH.md` — Glimpse review window; fit as an M4 writing/review renderer, not a dependency).
 - [ ] Decide whether to publish this as a reusable Pi package after the workflow stabilizes.
