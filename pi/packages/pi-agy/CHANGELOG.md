@@ -7,6 +7,7 @@
 - Preserve clean successful responses when agy emits stderr diagnostics.
 - Allow queued calls to cancel without blocking later runs in the same directory.
 - Accept explicit `/agy accept-edits ...` mode prefixes.
+- Preserve multiline prompt formatting in `/agy` command arguments.
 
 ## 0.4.0
 

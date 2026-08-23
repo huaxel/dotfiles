@@ -201,6 +201,11 @@ describe("parseAgyCommandArgs", () => {
     assert.equal(parsed.prompt, "implement the fix");
   });
 
+  it("preserves multiline prompt formatting", () => {
+    const parsed = parseAgyCommandArgs("plan flash review these files:\n- one\n- two");
+    assert.equal(parsed.prompt, "review these files:\n- one\n- two");
+  });
+
   it("returns empty object for bare /agy", () => {
     const parsed = parseAgyCommandArgs("");
     assert.deepEqual(parsed, {});
