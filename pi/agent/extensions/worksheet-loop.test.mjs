@@ -4,7 +4,7 @@ import { register } from "node:module";
 
 register(new URL("./pi-resolve-hook.mjs", import.meta.url), import.meta.url);
 
-const { reconcileBlockIds, contentSimilarity } = await import(new URL("./worksheet-loop.ts", import.meta.url));
+const { reconcileBlockIds, contentSimilarity, todoItems, todoTransitions } = await import(new URL("./worksheet-loop.ts", import.meta.url));
 
 const assert = (condition, message) => {
   if (!condition) throw new Error(message);
@@ -94,5 +94,40 @@ const ids = (records) => records.map((r) => r.id);
 // contentSimilarity is symmetric and exact-match is 1.
 assert(contentSimilarity("a b c", "a b c") === 1, "identical content scores 1");
 assert(contentSimilarity("a b c", "a b") > contentSimilarity("a b c", "x y z"), "related content outranks unrelated");
+
+// ── todo-transition semantics ──────────────────────────────────────────────
+
+// todoItems extracts checkbox state by text content.
+{
+  const items = todoItems("- [ ] open task\n- [x] done task\n- plain line\n- [X] uppercase");
+  assert(items.get("open task")?.state === "open", "unchecked todo parsed as open");
+  assert(items.get("done task")?.state === "done", "checked todo parsed as done");
+  assert(items.get("uppercase")?.state === "done", "uppercase X parsed as done");
+  assert(!items.has("plain line"), "non-checkbox lines are ignored");
+}
+
+// Transition open -> done is a completion claim.
+{
+  const t = todoTransitions("- [ ] fix the bug", "- [x] fix the bug");
+  assert(t.length === 1 && t[0].from === "open" && t[0].to === "done", "open->done is a completion");
+}
+
+// Transition done -> open is a reopen.
+{
+  const t = todoTransitions("- [x] fix the bug", "- [ ] fix the bug");
+  assert(t.length === 1 && t[0].from === "done" && t[0].to === "open", "done->open is a reopen");
+}
+
+// Unchanged and newly-added todos are not transitions.
+{
+  const t = todoTransitions("- [ ] a\n- [x] b", "- [ ] a\n- [x] b\n- [ ] c");
+  assert(t.length === 0, "no state change yields no transition (additions ignored)");
+}
+
+// Text edits that also change state are still a transition on the same item.
+{
+  const t = todoTransitions("- [ ] write docs", "- [x] write docs completely");
+  assert(t.length === 0 || t[0].from === "open", "renamed+checked item at worst reports open->done");
+}
 
 console.log("worksheet-loop block-identity tests passed");

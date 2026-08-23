@@ -84,6 +84,40 @@ export function reconcileBlockIds(
   return { records, changed };
 }
 
+// ── pure todo-transition core (module scope, unit-testable) ────────────────
+// Detects `- [ ]` / `- [x]` checkbox state changes that matter for steering,
+// independent of the fs-bound markdownSections().  The contract (Markdown-
+// native, no hidden HTML metadata) is documented in SKILL.md §8.
+
+export type TodoItem = { state: "open" | "done"; text: string };
+export type TodoTransition = { text: string; from: "open" | "done"; to: "open" | "done" };
+
+const TODO_RE = /^-\s*\[( |x|X)\s*\]\s*(.+)\s*$/;
+
+/** Extract checkbox lines by their text content, ignoring checkbox state. */
+export function todoItems(sectionBody: string): Map<string, TodoItem> {
+  const items = new Map<string, TodoItem>();
+  for (const line of sectionBody.split(/\r?\n/)) {
+    const m = TODO_RE.exec(line);
+    if (m) items.set(m[2].trim(), { state: m[1].toLowerCase() === "x" ? "done" : "open", text: m[2].trim() });
+  }
+  return items;
+}
+
+/** Determine which todo checkboxes changed state, and in which direction. */
+export function todoTransitions(previous: string, current: string): TodoTransition[] {
+  const before = todoItems(previous);
+  const after = todoItems(current);
+  const transitions: TodoTransition[] = [];
+  for (const [text, item] of after) {
+    const prev = before.get(text);
+    if (prev && prev.state !== item.state) {
+      transitions.push({ text, from: prev.state, to: item.state });
+    }
+  }
+  return transitions;
+}
+
 export default function (pi: ExtensionAPI) {
   const WORKSHEETS_DIR = ".worksheets";
   const attachedFiles = new Set<string>();
@@ -207,6 +241,51 @@ export default function (pi: ExtensionAPI) {
       sections.push(`... (${changed.length - sections.length} more changed sections)`);
     }
     return sections.join("\n\n");
+  }
+
+  // ── stable semantics for comments, questions, and todos ─────────────────
+  //
+  // Contract (Markdown-native; no hidden HTML metadata — see SKILL.md §8):
+  //
+  //   Comments: a `> ` blockquote is a direct comment from the human to Pi.
+  //   The `## Human notes` section is human-owned; everything under it,
+  //   including blockquotes, is input, never overwritten by Pi.  Pi replies
+  //   land under `## Agent response` (append-only).
+  //
+  //   Questions: line items under `## Questions / Next steps` ending with `?`
+  //   are steering asks.  An item is "open" when not marked done; marking it
+  //   `- [ ] ...?` -> `- [x] ...?` closes it.  Deleting a question removes it
+  //   from the active plan rather than silencing Pi.
+  //
+  //   Todos: `- [ ]` (open/work) and `- [x]` (done/claimed).  A checked todo
+  //   is a completion claim to verify, not proof.  A transition to unchecked
+  //   reopens the item; a checked-to-unchecked edit is a reopen.
+  //
+  // We detect the *transitions* that actually matter for steering and surface
+  // them explicitly so Pi can instantiate the semantics without re-deriving
+  // them from a raw diff.
+
+  /**
+   * Build a semantic layer over a change summary: surfaces todo transitions
+   * explicitly so Pi doesn't have to parse raw checkboxes to act.
+   */
+  function semanticSummary(previous: string | undefined, current: string): string {
+    const prev = previous ?? "";
+    const notes: string[] = [];
+
+    // Todo transitions across the whole doc.
+    for (const [key, section] of markdownSections(current)) {
+      if (/^todos#|^progress#|^questions \/ next steps#/.test(key)) {
+        for (const t of todoTransitions(
+          markdownSections(prev).get(key)?.body ?? "",
+          section.body,
+        )) {
+          notes.push(t.to === "done" ? `✓ completed: ${t.text}` : `↻ reopened: ${t.text}`);
+        }
+      }
+    }
+
+    return notes.length > 0 ? `\n\nSemantics:\n${notes.map((n) => `- ${n}`).join("\n")}` : "";
   }
 
   // ── durable history sidecar + stable block identities ──────────────────
@@ -334,6 +413,10 @@ export default function (pi: ExtensionAPI) {
       const revision = shortHash(exact);
       const parent = prev ? shortHash(prev.exact) : null;
       const changeSummary = summarizeSections(prev?.content, content);
+      // Surface todo check/uncheck transitions explicitly (the human-facing
+      // semantics layer), if any, on top of the raw diff.
+      const semantic = semanticSummary(prev?.content, content);
+      const changeWithSemantics = changeSummary + semantic;
       const { changed } = reconcileBlocks(filePath, markdownSections(content));
 
       appendEventLine(filePath, {
@@ -343,13 +426,14 @@ export default function (pi: ExtensionAPI) {
         sections,
         ops,
         blocks: changed,
+        semantics: semantic.trim() || undefined,
         conversation: currentConversation,
         turn: currentTurn,
         ts: new Date().toISOString(),
       });
 
       rememberFile(filePath, content);
-      return changeSummary;
+      return changeWithSemantics;
     } catch {
       return null;
     }

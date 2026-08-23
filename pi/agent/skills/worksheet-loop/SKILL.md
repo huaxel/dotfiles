@@ -89,6 +89,28 @@ and follows the naming convention `ws-<epoch>-<slug>.md`.
    before removing it. A deletion can then mean “remove from the active plan”
    without erasing the historical reason.
 
+## Stable semantics for comments, questions, and todos
+
+These are the machine-meaning contracts for the shared sections. The extension
+surfaces the *transitions* that matter (checkbox state changes) explicitly in
+the steering message as `Semantics:`; treat that call-out as authoritative over
+a raw diff.
+
+- **Comments** — a `> ` blockquote is a direct human comment to Pi. Everything
+  under `## Human notes` is human-owned and never overwritten; Pi replies go
+  under `## Agent response` (append-only).
+
+- **Questions** — line items under `## Questions / Next steps` are open steering
+  asks. Tick an item (`- [ ] ...?` → `- [x] ...?`) to close/answer it. An item
+  that ends with `?` and stays blank/unticked is a question still awaiting your
+  answer. Deleting a question removes it from the active plan — it does not mean
+  “answer and stop”; answer first if it was still open.
+
+- **Todos** — `- [ ]` is open (work to do), `- [x]` is done (a *claim* to verify,
+  not proof). A check is an assertion of completion; verify before moving on. An
+  item flipped back to `- [ ]` is a reopen — treat it as in-progress again, not
+  a fresh addition.
+
 ## Not your only interface
 
 The human can still talk to you directly in chat.  The worksheet is an additional
