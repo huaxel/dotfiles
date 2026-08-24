@@ -500,3 +500,7 @@ every open). Fixed, then hardened the whole setup.
 ### Improvements for next time
 - Keep custom editor decoration render-only so Pi owns input, autocomplete, and app-action behavior.
 - Recheck package `files` whenever adding a runtime module imported by an extension entry point.
+
+### Follow-up validation
+- A real PTY launch confirmed live text rendering with the `#2e303f` background and accent border.
+- Typing `/` triggered Pi's autocomplete UI while the editor decoration remained active; no repository changes were left by the smoke tests.
