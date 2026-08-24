@@ -9,31 +9,49 @@ $env:PATH = "$env:USERPROFILE\scoop\apps\pwsh\current;$env:PATH"
 # ============================
 # Starship Prompt
 # ============================
-$env:STARSHIP_CONFIG = "$env:USERPROFILE\.config\starship.toml"
-Invoke-Expression (&starship init powershell)
+$InteractiveSession = -not [Console]::IsInputRedirected -and -not [Console]::IsOutputRedirected
+$cacheRoot = Join-Path $env:LOCALAPPDATA "PowerShell"
+if ($InteractiveSession) {
+    $env:STARSHIP_CONFIG = "$env:USERPROFILE\.config\starship.toml"
+    if (-not (Test-Path -LiteralPath $cacheRoot)) {
+        New-Item -ItemType Directory -Path $cacheRoot -Force | Out-Null
+    }
+    $starshipCache = Join-Path $cacheRoot "starship-init.ps1"
+    if (-not (Test-Path -LiteralPath $starshipCache)) {
+        & starship init powershell | Set-Content -LiteralPath $starshipCache
+    }
+    . $starshipCache
+}
 
 # ============================
 # PSReadLine Configuration
 # ============================
-Set-PSReadLineOption -PredictionSource History
-Set-PSReadLineOption -PredictionViewStyle ListView
-Set-PSReadLineOption -EditMode Windows
+if ($InteractiveSession) {
+    # Keep the history file small enough for fast startup and prediction.
+    Set-PSReadLineOption -MaximumHistoryCount 2000
+    Set-PSReadLineOption -HistoryNoDuplicates
+    Set-PSReadLineOption -PredictionSource History
+    Set-PSReadLineOption -PredictionViewStyle ListView
+    Set-PSReadLineOption -EditMode Windows
 
-Set-PSReadLineKeyHandler -Key Tab -Function MenuComplete
-Set-PSReadLineKeyHandler -Key UpArrow -Function HistorySearchBackward
-Set-PSReadLineKeyHandler -Key DownArrow -Function HistorySearchForward
-Set-PSReadLineKeyHandler -Chord 'Ctrl+d' -Function DeleteChar
+    Set-PSReadLineKeyHandler -Key Tab -Function MenuComplete
+    Set-PSReadLineKeyHandler -Key UpArrow -Function HistorySearchBackward
+    Set-PSReadLineKeyHandler -Key DownArrow -Function HistorySearchForward
+    Set-PSReadLineKeyHandler -Chord 'Ctrl+d' -Function DeleteChar
+}
 
 # ============================
 # FZF Integration
 # ============================
-Set-PSReadLineKeyHandler -Chord 'Ctrl+r' -ScriptBlock {
-    $command = Get-Content (Get-PSReadlineOption).HistorySavePath |
-        Select-Object -Unique |
-        fzf --height 40% --reverse
-    if ($command) {
-        [Microsoft.PowerShell.PSConsoleReadLine]::RevertLine()
-        [Microsoft.PowerShell.PSConsoleReadLine]::Insert($command)
+if ($InteractiveSession) {
+    Set-PSReadLineKeyHandler -Chord 'Ctrl+r' -ScriptBlock {
+        $command = Get-Content (Get-PSReadlineOption).HistorySavePath |
+            Select-Object -Unique |
+            fzf --height 40% --reverse
+        if ($command) {
+            [Microsoft.PowerShell.PSConsoleReadLine]::RevertLine()
+            [Microsoft.PowerShell.PSConsoleReadLine]::Insert($command)
+        }
     }
 }
 
@@ -131,20 +149,40 @@ function weather($city = "Brussels") {
 # ============================
 # Environment & Tools
 # ============================
-if (Get-Command uv -ErrorAction SilentlyContinue) {
-    (& uv generate-shell-completion powershell) | Out-String | Invoke-Expression
-}
+if ($InteractiveSession) {
+    # Generated tool integrations are cached; delete cache files after upgrading tools.
+    if (Get-Command uv -ErrorAction SilentlyContinue) {
+        $uvCompletionCache = Join-Path $cacheRoot "uv-completion.ps1"
+        if (-not (Test-Path -LiteralPath $uvCompletionCache)) {
+            & uv generate-shell-completion powershell | Set-Content -LiteralPath $uvCompletionCache
+        }
+        . $uvCompletionCache
+    }
 
-if (Get-Command zoxide -ErrorAction SilentlyContinue) {
-    Invoke-Expression (& { $hook = if ($PSVersionTable.PSVersion.Major -ge 7) { 'pwd' } else { 'prompt' } (zoxide init powershell --hook $hook) -join "`n" })
-}
+    if (Get-Command zoxide -ErrorAction SilentlyContinue) {
+        $zoxideCache = Join-Path $cacheRoot "zoxide-init.ps1"
+        if (-not (Test-Path -LiteralPath $zoxideCache)) {
+            $hook = if ($PSVersionTable.PSVersion.Major -ge 7) { 'pwd' } else { 'prompt' }
+            & zoxide init powershell --hook $hook | Set-Content -LiteralPath $zoxideCache
+        }
+        . $zoxideCache
+    }
 
-if (Get-Command atuin -ErrorAction SilentlyContinue) {
-    (& atuin init powershell) | Out-String | Invoke-Expression
-}
+    if (Get-Command atuin -ErrorAction SilentlyContinue) {
+        $atuinCache = Join-Path $cacheRoot "atuin-init.ps1"
+        if (-not (Test-Path -LiteralPath $atuinCache)) {
+            & atuin init powershell | Set-Content -LiteralPath $atuinCache
+        }
+        . $atuinCache
+    }
 
-if (Get-Command just -ErrorAction SilentlyContinue) {
-    (& just --completions powershell) | Out-String | Invoke-Expression
+    if (Get-Command just -ErrorAction SilentlyContinue) {
+        $justCompletionCache = Join-Path $cacheRoot "just-completions.ps1"
+        if (-not (Test-Path -LiteralPath $justCompletionCache)) {
+            & just --completions powershell | Set-Content -LiteralPath $justCompletionCache
+        }
+        . $justCompletionCache
+    }
 }
 
 # ============================
