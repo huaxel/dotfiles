@@ -76,6 +76,7 @@ test("generates complete readable theme hierarchy", () => {
 	assert.equal(theme.colors.mdCodeBlock, "fg");
 	assert.equal(theme.vars.toolOutput, "#9ba4c7");
 	assert.equal(theme.vars.dim, "#7e84a2");
+	assert.equal(theme.vars.userMsgBg, "#2e303f");
 
 	const requiredTokens = [
 		"accent", "border", "borderAccent", "borderMuted", "success", "error", "warning",
