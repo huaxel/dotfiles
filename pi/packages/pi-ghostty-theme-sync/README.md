@@ -19,7 +19,7 @@ so the regenerated theme always has a visible thumb regardless of the Ghostty pa
 The generator also keeps the UI hierarchy stable across terminals:
 
 - Uses the synchronized foreground explicitly for messages, search matches, and code blocks.
-- Gives tool titles the accent color without tinting their output.
+- Gives tool titles the accent color while keeping tool output secondary but readable on tinted surfaces.
 - Keeps semantic colors mapped to Ghostty's ANSI palette slots.
 
 ## Behavior

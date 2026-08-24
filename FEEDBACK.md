@@ -403,3 +403,18 @@ every open). Fixed, then hardened the whole setup.
 
 ### Improvements for next time
 - Add package-level tests for generated token coverage and palette-to-theme reproducibility.
+
+## 2026-08-24: Pi theme contrast follow-up
+
+### What went well
+- A quick contrast audit caught muted tool output falling below readable contrast on tinted surfaces.
+- The fix preserved hierarchy with a blended secondary color instead of making all tool output full-bright.
+
+### What was frustrating / slow
+- The repository gate still cannot type-check package TypeScript without Deno installed.
+
+### Config change that would have helped
+- Include Deno in the standard dotfiles validation environment.
+
+### Improvements for next time
+- Add a pure theme-generator module so contrast and token tests can run without Pi's runtime loader.
