@@ -1,5 +1,22 @@
 # Session Feedback
 
+## 2026-08-24: Dotter binary symlink warnings
+
+### What went well
+- Reproduced the deployment output and confirmed the binary targets were already valid symlinks.
+- Explicit symlink mappings removed both UTF-8 detection warnings without overwriting local configuration.
+- `just ci` passed, with only the repository's existing non-blocking TypeScript lint warnings.
+
+### What was frustrating / slow
+- Dotter reports intentional local divergence as errors even though the repository gate already classifies these targets as protected.
+
+### What config change would have helped
+- A first-class Dotter ignore/protected-target setting would avoid noisy errors for machine-local files.
+
+### Improvements for next time
+- Explain protected-target behavior before considering `--force`.
+- Keep binary files under broad directory mappings explicitly typed as symlinks.
+
 ## 2026-07-20: Resolve Herdr skill collision
 
 ### What went well
