@@ -504,3 +504,6 @@ every open). Fixed, then hardened the whole setup.
 ### Follow-up validation
 - A real PTY launch confirmed live text rendering with the `#2e303f` background and accent border.
 - Typing `/` triggered Pi's autocomplete UI while the editor decoration remained active; no repository changes were left by the smoke tests.
+
+### Follow-up correction
+- The user clarified that only sent chat messages should have the stronger surface; the live prompt zone should remain unchanged. Reverted the custom editor wrapper and retained the `userMessageBg` transcript styling.
