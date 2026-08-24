@@ -506,10 +506,11 @@ cd ~/dotfiles && git pull && dotter deploy
 
 **"Some files were skipped" / "target contents were changed"** — Dotter is
 protecting machine-local changes. Do not use `--force` blindly: it can replace
-npm credentials, Git LFS settings, or machine-specific llama.cpp model paths.
-Back up and reconcile each target deliberately, or leave the protected-file
-warning as-is. The binary Maven and wallpaper entries are explicitly symlinked
-in `.dotter/global.toml`, so their UTF-8 detection warnings should not recur.
+Git LFS settings, or machine-specific llama.cpp model paths. Registry settings
+are sourced from the gitignored root `.npmrc`, which is symlinked to `~/.npmrc`.
+Back up and reconcile Git or llama.cpp changes deliberately rather than using
+`--force`. The binary Maven and wallpaper entries are explicitly symlinked in
+`.dotter/global.toml`, so their UTF-8 detection warnings should not recur.
 
 **"Failed to decrypt"** — wrong age key:
 ```bash

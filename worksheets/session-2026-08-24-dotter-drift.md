@@ -20,5 +20,6 @@ Git, or llama.cpp configuration.
 - `just ci`: passed; existing TypeScript lint diagnostics remain non-blocking.
 
 ## Follow-up
-- Do not run `dotter deploy --force` without backing up and intentionally reconciling
-  `~/.npmrc`, `~/.gitconfig`, and `~/.config/llama.cpp/models.ini`.
+- Migrated `~/.npmrc` to the ignored root `.npmrc` and retained the symlink.
+- Synced the Linux model template and Git LFS block with intentional local settings.
+- `dotter deploy --dry-run` is now clean; no force overwrite was used.
