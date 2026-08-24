@@ -482,3 +482,21 @@ every open). Fixed, then hardened the whole setup.
 
 ### Improvements for next time
 - Distinguish transcript prompt surfaces from the live prompt editor when discussing theme changes.
+
+## 2026-08-24: Pi live editor background
+
+### What went well
+- Pi 0.84.3's documented `CustomEditor` API provided a narrow render-only wrapper that preserves inherited keybindings and autocomplete wiring.
+- Reusing `userMessageBg` and `borderAccent` avoided inventing an unsupported theme token and kept the editor synchronized with Ghostty.
+- The wrapper leaves an existing custom editor untouched, and focused tests cover the palette tokens and ANSI reset restoration.
+
+### What was frustrating / slow
+- `npm test` must run from the package directory; the root npm project has no test script.
+- The repository gate cannot run Deno or ShellCheck locally because those tools are not installed.
+
+### Config change that would have helped
+- A root recipe for package-local tests would make the intended working directory explicit.
+
+### Improvements for next time
+- Keep custom editor decoration render-only so Pi owns input, autocomplete, and app-action behavior.
+- Recheck package `files` whenever adding a runtime module imported by an extension entry point.

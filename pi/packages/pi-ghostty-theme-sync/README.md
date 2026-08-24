@@ -22,6 +22,9 @@ The generator also keeps the UI hierarchy stable across terminals:
 - Gives sent prompts a distinct surface instead of a barely perceptible brightness shift.
 - Gives tool titles the accent color while keeping tool output secondary but readable on tinted surfaces.
 - Keeps semantic colors mapped to Ghostty's ANSI palette slots, nudging low-contrast colors toward black or white when needed.
+- Gives the live prompt editor the existing `userMessageBg` surface and `borderAccent` border through Pi's supported `CustomEditor` API.
+
+The editor wrapper intentionally overrides only `render()`. It inherits `CustomEditor.handleInput()`, so Pi's normal keybindings, autocomplete provider, paste handling, and app actions remain intact. If another extension has already registered a custom editor, this package leaves it untouched rather than replacing its behavior.
 
 ## Behavior
 
