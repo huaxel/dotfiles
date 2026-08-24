@@ -430,11 +430,18 @@ check-precommit:
     # 3. Quick dotter validation if global.toml changed
     if git diff --cached --name-only 2>/dev/null | grep -q '.dotter/global.toml'; then
         if command -v dotter &>/dev/null; then
-            if dotter deploy --dry-run >/dev/null 2>&1; then
+            if output=$(dotter deploy --dry-run 2>&1); then
                 echo "  ✅ dotter config OK"
+            elif echo "$output" | grep -E '\[ERROR\]' | grep -vE 'gitconfig|npmrc|llama-models.ini|Some files were skipped' | grep -q .; then
+                echo "  ❌ dotter deploy --dry-run failed"
+                echo "$output" | sed 's/^/    /'
+                errors=$((errors + 1))
+            elif echo "$output" | grep -q '\[ERROR\]'; then
+                echo "  ⚠️  Protected local targets differ — dotter skips them"
+                echo "  ✅ dotter config OK (local target divergence only)"
             else
                 echo "  ❌ dotter deploy --dry-run failed"
-                dotter deploy --dry-run 2>&1 | sed 's/^/    /'
+                echo "$output" | sed 's/^/    /'
                 errors=$((errors + 1))
             fi
         fi
