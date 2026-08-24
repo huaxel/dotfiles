@@ -418,3 +418,19 @@ every open). Fixed, then hardened the whole setup.
 
 ### Improvements for next time
 - Add a pure theme-generator module so contrast and token tests can run without Pi's runtime loader.
+
+## 2026-08-24: Pi theme generator testability
+
+### What went well
+- Extracting `theme.ts` removed the Pi peer dependency from parsing and generation tests.
+- Three focused Node tests now cover parsing, normalization, token completeness, and hierarchy.
+- `npm pack --dry-run` confirmed tests stay out of the published package.
+
+### What was frustrating / slow
+- The first package test command was run from the repository root and had to be rerun from the package directory.
+
+### Config change that would have helped
+- A root recipe for package-local tests would make the intended working directory obvious.
+
+### Improvements for next time
+- Add a `just pi-package-test <package>` helper if more local packages gain focused tests.
