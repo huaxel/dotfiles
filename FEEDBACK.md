@@ -466,3 +466,19 @@ every open). Fixed, then hardened the whole setup.
 
 ### Improvements for next time
 - Add a read-only health check that reports global Pi, extension-cache Pi, and peer-range mismatches together.
+
+## 2026-08-24: Pi prompt background visibility
+
+### What went well
+- Tracing Pi's `userMessageBg` usage showed the prompt surface was present but only 1.1:1 apart from the terminal background.
+- A small foreground blend made sent prompts visibly distinct while preserving the Tokyo Night palette.
+- The active generated snapshot and regression tests caught the intended value.
+
+### What was frustrating / slow
+- Pi uses “user message” for sent transcript prompts; its live input editor is a separate component and has no theme background token.
+
+### Config change that would have helped
+- A first-class `editorBg` theme token would avoid needing a custom editor wrapper for the live input area.
+
+### Improvements for next time
+- Distinguish transcript prompt surfaces from the live prompt editor when discussing theme changes.

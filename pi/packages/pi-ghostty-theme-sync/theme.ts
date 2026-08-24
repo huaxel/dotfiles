@@ -162,7 +162,8 @@ export function generatePiTheme(colors: GhosttyColors, themeName: string): objec
 	// Derive backgrounds
 	const bgShift = isDark ? 12 : -12;
 	const selectedBg = adjustBrightness(bg, bgShift);
-	const userMsgBg = adjustBrightness(bg, Math.round(bgShift * 0.7));
+	// Give sent prompts a real surface instead of an almost invisible brightness nudge.
+	const userMsgBg = mixColors(fg, bg, isDark ? 0.12 : 0.08);
 	const toolPendingBg = adjustBrightness(bg, Math.round(bgShift * 0.4));
 	const toolSuccessBg = mixColors(bg, success, 0.88);
 	const toolErrorBg = mixColors(bg, error, 0.88);
