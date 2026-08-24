@@ -405,6 +405,20 @@ every open). Fixed, then hardened the whole setup.
 ### Improvements for next time
 - Add a small extension harness for testing loader cancellation, provider failures, and session replacement without a live TUI.
 
+## 2026-08-24: Dotter protected-target reconciliation
+
+### What went well
+- Preserved npm settings by moving them to the gitignored root `.npmrc` and keeping `~/.npmrc` as a symlink.
+- Synced intentional Linux llama.cpp and Git LFS changes into their templates without force-overwriting targets.
+- Dotter dry-run is now clean.
+
+### What was frustrating / slow
+- Dotter cache briefly reported the old npm source and new ignored source as remove/add operations during migration.
+
+### Improvements for next time
+- Move credential-bearing local sources to the ignored root before changing Dotter mappings.
+- Re-render template targets and compare whitespace before applying updates.
+
 ## 2026-08-24: Pi theme hierarchy polish
 
 ### What went well
