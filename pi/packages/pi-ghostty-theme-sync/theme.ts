@@ -76,6 +76,43 @@ function getLuminance(hex: string): number {
 	return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
 }
 
+function getRelativeLuminance(hex: string): number {
+	const { r, g, b } = hexToRgb(hex);
+	const linearize = (channel: number) => {
+		const value = channel / 255;
+		return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+	};
+	return 0.2126 * linearize(r) + 0.7152 * linearize(g) + 0.0722 * linearize(b);
+}
+
+export function getContrastRatio(foreground: string, background: string): number {
+	const foregroundLuminance = getRelativeLuminance(foreground);
+	const backgroundLuminance = getRelativeLuminance(background);
+	return (Math.max(foregroundLuminance, backgroundLuminance) + 0.05) /
+		(Math.min(foregroundLuminance, backgroundLuminance) + 0.05);
+}
+
+function ensureContrast(color: string, background: string, minimum: number): string {
+	if (getContrastRatio(color, background) >= minimum) return color;
+
+	// Move the color toward the endpoint that has the best chance of contrast,
+	// preserving as much of the original hue as possible with a binary search.
+	const endpoint = getLuminance(background) < 0.5 ? "#ffffff" : "#000000";
+	if (getContrastRatio(endpoint, background) < minimum) return color;
+
+	let low = 0;
+	let high = 1;
+	for (let i = 0; i < 12; i++) {
+		const weight = (low + high) / 2;
+		if (getContrastRatio(mixColors(endpoint, color, weight), background) >= minimum) {
+			high = weight;
+		} else {
+			low = weight;
+		}
+	}
+	return mixColors(endpoint, color, high);
+}
+
 function adjustBrightness(hex: string, amount: number): string {
 	const { r, g, b } = hexToRgb(hex);
 	return rgbToHex(r + amount, g + amount, b + amount);
@@ -99,14 +136,14 @@ export function generatePiTheme(colors: GhosttyColors, themeName: string): objec
 	// ANSI color slots - trust the standard for semantic colors.
 	// Note: we intentionally do NOT use palette[0]/palette[8] as "neutral" colors.
 	// Some themes have non-black "black" slots.
-	const error = colors.palette[1] || "#cc6666";
-	const success = colors.palette[2] || "#98c379";
-	const warning = colors.palette[3] || "#e5c07b";
-	const link = colors.palette[4] || "#61afef";
+	const error = ensureContrast(colors.palette[1] || "#cc6666", bg, 4.5);
+	const success = ensureContrast(colors.palette[2] || "#98c379", bg, 4.5);
+	const warning = ensureContrast(colors.palette[3] || "#e5c07b", bg, 4.5);
+	const link = ensureContrast(colors.palette[4] || "#61afef", bg, 4.5);
 
 	// "Accent" is a judgment call.
-	const accent = colors.palette[5] || "#c678dd";
-	const accentAlt = colors.palette[6] || "#56b6c2";
+	const accent = ensureContrast(colors.palette[5] || "#c678dd", bg, 4.5);
+	const accentAlt = ensureContrast(colors.palette[6] || "#56b6c2", bg, 4.5);
 
 	// Derive neutrals from bg/fg for consistent readability across themes
 	const muted = mixColors(fg, bg, 0.65);

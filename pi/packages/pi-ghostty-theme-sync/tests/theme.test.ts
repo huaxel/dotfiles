@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { generatePiTheme, parseGhosttyConfig } from "../theme.ts";
+import { generatePiTheme, getContrastRatio, parseGhosttyConfig } from "../theme.ts";
 
 const tokyoNightConfig = `
 background = #1a1b26
@@ -34,6 +34,29 @@ test("normalizes short hex colors and preserves defaults", () => {
 	assert.equal(colors.background, "#112233");
 	assert.equal(colors.foreground, "#abcdef");
 	assert.deepEqual(colors.palette, {});
+});
+
+test("raises low-contrast semantic colors on light backgrounds", () => {
+	const colors = parseGhosttyConfig(`
+background = #ffffff
+foreground = #111111
+palette = 1=#ffaaaa
+palette = 2=#aaffaa
+palette = 3=#ffffaa
+palette = 4=#aaaaff
+palette = 5=#ffaaff
+palette = 6=#aaffff
+`);
+	const theme = generatePiTheme(colors, "light-test") as {
+		vars: Record<string, string>;
+	};
+
+	for (const token of ["error", "success", "warning", "link", "accent", "accentAlt"]) {
+		assert.ok(
+			getContrastRatio(theme.vars[token], colors.background) >= 4.5,
+			`${token} should meet 4.5:1 contrast`,
+		);
+	}
 });
 
 test("generates complete readable theme hierarchy", () => {

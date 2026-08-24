@@ -20,7 +20,7 @@ The generator also keeps the UI hierarchy stable across terminals:
 
 - Uses the synchronized foreground explicitly for messages, search matches, and code blocks.
 - Gives tool titles the accent color while keeping tool output secondary but readable on tinted surfaces.
-- Keeps semantic colors mapped to Ghostty's ANSI palette slots.
+- Keeps semantic colors mapped to Ghostty's ANSI palette slots, nudging low-contrast colors toward black or white when needed.
 
 ## Behavior
 
