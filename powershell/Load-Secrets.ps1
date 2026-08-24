@@ -7,7 +7,7 @@ function Import-DotfilesSecrets {
         return
     }
 
-    foreach ($line in Get-Content -LiteralPath $Path) {
+    foreach ($line in [System.IO.File]::ReadAllLines($Path)) {
         $trimmed = $line.Trim()
         if ([string]::IsNullOrWhiteSpace($trimmed) -or $trimmed.StartsWith('#')) {
             continue
@@ -57,7 +57,7 @@ function Sync-OpenferenceAuth {
         $data = @{}
         if (Test-Path -LiteralPath $path) {
             try {
-                $json = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+                $json = [System.IO.File]::ReadAllText($path) | ConvertFrom-Json
                 foreach ($prop in $json.PSObject.Properties) {
                     $data[$prop.Name] = $prop.Value
                 }
