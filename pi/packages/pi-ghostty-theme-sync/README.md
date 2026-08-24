@@ -29,6 +29,9 @@ The generator also keeps the UI hierarchy stable across terminals:
 - Writes `~/.pi/agent/themes/ghostty-sync-<sha1-8>.json` (or `$PI_CODING_AGENT_DIR/themes/`).
 - Deletes prior `ghostty-sync-*.json` files so the themes dir doesn't grow.
 - Skips work entirely when the active theme already matches the computed hash (no repaint on startup).
+- Keeps parsing and theme generation in a Pi-independent `theme.ts` module for regression testing.
+
+Run the package tests with `npm test`.
 
 ## Install (this dotfiles repo)
 
