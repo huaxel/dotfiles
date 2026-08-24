@@ -450,3 +450,19 @@ every open). Fixed, then hardened the whole setup.
 
 ### Improvements for next time
 - Add contrast assertions for tinted surfaces, not only the base background.
+
+## 2026-08-24: Pi 0.84.3 update validation
+
+### What went well
+- Confirmed the updated global Pi version and verified the custom theme against the installed 0.84.3 schema and built-in themes.
+- Theme tests and the active Ghostty snapshot comparison remained green.
+- Audit dry-run showed no non-breaking fixes, avoiding an unsafe forced upgrade.
+
+### What was frustrating / slow
+- The generated extension cache still contains older peer-installed Pi 0.80.3 artifacts even though the global CLI is 0.84.3, which makes `npm ls` noisy.
+
+### Config change that would have helped
+- A documented distinction between the global Pi CLI and the generated `pi/agent/npm` extension cache would clarify update diagnostics.
+
+### Improvements for next time
+- Add a read-only health check that reports global Pi, extension-cache Pi, and peer-range mismatches together.
