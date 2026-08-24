@@ -139,7 +139,9 @@ export function generatePiTheme(colors: GhosttyColors, themeName: string): objec
 
 	// Derive neutrals from bg/fg for consistent readability across themes
 	const muted = mixColors(fg, bg, 0.65);
-	const dim = mixColors(fg, bg, isDark ? 0.58 : 0.45);
+	// Keep secondary output subdued, but readable on tinted tool/search surfaces.
+	const toolOutput = mixColors(fg, bg, 0.78);
+	const dim = mixColors(fg, bg, isDark ? 0.60 : 0.45);
 	const borderMuted = mixColors(fg, bg, isDark ? 0.45 : 0.30);
 	// Calm neutral border so only borderAccent draws the eye; sits a clear step
 	// above borderMuted and below the saturated accent hues.
@@ -184,6 +186,7 @@ export function generatePiTheme(colors: GhosttyColors, themeName: string): objec
 			toolSuccessBg,
 			toolErrorBg,
 			customMsgBg,
+			toolOutput,
 		},
 		colors: {
 			// Core UI
@@ -213,7 +216,7 @@ export function generatePiTheme(colors: GhosttyColors, themeName: string): objec
 			toolSuccessBg: "toolSuccessBg",
 			toolErrorBg: "toolErrorBg",
 			toolTitle: "accent",
-			toolOutput: "muted",
+			toolOutput: "toolOutput",
 
 			// Markdown
 			mdHeading: "warning",

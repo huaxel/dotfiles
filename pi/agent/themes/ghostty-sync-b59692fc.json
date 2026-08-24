@@ -11,7 +11,7 @@
     "success": "#9ece6a",
     "warning": "#e0af68",
     "muted": "#868dad",
-    "dim": "#7a819e",
+    "dim": "#7e84a2",
     "border": "#707692",
     "borderMuted": "#656a83",
     "selectedBg": "#262732",
@@ -21,7 +21,8 @@
     "toolPendingBg": "#1f202b",
     "toolSuccessBg": "#2a302e",
     "toolErrorBg": "#352632",
-    "customMsgBg": "#272537"
+    "customMsgBg": "#272537",
+    "toolOutput": "#9ba4c7"
   },
   "colors": {
     "accent": "accent",
@@ -48,7 +49,7 @@
     "toolSuccessBg": "toolSuccessBg",
     "toolErrorBg": "toolErrorBg",
     "toolTitle": "accent",
-    "toolOutput": "muted",
+    "toolOutput": "toolOutput",
     "mdHeading": "warning",
     "mdLink": "link",
     "mdLinkUrl": "dim",
