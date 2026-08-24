@@ -34,7 +34,6 @@
   },
   "files": [
     "index.ts",
-    "editor.ts",
     "theme.ts",
     "assets/demo.gif",
     "README.md",
