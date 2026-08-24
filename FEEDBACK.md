@@ -434,3 +434,19 @@ every open). Fixed, then hardened the whole setup.
 
 ### Improvements for next time
 - Add a `just pi-package-test <package>` helper if more local packages gain focused tests.
+
+## 2026-08-24: Pi theme adaptive semantic contrast
+
+### What went well
+- WCAG contrast checks exposed a generalization gap: ANSI colors that look fine in Tokyo Night can disappear in light themes.
+- The binary-search adjustment preserves the original hue when possible and leaves the active Tokyo Night snapshot unchanged.
+- Four focused tests and a live Ghostty snapshot comparison passed.
+
+### What was frustrating / slow
+- None significant; the pure module made this pass straightforward.
+
+### Config change that would have helped
+- A shared color-contrast utility could avoid repeating small ad hoc audit scripts.
+
+### Improvements for next time
+- Add contrast assertions for tinted surfaces, not only the base background.
