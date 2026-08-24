@@ -1,7 +1,7 @@
 {
   "name": "@juanbenjumea/pi-ghostty-theme-sync",
   "version": "0.1.3",
-  "description": "Fork of @ogulcancelik/pi-ghostty-theme-sync — sync pi theme with Ghostty terminal colors. Adds a visible scrollbarThumb so the fullscreen scrollbar isn't invisible on low-contrast palettes (Tokyo-Night etc.).",
+  "description": "Fork of @ogulcancelik/pi-ghostty-theme-sync — sync pi theme with Ghostty terminal colors, with contrast-aware neutrals, a visible scrollbar, and stable text hierarchy.",
   "type": "module",
   "keywords": [
     "pi-package",

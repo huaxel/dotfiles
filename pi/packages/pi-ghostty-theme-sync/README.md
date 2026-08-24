@@ -16,6 +16,12 @@ scrollbarThumb: mixColors(fg, bg, isDark ? 0.55 : 0.5)
 
 so the regenerated theme always has a visible thumb regardless of the Ghostty palette.
 
+The generator also keeps the UI hierarchy stable across terminals:
+
+- Uses the synchronized foreground explicitly for messages, search matches, and code blocks.
+- Gives tool titles the accent color without tinting their output.
+- Keeps semantic colors mapped to Ghostty's ANSI palette slots.
+
 ## Behavior
 
 - Reads `ghostty +show-config` for `background`, `foreground`, and `palette[0..15]`.

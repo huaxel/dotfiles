@@ -387,3 +387,19 @@ every open). Fixed, then hardened the whole setup.
 
 ### Improvements for next time
 - Add a small extension harness for testing loader cancellation, provider failures, and session replacement without a live TUI.
+
+## 2026-08-24: Pi theme hierarchy polish
+
+### What went well
+- The Ghostty sync generator already had a strong Tokyo Night palette and contrast work, so the improvement stayed focused on hierarchy.
+- The checked-in generated theme was updated alongside the generator and README.
+- JSON validation and the full repository gate passed.
+
+### What was frustrating / slow
+- Direct TypeScript smoke testing was blocked by the local Pi package's peer-loader setup; the repository gate also skips Deno because it is not installed.
+
+### What config change would have helped
+- A documented local Pi extension-loader smoke-test command would make generator checks reproducible outside Pi.
+
+### Improvements for next time
+- Add package-level tests for generated token coverage and palette-to-theme reproducibility.
