@@ -46,7 +46,8 @@ Tailnet: `bonobo-fort.ts.net`. SSH via `~/.ssh/config` (symlinked from `dotfiles
 3. **Portainer DB** (BoltDB at `~/Data/docker/data/portainer/portainer.db`) corrupts on unclean shutdown → crash-loop "failed opening store: timeout". Rescue: move DB aside, fresh init, re-add local endpoint. Not backed up (excluded — regenerable).
 4. **Pi-hole** runs in k8s (`/data/k3s/pihole`), is the home DNS. AAAA records are NOT filtered — node/undici on IPv6-less networks can fail (use `NODE_OPTIONS=--dns-result-order=ipv4first` in builds).
 5. Media library: `~/media/{movies,series}` (the `~/media/media/{movies,series}` symlinks → `/data/...` are broken leftovers). Downloads: `~/media/downloads`.
-6. Docker containers on `docker0` can show `linkdown` (cosmetic; custom bridges unaffected).
+6. **Canonical media runtime:** Jellyfin, Sonarr, Radarr, Prowlarr, qBittorrent, and Jellyseerr run in Docker Compose (`~/docker`, project `docker`) and share the Docker config paths. Their duplicate k8s Deployments are intentionally scaled to zero. The `media` Services have no selectors and use manually managed EndpointSlices to fixed `media-net` addresses (`172.18.0.2`, `.4`, `.5`, `.10`, `.11`, `.12`); compose pins those addresses so recreation does not break NPM.
+7. Docker containers on `docker0` can show `linkdown` (cosmetic; custom bridges unaffected).
 
 ## Recovery quick-starts
 
@@ -56,7 +57,7 @@ ssh liedelpi
 bash ~/docker/scripts/setup-networks.sh          # media-net, proxy-net
 cd ~/docker && docker compose up -d              # brings up media-stack + immich + portainer + iptvnator
 ```
-Then verify: `curl -s http://127.0.0.1:2283/api/server/ping` (Immich 200), container egress (`docker run --rm alpine:3.20 wget -q -O /dev/null https://registry.npmjs.org/pnpm`).
+Then verify: `curl -s http://127.0.0.1:2283/api/server/ping` (Immich 200), container egress (`docker run --rm alpine:3.20 wget -q -O /dev/null https://registry.npmjs.org/pnpm`), and `.home` proxy routes (`curl -H 'Host: sonarr.home' http://192.168.1.138/`). Do not scale the duplicate media Deployments back up; NPM reaches the pinned Docker backends through the selectorless `media` Services.
 
 ### Backup catch-up
 ```bash
