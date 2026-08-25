@@ -1,5 +1,24 @@
 # Session Feedback
 
+## 2026-08-25: qBittorrent/Sonarr shared media path
+
+### What went well
+- The live container mounts and qBittorrent category paths identified the mismatch quickly.
+- Recreating only the four affected containers restored `/data/media/series` without touching bind-mounted data.
+- `just ci` passed and the fix was committed and pushed.
+
+### What was frustrating / slow
+- The remote host uses fish as its SSH command shell, so Bash-style loops and assignments failed until commands were wrapped with `bash -lc`.
+- Fixed `container_name` values caused Compose to report a name conflict instead of recreating stale containers.
+
+### What config change would have helped
+- A deployment command that safely recreates fixed-name Compose services would avoid manual container removal.
+- Keeping the deployed compose file synchronized with the tracked reconstruction would reduce source drift.
+
+### Improvements for next time
+- Wrap multi-step remote commands in `bash -lc` immediately on fish-based hosts.
+- Verify all category path destinations across qBittorrent, Sonarr, Radarr, and Whisparr together.
+
 ## 2026-08-25: Dotter fresh-clone deploy failure
 
 ### What went well
