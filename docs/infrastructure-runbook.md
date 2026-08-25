@@ -81,3 +81,26 @@ just sandbox acerpepe down <name>
 - Backup freshness alerting: DONE via ntfy (backup-pi.sh pings `ntfy.sh/juan-home-alerts-28e25a99` on success/failure). Kuma's own ntfy provider errors in its logs — cosmetic; the direct curl path bypasses it.
 - Lenovos (Ideapad 100-15IBD ×2): planned CI node (Samsung 870 EVO) + backup/monitoring node. 10/100 NIC, 8 GB max DDR3L, 9 mm ODD caddy for second drive.
 - Portainer on liedelpi: fresh DB after Aug-2026 rescue — re-login + re-add local endpoint needed.
+
+## NPM proxy coverage (liedelpi .home aliases)
+
+| Proxy | Target | Runtime | Status |
+|-------|--------|---------|--------|
+| jellyfin.home | jellyfin.media.svc:8096 | k3s | ✓ |
+| jellyseerr.home | jellyseerr.media.svc:5055 | k3s | ✓ |
+| radarr.home | radarr.media.svc:7878 | k3s | ✓ |
+| prowlarr.home | prowlarr.media.svc:9696 | k3s | ✓ |
+| qbittorrent.home | qbittorrent.media.svc:8080 | k3s | ✓ |
+| sonarr.home | sonarr.media.svc:8989 | k3s | ✓ |
+| portainer.home | portainer.portainer.svc:9000 | k3s | ✓ |
+| immich.home | 192.168.1.138:2283 | Docker | ✓ |
+| iptvnator.home | iptvnator.media.svc:8185 | k3s | ✓ |
+| whisparr.home | 192.168.1.138:6969 | Docker | ✓ (restored 2026-08-25) |
+| stash.home | 192.168.1.138:9999 | Docker | ✓ (restored 2026-08-25) |
+| grafana.home | grafana.monitoring.svc:3000 | k3s | ✓ |
+| prometheus.home | prometheus.monitoring.svc:9090 | k3s | ✓ |
+| pihole.home | pihole-web.pihole.svc:80 | k3s | ✓ (returns 403 — auth required) |
+| energy.home | 192.168.1.165:8501 | acerpepe | ✓ (cross-host) |
+
+Disabled (backend dead or removed): openchat, perplexica, pokemon-felix, llama
+Deleted: lemonade
