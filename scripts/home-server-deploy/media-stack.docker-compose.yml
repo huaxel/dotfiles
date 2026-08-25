@@ -19,9 +19,9 @@ services:
       media-net:
         ipv4_address: 172.18.0.4
     ports:
-      - "8096:8096"
-      - "1900:1900/udp"
-      - "7359:7359/udp"
+      - "192.168.1.138:8096:8096"
+      - "192.168.1.138:1900:1900/udp"
+      - "192.168.1.138:7359:7359/udp"
     environment:
       - TZ=Europe/Brussels
     volumes:
@@ -38,9 +38,9 @@ services:
       media-net:
         ipv4_address: 172.18.0.5
     ports:
-      - "8082:8080"
-      - "6881:6881"
-      - "6881:6881/udp"
+      - "192.168.1.138:8082:8080"
+      - "0.0.0.0:6881:6881"
+      - "0.0.0.0:6881:6881/udp"
     environment:
       - PUID=1000
       - PGID=1000
@@ -59,7 +59,7 @@ services:
       media-net:
         ipv4_address: 172.18.0.11
     ports:
-      - "8989:8989"
+      - "192.168.1.138:8989:8989"
     environment:
       - PUID=1000
       - PGID=1000
@@ -77,7 +77,7 @@ services:
       media-net:
         ipv4_address: 172.18.0.2
     ports:
-      - "7878:7878"
+      - "192.168.1.138:7878:7878"
     environment:
       - PUID=1000
       - PGID=1000
@@ -95,7 +95,7 @@ services:
       media-net:
         ipv4_address: 172.18.0.10
     ports:
-      - "9696:9696"
+      - "192.168.1.138:9696:9696"
     environment:
       - PUID=1000
       - PGID=1000
@@ -111,7 +111,7 @@ services:
       media-net:
         ipv4_address: 172.18.0.12
     ports:
-      - "5055:5055"
+      - "192.168.1.138:5055:5055
     environment:
       - TZ=Europe/Brussels
     volumes:
