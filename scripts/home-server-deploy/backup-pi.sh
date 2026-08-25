@@ -60,12 +60,15 @@ if ! ssh "${SSH_OPTS[@]}" "${PI_USER}@${PI_HOST}" \
   FAILED=1
 fi
 
-# 6. Backup home directory (excluding caches)
+# 6. Backup home directory (excluding caches and large media files).
+# Movies and series are backed up separately; including them here exceeds the
+# 1 TB acerpepe target and can prevent the config/DB backup from completing.
 echo "Backing up home dir..." >> "${LOG}"
 rsync -a --delete --rsync-path='sudo rsync' -e "ssh ${SSH_OPTS[*]}" \
   --exclude='.cache' --exclude='.npm' --exclude='.local' \
   --exclude='node_modules' --exclude='.cargo' --exclude='.rustup' \
   --exclude='Data/docker/data/portainer/' \
+  --exclude='media/movies/' --exclude='media/series/' \
   "${PI_USER}@${PI_HOST}:/home/juan/" \
   "${BACKUP_DIR}/home/" \
   --link-dest="${LATEST_LINK}/home" 2>>"${LOG}" || FAILED=1
