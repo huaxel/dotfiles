@@ -123,7 +123,7 @@ services:
     restart: unless-stopped
     networks: [media-net]
     ports:
-      - "6969:6969"
+      - "192.168.1.138:6969:6969"
     environment:
       - PUID=1000
       - PGID=1000
@@ -139,7 +139,7 @@ services:
     restart: unless-stopped
     networks: [media-net]
     ports:
-      - "9999:9999"
+      - "192.168.1.138:9999:9999"
     environment:
       - TZ=Europe/Brussels
     volumes:
