@@ -76,8 +76,14 @@ if [ "${FAILED}" -eq 0 ] && [ -n "$(ls -A "${BACKUP_DIR}" 2>/dev/null)" ]; then
   ln -s "${BACKUP_DIR}" "${LATEST_LINK}"
   echo "latest -> ${BACKUP_DIR}" >> "${LOG}"
 else
+  CURRENT_LATEST="$(readlink -f "${LATEST_LINK}" 2>/dev/null || true)"
   echo "⚠️  FAILURE: latest NOT updated (still -> $(readlink "${LATEST_LINK}" 2>/dev/null || echo none))" >> "${LOG}"
-  rmdir "${BACKUP_DIR}" 2>/dev/null || true
+  # A failed rsync can leave a large, non-empty partial snapshot behind.
+  # Never remove the published snapshot, even if a path is unexpectedly reused.
+  if [ "${BACKUP_DIR}" != "${CURRENT_LATEST}" ]; then
+    rm -rf -- "${BACKUP_DIR}"
+    echo "Removed incomplete snapshot: ${BACKUP_DIR}" >> "${LOG}"
+  fi
 fi
 
 # Remove any empty dated dirs left by failed runs, then cleanup backups older than 30 days.
