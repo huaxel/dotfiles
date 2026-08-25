@@ -538,3 +538,22 @@ every open). Fixed, then hardened the whole setup.
 
 ### Follow-up correction
 - The user clarified that only sent chat messages should have the stronger surface; the live prompt zone should remain unchanged. Reverted the custom editor wrapper and retained the `userMessageBg` transcript styling.
+
+## 2026-08-25: Consolidate Docker media runtime
+
+### What went well
+- Auditing mounts exposed that Kubernetes and Docker were concurrently opening the same media SQLite configs.
+- Scaling the duplicate Kubernetes Deployments to zero and using fixed EndpointSlices preserved the existing NPM hostnames without data deletion.
+- Pinning Docker network addresses makes the proxy endpoints stable across container recreation.
+
+### What was frustrating / slow
+- The active Docker project was the aggregate `~/docker` project, not the individual media-stack compose directory; invoking the subproject directly caused a harmless container-name conflict.
+- The repository’s requested requesting-code-review skill was unavailable at its documented path.
+
+### What config change would have helped
+- A documented compose-project ownership rule would prevent running an included compose file directly.
+- A first-class helper for Docker-backed selectorless Kubernetes Services would avoid manual EndpointSlice maintenance.
+
+### Improvements for next time
+- Audit compose labels and project ownership before recreating containers.
+- Prefer stable host-port or fixed-IP proxy targets when Kubernetes and Docker share a node.

@@ -15,7 +15,9 @@ services:
     image: jellyfin/jellyfin:latest
     container_name: jellyfin
     restart: unless-stopped
-    networks: [media-net]
+    networks:
+      media-net:
+        ipv4_address: 172.18.0.4
     ports:
       - "8096:8096"
       - "1900:1900/udp"
@@ -24,15 +26,17 @@ services:
       - TZ=Europe/Brussels
     volumes:
       - /home/juan/Data/docker/data/jellyfin/config:/config
-      - /home/juan/media/media:/media:ro
-      - /mnt/ai_models:/data:ro
+      - /home/juan/media/movies:/data/movies:ro
+      - /home/juan/media/series:/data/series:ro
       - /etc/localtime:/etc/localtime:ro
 
   qbittorrent:
     image: linuxserver/qbittorrent:latest
     container_name: qbittorrent
     restart: unless-stopped
-    networks: [media-net]
+    networks:
+      media-net:
+        ipv4_address: 172.18.0.5
     ports:
       - "8082:8080"
       - "6881:6881"
@@ -51,7 +55,9 @@ services:
     image: linuxserver/sonarr:latest
     container_name: sonarr
     restart: unless-stopped
-    networks: [media-net]
+    networks:
+      media-net:
+        ipv4_address: 172.18.0.11
     ports:
       - "8989:8989"
     environment:
@@ -61,13 +67,15 @@ services:
     volumes:
       - /home/juan/Data/docker/data/arr-stack/sonarr:/config
       - /home/juan/media/downloads:/downloads
-      - /home/juan/media/media/series:/tv
+      - /home/juan/media/series:/tv
 
   radarr:
     image: linuxserver/radarr:latest
     container_name: radarr
     restart: unless-stopped
-    networks: [media-net]
+    networks:
+      media-net:
+        ipv4_address: 172.18.0.2
     ports:
       - "7878:7878"
     environment:
@@ -77,13 +85,15 @@ services:
     volumes:
       - /home/juan/Data/docker/data/arr-stack/radarr:/config
       - /home/juan/media/downloads:/downloads
-      - /home/juan/media/media/movies:/movies
+      - /home/juan/media/movies:/movies
 
   prowlarr:
     image: linuxserver/prowlarr:latest
     container_name: prowlarr
     restart: unless-stopped
-    networks: [media-net]
+    networks:
+      media-net:
+        ipv4_address: 172.18.0.10
     ports:
       - "9696:9696"
     environment:
@@ -97,7 +107,9 @@ services:
     image: fallenbagel/jellyseerr:latest
     container_name: jellyseerr
     restart: unless-stopped
-    networks: [media-net]
+    networks:
+      media-net:
+        ipv4_address: 172.18.0.12
     ports:
       - "5055:5055"
     environment:
