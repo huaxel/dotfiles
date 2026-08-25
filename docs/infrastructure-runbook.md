@@ -35,7 +35,7 @@ Tailnet: `bonobo-fort.ts.net`. SSH via `~/.ssh/config` (symlinked from `dotfiles
 
 - Script: acerpepe `/data/backups/scripts/backup-pi.sh` (versioned in `dotfiles/scripts/home-server-deploy/backup-pi.sh`).
 - Cron: `0 3 * * *` — hardlink-incremental daily snapshots (`/data/backups/pi/YYYY-MM-DD`), 30-day retention, Immich `pg_dumpall`. Failed snapshots are removed automatically; `latest` advances only after all stages succeed.
-- The 1 TB acerpepe target intentionally excludes `~/media/movies` and `~/media/series` from nightly home snapshots; those large media libraries need a separate Kingston2TB/offsite backup plan.
+- The 1 TB acerpepe target intentionally excludes `~/media/movies` and `~/media/series` from nightly home snapshots. Kingston2TB remains the media archive/source; acerpepe backs up Docker configs, application data, and databases only.
 - **Fails loud**: exits non-zero and refuses to update `latest` unless the snapshot is complete. `latest` must always point at a real snapshot (Aug 2026 bug: silent 8-day outage produced empty shells).
 - Uses `--rsync-path='sudo rsync'` (container data is root-owned) and excludes `data/portainer/` (regenerable runtime).
 - Restore: rsync from `/data/backups/pi/latest/` back to the Pi.
