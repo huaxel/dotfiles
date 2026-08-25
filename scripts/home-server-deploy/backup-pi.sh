@@ -61,8 +61,8 @@ if ! ssh "${SSH_OPTS[@]}" "${PI_USER}@${PI_HOST}" \
 fi
 
 # 6. Backup home directory (excluding caches and large media files).
-# Movies and series are backed up separately; including them here exceeds the
-# 1 TB acerpepe target and can prevent the config/DB backup from completing.
+# Kingston remains the media archive/source; acerpepe stores configs and DBs.
+# Including movies and series here exceeds the 1 TB target.
 echo "Backing up home dir..." >> "${LOG}"
 rsync -a --delete --rsync-path='sudo rsync' -e "ssh ${SSH_OPTS[*]}" \
   --exclude='.cache' --exclude='.npm' --exclude='.local' \
