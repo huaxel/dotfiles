@@ -84,6 +84,8 @@ just sandbox acerpepe down <name>
 
 ## NPM proxy coverage (liedelpi .home aliases)
 
+NPM routes the Streamlit energy dashboard to the k3s service; its proxy host must preserve WebSocket upgrades for `/_stcore/stream`.
+
 | Proxy | Target | Runtime | Status |
 |-------|--------|---------|--------|
 | jellyfin.home | jellyfin.media.svc:8096 | k3s | ✓ |
@@ -100,7 +102,7 @@ just sandbox acerpepe down <name>
 | grafana.home | grafana.monitoring.svc:3000 | k3s | ✓ |
 | prometheus.home | prometheus.monitoring.svc:9090 | k3s | ✓ |
 | pihole.home | pihole-web.pihole.svc:80 | k3s | ✓ (returns 403 — auth required) |
-| energy.home | 192.168.1.165:8501 | acerpepe | ✓ (cross-host) |
+| energy.home | energy-dashboard.energy.svc:8501 | k3s | ✓ (WebSocket enabled) |
 
 Disabled (backend dead or removed): openchat, perplexica, pokemon-felix, llama
 Deleted: lemonade
