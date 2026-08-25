@@ -49,7 +49,7 @@ services:
     volumes:
       - /home/juan/Data/docker/data/qbittorrent/config:/config
       - /home/juan/media/downloads:/downloads
-      - /home/juan/media/media:/media
+      - /home/juan/media:/data/media
 
   sonarr:
     image: linuxserver/sonarr:latest
@@ -68,6 +68,7 @@ services:
       - /home/juan/Data/docker/data/arr-stack/sonarr:/config
       - /home/juan/media/downloads:/downloads
       - /home/juan/media/series:/tv
+      - /home/juan/media:/data/media
 
   radarr:
     image: linuxserver/radarr:latest
@@ -86,6 +87,7 @@ services:
       - /home/juan/Data/docker/data/arr-stack/radarr:/config
       - /home/juan/media/downloads:/downloads
       - /home/juan/media/movies:/movies
+      - /home/juan/media:/data/media
 
   prowlarr:
     image: linuxserver/prowlarr:latest
@@ -131,7 +133,7 @@ services:
     volumes:
       - /home/juan/Data/docker/data/whisparr/config:/config
       - /home/juan/media/downloads:/downloads
-      - /home/juan/media/media:/media
+      - /home/juan/media:/data/media
 
   stash:
     image: stashapp/stash:latest
