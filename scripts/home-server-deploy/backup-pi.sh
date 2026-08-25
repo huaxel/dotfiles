@@ -11,6 +11,8 @@ LATEST_LINK="${BACKUP_ROOT}/latest"
 PI_HOST="100.127.61.2"
 PI_USER="juan"
 LOG="/data/backups/scripts/backup-pi.log"
+SECONDARY_MOUNT="/mnt/wd-blue"
+SECONDARY_ROOT="${SECONDARY_MOUNT}/backups/pi/latest"
 SSH_OPTS=(-o StrictHostKeyChecking=accept-new -o ConnectTimeout=10)
 
 FAILED=0
@@ -88,6 +90,25 @@ else
     echo "Removed incomplete snapshot: ${BACKUP_DIR}" >> "${LOG}"
   fi
 fi
+
+# Mirror the published config/database snapshot to the secondary disk.
+# Refuse to write unless the disk is actually mounted; never fill the root FS.
+SECONDARY_FAILED=0
+if [ "${FAILED}" -eq 0 ]; then
+  if mountpoint -q "${SECONDARY_MOUNT}"; then
+    mkdir -p "${SECONDARY_ROOT}"
+    if rsync -a --delete "${BACKUP_DIR}/" "${SECONDARY_ROOT}/" 2>>"${LOG}"; then
+      echo "secondary mirror -> ${SECONDARY_ROOT}" >> "${LOG}"
+    else
+      echo "⚠️  FAILURE: secondary mirror failed" >> "${LOG}"
+      SECONDARY_FAILED=1
+    fi
+  else
+    echo "⚠️  FAILURE: secondary disk not mounted at ${SECONDARY_MOUNT}" >> "${LOG}"
+    SECONDARY_FAILED=1
+  fi
+fi
+[ "${SECONDARY_FAILED}" -eq 0 ] || FAILED=1
 
 # Remove any empty dated dirs left by failed runs, then cleanup backups older than 30 days.
 {
