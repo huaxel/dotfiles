@@ -1,5 +1,21 @@
 # Session Feedback
 
+## 2026-08-25: Dotter fresh-clone deploy failure
+
+### What went well
+- Reproduced the exact missing-source error and isolated both the absent ignored `.npmrc` and stale ignored binary mappings.
+- Made bootstrap create a mode-600 empty npm source without exposing or overwriting credentials.
+- `just ci` passed and the original `expand file` error no longer appears.
+
+### What was frustrating / slow
+- Historical Dotter fixes left explicit mappings for machine-local binary paths that are intentionally absent from fresh clones.
+
+### What config change would have helped
+- Optional ignored sources need bootstrap initialization or conditional mappings; mandatory mappings to ignored files are fragile.
+
+### Improvements for next time
+- Test deployment from a clean clone or missing-local-source state after adding Dotter mappings.
+
 ## 2026-08-24: Dotter binary symlink warnings
 
 ### What went well

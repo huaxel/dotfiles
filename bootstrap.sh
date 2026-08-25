@@ -135,6 +135,17 @@ if [ ! -e "$AGENTS_SKILLS" ]; then
     info "Created symlink: ~/.agents/skills → dotfiles/skills"
 fi
 
+# Dotter maps this gitignored source to ~/.npmrc. Create an empty local file
+# on fresh clones so deployment does not fail before credentials are configured.
+NPMRC_SOURCE="$SCRIPT_DIR/.npmrc"
+if [ -L "$NPMRC_SOURCE" ] && [ ! -e "$NPMRC_SOURCE" ]; then
+    rm "$NPMRC_SOURCE"
+fi
+if [ ! -e "$NPMRC_SOURCE" ]; then
+    (umask 077; : > "$NPMRC_SOURCE")
+    info "Created empty $NPMRC_SOURCE; add registry credentials locally if needed."
+fi
+
 step "5/8 — Deploy dotfiles"
 
 info "Running: dotter deploy"
