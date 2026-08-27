@@ -633,3 +633,23 @@ every open). Fixed, then hardened the whole setup.
 ### Improvements for next time
 - Capture one successful post-reset `/v1/usage` payload and add it as a fixture if Openference changes the response shape.
 - Keep provider-specific quota fetchers in the shared usage package so footer consumers stay thin.
+
+## 2026-08-27 follow-up: Openference usage endpoint was wrong — corrected to /api/user/me
+
+### What went well
+- A post-reset `curl /v1/usage` with a valid key + available quota returned 404, exposing that the earlier 401/402 were auth+quota middleware short-circuiting before routing, NOT proof the route existed. The feature had shipped against a non-existent endpoint.
+- Inspecting the Openference dashboard JS bundle (single `index-*.js`) surfaced the real web API on `openference.com`: `GET /api/user/me` authenticates with the inference API key via Bearer and returns `usage`/`plan`/`limits`. The dashboard's `tst()` helper revealed the bar uses cost-weighted `windowQuotaUsed`/`weekQuotaUsed` against `plan.requestsPerWindow`/`requestsPerWeek`, with epoch-ms resets — so the parser now mirrors the UI exactly.
+- Rewrote the parser, tests (8+3), both READMEs; 30/30 + 47/47 tests, tsc clean, `just ci` green, and verified live against the real key (5h 7.25%, Week 50.3%). Committed 7139a1b, pushed.
+
+### What was frustrating / slow
+- The original probe methodology (invalid key → 401, exhausted key → 402) could not distinguish "route exists" from "middleware rejected before routing". A 402 from a quota limiter is indistinguishable from a 200-capable route when the key is exhausted. This was the core mistake and it shipped a broken fetcher.
+- Openference documents usage as "dashboard-only"; the dashboard's web API (`/api/user/*`) is undocumented. Discovering it required reading the minified bundle. `/api/user/billing/overview` needs a web session cookie (403 with just the key), but `/api/user/me` carries the full quota picture with key-only auth.
+
+### What config change would have helped
+- When probing for an endpoint's existence, use a VALID key with available quota; only a 200/4xx-from-routing (not middleware 401/402) proves the route exists.
+- Openference should expose a documented usage API; the inference key already authenticates `/api/user/me`.
+
+### Improvements for next time
+- Never infer "route exists" from a 401/402 returned under auth/quota failure — those fire before routing. Confirm with a fully-valid request first.
+- When a provider says usage is "dashboard-only", read the dashboard's JS bundle to find the real (often undocumented) web API and its auth model before building.
+- Mirror the dashboard's exact field precedence for quota bars (`windowQuotaUsed` over `windowRequests`) so the footer matches what the user sees in the UI.
