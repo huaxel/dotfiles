@@ -614,3 +614,22 @@ every open). Fixed, then hardened the whole setup.
 - Add NPM proxy host documentation to infrastructure-runbook.md (how to add/edit via SQLite)
 - Consider adding a `liedelpi` alias or helper script for common SSH operations
 - The dual-runtime pattern (Docker + k3s for same service) should be called out earlier in the runbook — cost significant investigation time
+
+## 2026-08-27: Openference usage quota in Pi footer
+
+### What went well
+- The authenticated `GET /v1/usage` response supplied enough evidence to add Openference quota bars without exposing the API key.
+- Shared parsing and provider wiring kept the feature reusable across the usage library and dynamic footer.
+- Targeted tests, typechecks, and `just ci` passed.
+
+### What was frustrating / slow
+- Openference’s usage endpoint is not documented in its public API catalog, so the successful response schema could not be confirmed from docs; the parser intentionally accepts nested and flat quota shapes.
+- The documented independent review skill is missing at `/home/juan/.agents/skills/requesting-code-review/SKILL.md`.
+
+### What config change would have helped
+- A package-local test recipe at the repository root would avoid the initial root `npm test` miss.
+- Openference should document `/v1/usage` and its successful response schema.
+
+### Improvements for next time
+- Capture one successful post-reset `/v1/usage` payload and add it as a fixture if Openference changes the response shape.
+- Keep provider-specific quota fetchers in the shared usage package so footer consumers stay thin.
