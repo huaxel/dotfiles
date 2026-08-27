@@ -104,9 +104,24 @@ type = "plugin_action"
 command = "jhochenbaum.hunkdiff.review:commit"
 description = "hunk: review the last commit"
 
+# END jhochenbaum.hunkdiff
+
+# ── annotate: text annotations ────────────────────────────────────────────────
+
+[[keys.command]]
+key = "prefix+a"
+type = "plugin_action"
+command = "annotate.capture"
+description = "annotate text"
+
 [[keys.command]]
 key = "prefix+shift+a"
 type = "plugin_action"
-command = "jhochenbaum.hunkdiff.review:staged"
-description = "hunk: review staged changes"
-# END jhochenbaum.hunkdiff
+command = "annotate.copy-context"
+description = "copy annotations as context"
+
+[[keys.command]]
+key = "prefix+m"
+type = "plugin_action"
+command = "annotate.manage"
+description = "manage annotations"
