@@ -315,10 +315,7 @@ export default function (pi: ExtensionAPI) {
   pi.registerCommand("go-on", {
     description: "Enable go-on auto mode and send 'go on'",
     handler: async (args, ctx) => {
-      if (args?.trim().toLowerCase() !== "mode") {
-        notify(ctx, "Usage: /go-on mode", "warning");
-        return;
-      }
+      if (args?.trim().toLowerCase() !== "mode") return;
       if (!mode) await arm(ctx, { immediateNudge: false });
       await autoNudge(ctx);
     },
