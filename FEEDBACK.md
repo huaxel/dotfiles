@@ -669,3 +669,18 @@ every open). Fixed, then hardened the whole setup.
 - Never infer "route exists" from a 401/402 returned under auth/quota failure — those fire before routing. Confirm with a fully-valid request first.
 - When a provider says usage is "dashboard-only", read the dashboard's JS bundle to find the real (often undocumented) web API and its auth model before building.
 - Mirror the dashboard's exact field precedence for quota bars (`windowQuotaUsed` over `windowRequests`) so the footer matches what the user sees in the UI.
+
+## 2026-08-28: Commit and push go-on fixes
+
+### What went well
+- Confirmed four existing go-on commits were ahead of `origin/main`, ran `just ci`, and pushed them successfully.
+- The working tree is clean and synchronized with `origin/main`.
+
+### What was frustrating / slow
+- No implementation work was needed; the required independent review skill remains unavailable at its documented path.
+
+### What config change would have helped
+- Install or replace `requesting-code-review/SKILL.md` so the documented review gate can run.
+
+### Improvements for next time
+- Check branch divergence before creating a redundant commit when asked to commit and push.
