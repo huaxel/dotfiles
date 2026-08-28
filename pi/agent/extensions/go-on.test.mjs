@@ -70,24 +70,27 @@ const assert = (condition, message) => { if (!condition) throw new Error(message
   assert(h.statuses.at(-1)?.[1] === undefined, "burst key did not disarm when armed");
 }
 
-// /go-on mode: nudge + arm, without toggling off if already armed.
+// /go-on mode: nudge + arm, without registering a bare /go-on command.
 {
   const h = makeHarness();
-  await h.commands.get("go-on")("mode", h.ctx);
+  assert(!h.commands.has("go-on"), "bare /go-on command was registered");
+  const input = h.events.get("input");
+  const result = await input({ text: "/go-on mode" }, h.ctx);
+  assert(result?.action === "handled", "/go-on mode input was not handled");
   assert(h.sent.length === 1 && h.sent[0][0] === "go on", "/go-on mode did not send its nudge");
   assert(h.statuses.at(-1)?.[1] === "go-on: armed (1)", "/go-on mode did not arm");
   h.events.get("agent_start")({}, h.ctx);
-  await h.commands.get("go-on")("mode", h.ctx);
+  await input({ text: "/go-on mode" }, h.ctx);
   assert(h.sent.length === 2, "repeating /go-on mode did not send another nudge");
   assert(h.statuses.at(-1)?.[1] === "go-on: armed (2)", "repeating /go-on mode toggled mode off");
 }
 
-// Plain /go-on no longer sends a single nudge and is silent.
+// Plain /go-on is not intercepted and has no action.
 {
   const h = makeHarness();
-  await h.commands.get("go-on")("", h.ctx);
-  assert(h.sent.length === 0 && h.statuses.length === 0, "plain /go-on still acted");
-  assert(h.notifications.length === 0, "plain /go-on showed a notification");
+  const result = await h.events.get("input")({ text: "/go-on" }, h.ctx);
+  assert(result === undefined, "plain /go-on was intercepted");
+  assert(h.sent.length === 0 && h.statuses.length === 0 && h.notifications.length === 0, "plain /go-on acted");
 }
 
 // Burst from idle: nudge + arm; second press disarms.

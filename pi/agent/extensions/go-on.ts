@@ -312,15 +312,6 @@ export default function (pi: ExtensionAPI) {
     },
   });
 
-  pi.registerCommand("go-on", {
-    description: "Enable go-on auto mode and send 'go on'",
-    handler: async (args, ctx) => {
-      if (args?.trim().toLowerCase() !== "mode") return;
-      if (!mode) await arm(ctx, { immediateNudge: false });
-      await autoNudge(ctx);
-    },
-  });
-
   // --- Auto mode ---
   pi.registerCommand("go-on-mode", {
     description:
@@ -336,6 +327,15 @@ export default function (pi: ExtensionAPI) {
     if (!mode) await arm(ctx, { immediateNudge: false });
     await autoNudge(ctx);
   };
+
+  // Keep the bare /go-on command out of Pi's command list while accepting the
+  // explicit mode form as a slash input.
+  pi.on("input", async (event, ctx) => {
+    if (event.text.trim().toLowerCase() !== "/go-on mode") return;
+    await activateBurst(ctx);
+    return { action: "handled" };
+  });
+
   const burstShortcut = async (ctx: GoOnContext) => {
     if (mode) {
       disarm(ctx, "toggled off");
