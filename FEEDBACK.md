@@ -701,3 +701,18 @@ every open). Fixed, then hardened the whole setup.
 ### Improvements for next time
 - Keep optional provider catalogs cache-first and refresh explicitly or in the background.
 - Benchmark interactive readiness separately from `--help` process exit time.
+
+## 2026-08-28: Resolve rebase conflicts
+
+### What went well
+- Preserved both the go-on and startup-performance feedback while completing the rebase.
+- `git diff --check` and `just ci` passed after resolution.
+
+### What was frustrating / slow
+- Two generated session artifacts conflicted because both branches appended same-day records.
+
+### What config change would have helped
+- A convention for merging same-day sweep worksheets would make artifact conflicts less ambiguous.
+
+### Improvements for next time
+- Resolve append-only feedback artifacts by preserving both records and grouping worksheet reports by review scope.
