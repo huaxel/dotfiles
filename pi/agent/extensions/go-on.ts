@@ -313,8 +313,13 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.registerCommand("go-on", {
-    description: "Send 'go on' as a user message",
-    handler: async (_args, ctx) => {
+    description: "Send 'go on'; append 'mode' to enable go-on auto mode",
+    handler: async (args, ctx) => {
+      if (args?.trim().toLowerCase() === "mode") {
+        if (!mode) await arm(ctx, { immediateNudge: false });
+        await autoNudge(ctx);
+        return;
+      }
       await nudge(ctx);
     },
   });
@@ -330,13 +335,16 @@ export default function (pi: ExtensionAPI) {
 
   // One press = send "go on" (immediate when idle, steer-queued while
   // streaming) + arm the burst; press again to stop it.
+  const activateBurst = async (ctx: GoOnContext) => {
+    if (!mode) await arm(ctx, { immediateNudge: false });
+    await autoNudge(ctx);
+  };
   const burstShortcut = async (ctx: GoOnContext) => {
     if (mode) {
       disarm(ctx, "toggled off");
       return;
     }
-    await arm(ctx, { immediateNudge: false });
-    await autoNudge(ctx);
+    await activateBurst(ctx);
   };
 
   // Ctrl+Alt+G (ESC BEL on legacy terminals, CSI-u on kitty terminals) —
