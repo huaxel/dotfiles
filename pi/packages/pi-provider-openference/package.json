@@ -1,0 +1,57 @@
+{
+  "name": "pi-provider-openference",
+  "version": "0.5.0",
+  "description": "Openference provider for pi — OpenAI-compatible endpoint with /login flow and live model discovery",
+  "type": "module",
+  "main": "index.ts",
+  "files": [
+    "index.ts",
+    "models.ts",
+    "auth.ts",
+    "retry.ts",
+    "retry-stream.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "pi-package",
+    "openference",
+    "provider",
+    "llm",
+    "pi",
+    "coding-agent"
+  ],
+  "author": "peyloride",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/peyloride/pi-provider-openference.git"
+  },
+  "bugs": {
+    "url": "https://github.com/peyloride/pi-provider-openference/issues"
+  },
+  "homepage": "https://github.com/peyloride/pi-provider-openference#readme",
+  "scripts": {
+    "clean": "echo 'nothing to clean'",
+    "build": "echo 'nothing to build'",
+    "check": "tsc --noEmit",
+    "test": "node --test",
+    "prepublishOnly": "npm run check && npm test"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.0.0"
+  },
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}
