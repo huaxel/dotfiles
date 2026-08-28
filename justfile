@@ -643,6 +643,11 @@ project-init-ci path="":
     echo "    GitHub repo → Settings → Secrets and variables → Actions → Variables"
     echo "    Add: CI_RUNNER = 'self-hosted,linux,ci'"
 
+# Start Pi without optional package resources for quick low-latency tasks.
+pi-fast *args="":
+    #!/usr/bin/env bash
+    exec "$PWD/bin/pi-fast" {{args}}
+
 # ──────────── Pi Session Optimisation ────────────
 
 # Show session usage stats (last N sessions from observability history).

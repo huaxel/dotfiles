@@ -669,7 +669,6 @@ every open). Fixed, then hardened the whole setup.
 - Never infer "route exists" from a 401/402 returned under auth/quota failure — those fire before routing. Confirm with a fully-valid request first.
 - When a provider says usage is "dashboard-only", read the dashboard's JS bundle to find the real (often undocumented) web API and its auth model before building.
 - Mirror the dashboard's exact field precedence for quota bars (`windowQuotaUsed` over `windowRequests`) so the footer matches what the user sees in the UI.
-
 ## 2026-08-28: Commit and push go-on fixes
 
 ### What went well
@@ -684,3 +683,21 @@ every open). Fixed, then hardened the whole setup.
 
 ### Improvements for next time
 - Check branch divergence before creating a redundant commit when asked to commit and push.
+
+## 2026-08-28: Pi startup performance
+
+### What went well
+- Profiling isolated third-party TypeScript package loading and live provider discovery as the startup bottlenecks rather than Pi core.
+- Cache-first Command Code startup and synchronous Openference fallbacks preserve provider access without blocking normal startup.
+- A dedicated `bin/pi-fast` path provides roughly 1.34s median help startup for quick core-only tasks.
+
+### What was frustrating / slow
+- Startup timing was noisy because provider/network work runs concurrently and the repository lacks Deno/ShellCheck locally.
+- The independent review skill remains unavailable at `/home/juan/.agents/skills/requesting-code-review/SKILL.md`.
+
+### What config change would have helped
+- A built-in Pi startup timing command would make package and provider regressions easier to track.
+
+### Improvements for next time
+- Keep optional provider catalogs cache-first and refresh explicitly or in the background.
+- Benchmark interactive readiness separately from `--help` process exit time.

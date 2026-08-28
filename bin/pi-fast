@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Start Pi without optional third-party resources for low-latency quick tasks.
+# Use regular `pi` when provider packages, skills, or custom extensions are needed.
+set -euo pipefail
+
+exec pi \
+  --no-extensions \
+  --no-skills \
+  --no-prompt-templates \
+  --no-themes \
+  --thinking low \
+  "$@"
