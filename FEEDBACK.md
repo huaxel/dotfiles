@@ -4,7 +4,7 @@
 
 ### What went well
 - Reused the existing burst activation path so `/go-on mode` now sends the initial nudge and arms auto mode.
-- Added behavioral coverage for activation, repeat use, and preserving plain `/go-on` semantics.
+- Added behavioral coverage for activation, repeat use, and rejecting plain `/go-on` usage.
 - `just ci` passed.
 
 ### What was frustrating / slow

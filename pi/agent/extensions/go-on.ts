@@ -313,14 +313,14 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.registerCommand("go-on", {
-    description: "Send 'go on'; append 'mode' to enable go-on auto mode",
+    description: "Enable go-on auto mode and send 'go on'",
     handler: async (args, ctx) => {
-      if (args?.trim().toLowerCase() === "mode") {
-        if (!mode) await arm(ctx, { immediateNudge: false });
-        await autoNudge(ctx);
+      if (args?.trim().toLowerCase() !== "mode") {
+        notify(ctx, "Usage: /go-on mode", "warning");
         return;
       }
-      await nudge(ctx);
+      if (!mode) await arm(ctx, { immediateNudge: false });
+      await autoNudge(ctx);
     },
   });
 
