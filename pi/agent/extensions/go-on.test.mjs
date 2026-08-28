@@ -82,11 +82,12 @@ const assert = (condition, message) => { if (!condition) throw new Error(message
   assert(h.statuses.at(-1)?.[1] === "go-on: armed (2)", "repeating /go-on mode toggled mode off");
 }
 
-// Plain /go-on remains a single nudge and does not arm auto mode.
+// Plain /go-on no longer sends a single nudge; mode must be explicit.
 {
   const h = makeHarness();
   await h.commands.get("go-on")("", h.ctx);
-  assert(h.sent.length === 1 && h.statuses.length === 0, "plain /go-on changed mode");
+  assert(h.sent.length === 0 && h.statuses.length === 0, "plain /go-on still nudged");
+  assert(h.notifications.at(-1)?.[1] === "warning", "plain /go-on lacked usage warning");
 }
 
 // Burst from idle: nudge + arm; second press disarms.
