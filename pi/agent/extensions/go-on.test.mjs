@@ -70,6 +70,25 @@ const assert = (condition, message) => { if (!condition) throw new Error(message
   assert(h.statuses.at(-1)?.[1] === undefined, "burst key did not disarm when armed");
 }
 
+// /go-on mode: nudge + arm, without toggling off if already armed.
+{
+  const h = makeHarness();
+  await h.commands.get("go-on")("mode", h.ctx);
+  assert(h.sent.length === 1 && h.sent[0][0] === "go on", "/go-on mode did not send its nudge");
+  assert(h.statuses.at(-1)?.[1] === "go-on: armed (1)", "/go-on mode did not arm");
+  h.events.get("agent_start")({}, h.ctx);
+  await h.commands.get("go-on")("mode", h.ctx);
+  assert(h.sent.length === 2, "repeating /go-on mode did not send another nudge");
+  assert(h.statuses.at(-1)?.[1] === "go-on: armed (2)", "repeating /go-on mode toggled mode off");
+}
+
+// Plain /go-on remains a single nudge and does not arm auto mode.
+{
+  const h = makeHarness();
+  await h.commands.get("go-on")("", h.ctx);
+  assert(h.sent.length === 1 && h.statuses.length === 0, "plain /go-on changed mode");
+}
+
 // Burst from idle: nudge + arm; second press disarms.
 {
   const h = makeHarness();

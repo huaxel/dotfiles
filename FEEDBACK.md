@@ -1,5 +1,21 @@
 # Session Feedback
 
+## 2026-08-28: `/go-on mode` activation
+
+### What went well
+- Reused the existing burst activation path so `/go-on mode` now sends the initial nudge and arms auto mode.
+- Added behavioral coverage for activation, repeat use, and preserving plain `/go-on` semantics.
+- `just ci` passed.
+
+### What was frustrating / slow
+- The first repeat-command test needed to simulate Pi's `agent_start` event because the existing pending-nudge guard intentionally prevents overlapping idle sends.
+
+### What config change would have helped
+- No additional configuration was needed.
+
+### Improvements for next time
+- Include lifecycle-event simulation whenever testing repeated extension commands that use asynchronous Pi dispatch.
+
 ## 2026-08-25: qBittorrent/Sonarr shared media path
 
 ### What went well
