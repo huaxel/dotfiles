@@ -37,13 +37,11 @@
     "../packages/pi-multi-opencode-go",
     "../packages/pi-dynamic-footer",
     "../packages/pi-ghostty-theme-sync",
-    "npm:pi-cursor-sdk",
     "git:github.com/huaxel/pi-ask-herdr",
     "../packages/pi-provider-openference",
     "npm:@howaboua/pi-shepherdr",
     "../packages/pi-agy",
-    "npm:pi-context-view",
-    "npm:pi-ollama-cloud"
+    "npm:pi-context-view"
   ],
   "extensions": [
     "-extensions/nan.ts"
