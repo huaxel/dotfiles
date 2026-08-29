@@ -11,6 +11,9 @@ fi
 
 errors=0
 
+CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/nushell"
+ATUIN_INIT="${XDG_DATA_HOME:-$HOME/.local/share}/atuin/init.nu"
+
 # 1. Config parses
 if nu --config config/nushell/config.nu --env-config config/nushell/env.nu -c 'print "ok"' >/dev/null 2>&1; then
     echo "  ✅ config parses"
@@ -20,11 +23,11 @@ else
 fi
 
 # 2. Integration files exist (regenerate with just nushell-setup)
-for f in "$HOME/.cache/nushell/starship.nu" \
-         "$HOME/.cache/nushell/mise.nu" \
-         "$HOME/.cache/nushell/zoxide.nu" \
-         "$HOME/.cache/nushell/fzf.nu" \
-         "$HOME/.local/share/atuin/init.nu"; do
+for f in "$CACHE_DIR/starship.nu" \
+         "$CACHE_DIR/mise.nu" \
+         "$CACHE_DIR/zoxide.nu" \
+         "$CACHE_DIR/fzf.nu" \
+         "$ATUIN_INIT"; do
     if [ -f "$f" ]; then
         echo "  ✅ $(basename "$f") present"
     else
