@@ -21,6 +21,8 @@ $env.FZF_CTRL_T_OPTS = "--preview 'bat --color=always --style=numbers --line-ran
 $env.FZF_CTRL_R_OPTS = "--preview 'echo {}' --preview-window=up:3:hidden:wrap --bind 'ctrl-/:toggle-preview'"
 # Atuin owns Ctrl-R for history; disable fzf's Ctrl-R binding.
 $env.FZF_CTRL_R_COMMAND = ""
+# Alt-C (cd into subdir) tree preview, matching Fish.
+$env.FZF_ALT_C_OPTS = "--preview 'eza --tree --color=always --icons=always {} | head -200' --preview-window=right:60%"
 
 $env.PATH = (
     $env.PATH
