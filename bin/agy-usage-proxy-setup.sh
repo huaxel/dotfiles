@@ -29,6 +29,7 @@ ADDON_DST="$HOME/.config/antigravity-usage/proxy-addon.py"
 SERVICE_DST="$HOME/.config/systemd/user/agy-usage-proxy.service"
 FISH_FN_DST="$HOME/.config/fish/functions/agy.fish"
 USAGE_LOG="$HOME/.config/antigravity-usage/usage.jsonl"
+MITMDUMP_LINK="$HOME/.local/bin/mitmdump"
 
 info()  { echo "  $*"; }
 step()  { echo ""; echo "━━━ $* ━━━"; }
@@ -74,6 +75,17 @@ else
     info "Installing mitmproxy via pipx..."
     pipx install mitmproxy
   fi
+fi
+
+# Keep the systemd unit portable when mitmproxy came from a system package.
+MITMDUMP_BIN="$(command -v mitmdump || true)"
+if [ -z "$MITMDUMP_BIN" ]; then
+  err "mitmdump is not available after installation."
+  exit 1
+fi
+mkdir -p "$(dirname "$MITMDUMP_LINK")"
+if [ "$MITMDUMP_BIN" != "$MITMDUMP_LINK" ]; then
+  ln -sf "$MITMDUMP_BIN" "$MITMDUMP_LINK"
 fi
 
 # ─────────────────────────────────────────────────────────────────
@@ -280,14 +292,14 @@ EOF
   fi
 else
   warn "No service manager found. Start the proxy manually when using agy:"
-  warn "  mitmdump --listen-port 8080 --set block_global=false -s $ADDON_DST"
+  warn "  mitmdump --listen-port 8082 --set block_global=false -s $ADDON_DST"
 fi
 
 # ─────────────────────────────────────────────────────────────────
 step "✅ Done!"
 
 info "Usage log:      $USAGE_LOG"
-info "Proxy port:     8080"
+info "Proxy port:     8082"
 info "Fish function:  agy (wraps binary with HTTPS_PROXY)"
 info ""
 info "Just use 'agy' as normal — token counts are captured automatically."
