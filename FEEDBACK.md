@@ -739,3 +739,18 @@ every open). Fixed, then hardened the whole setup.
 - When inspecting unknown secret files, redact by *line type* generically (mask anything after the first token on `set -x`/`export`/`KEY=` lines) rather than `KEY=`-only.
 - Back up divergent per-machine repos (push to a `*-backup-<date>` branch) before any cutover work so unpushed WIP isn't a single-copy risk.
 - Rotate the keys exposed in this transcript, especially `GITHUB_PERSONAL_ACCESS_TOKEN`.
+
+## 2026-08-29: Resolve worksheet pull conflict
+
+### What went well
+- Preserved the newer local Fish → Nushell worksheet while fast-forwarding `main` to the remote reconciliation commits.
+- `git diff --check` and `just ci` passed after the resolution.
+
+### What was frustrating / slow
+- The fast-forward was initially blocked because a newer untracked worksheet had the same path as an incoming tracked file.
+
+### What config change would have helped
+- A pull-safe worksheet convention or automatic preservation of tracked/untracked worksheet collisions would avoid the manual staging step.
+
+### Improvements for next time
+- Compare colliding artifacts before moving them, then restore the newer content after the fast-forward.
