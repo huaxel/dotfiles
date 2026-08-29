@@ -45,36 +45,6 @@ $env.config.keybindings = (
     }
 )
 
-# Bang expansion, matching Fish's bind_bang/bind_dollar: !! repeats the last
-# command, !$ expands to the last argument of the previous command. The
-# binding fires on every ! keypress, so it only expands when the buffer is
-# exactly !! or !$ — otherwise it inserts the literal ! (matching Fish, which
-# checks the token under the cursor). Note: the `history` command exposes the
-# command text under the `command` column (the sqlite schema calls it
-# command_line, but Nu renames it in its output).
-$env.config.keybindings ++= [
-    {
-        name: bang_expand
-        modifier: none
-        keycode: char_bang
-        mode: [emacs, vi_insert]
-        event: {
-            send: executehostcommand
-            cmd: "let buf = (commandline); if ($buf == '!!') { let last_cmd = (history | last 1 | get command? | default ''); if ($last_cmd | is-empty) { commandline edit --replace '' } else { commandline edit --replace $last_cmd } } else { commandline edit --insert '!' }"
-        }
-    }
-    {
-        name: dollar_expand
-        modifier: none
-        keycode: char_dollar
-        mode: [emacs, vi_insert]
-        event: {
-            send: executehostcommand
-            cmd: "let buf = (commandline); if ($buf == '!$') { let last_args = (history | last 1 | get command? | default '' | split row ' ' | last); commandline edit --replace $last_args } else { commandline edit --insert '$' }"
-        }
-    }
-]
-
 # Modern replacements for externals that don't shadow Nushell builtins.
 # Nu's own ls/open/find/ps/du/watch are structured and pipeline-friendly, so
 # they stay intact.
