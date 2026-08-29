@@ -716,3 +716,26 @@ every open). Fixed, then hardened the whole setup.
 
 ### Improvements for next time
 - Resolve append-only feedback artifacts by preserving both records and grouping worksheet reports by review scope.
+
+## 2026-08-29: Fish → Nushell cutover + cross-host deploy
+
+### What went well
+- Consolidated all shell secrets onto a single `environment.d` source (28 keys), removed `secrets/env.fish.*`, made Nushell the default shell, kept Fish as a tracked fallback. `just ci` green throughout.
+- Applied the cutover across all four reachable hosts via SSH and verified 28/28 secrets load in Nushell on each: framearch-juan (local, `sudo chsh`), arch-wsl (pacman + chsh), mac-juan (brew + deploy), liedelpi (prebuilt aarch64 binary out-of-band).
+- Discovered `~/.config/secrets/env-clean` was a plaintext secrets file; migrated its 2 unique keys (`NAN_API_KEY`, `CLOUDFLARE_API_KEY`) into the encrypted `environment.d` and shredded the plaintext file.
+- Made liedelpi self-sufficient: copied the sops age key, installed prebuilt `sops` (arm64), so future `dotter deploy` can auto-decrypt once its repo is reconciled.
+
+### What was frustrating / slow
+- Secret leak: inspecting `env-clean` with a redaction command that only masked `KEY=` lines printed the fish `set -x KEY value` plaintext values into the transcript (all 16 keys). Earlier a Nushell error traceback also dumped `$env`. Keys need rotating.
+- Nushell's eager parsing of SSH command strings: once a host's login shell became nu, every `ssh host 'cmd && cmd2'` broke with `nu::parser::shell_andand`. Worked around with `bash -lc`, base64'd scripts, and scp+`bash /tmp/script.sh`, but it cost several round trips. The irony: the cutover itself broke the tooling used to deploy the cutover.
+- liedelpi's dotfiles repo is heavily diverged (357 local commits ahead / 666 behind, unpushed, only on its disk). This is unrelated to the cutover but blocked a normal `dotter deploy` and forced an out-of-band deploy.
+
+### What config change would have helped
+- A `just` recipe or bootstrap step that, per host, ensures `sops` + the age key are present before attempting secret deploy — would have surfaced liedelpi's missing age key / sops earlier.
+- A note in AGENTS.md that after a login-shell change, SSH one-liners must use `bash -lc` (nu/fish parse the command line eagerly) would save the round trips.
+- A pre-commit check that rejects plaintext secret files anywhere under `~/.config/secrets/` (not just `env.fish`) would have caught `env-clean` earlier.
+
+### Improvements for next time
+- When inspecting unknown secret files, redact by *line type* generically (mask anything after the first token on `set -x`/`export`/`KEY=` lines) rather than `KEY=`-only.
+- Back up divergent per-machine repos (push to a `*-backup-<date>` branch) before any cutover work so unpushed WIP isn't a single-copy risk.
+- Rotate the keys exposed in this transcript, especially `GITHUB_PERSONAL_ACCESS_TOKEN`.
