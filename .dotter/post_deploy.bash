@@ -93,3 +93,5 @@ fi
 echo ""
 echo "💡 To use decrypted secrets in your shell:"
 echo "   source ~/.config/secrets/env.fish"
+echo "   (Nushell: source ~/.config/secrets/env.nu if present — most keys are also"
+echo "    loaded by systemd environment.d for all shells)"
