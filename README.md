@@ -99,15 +99,18 @@ dotter watch           # Auto-deploy on file changes
 
 ### Nushell
 
-Nushell is configured under `config/nushell/` and deployed by the shared
-`config = "~/.config"` mapping. It uses the existing Starship, Atuin, mise,
-and zoxide setup, plus the same editor, pager, aliases, and tool paths as Fish.
+Nushell is configured under `config/nushell/` and deployed by dotter:
+the shared `config = "~/.config"` mapping on macOS/Linux, and
+to `%APPDATA%\nushell` on Windows. It uses the existing Starship, Atuin,
+mise, zoxide, and fzf setup, plus the same editor, pager, aliases, and
+tool paths as Fish.
 
 ```bash
 # Install/deploy on an existing machine
 paru -S nushell                 # Arch Linux
 brew install nushell            # macOS
 cd ~/dotfiles && dotter deploy
+scripts/setup-nushell.sh        # generate Starship/Atuin/mise/zoxide/fzf integrations
 nu
 
 # Optional: make Nushell the login shell after trying it
