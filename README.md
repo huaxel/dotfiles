@@ -121,6 +121,37 @@ chsh -s "$(command -v nu)"
 The bootstrap scripts install Nushell on Linux, macOS, and Windows, but keep
 Fish as the current default shell until you switch deliberately.
 
+### Nushell usage notes
+
+Things that differ from Fish:
+
+- **`;` pipes output into the next command.** `echo a; echo b` prints only
+  `b`. Use `nu -c 'echo a; echo b'` for sequential commands that don't
+  share a pipeline, or `^echo a` for external-only output.
+- **`ls`, `open`, `find`, `ps`, `du`, `watch` are structured builtins.**
+  They stay intact (not aliased to eza/fd/procs/dust); `ll`/`la`/`lt`
+  provide the eza views.
+- **External command output is binary until parsed.** Pipe externals through
+  `| lines` or `| decode utf-8` when feeding them to Nu commands.
+- **Config loads only in interactive mode.** `nu -c '...'` skips config;
+  use `nu -e '...'` or a real session.
+
+Key bindings:
+
+- **Ctrl-R** — atuin history search (Nu's built-in history menu is disabled)
+- **Ctrl-T** — fzf file completion (type a path prefix then Ctrl-T)
+- **Alt-C** — fzf cd into subdirectory
+- **Tab** — completions (fzf trigger is `**`)
+- **Up arrow** — atuin history (token search with Alt-Up)
+
+Aliases mirror Fish: `ll`/`la`/`lt` (eza), `cat` (bat), `grep` (rg), `df`
+(duf), `top` (btop), `v`/`vi`/`vim` (nvim), `g`/`gs`/`gd`/`gc`/`gp`/`gl`
+(git), `j` (just), `m`/`mr`/`ml` (mise), `b`/`bi`/`br`/`bx` (bun),
+`openf` (xdg-open on Linux), `pi-sudo`.
+
+Integrations are generated into `~/.cache/nushell/`; regenerate after tool
+upgrades with `just nushell-setup` (also rebuilds the bat theme cache).
+
 ## Migrating from Chezmoi
 
 To switch over on a machine currently using chezmoi:
