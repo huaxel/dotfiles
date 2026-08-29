@@ -120,6 +120,8 @@ chsh -s "$(command -v nu)"
 
 The bootstrap scripts install Nushell on Linux, macOS, and Windows, but keep
 Fish as the current default shell until you switch deliberately.
+`config/nushell/login.nu` holds login-shell-only setup (loaded after
+env.nu/config.nu when nu starts as a login shell).
 
 ### Nushell usage notes
 
