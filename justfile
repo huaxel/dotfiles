@@ -490,6 +490,18 @@ check-precommit:
         echo "$conflicts" | sed 's/^/    /'
         errors=$((errors + 1))
     fi
+    # 5. Syntax-check any staged .nu files (Nushell config)
+    if command -v nu >/dev/null 2>&1; then
+        while IFS= read -r f; do
+            if nu --config config/nushell/config.nu --env-config config/nushell/env.nu -c 'print "ok"' >/dev/null 2>&1; then
+                echo "  ✅ $f parses"
+            else
+                echo "  ❌ $f has Nushell syntax errors"
+                nu --config config/nushell/config.nu --env-config config/nushell/env.nu -c 'print "ok"' 2>&1 | sed 's/^/    /' | head -8
+                errors=$((errors + 1))
+            fi
+        done < <(git diff --cached --name-only --diff-filter=ACM 2>/dev/null | grep -E '\.nu$' || true)
+    fi
     echo ""
     if [ "$errors" -gt 0 ]; then
         echo "  ❌ $errors pre-commit check(s) failed — aborting commit"
