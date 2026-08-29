@@ -13,10 +13,18 @@ This directory contains **encrypted** secrets that sync across machines via git.
 
 | Encrypted file | Decrypts to | Used by |
 | --- | --- | --- |
-| `environment.d.enc` | `~/.config/environment.d/99-environment.conf` | All shells (Nushell + Fish fallback). systemd `environment.d` loads it for user sessions on Linux; Nushell/Fish/PowerShell also parse it directly where systemd is absent. |
-| `pi-auth.json.enc` | `~/dotfiles/pi/agent/auth.json` (+ symlink to `~/.pi/agent/auth.json`) | Pi agent auth |
+| `environment.d.enc` | `~/.config/environment.d/99-environment.conf` | All shells (Nushell + Fish fallback). systemd `environment.d` loads it for user sessions on Linux; Nushell/Fish/PowerShell also parse it directly where systemd is absent. Also the **single** synced source for Pi's static API-key providers (OPENCODE_KEY, CURSOR_API_KEY, NOUS_API_KEY, …) across machines. |
 | `pi-quota-sessions.json.enc` | `~/dotfiles/pi/agent/quota-sessions.json` | Pi quota/sessions |
 | `llama-webui-config.json.enc` | `~/.config/llama.cpp/webui-config.json` | llama.cpp Web UI |
+
+> **`pi/agent/auth.json` is NOT synced.** OpenAI Codex (and other OAuth
+> providers such as `meta` and `commandcode`) use **single-use refresh tokens**
+> that rotate on every refresh. Sharing one credential across machines desyncs
+> them — whichever machine refreshes first invalidates the others'
+> refresh tokens (`refresh_token_reused`). Instead, each machine owns its own
+> gitignored `pi/agent/auth.json` and runs `/login openai-codex` (and any other
+> OAuth provider) independently. Static API-key providers continue to work
+> across machines via the synced `environment.d` env vars.
 
 > `environment.d.enc` is the **single** secret source for shell environment
 > variables. The old `env.fish.enc` has been removed; its keys were merged into

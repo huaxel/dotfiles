@@ -18,7 +18,9 @@ $DEFAULT_PI_AGENT_DIR = Join-Path $env:USERPROFILE ".pi\agent"
 
 $appSecrets = @{
     "llama-webui-config.json" = [System.IO.Path]::Combine($env:USERPROFILE, ".config", "llama.cpp", "webui-config.json")
-    "pi-auth.json" = Join-Path $PI_AGENT_DIR "auth.json"
+    # auth.json is intentionally NOT synced/decrypted: OAuth refresh tokens rotate
+    # per refresh, so a shared credential desyncs across machines. Each machine
+    # owns its own gitignored pi\agent\auth.json and logs in via `/login openai-codex`.
     "pi-quota-sessions.json" = Join-Path $PI_AGENT_DIR "quota-sessions.json"
     "environment.d" = [System.IO.Path]::Combine($env:USERPROFILE, ".config", "environment.d", "99-environment.conf")
 }
