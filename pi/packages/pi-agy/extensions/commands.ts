@@ -1,6 +1,8 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 import type { AgyModel } from "./lib/cli.js";
+import { executeAgyTask } from "./lib/execute.js";
+import { truncate } from "./lib/output.js";
 
 const MODEL_ALIASES: Record<string, AgyModel> = {
   flash: "flash-medium",
@@ -50,14 +52,14 @@ export function parseAgyCommandArgs(args: string): AgyCommandArgs {
 
   const first = readToken(rest);
   const mode = first?.value.toLowerCase();
-  if (mode && MODE_KEYS.includes(mode as (typeof MODE_KEYS)[number])) {
+  if (first && mode && MODE_KEYS.includes(mode as (typeof MODE_KEYS)[number])) {
     parsed.mode = mode as AgyCommandArgs["mode"];
     rest = rest.slice(first.end).trimStart();
   }
 
   const modelToken = readToken(rest);
   const model = modelToken?.value.toLowerCase();
-  if (model && MODEL_ALIASES[model]) {
+  if (modelToken && model && MODEL_ALIASES[model]) {
     parsed.model = MODEL_ALIASES[model];
     rest = rest.slice(modelToken.end).trimStart();
   }
@@ -74,16 +76,15 @@ function readToken(value: string): { value: string; end: number } | undefined {
 /**
  * Register the human-callable `/agy [mode] [model] <prompt>` command.
  *
- * The command is a thin shim: it fills missing args with dialogs, then delegates
- * to the existing `agy_execute` tool via a user message. The tool runs in the
- * normal chat flow — progress streams inline as a tool row (same as bash/grep),
- * and the result lands in the transcript — with zero custom TUI surface.
+ * The command fills missing args with dialogs, confirms write-capable runs, and
+ * executes agy directly. This keeps the confirmed parameters authoritative and
+ * avoids requiring a second LLM turn or custom TUI surface.
  */
 export function registerAgyCommand(pi: ExtensionAPI): void {
   pi.registerCommand("agy", {
     description:
-      "Run agy via the agy_execute tool: /agy [mode] [model] <prompt>. With missing parts, prompts interactively.",
-    getArgumentCompletions: (prefix) => {
+      "Run agy directly: /agy [mode] [model] <prompt>. With missing parts, prompts interactively.",
+    getArgumentCompletions: (prefix: string) => {
       const tokens = prefix.trim().split(/\s+/).filter(Boolean);
       const p = prefix.toLowerCase();
 
@@ -106,17 +107,17 @@ export function registerAgyCommand(pi: ExtensionAPI): void {
         return;
       }
 
-      // 1. Fill gaps interactively (mode → model → prompt), or fast path when fully specified.
+      // 1. Fill gaps interactively (mode → model → prompt), or use the fast path when fully specified.
       const parsed = parseAgyCommandArgs(args);
 
-      let mode = parsed.mode;
+      let mode: Exclude<AgyCommandArgs["mode"], undefined> | undefined = parsed.mode;
       if (!mode) {
         const pick = await ctx.ui.select("agy mode", MODE_OPTIONS);
         if (!pick) {
           ctx.ui.notify("agy: cancelled", "info");
           return;
         }
-        mode = optionKey(pick) as AgyCommandArgs["mode"];
+        mode = optionKey(pick) as Exclude<AgyCommandArgs["mode"], undefined>;
       }
 
       let model = parsed.model;
@@ -153,19 +154,31 @@ export function registerAgyCommand(pi: ExtensionAPI): void {
         }
       }
 
-      // 3. Delegate to the agy_execute tool. The agent calls the tool, which
-      //    renders as a normal tool row with streaming progress in the chat.
-      const instruction = [
-        "Run the agy_execute tool now with exactly these parameters:",
-        `- mode: ${mode}`,
-        `- model: ${model}`,
-        `- dir: ${cwd}`,
-        `- prompt: ${JSON.stringify(prompt)}`,
-        "Report the tool result. Do not skip, paraphrase, or defer the tool call.",
-      ].join("\n");
-
-      pi.sendUserMessage(instruction, { deliverAs: "steer" });
-      ctx.ui.notify(`agy: delegated (${model} · ${mode})`, "info");
+      // 3. Execute directly so the confirmed parameters cannot be changed by
+      //    a second LLM turn and the command works even when tools are limited.
+      try {
+        await ctx.waitForIdle();
+        ctx.ui.setStatus("agy", `starting (${model} · ${mode})`);
+        const result = await executeAgyTask(
+          {
+            prompt,
+            model,
+            mode,
+            dir: cwd,
+            timeout_ms: 300_000,
+            new_session: true,
+            stream: true,
+          },
+          ctx.signal,
+          (progress) => ctx.ui.setStatus("agy", progress.slice(0, 200)),
+        );
+        ctx.ui.setStatus("agy", undefined);
+        ctx.ui.notify(truncate(result.text || "(empty response)", 4000), "info");
+      } catch (error) {
+        ctx.ui.setStatus("agy", undefined);
+        const message = error instanceof Error ? error.message : String(error);
+        ctx.ui.notify(`agy failed: ${message}`, "error");
+      }
     },
   });
 }

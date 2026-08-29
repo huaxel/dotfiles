@@ -8,6 +8,18 @@ interface PackageJson {
 
 /** Detect a local verification command for accept-edits verify-loop injection. */
 export async function detectVerifyCommand(cwd: string): Promise<string | null> {
+  let current = path.resolve(cwd);
+  while (true) {
+    const command = await detectVerifyCommandAt(current);
+    if (command) return command;
+
+    const parent = path.dirname(current);
+    if (parent === current) return null;
+    current = parent;
+  }
+}
+
+async function detectVerifyCommandAt(cwd: string): Promise<string | null> {
   if (await hasJustCi(cwd)) return "just ci";
 
   try {

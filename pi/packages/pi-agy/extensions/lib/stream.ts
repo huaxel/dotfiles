@@ -37,6 +37,8 @@ export interface AgyStreamLine {
 
 export interface AgyRunResult {
   response: string;
+  /** Internal marker distinguishing a valid empty response from no response. */
+  response_complete?: boolean;
   conversation_id?: string;
   usage?: AgyUsage;
   duration_seconds?: number;
@@ -98,7 +100,10 @@ export function accumulateRunResult(parsed: AgyStreamLine, current: AgyRunResult
 
   if (parsed.result) {
     if (parsed.result.conversation_id) next.conversation_id = parsed.result.conversation_id;
-    if (parsed.result.response != null) next.response = parsed.result.response;
+    if (parsed.result.response != null) {
+      next.response = parsed.result.response;
+      next.response_complete = true;
+    }
     if (parsed.result.usage) next.usage = parsed.result.usage;
     if (parsed.result.duration_seconds != null) {
       next.duration_seconds = parsed.result.duration_seconds;
@@ -109,12 +114,12 @@ export function accumulateRunResult(parsed: AgyStreamLine, current: AgyRunResult
 }
 
 export function finalizeRunResult(rawStdout: string, current: AgyRunResult): AgyRunResult {
-  if (current.response) return current;
+  if (current.response_complete || current.response) return current;
 
   // Fall back to plain json envelope or raw text when stream-json had no result event.
   for (const line of rawStdout.split("\n")) {
     const parsed = parseStreamLine(line);
-    if (parsed?.result?.response) {
+    if (typeof parsed?.result?.response === "string") {
       return accumulateRunResult(parsed, { ...current, response: parsed.result.response });
     }
   }
@@ -143,6 +148,7 @@ function mergeJsonEnvelope(parsed: unknown, current: AgyRunResult): AgyRunResult
   }
   if (typeof record.response === "string") {
     next.response = record.response;
+    next.response_complete = true;
     found = true;
   }
   if (typeof record.duration_seconds === "number") {

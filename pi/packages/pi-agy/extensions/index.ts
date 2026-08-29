@@ -1,46 +1,19 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
-import { stat } from "node:fs/promises";
 import * as path from "node:path";
 
-import {
-  buildAgyPrompt,
-  detectVerifyCommand,
-  spawnAgyStream,
-  type AgyModel,
-} from "./lib/cli.js";
-import { withDirLock } from "./lib/lock.js";
-import { summarizeGitDiff } from "./lib/postflight.js";
-import { runPreflight } from "./lib/preflight.js";
-import { getSession, saveSession } from "./lib/sessions.js";
-import { parseJsonResponse } from "./lib/parse.js";
+import type { AgyModel } from "./lib/cli.js";
 import { registerAgyCommand } from "./commands.js";
+import { executeAgyTask, type AgyMode } from "./lib/execute.js";
+import { truncate } from "./lib/output.js";
 
-const MAX_OUTPUT_CHARS = 8000;
 const DEFAULT_TIMEOUT_MS = 300_000;
 const MAX_TIMEOUT_MS = 600_000;
 
-type AgyMode = "plan" | "accept-edits" | "sandbox";
+export { truncate } from "./lib/output.js";
 
 export function resolveAgyMode(mode?: AgyMode): AgyMode {
   return mode ?? "accept-edits";
-}
-
-export function truncate(text: string, max = MAX_OUTPUT_CHARS): string {
-  if (text.length <= max) return text;
-  if (max <= 0) return "";
-
-  const markerPrefix = "\n\n(Output truncated: ";
-  const markerSuffix = " chars omitted)\n\n";
-  let marker = `${markerPrefix}${text.length - max}${markerSuffix}`;
-  const available = max - marker.length;
-  if (available <= 0) return text.slice(0, max);
-
-  const headLength = Math.ceil(available / 2);
-  const tailLength = available - headLength;
-  const omitted = text.length - headLength - tailLength;
-  marker = `${markerPrefix}${omitted}${markerSuffix}`;
-  return text.slice(0, headLength) + marker + (tailLength > 0 ? text.slice(-tailLength) : "");
 }
 
 export default function piAgyExtension(pi: ExtensionAPI) {
@@ -147,81 +120,41 @@ export default function piAgyExtension(pi: ExtensionAPI) {
       const mode = resolveAgyMode(params.mode);
       const model = params.model as AgyModel | undefined;
 
-      return withDirLock(cwd, async () => {
-        if (!(await stat(cwd)).isDirectory()) {
-          throw new Error(`Working directory is not a directory: ${cwd}`);
+      if (mode === "accept-edits") {
+        if (!ctx.hasUI) {
+          throw new Error("accept-edits requires interactive confirmation");
         }
-
-        await runPreflight(cwd, abortSignal);
-
-        let conversationId = params.conversation_id;
-        if (!conversationId && !params.continue && params.new_session !== true) {
-          const prior = await getSession(cwd);
-          if (prior?.last_conversation_id && params.new_session === false) {
-            conversationId = prior.last_conversation_id;
-          }
-        }
-
-        const useDigest = params.digest ?? mode !== "accept-edits";
-        const verifyCmd = mode === "accept-edits" ? await detectVerifyCommand(cwd) : null;
-        const finalPrompt = buildAgyPrompt(params.prompt, mode, useDigest, verifyCmd);
-
-        onUpdate?.({
-          content: [
-            {
-              type: "text",
-              text: `agy: starting (${model ?? "flash-medium"}, ${mode})…`,
-            },
-          ],
-        });
-
-        const run = await spawnAgyStream(
-          {
-            prompt: finalPrompt,
-            model,
-            tier: params.tier,
-            mode,
-            dir: cwd,
-            timeout_ms: timeoutMs,
-            conversation_id: conversationId,
-            continue: params.continue,
-            stream: params.stream ?? true,
-          },
-          abortSignal,
-          (progress) => {
-            onUpdate?.({ content: [{ type: "text", text: progress }] });
-          },
+        const approved = await ctx.ui.confirm(
+          "Run agy (accept-edits)?",
+          `model: ${model ?? "flash-medium"}\ndir: ${cwd}\n\nThis grants agy permission to modify files and run commands.`,
         );
+        if (!approved) throw new Error("agy accept-edits cancelled by user");
+      }
 
-        if (run.conversation_id) {
-          await saveSession(cwd, run.conversation_id, model);
-        }
-
-        let text = run.response;
-        if (mode !== "accept-edits") {
-          text = parseJsonResponse(run.response) || run.response;
-        }
-
-        if (mode === "accept-edits") {
-          const diffSummary = await summarizeGitDiff(cwd, abortSignal);
-          if (diffSummary) text = `${text}\n\n${diffSummary}`;
-        }
-
-        const details = {
+      const result = await executeAgyTask(
+        {
+          prompt: params.prompt,
+          model,
+          tier: params.tier,
           mode,
-          model: model ?? "flash-medium",
           dir: cwd,
-          conversation_id: run.conversation_id,
-          verify_cmd: verifyCmd,
-          usage: run.usage,
-          duration_seconds: run.duration_seconds,
-        };
+          digest: params.digest,
+          timeout_ms: timeoutMs,
+          conversation_id: params.conversation_id,
+          continue: params.continue,
+          new_session: params.new_session,
+          stream: params.stream ?? true,
+        },
+        abortSignal,
+        (progress) => {
+          onUpdate?.({ content: [{ type: "text", text: progress }], details: {} });
+        },
+      );
 
-        return {
-          content: [{ type: "text", text: truncate(text || "(empty response)") }],
-          details,
-        };
-      }, abortSignal);
+      return {
+        content: [{ type: "text", text: truncate(result.text || "(empty response)") }],
+        details: result.details,
+      };
     },
   });
 }

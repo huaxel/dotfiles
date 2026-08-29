@@ -42,7 +42,7 @@ Auth is unchanged: existing `agy` OAuth (`~/.gemini/oauth_creds.json`).
 Run agy directly from the Pi TUI — fast path when fully specified, wizard otherwise:
 
 ```
-/agy flash fix git conflicts        # fully specified → delegates immediately
+/agy flash fix git conflicts        # fully specified → runs immediately
 /agy plan sonnet review the diff    # mode + model + prompt
 /agy plan                           # wizard: model select → task editor
 /agy                                # wizard: mode → model → task editor
@@ -56,10 +56,9 @@ exploration/review. Sandbox runs do not bypass agy permission checks.
 
 Missing pieces open interactive dialogs (mode select, model select with
 descriptions, multi-line task editor). `accept-edits` asks for confirmation
-before writing. The command then **delegates to the `agy_execute` tool**: the
-agent calls the tool, so progress streams inline in the chat as a normal tool
-row (same as bash/grep) and the result lands in the transcript — no custom
-TUI surface.
+before writing. The command then runs agy directly with the selected parameters;
+progress is shown in the status bar and the final response is notified — no
+second LLM turn or custom TUI surface.
 
 ## Development
 

@@ -26,4 +26,4 @@
 - Serialize concurrent calls per working directory.
 - Add human-callable `/agy [plan|sandbox] [model] <prompt>` TUI command with model autocomplete.
 - `/agy` wizard UX: interactive mode select, model select with descriptions, multi-line task editor, accept-edits confirmation.
-- `/agy` delegates to the `agy_execute` tool: progress streams inline in the chat as a normal tool row and the result lands in the transcript (removed custom panel/overlay surfaces).
+- `/agy` executes agy directly after confirmation: progress uses the status bar and the final response is notified without a second LLM turn.

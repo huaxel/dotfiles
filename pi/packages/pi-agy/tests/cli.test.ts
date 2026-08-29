@@ -1,15 +1,22 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdtemp, stat as statFile, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, stat as statFile, writeFile } from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { promisify } from "node:util";
 import { describe, it } from "node:test";
+import type {
+  ExtensionAPI,
+  ExtensionCommandContext,
+} from "@earendil-works/pi-coding-agent";
 
 const execAsync = promisify(execFile);
 
 import { buildAgyArgs, buildAgyPrompt } from "../extensions/lib/cli.js";
 import { resolveAgyMode, truncate } from "../extensions/index.js";
+import { registerAgyCommand } from "../extensions/commands.js";
+import { executeAgyTask } from "../extensions/lib/execute.js";
+import { resetPreflightCache } from "../extensions/lib/preflight.js";
 import { withDirLock } from "../extensions/lib/lock.js";
 import { detectVerifyCommand } from "../extensions/lib/verify.js";
 import { summarizeGitDiff } from "../extensions/lib/postflight.js";
@@ -106,6 +113,14 @@ describe("detectVerifyCommand", () => {
     await writeFile(path.join(tmp, "Justfile"), "alias ci := check\n");
     assert.equal(await detectVerifyCommand(tmp), "just ci");
   });
+
+  it("finds verification commands in a repository ancestor", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "pi-agy-verify-"));
+    const nested = path.join(root, "packages", "app");
+    await mkdir(nested, { recursive: true });
+    await writeFile(path.join(root, "justfile"), "ci:\n  echo ok\n");
+    assert.equal(await detectVerifyCommand(nested), "just ci");
+  });
 });
 
 describe("stream parser", () => {
@@ -166,6 +181,17 @@ describe("stream parser", () => {
     assert.equal(out.conversation_id, "id-1");
     assert.equal(out.response, "done");
   });
+
+  it("preserves an explicitly empty successful response", () => {
+    const raw =
+      JSON.stringify({
+        event: "result",
+        result: { conversation_id: "id-empty", response: "", status: "SUCCESS" },
+      }) + "\n";
+    const out = finalizeRunResult(raw, { response: "" });
+    assert.equal(out.conversation_id, "id-empty");
+    assert.equal(out.response, "");
+  });
 });
 
 describe("summarizeGitDiff", () => {
@@ -209,6 +235,80 @@ describe("resolveAgyMode", () => {
   it("defaults direct tool calls to accept-edits", () => {
     assert.equal(resolveAgyMode(), "accept-edits");
     assert.equal(resolveAgyMode("plan"), "plan");
+  });
+});
+
+describe("shared executor", () => {
+  it("runs agy directly and returns progress plus structured details", async () => {
+    const raw =
+      JSON.stringify({ event: "result", result: { response: "plan complete", status: "SUCCESS" } }) +
+      "\n";
+    await withFakeAgy(raw, async () => {
+      resetPreflightCache();
+      const progress: string[] = [];
+      const result = await executeAgyTask(
+        {
+          prompt: "inspect the project",
+          model: "flash-low",
+          mode: "plan",
+          dir: process.cwd(),
+          timeout_ms: 60_000,
+          new_session: true,
+          stream: true,
+        },
+        undefined,
+        (message) => progress.push(message),
+      );
+
+      assert.equal(result.text, "plan complete");
+      assert.equal(result.details.mode, "plan");
+      assert.equal(result.details.model, "flash-low");
+      assert.equal(result.details.verify_cmd, null);
+      assert.ok(progress.some((message) => message.includes("SUCCESS")));
+    });
+  });
+});
+
+describe("/agy command", () => {
+  it("executes directly without sending a second user message", async () => {
+    const raw =
+      JSON.stringify({ event: "result", result: { response: "direct result", status: "SUCCESS" } }) +
+      "\n";
+    await withFakeAgy(raw, async () => {
+      resetPreflightCache();
+      let waitForIdleCalls = 0;
+      const statuses: Array<[string, string | undefined]> = [];
+      const notifications: Array<[string, string | undefined]> = [];
+      let handler: ((args: string, ctx: ExtensionCommandContext) => Promise<void>) | undefined;
+      const fakePi = {
+        registerCommand: (
+          _name: string,
+          definition: { handler: (args: string, ctx: ExtensionCommandContext) => Promise<void> },
+        ) => {
+          handler = definition.handler;
+        },
+      };
+      registerAgyCommand(fakePi as unknown as ExtensionAPI);
+
+      await handler!("plan flash inspect files", {
+        mode: "tui",
+        cwd: process.cwd(),
+        signal: undefined,
+        waitForIdle: async () => {
+          waitForIdleCalls++;
+        },
+        ui: {
+          setStatus: (key: string, text: string | undefined) => statuses.push([key, text]),
+          notify: (message: string, type?: "info" | "warning" | "error") =>
+            notifications.push([message, type]),
+        },
+      } as unknown as ExtensionCommandContext);
+
+      assert.equal(waitForIdleCalls, 1);
+      assert.ok(statuses.some(([, text]) => text?.includes("starting")));
+      assert.deepEqual(statuses.at(-1), ["agy", undefined]);
+      assert.ok(notifications.some(([message]) => message.includes("direct result")));
+    });
   });
 });
 
@@ -296,6 +396,36 @@ describe("session store", () => {
     assert.equal(mode, 0o600);
   });
 });
+
+async function withFakeAgy<T>(output: string, fn: () => Promise<T>): Promise<T> {
+  const bin = await mkdtemp(path.join(os.tmpdir(), "pi-agy-bin-"));
+  const encoded = Buffer.from(output).toString("base64");
+  await writeFile(
+    path.join(bin, "agy"),
+    `#!/usr/bin/env bash
+set -eu
+case "$1" in
+  --version) echo "agy fake" ;;
+  models) echo "fake-model" ;;
+  *)
+    printf '%s\\n' '{"event":"init","init":{"model":"fake"}}'
+    printf '%s' '${encoded}' | base64 --decode
+    ;;
+esac
+`,
+  );
+  await chmod(path.join(bin, "agy"), 0o755);
+
+  const originalPath = process.env.PATH;
+  process.env.PATH = `${bin}${path.delimiter}${originalPath ?? ""}`;
+  try {
+    return await fn();
+  } finally {
+    if (originalPath === undefined) delete process.env.PATH;
+    else process.env.PATH = originalPath;
+    resetPreflightCache();
+  }
+}
 
 describe("withDirLock", () => {
   it("allows a queued call to cancel without blocking later work", async () => {
