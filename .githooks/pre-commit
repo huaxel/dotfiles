@@ -77,7 +77,12 @@ encrypt_secret "$HOME/.config/environment.d/99-environment.conf" "environment.d"
 
 # App-specific secrets (live plaintext path -> enc basename)
 encrypt_secret "$HOME/.config/llama.cpp/webui-config.json" "llama-webui-config.json"
-encrypt_secret "$HOME/dotfiles/pi/agent/auth.json" "pi-auth.json"
+# NOTE: pi/agent/auth.json is intentionally NOT synced. OpenAI Codex (and other
+# OAuth providers: meta, commandcode) use single-use refresh tokens that rotate
+# on every refresh, so a shared credential desyncs across machines
+# (refresh_token_reused). Each machine owns its own gitignored auth.json and
+# runs `/login openai-codex` (etc.) independently. Static API-key providers are
+# still shared via the synced environment.d env vars above.
 encrypt_secret "$HOME/dotfiles/pi/agent/quota-sessions.json" "pi-quota-sessions.json"
 
 # Legacy warning

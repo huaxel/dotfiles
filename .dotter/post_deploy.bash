@@ -35,7 +35,6 @@ if [ -d "$SECRETS_DIR" ]; then
     # generic ~/.config/secrets/ dir — skip them here.
     case "$filename" in
       llama-webui-config.json) continue ;;
-      pi-auth.json) continue ;;
       pi-quota-sessions.json) continue ;;
       environment.d) continue ;;
     esac
@@ -79,7 +78,9 @@ if [ -d "$SECRETS_DIR" ]; then
   # App-specific secrets: decrypt to their real config path.
   # (enc basename -> destination; mirrors post_deploy.ps1 on Windows)
   app_secret "llama-webui-config.json" "$HOME/.config/llama.cpp/webui-config.json"
-  app_secret "pi-auth.json" "$PI_AGENT_DIR/auth.json"
+  # auth.json is intentionally NOT synced/decrypted: OAuth refresh tokens rotate
+  # per refresh, so a shared credential desyncs across machines. Each machine
+  # owns its own gitignored pi/agent/auth.json and logs in via `/login openai-codex`.
   app_secret "pi-quota-sessions.json" "$PI_AGENT_DIR/quota-sessions.json"
   app_secret "environment.d" "$HOME/.config/environment.d/99-environment.conf"
 
