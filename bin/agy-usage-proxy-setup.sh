@@ -62,7 +62,7 @@ else
         err "Could not install mitmproxy. Try: pipx install mitmproxy"
         exit 1
       }
-      return 0 2>/dev/null || true
+      true  # pip3 fallback succeeded — continue
     else
       err "No package manager found. Install pipx first, then re-run:"
       err "  pipx install mitmproxy"
@@ -123,7 +123,7 @@ if [ ! -f "$MITM_CERT" ] || [ ! -s "$MITM_CERT" ]; then
   mitmdump --listen-port 8081 --set block_global=false &
   PID=$!
   # Wait up to 10s for the cert file to appear and be non-empty
-  for i in $(seq 1 20); do
+  for _ in $(seq 1 20); do
     if [ -s "$MITM_CERT" ]; then break; fi
     sleep 0.5
   done
@@ -190,7 +190,7 @@ if [ -f "$MITM_CERT" ] && [ -s "$MITM_CERT" ]; then
           /etc/pki/tls/certs/ca-bundle.crt \
           /etc/ssl/ca-bundle.pem; do
           if [ -f "$bundle" ]; then
-            sudo tee -a "$bundle" < "$MITM_CERT" >/dev/null && \
+            cat "$MITM_CERT" | sudo tee -a "$bundle" >/dev/null && \
               info "Appended to $bundle ✅"
             break
           fi
@@ -209,7 +209,7 @@ if [ -f "$MITM_CERT" ] && [ -s "$MITM_CERT" ]; then
           info "mitmproxy CA already in $bundle"
         else
           info "Appending to $bundle (needs sudo)..."
-          sudo tee -a "$bundle" < "$MITM_CERT" >/dev/null && \
+          cat "$MITM_CERT" | sudo tee -a "$bundle" >/dev/null && \
             info "Appended to $bundle ✅"
         fi
         break
