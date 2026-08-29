@@ -181,6 +181,7 @@ echo "━━━ 4/7 — Shell history ━━━"
 
 for src in "$BACKUP/atuin" "$VOL/atuin"; do [ -d "$src" ] && restore_dir "$src" ~/.local/share/atuin "Atuin history" && break; done
 for src in "$BACKUP/fish" "$VOL/fish"; do [ -d "$src" ] && restore_dir "$src" ~/.local/share/fish "Fish history" && break; done
+for src in "$BACKUP/nushell" "$VOL/nushell"; do [ -d "$src" ] && restore_dir "$src" ~/.config/nushell "Nushell config+history" && break; done
 
 # ─────────────────────────────────────────────────────
 # 5. Projects (code repos)

@@ -111,6 +111,7 @@ done
 echo "━━━ 4/6 — Shell history ──────────────────────────"
 backup_dir ~/.local/share/atuin atuin "Atuin history"
 backup_dir ~/.local/share/fish fish "Fish history"
+backup_dir ~/.config/nushell nushell "Nushell config+history"
 
 # ── 5. Projects (code repos) ──────────────────────────
 echo "━━━ 5/6 — Projects ───────────────────────────────"
