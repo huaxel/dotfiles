@@ -49,7 +49,9 @@ $env.config.keybindings = (
 # command, !$ expands to the last argument of the previous command. The
 # binding fires on every ! keypress, so it only expands when the buffer is
 # exactly !! or !$ — otherwise it inserts the literal ! (matching Fish, which
-# checks the token under the cursor).
+# checks the token under the cursor). Note: the `history` command exposes the
+# command text under the `command` column (the sqlite schema calls it
+# command_line, but Nu renames it in its output).
 $env.config.keybindings ++= [
     {
         name: bang_expand
@@ -58,7 +60,7 @@ $env.config.keybindings ++= [
         mode: [emacs, vi_insert]
         event: {
             send: executehostcommand
-            cmd: "let buf = (commandline); if ($buf == '!!') { let last_cmd = (history | last 1 | get command_line? | default ''); if ($last_cmd | is-empty) { commandline edit --replace '' } else { commandline edit --replace $last_cmd } } else { commandline edit --insert '!' }"
+            cmd: "let buf = (commandline); if ($buf == '!!') { let last_cmd = (history | last 1 | get command? | default ''); if ($last_cmd | is-empty) { commandline edit --replace '' } else { commandline edit --replace $last_cmd } } else { commandline edit --insert '!' }"
         }
     }
     {
@@ -68,7 +70,7 @@ $env.config.keybindings ++= [
         mode: [emacs, vi_insert]
         event: {
             send: executehostcommand
-            cmd: "let buf = (commandline); if ($buf == '!$') { let last_args = (history | last 1 | get command_line? | default '' | split row ' ' | last); commandline edit --replace $last_args } else { commandline edit --insert '$' }"
+            cmd: "let buf = (commandline); if ($buf == '!$') { let last_args = (history | last 1 | get command? | default '' | split row ' ' | last); commandline edit --replace $last_args } else { commandline edit --insert '$' }"
         }
     }
 ]
