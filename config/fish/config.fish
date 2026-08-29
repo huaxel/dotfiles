@@ -1,3 +1,10 @@
+# ───────────────────────────────────────────────────────────────
+# Fallback shell config. Nushell (../nushell/) is the canonical default
+# shell; this Fish config is kept so Fish still works if you run it on a host
+# where Nushell is unavailable. Secrets are no longer sourced here — they
+# arrive via systemd environment.d (~/.config/environment.d/) for all shells.
+# ───────────────────────────────────────────────────────────────
+
 # Initialize starship prompt
 starship init fish | source
 
@@ -214,8 +221,21 @@ end
 
 # fish_user_key_bindings is auto-called by fish; no need to invoke manually
 fish_add_path $HOME/.npm-global/bin
-if test -f ~/.config/secrets/env.fish
-    source ~/.config/secrets/env.fish
+# Source decrypted secrets (systemd environment.d `KEY=value` format).
+# On Linux systemd loads environment.d for user sessions automatically, but
+# Fish is kept as a fallback and may run where that doesn't apply (e.g. macOS),
+# so parse the file here too.
+if test -f ~/.config/environment.d/99-environment.conf
+    while read -l line
+        set -l trimmed (string trim -- $line)
+        if test -z "$trimmed"; or string match -q '#*' -- $trimmed
+            continue
+        end
+        set -l kv (string match -r '^([A-Za-z_][A-Za-z0-9_]*)=(.*)$' -- $trimmed)
+        if test (count $kv) -ge 3
+            set -gx $kv[2] $kv[3]
+        end
+    end < ~/.config/environment.d/99-environment.conf
 end
 
 # Added by Antigravity CLI installer

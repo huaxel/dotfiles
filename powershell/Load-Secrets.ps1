@@ -1,6 +1,6 @@
 function Import-DotfilesSecrets {
     param(
-        [string]$Path = (Join-Path $HOME ".config\secrets\env.fish")
+        [string]$Path = (Join-Path $HOME ".config\environment.d\99-environment.conf")
     )
 
     if (-not (Test-Path -LiteralPath $Path)) {
@@ -13,7 +13,8 @@ function Import-DotfilesSecrets {
             continue
         }
 
-        if ($trimmed -notmatch '^set\s+(?:-[A-Za-z]+\s+)*([A-Za-z_][A-Za-z0-9_]*)\s+(.+?)\s*$') {
+        # environment.d syntax: KEY=value (one per line)
+        if ($trimmed -notmatch '^([A-Za-z_][A-Za-z0-9_]*)=(.*)$') {
             continue
         }
 
