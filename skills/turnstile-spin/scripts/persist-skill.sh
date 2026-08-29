@@ -47,7 +47,7 @@ if [ -d "$TARGET_DIR/scripts" ]; then
   chmod +x "$TARGET_DIR/scripts"/*.sh 2>/dev/null || true
 fi
 
-scripts_list=$(ls "$TARGET_DIR/scripts" 2>/dev/null | sed 's/.*/"&"/' | paste -sd, -)
+scripts_list=$(find "$TARGET_DIR/scripts" -maxdepth 1 -type f -printf '"%f",' 2>/dev/null | sed 's/,$//')
 echo "persist-skill: wrote bundle to $TARGET_DIR" >&2
 echo "{\"status\":\"ok\",\"path\":\"$PATH_ARG\",\"bundle_root\":\"$TARGET_DIR\",\"scripts\":[$scripts_list]}"
 exit 0
