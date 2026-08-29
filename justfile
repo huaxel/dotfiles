@@ -48,7 +48,7 @@ nushell-setup:
 # ──────────── Check recipes ────────────
 
 # Run ALL checks (the full CI pipeline)
-ci: check-sh check-ts check-ts-packages check-dotter check-secrets check-gitignore check-templates check-brewfile
+ci: check-sh check-ts check-ts-packages check-dotter check-secrets check-gitignore check-templates check-brewfile check-nu
     @echo ""
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     @echo "  🟢  All CI checks passed!  🟢"
@@ -371,6 +371,33 @@ check-templates:
     done
     if [ "$errors" -gt 0 ]; then echo "  ❌ $errors template files have issues"; exit 1; fi
     echo "  ✅ All templates balanced"
+
+# ── Nushell ──
+
+# Validate Nushell config syntax
+check-nu:
+    #!/usr/bin/env bash
+    echo "=== Nushell Config ==="
+    if ! command -v nu &>/dev/null; then
+        echo "  ⚠️  nu not installed — skipping"
+        exit 0
+    fi
+    errors=0
+    for f in config/nushell/env.nu config/nushell/config.nu config/nushell/login.nu; do
+        if [ ! -f "$f" ]; then
+            echo "  ⚠️  $f missing — skipping"
+            continue
+        fi
+        if nu --config config/nushell/config.nu --env-config config/nushell/env.nu -c 'print "ok"' >/dev/null 2>&1; then
+            echo "  ✅ $f parses"
+        else
+            echo "  ❌ $f has syntax errors"
+            nu --config config/nushell/config.nu --env-config config/nushell/env.nu -c 'print "ok"' 2>&1 | sed 's/^/    /' | head -8
+            errors=$((errors + 1))
+        fi
+    done
+    if [ "$errors" -gt 0 ]; then echo "  ❌ $errors Nushell config files have issues"; exit 1; fi
+    echo "  ✅ All Nushell config files parse"
 
 # ── Brewfile ──
 
