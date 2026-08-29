@@ -19,6 +19,8 @@ $env.BUN_INSTALL = ($env.HOME | path join ".bun")
 $env.FZF_DEFAULT_OPTS = "--height 40% --layout=reverse --border --preview 'bat --color=always --style=numbers --line-range=:500 {}' --preview-window=right:60%"
 $env.FZF_CTRL_T_OPTS = "--preview 'bat --color=always --style=numbers --line-range=:500 {}' --preview-window=right:60%"
 $env.FZF_CTRL_R_OPTS = "--preview 'echo {}' --preview-window=up:3:hidden:wrap --bind 'ctrl-/:toggle-preview'"
+# Atuin owns Ctrl-R for history; disable fzf's Ctrl-R binding.
+$env.FZF_CTRL_R_COMMAND = ""
 
 $env.PATH = (
     $env.PATH

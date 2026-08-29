@@ -29,6 +29,22 @@ source $zoxide_source
 source $fzf_source
 source $atuin_source
 
+# Fish semantics: atuin owns Ctrl-R for history search (its init does
+# `bind ctrl-r _atuin_search`, replacing the default). Nushell's built-in
+# history_menu also binds Ctrl-R, so null out its event to let atuin take
+# over. Reedline ignores bindings whose event is null (documented in
+# line_editor.html#removing-a-default-keybinding).
+$env.config.keybindings = (
+    $env.config.keybindings
+    | each {|kb|
+        if ($kb.name? | default "") == "history_menu" {
+            $kb | upsert event null
+        } else {
+            $kb
+        }
+    }
+)
+
 # Modern replacements for externals that don't shadow Nushell builtins.
 # Nu's own ls/open/find/ps/du/watch are structured and pipeline-friendly, so
 # they stay intact.
