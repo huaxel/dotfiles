@@ -46,7 +46,10 @@ $env.config.keybindings = (
 )
 
 # Bang expansion, matching Fish's bind_bang/bind_dollar: !! repeats the last
-# command, !$ expands to the last argument of the previous command.
+# command, !$ expands to the last argument of the previous command. The
+# binding fires on every ! keypress, so it only expands when the buffer is
+# exactly !! or !$ — otherwise it inserts the literal ! (matching Fish, which
+# checks the token under the cursor).
 $env.config.keybindings ++= [
     {
         name: bang_expand
@@ -55,7 +58,7 @@ $env.config.keybindings ++= [
         mode: [emacs, vi_insert]
         event: {
             send: executehostcommand
-            cmd: "let last_cmd = (history | last 1 | get command_line? | default ''); if ($last_cmd | is-empty) { commandline edit --replace '!!' } else { commandline edit --replace ($last_cmd | str replace --all '!!' $last_cmd) }"
+            cmd: "let buf = (commandline); if ($buf == '!!') { let last_cmd = (history | last 1 | get command_line? | default ''); if ($last_cmd | is-empty) { commandline edit --replace '' } else { commandline edit --replace $last_cmd } } else { commandline edit --insert '!' }"
         }
     }
     {
@@ -65,7 +68,7 @@ $env.config.keybindings ++= [
         mode: [emacs, vi_insert]
         event: {
             send: executehostcommand
-            cmd: "let last_args = (history | last 1 | get command_line? | default '' | split row ' ' | last); commandline edit --replace $last_args"
+            cmd: "let buf = (commandline); if ($buf == '!$') { let last_args = (history | last 1 | get command_line? | default '' | split row ' ' | last); commandline edit --replace $last_args } else { commandline edit --insert '$' }"
         }
     }
 ]
