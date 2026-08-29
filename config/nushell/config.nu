@@ -80,9 +80,15 @@ alias ssh-mosh = mosh
 alias ssh-tunnel = autossh -M 0 -N
 alias pi-sudo = sudo -iu pi-agent PI_CODING_AGENT_DIR=($env.PI_CODING_AGENT_DIR) -- pi
 
-# Linux's equivalent of macOS `open`. Uses a wrapper function so `open file`
-# opens a file without shadowing Nu's structured `open` builtin.
-def --env open-file [path: string] { ^xdg-open $path }
+# Cross-platform file opener (macOS `open`, Linux `xdg-open`), without
+# shadowing Nu's structured `open` builtin.
+def --env open-file [path: string] {
+    if $nu.os-info.name == "macos" {
+        ^open $path
+    } else {
+        ^xdg-open $path
+    }
+}
 alias openf = open-file
 
 # WSL interop.
