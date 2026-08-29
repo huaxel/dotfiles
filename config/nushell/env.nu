@@ -14,6 +14,7 @@ $env.PYTHONPYCACHEPREFIX = ($env.HOME | path join ".cache/cpython")
 $env.PI_CODING_AGENT_DIR = ($env.HOME | path join "dotfiles/pi/agent")
 $env.PRIME_AGENT_CODING_AGENT_DIR = ($env.HOME | path join "dotfiles/prime-agent/agent")
 $env.BUN_INSTALL = ($env.HOME | path join ".bun")
+$env.JUST_GLOBAL_JUSTFILE = ($env.HOME | path join ".config/just/justfile")
 
 # fzf defaults, matching the Fish setup.
 $env.FZF_DEFAULT_OPTS = "--height 40% --layout=reverse --border --preview 'bat --color=always --style=numbers --line-range=:500 {}' --preview-window=right:60%"
