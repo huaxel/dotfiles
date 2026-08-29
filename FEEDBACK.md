@@ -754,3 +754,18 @@ every open). Fixed, then hardened the whole setup.
 
 ### Improvements for next time
 - Compare colliding artifacts before moving them, then restore the newer content after the fast-forward.
+
+## 2026-08-29: Audit reconciled files
+
+### What went well
+- History made the merge safe to unwind: the reconciled files were additions from a backup branch, while the canonical first parent preserved the intended removals.
+- Reverting with `-m 1` removed 555 stale files and retained the separate OAuth-token fix; `just ci` passed.
+
+### What was frustrating / slow
+- The merge had reintroduced a large stale skill tree and active Pi extensions despite the source cleanup commits explicitly removing them.
+
+### What config change would have helped
+- A reconciliation check comparing added paths against prior deliberate deletions would have caught the resurrection before merge.
+
+### Improvements for next time
+- Treat backup salvage as review-only until every reintroduced path is checked against deletion history and active deployment mappings.
