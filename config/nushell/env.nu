@@ -1,7 +1,8 @@
 # Nushell environment configuration
-# Loaded before config.nu. API keys and tokens reach this shell via systemd
-# environment.d (decrypted by dotter); fish-only secrets are in
-# ~/.config/secrets/env.fish and are not sourced by Nushell.
+# Loaded before config.nu. API keys and tokens reach this shell from the
+# single secret source: ~/.config/environment.d/99-environment.conf (decrypted
+# by dotter). On Linux systemd applies it to user sessions; env.nu also parses
+# it directly so Nushell gets the keys on hosts without systemd (e.g. macOS).
 
 $env.EDITOR = "nvim"
 $env.VISUAL = "nvim"
