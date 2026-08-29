@@ -30,7 +30,9 @@ if command -v atuin >/dev/null 2>&1; then
     # restores stdout while `complete`/`str trim` still silence errors.
     # See https://github.com/atuinsh/atuin/issues/3358
     if grep -q 'e>|' "$ATUIN_INIT"; then
-        sed -i 's/e>|/|/g' "$ATUIN_INIT"
+        # Portable in-place edit: BSD sed (macOS) requires an argument to -i,
+        # GNU sed (Linux) does not. Use a temp file + mv which works on both.
+        sed 's/e>|/|/g' "$ATUIN_INIT" > "$ATUIN_INIT.tmp" && mv "$ATUIN_INIT.tmp" "$ATUIN_INIT"
         echo "Applied atuin e>| fix (upstream issue #3358)"
     fi
     echo "Generated Atuin integration"
