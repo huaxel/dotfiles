@@ -6,7 +6,9 @@ Keep deployment paths stable; organize new material under the matching area belo
 ## Deployment and machine configuration
 
 - `.dotter/` — Dotter package selection, templates, and deploy hooks.
-- `config/` — shared Unix application configuration deployed to `~/.config`.
+- `config/` — shared Unix application configuration deployed to `~/.config`
+  (includes `config/nushell/` — env.nu/config.nu/login.nu for the Nushell
+  shell, managed with `just nushell-setup` / `just nu-health`).
 - `config-linux/` — Linux-only Wayland, launcher, systemd, and XKB configuration.
 - `config-macos/` — macOS-only configuration.
 - Windows roots (`powershell/`, `windows-terminal/`, `autohotkey/`, `glazewm/`,
@@ -20,7 +22,9 @@ Keep deployment paths stable; organize new material under the matching area belo
 
 - `bootstrap.sh`, `bootstrap.ps1` — first-machine setup.
 - `bin/` — small user-facing helper commands that can be installed on `PATH`.
-- `scripts/` — backup, restore, deployment, and platform integration scripts.
+- `scripts/` — backup, restore, deployment, and platform integration scripts
+  (includes `setup-nushell.sh` and `nu-health.sh` for Nushell integration
+  generation and health checks).
 - `etc/` — system-level files that are installed explicitly, not by Dotter.
 - `justfile` — local CI, testing, and maintenance entry points.
 
