@@ -26,3 +26,8 @@ if command -v atuin >/dev/null 2>&1; then
     atuin init nu > "$ATUIN_INIT"
     echo "Generated Atuin integration"
 fi
+
+if command -v fzf >/dev/null 2>&1; then
+    fzf --nushell > "$CACHE_DIR/fzf.nu"
+    echo "Generated fzf integration"
+fi

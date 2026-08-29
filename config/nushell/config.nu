@@ -14,16 +14,19 @@ $env.config.completions.case_sensitive = false
 const starship_init = ($nu.cache-dir | path join "starship.nu")
 const mise_init = ($nu.cache-dir | path join "mise.nu")
 const zoxide_init = ($nu.cache-dir | path join "zoxide.nu")
+const fzf_init = ($nu.cache-dir | path join "fzf.nu")
 const atuin_init = ($nu.home-dir | path join ".local/share/atuin/init.nu")
 
 const starship_source = (if ($starship_init | path exists) { $starship_init } else { null })
 const mise_source = (if ($mise_init | path exists) { $mise_init } else { null })
 const zoxide_source = (if ($zoxide_init | path exists) { $zoxide_init } else { null })
+const fzf_source = (if ($fzf_init | path exists) { $fzf_init } else { null })
 const atuin_source = (if ($atuin_init | path exists) { $atuin_init } else { null })
 
 source $starship_source
 source $mise_source
 source $zoxide_source
+source $fzf_source
 source $atuin_source
 
 # Modern command replacements.
