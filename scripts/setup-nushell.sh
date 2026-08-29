@@ -24,6 +24,15 @@ fi
 
 if command -v atuin >/dev/null 2>&1; then
     atuin init nu > "$ATUIN_INIT"
+    # Fix upstream atuin bug (v18.13.0+): `e>|` redirects only stderr into the
+    # pipe, so `atuin history start`'s stdout (the history ID) is lost and no
+    # commands are recorded / search output is dropped. Replacing `e>|` with `|`
+    # restores stdout while `complete`/`str trim` still silence errors.
+    # See https://github.com/atuinsh/atuin/issues/3358
+    if grep -q 'e>|' "$ATUIN_INIT"; then
+        sed -i 's/e>|/|/g' "$ATUIN_INIT"
+        echo "Applied atuin e>| fix (upstream issue #3358)"
+    fi
     echo "Generated Atuin integration"
 fi
 
