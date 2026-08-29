@@ -80,6 +80,7 @@ brew "neovim", args: ["HEAD"]
 brew "nmap"
 brew "nnn"
 brew "node@22"
+brew "nushell"
 brew "nowplaying-cli"
 brew "ocrmypdf"
 brew "opencode"
