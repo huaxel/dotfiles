@@ -19,8 +19,8 @@ specific and overrides this file.
   `rebase -i`; use `GIT_EDITOR=true git rebase --continue`. On revert or
   cherry-pick, use `-m` to select the merge parent.
 - Verify the real gate before claiming success; report skipped checks.
-- Request independent review before merging substantial work:
-  `skills/requesting-code-review/`.
+- Request independent review before merging substantial work: dispatch the
+  configured read-only `reviewer` agent (see `docs/patterns/uncle-bob-gauntlet.md`).
 - Before ending a session, run `docs/patterns/end-of-shift.md` and commit
   feedback using `docs/patterns/session-feedback.md`.
 
