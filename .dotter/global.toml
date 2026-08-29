@@ -61,6 +61,9 @@ aerospace = "~/.aerospace.toml"
 # Eza — modern ls replacement
 "config/eza" = "~\\.config\\eza"
 
+# Nushell — Nushell uses %APPDATA%\nushell on Windows
+"config/nushell" = { target = "~\\AppData\\Roaming\\nushell", type = "symbolic" }
+
 # Fastfetch — system info
 "config/fastfetch" = "~\\.config\\fastfetch"
 
