@@ -1,6 +1,7 @@
 # Nushell environment configuration
-# Loaded before config.nu. Machine-specific secrets live in
-# ~/.config/secrets/env.nu and are sourced manually when needed.
+# Loaded before config.nu. API keys and tokens reach this shell via systemd
+# environment.d (decrypted by dotter); fish-only secrets are in
+# ~/.config/secrets/env.fish and are not sourced by Nushell.
 
 $env.EDITOR = "nvim"
 $env.VISUAL = "nvim"
@@ -67,5 +68,5 @@ if ("/mnt/ai_models" | path exists) {
 # Keep mise quiet; its activation is loaded from config.nu.
 $env.MISE_LOG_LEVEL = "error"
 
-# Keep machine-specific secrets outside this repository. Source them manually
-# from a local Nushell session when needed.
+# Keep machine-specific secrets outside this repository. They reach this
+# shell via systemd environment.d; fish-only secrets stay in env.fish.
