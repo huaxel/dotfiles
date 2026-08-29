@@ -399,6 +399,19 @@ check-nu:
     if [ "$errors" -gt 0 ]; then echo "  ❌ $errors Nushell config files have issues"; exit 1; fi
     echo "  ✅ All Nushell config files parse"
 
+# ──────────── Nushell health ────────────
+
+# Full Nushell setup health check: config, integrations, keybindings, aliases.
+# Run after tool upgrades or on a new machine.
+nu-health:
+    #!/usr/bin/env bash
+    if [ -x scripts/nu-health.sh ]; then
+        scripts/nu-health.sh
+    else
+        echo "  ⚠️  scripts/nu-health.sh not found"
+        exit 1
+    fi
+
 # ── Brewfile ──
 
 # Basic Brewfile structure check
