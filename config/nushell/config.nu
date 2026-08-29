@@ -10,7 +10,8 @@ $env.config.completions.case_sensitive = false
 
 # Nushell needs generated files for shell integrations. They live outside the
 # repository so each machine can use its installed tool versions. Run
-# `scripts/setup-nushell.sh` after installing or upgrading these tools.
+# `just nushell-setup` (or scripts/setup-nushell.sh) after installing or
+# upgrading these tools.
 const starship_init = ($nu.cache-dir | path join "starship.nu")
 const mise_init = ($nu.cache-dir | path join "mise.nu")
 const zoxide_init = ($nu.cache-dir | path join "zoxide.nu")
