@@ -29,19 +29,16 @@ source $zoxide_source
 source $fzf_source
 source $atuin_source
 
-# Modern command replacements.
-alias ls = eza -la --icons=always
+# Modern replacements for externals that don't shadow Nushell builtins.
+# Nu's own ls/open/find/ps/du/watch are structured and pipeline-friendly, so
+# they stay intact.
 alias ll = eza -la --icons=always
 alias la = eza -a --icons=always
 alias lt = eza --tree --icons=always
 alias cat = bat --style=numbers,changes --theme=tokyonight_night
 alias grep = rg
-alias find = fd
-alias ps = procs
-alias du = dust
 alias df = duf
 alias top = btop
-alias watch = eza --oneline
 
 # Editors and common project tools.
 alias v = nvim
@@ -67,10 +64,10 @@ alias ssh-mosh = mosh
 alias ssh-tunnel = autossh -M 0 -N
 alias pi-sudo = sudo -iu pi-agent PI_CODING_AGENT_DIR=($env.PI_CODING_AGENT_DIR) -- pi
 
-# Linux's equivalent of macOS `open`.
-if $nu.os-info.name == "linux" and (which xdg-open | is-not-empty) {
-    alias open = xdg-open
-}
+# Linux's equivalent of macOS `open`. Uses a wrapper function so `open file`
+# opens a file without shadowing Nu's structured `open` builtin.
+def --env open-file [path: string] { ^xdg-open $path }
+alias openf = open-file
 
 # WSL interop.
 if ("/proc/version" | path exists) and (^cat /proc/version | str contains "Microsoft") {
