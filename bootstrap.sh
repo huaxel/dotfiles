@@ -205,7 +205,7 @@ case "$OS" in
         else
             packages=(
                 git neovim nodejs python rust
-                starship zoxide atuin fzf
+                nushell starship zoxide atuin fzf
                 eza bat fd ripgrep procs dust duf btop bottom fastfetch yazi
                 github-cli jq glow lazygit uv just opencode pnpm
                 age gnupg sops
@@ -250,6 +250,13 @@ step "8/8 — Post-install setup"
 if command -v mise &>/dev/null && [ -f "$HOME/.config/mise/config.toml" ]; then
     info "Installing mise tool versions (node, python, go, rust)..."
     mise install 2>/dev/null || warn "mise install had issues — run 'mise install' manually"
+fi
+
+# Generate Nushell integrations after package installation. Missing tools are
+# skipped so this remains safe on partial or minimal bootstrap environments.
+if [ -x "$SCRIPT_DIR/scripts/setup-nushell.sh" ]; then
+    info "Setting up Nushell integrations..."
+    "$SCRIPT_DIR/scripts/setup-nushell.sh" || warn "Nushell integration setup had issues"
 fi
 
 # Materialize pi extensions from settings.json. Regenerates the untracked

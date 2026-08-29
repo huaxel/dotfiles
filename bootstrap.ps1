@@ -47,7 +47,7 @@ $packages = @(
     # Core tools
     "git", "pwsh", "neovim", "nodejs", "python", "rust"
     # Shell & prompt
-    "starship", "zoxide", "atuin", "fzf"
+    "nushell", "starship", "zoxide", "atuin", "fzf"
     # File management
     "eza", "bat", "fd", "ripgrep", "yazi"
     # System info

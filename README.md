@@ -97,6 +97,27 @@ dotter --dry-run       # Preview changes
 dotter watch           # Auto-deploy on file changes
 ```
 
+### Nushell
+
+Nushell is configured under `config/nushell/` and deployed by the shared
+`config = "~/.config"` mapping. It uses the existing Starship, Atuin, mise,
+and zoxide setup, plus the same editor, pager, aliases, and tool paths as Fish.
+
+```bash
+# Install/deploy on an existing machine
+paru -S nushell                 # Arch Linux
+brew install nushell            # macOS
+cd ~/dotfiles && dotter deploy
+nu
+
+# Optional: make Nushell the login shell after trying it
+sudo sh -c 'command -v nu >> /etc/shells'
+chsh -s "$(command -v nu)"
+```
+
+The bootstrap scripts install Nushell on Linux, macOS, and Windows, but keep
+Fish as the current default shell until you switch deliberately.
+
 ## Migrating from Chezmoi
 
 To switch over on a machine currently using chezmoi:
