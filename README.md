@@ -153,6 +153,8 @@ Aliases mirror Fish: `ll`/`la`/`lt` (eza), `cat` (bat), `grep` (rg), `df`
 
 Integrations are generated into `~/.cache/nushell/`; regenerate after tool
 upgrades with `just nushell-setup` (also rebuilds the bat theme cache).
+Verify the whole setup with `just nu-health` (config, integrations,
+keybindings, aliases).
 
 ## Migrating from Chezmoi
 
