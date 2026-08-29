@@ -45,6 +45,31 @@ $env.config.keybindings = (
     }
 )
 
+# Bang expansion, matching Fish's bind_bang/bind_dollar: !! repeats the last
+# command, !$ expands to the last argument of the previous command.
+$env.config.keybindings ++= [
+    {
+        name: bang_expand
+        modifier: none
+        keycode: char_bang
+        mode: [emacs, vi_insert]
+        event: {
+            send: executehostcommand
+            cmd: "let last_cmd = (history | last 1 | get command_line? | default ''); if ($last_cmd | is-empty) { commandline edit --replace '!!' } else { commandline edit --replace ($last_cmd | str replace --all '!!' $last_cmd) }"
+        }
+    }
+    {
+        name: dollar_expand
+        modifier: none
+        keycode: char_dollar
+        mode: [emacs, vi_insert]
+        event: {
+            send: executehostcommand
+            cmd: "let last_args = (history | last 1 | get command_line? | default '' | split row ' ' | last); commandline edit --replace $last_args"
+        }
+    }
+]
+
 # Modern replacements for externals that don't shadow Nushell builtins.
 # Nu's own ls/open/find/ps/du/watch are structured and pipeline-friendly, so
 # they stay intact.
