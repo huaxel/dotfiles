@@ -7,7 +7,20 @@ This directory contains **encrypted** secrets that sync across machines via git.
 1. **Encrypt** a secret file with `sops --encrypt`
 2. **Commit** the `.enc` file to this repo
 3. **Pull** on another machine
-4. **`dotter deploy`** auto-decrypts secrets to `~/.config/secrets/` via `post_deploy.sh`
+4. **`dotter deploy`** auto-decrypts secrets to their target paths via `post_deploy.sh` (or `post_deploy.ps1` on Windows)
+
+## Secret sources
+
+| Encrypted file | Decrypts to | Used by |
+| --- | --- | --- |
+| `environment.d.enc` | `~/.config/environment.d/99-environment.conf` | All shells (Nushell + Fish fallback). systemd `environment.d` loads it for user sessions on Linux; Nushell/Fish/PowerShell also parse it directly where systemd is absent. |
+| `pi-auth.json.enc` | `~/dotfiles/pi/agent/auth.json` (+ symlink to `~/.pi/agent/auth.json`) | Pi agent auth |
+| `pi-quota-sessions.json.enc` | `~/dotfiles/pi/agent/quota-sessions.json` | Pi quota/sessions |
+| `llama-webui-config.json.enc` | `~/.config/llama.cpp/webui-config.json` | llama.cpp Web UI |
+
+> `environment.d.enc` is the **single** secret source for shell environment
+> variables. The old `env.fish.enc` has been removed; its keys were merged into
+> `environment.d.enc` (26 keys total).
 
 ## Quick start
 
@@ -24,60 +37,64 @@ creation_rules:
       age1<other-machine-key>
 ```
 
-### 2. Create a secret file
+### 2. Create / edit a secret file
 
-Example: `env.fish` with API keys
+The canonical shell-secret file is the systemd `environment.d` file:
 
-```fish
-# ~/.config/secrets/env.fish
-set -x FIREWORKS_API_KEY "your-key-here"
-set -x OPENAI_API_KEY "your-key-here"
-set -x ANTHROPIC_API_KEY "your-key-here"
+```bash
+# Edit the decrypted plaintext at the deployed path:
+$EDITOR ~/.config/environment.d/99-environment.conf
+# Syntax: one KEY=value per line; comments start with #
+#   OPENAI_API_KEY=sk-...
+#   ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-### 3. Encrypt it
+### 3. Re-encrypt and commit
+
+The `.githooks/pre-commit` hook auto-re-encrypts the `environment.d` file from
+its decrypted plaintext when the content changes, so you can just edit the
+deployed file and commit — no manual `sops --encrypt` needed.
+
+```bash
+git add secrets/environment.d.enc secrets/environment.d.sha256
+git commit
+```
+
+To encrypt manually instead:
 
 ```bash
 cd ~/dotfiles/secrets
-sops --encrypt env.fish > env.fish.enc
+sops --encrypt --input-type binary \
+  ~/.config/environment.d/99-environment.conf > environment.d.enc
+sha256sum environment.d.enc > environment.d.sha256  # see note below on sidecar
 ```
 
-### 4. Remove the plaintext and commit
+### 4. Use it in your shell
 
-```bash
-rm env.fish
-git add env.fish.enc
-```
-
-### 5. Use it in your shell
-
-Add to `~/.config/fish/config.fish`:
-```fish
-if test -f ~/.config/secrets/env.fish
-    source ~/.config/secrets/env.fish
-end
-```
-
-Or in `~/.zshrc`:
-```bash
-[ -f ~/.config/secrets/env.fish ] && . ~/.config/secrets/env.fish
-```
-
-PowerShell profiles load the same `env.fish` automatically through `powershell/Load-Secrets.ps1`.
+- **Linux**: systemd loads `~/.config/environment.d/` for user sessions
+  automatically — log out/in (or start a new session) after `dotter deploy`.
+- **Nushell / Fish**: also parse the file directly at startup, so the keys are
+  available even without a full session restart.
+- **PowerShell**: `powershell/Load-Secrets.ps1` sources the same file.
 
 ## Files
 
 - `*.enc` — encrypted secrets (committed to git)
-- `~/.config/secrets/` — decrypted secrets (never committed, 600 permissions)
+- `~/.config/environment.d/99-environment.conf` — decrypted shell secrets (never committed, 600 permissions)
+- `~/.config/secrets/` — decrypted app-specific secrets (never committed)
 
 ## Auto-encrypt on commit
 
-The `.githooks/pre-commit` hook auto-re-encrypts `env.fish` when you commit.
-No manual `sops --encrypt` needed — just edit `~/.config/secrets/env.fish` and commit.
+The `.githooks/pre-commit` hook auto-re-encrypts `environment.d` (and the
+app-specific secrets) when their decrypted plaintext changes. It guards
+re-encryption with a SHA256 sidecar (`*.sha256` storing the **plaintext**
+content hash) so sops's random nonce doesn't produce spurious diffs on every
+commit.
 
 Enable hooks on a fresh clone:
+
 ```bash
 git config core.hooksPath .githooks
 ```
 
-Or run `bootstrap.sh` which does this automatically.
+`bootstrap.sh` does this automatically.

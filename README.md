@@ -97,13 +97,13 @@ dotter --dry-run       # Preview changes
 dotter watch           # Auto-deploy on file changes
 ```
 
-### Nushell
+### Nushell (default shell)
 
-Nushell is configured under `config/nushell/` and deployed by dotter:
-the shared `config = "~/.config"` mapping on macOS/Linux, and
-to `%APPDATA%\nushell` on Windows. It uses the existing Starship, Atuin,
-mise, zoxide, and fzf setup, plus the same editor, pager, aliases, and
-tool paths as Fish.
+Nushell is the **default** shell and is configured under `config/nushell/`,
+deployed by dotter via the shared `config = "~/.config"` mapping on
+macOS/Linux and to `%APPDATA%\nushell` on Windows. It uses the existing
+Starship, Atuin, mise, zoxide, and fzf setup, plus the same editor, pager,
+aliases, and tool paths as the previous Fish setup.
 
 ```bash
 # Install/deploy on an existing machine
@@ -111,17 +111,15 @@ paru -S nushell                 # Arch Linux
 brew install nushell            # macOS
 cd ~/dotfiles && dotter deploy
 scripts/setup-nushell.sh        # generate Starship/Atuin/mise/zoxide/fzf integrations
-nu
-
-# Optional: make Nushell the login shell after trying it
-sudo sh -c 'command -v nu >> /etc/shells'
-chsh -s "$(command -v nu)"
+chsh -s "$(command -v nu)"     # set as login shell (bootstrap.sh does this automatically)
 ```
 
-The bootstrap scripts install Nushell on Linux, macOS, and Windows, but keep
-Fish as the current default shell until you switch deliberately.
-`config/nushell/login.nu` holds login-shell-only setup (loaded after
-env.nu/config.nu when nu starts as a login shell).
+`bootstrap.sh` installs Nushell on Linux, macOS, and Windows and sets it as
+the login shell (adding it to `/etc/shells` and running `chsh -s nu`). Fish
+remains installed as a fallback — `config/fish/config.fish` is kept and still
+works if you launch Fish directly. `config/nushell/login.nu` holds
+login-shell-only setup (loaded after env.nu/config.nu when nu starts as a
+login shell).
 
 ### Nushell usage notes
 
@@ -482,53 +480,43 @@ git push
 ```bash
 cd ~/dotfiles && git pull
 dotter deploy
-# → secrets auto-decrypt to ~/.config/secrets/
+# → secrets auto-decrypt to ~/.config/environment.d/ and ~/.config/secrets/
 ```
 
 ### How to add a secret
 
-**1. Create the plaintext file** (never commit this):
+Secrets for shells live in the canonical systemd `environment.d` file
+(decrypted to `~/.config/environment.d/99-environment.conf`). The pre-commit
+hook auto-re-encrypts it when the plaintext changes.
+
+**1. Edit the decrypted plaintext** (never commit this):
 
 ```bash
-cat > ~/dotfiles/secrets/env.fish <<'EOF'
-set -x FIREWORKS_API_KEY "your-key-here"
-set -x OPENAI_API_KEY "your-key-here"
-set -x ANTHROPIC_API_KEY "your-key-here"
-EOF
+$EDITOR ~/.config/environment.d/99-environment.conf
+# Syntax: one KEY=value per line; comments start with #
+#   FIREWORKS_API_KEY=your-key-here
+#   OPENAI_API_KEY=your-key-here
+#   ANTHROPIC_API_KEY=your-key-here
 ```
 
-**2. Encrypt it**:
+**2. Commit** — the `.githooks/pre-commit` hook re-encrypts and stages the
+`.enc` + `.sha256` for you:
 
 ```bash
-cd ~/dotfiles/secrets
-sops --encrypt env.fish > env.fish.enc
-```
-
-**3. Remove plaintext and commit encrypted**:
-
-```bash
-rm env.fish
 cd ~/dotfiles
-git add secrets/env.fish.enc
+git add secrets/environment.d.enc secrets/environment.d.sha256
 git commit -m "chore(secrets): add API keys"
 git push
 ```
 
-### How to use decrypted secrets
+### How decrypted secrets reach shells
 
-**Fish** (`~/.config/fish/config.fish`):
-```fish
-if test -f ~/.config/secrets/env.fish
-    source ~/.config/secrets/env.fish
-end
-```
-
-**Zsh/Bash** (`~/.zshrc`):
-```bash
-[ -f ~/.config/secrets/env.fish ] && . ~/.config/secrets/env.fish
-```
-
-**PowerShell**: the Windows profile loads the same `env.fish` automatically.
+- **Linux**: systemd loads `~/.config/environment.d/` for user sessions
+  automatically — log out/in after `dotter deploy`.
+- **Nushell** (`config/nushell/`): relies on systemd `environment.d`.
+- **Fish fallback** (`config/fish/config.fish`): parses the same file at
+  startup, so keys are present even without a full session restart.
+- **PowerShell**: `powershell/Load-Secrets.ps1` sources the same file.
 
 ### What gets encrypted vs. what's ignored
 
@@ -578,7 +566,7 @@ npm source first: `install -m 600 /dev/null .npmrc`.
 cat ~/.config/sops/age/keys.txt
 
 # Check which keys the file was encrypted for
-sops --encrypt --show-master-keys secrets/env.fish.enc
+sops --show-master-keys secrets/environment.d.enc
 ```
 
 **"sops: command not found"** — install it:
@@ -592,32 +580,23 @@ brew install sops
 **Secrets not decrypting on deploy** — check the post-deploy hook ran:
 ```bash
 cd ~/dotfiles && dotter deploy 2>&1 | tail -20
-# Should show: "🔐 Decrypting env.fish..."
+# Should show: "🔐 Decrypted environment.d -> ~/.config/environment.d/99-environment.conf"
 ```
 
 ### Full example: adding a Fireworks API key
 
 ```bash
-# 1. Create the secret
-cat > ~/dotfiles/secrets/fireworks.env <<'EOF'
-export FIREWORKS_API_KEY="fw-abc123..."
-EOF
+# 1. Add the key to the canonical environment.d plaintext (decrypted by dotter):
+echo 'FIREWORKS_API_KEY=fw-abc123...' >> ~/.config/environment.d/99-environment.conf
 
-# 2. Encrypt
-cd ~/dotfiles/secrets
-sops --encrypt fireworks.env > fireworks.env.enc
-
-# 3. Clean up
+# 2. Commit — the pre-commit hook re-encrypts secrets/environment.d.enc and
+#    stages it together with its sha256 sidecar.
 cd ~/dotfiles
-rm secrets/fireworks.env
-
-# 4. Commit
-git add secrets/fireworks.env.enc
+git add secrets/environment.d.enc secrets/environment.d.sha256
 git commit -m "chore(secrets): add fireworks api key"
 git push
-
-# 5. Source it in your shell
-echo '[ -f ~/.config/secrets/fireworks.env ] && . ~/.config/secrets/fireworks.env' >> ~/.zshrc
 ```
 
-On the next `dotter deploy`, the secret decrypts automatically.
+On the next `dotter deploy`, the secret decrypts to
+`~/.config/environment.d/99-environment.conf` and reaches Nushell, Fish, and
+PowerShell (via systemd on Linux, or direct parsing where systemd is absent).

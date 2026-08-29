@@ -106,5 +106,5 @@ if (Test-Path $SECRETS_DIR) {
 }
 
 Write-Host ""
-Write-Host "[INFO] To use decrypted secrets in your shell:" -ForegroundColor Cyan
-Write-Host "   PowerShell profiles load ~/.config/secrets/env.fish automatically." -ForegroundColor Cyan
+Write-Host "[INFO] Secrets decrypted to ~/.config/environment.d and ~/.config/secrets/." -ForegroundColor Cyan
+Write-Host "   PowerShell profiles source the environment.d file automatically via Load-Secrets.ps1." -ForegroundColor Cyan

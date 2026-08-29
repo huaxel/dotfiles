@@ -271,20 +271,26 @@ else
     warn "pi not found — skipping extension sync (install pi, then run: pi update --extensions)"
 fi
 
-# Set fish as default shell
-FISH_PATH=$(command -v fish 2>/dev/null)
-if [ -n "$FISH_PATH" ] && [ "$OS" = "Darwin" ]; then
-    CURRENT_SHELL=$(dscl . -read /Users/"$USER" UserShell 2>/dev/null | awk '{print $2}')
-    if [ "$CURRENT_SHELL" != "$FISH_PATH" ]; then
-        # Add to /etc/shells if not present (needed for chsh to accept it)
-        if ! grep -qF "$FISH_PATH" /etc/shells 2>/dev/null; then
-            echo "$FISH_PATH" | sudo tee -a /etc/shells >/dev/null
-            info "Added fish to /etc/shells"
-        fi
-        chsh -s "$FISH_PATH" 2>/dev/null || sudo chsh -s "$FISH_PATH" "$USER" 2>/dev/null || warn "Could not set fish as default shell — run: chsh -s $FISH_PATH"
-        info "Default shell changed to fish (log out/in to apply)"
+# Set Nushell as the default shell (Fish remains installed as a fallback)
+NU_PATH=$(command -v nu 2>/dev/null)
+if [ -z "$NU_PATH" ]; then
+    warn "Nushell not found — skipping default-shell change. Install it (brew install nushell / paru -S nushell) and re-run, or run: chsh -s \"$(command -v nu)\""
+else
+    if [ "$OS" = "Darwin" ]; then
+        CURRENT_SHELL=$(dscl . -read /Users/"$USER" UserShell 2>/dev/null | awk '{print $2}')
     else
-        info "Fish is already the default shell"
+        CURRENT_SHELL=$(getent passwd "$USER" 2>/dev/null | cut -d: -f7)
+    fi
+    if [ "$CURRENT_SHELL" != "$NU_PATH" ]; then
+        # Add to /etc/shells if not present (needed for chsh to accept it)
+        if ! grep -qF "$NU_PATH" /etc/shells 2>/dev/null; then
+            echo "$NU_PATH" | sudo tee -a /etc/shells >/dev/null
+            info "Added Nushell to /etc/shells"
+        fi
+        chsh -s "$NU_PATH" 2>/dev/null || sudo chsh -s "$NU_PATH" "$USER" 2>/dev/null || warn "Could not set Nushell as default shell — run: chsh -s $NU_PATH"
+        info "Default shell changed to Nushell (log out/in to apply)"
+    else
+        info "Nushell is already the default shell"
     fi
 fi
 

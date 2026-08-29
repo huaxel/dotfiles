@@ -91,7 +91,6 @@ if [ -d "$SECRETS_DIR" ]; then
 fi
 
 echo ""
-echo "💡 To use decrypted secrets in your shell:"
-echo "   source ~/.config/secrets/env.fish"
-echo "   (Nushell: source ~/.config/secrets/env.nu if present — most keys are also"
-echo "    loaded by systemd environment.d for all shells)"
+echo "💡 Secrets are loaded by systemd environment.d for all shells:"
+echo "   ~/.config/environment.d/99-environment.conf  (decrypted above)"
+echo "   Log out/in (or start a new session) so systemd applies the keys."

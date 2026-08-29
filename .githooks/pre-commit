@@ -72,8 +72,8 @@ encrypt_secret() {
     fi
 }
 
-# Generic shell secrets (source ~/.config/secrets/env.fish)
-encrypt_secret "$HOME/.config/secrets/env.fish" "env.fish"
+# Shell secrets: systemd environment.d (single source for all shells)
+encrypt_secret "$HOME/.config/environment.d/99-environment.conf" "environment.d"
 
 # App-specific secrets (live plaintext path -> enc basename)
 encrypt_secret "$HOME/.config/llama.cpp/webui-config.json" "llama-webui-config.json"
@@ -81,8 +81,10 @@ encrypt_secret "$HOME/dotfiles/pi/agent/auth.json" "pi-auth.json"
 encrypt_secret "$HOME/dotfiles/pi/agent/quota-sessions.json" "pi-quota-sessions.json"
 
 # Legacy warning
-if [ -f "$HOME/.config/secrets/env.sh" ]; then
-    echo "⚠️  Warning: ~/.config/secrets/env.sh exists but is deprecated. Use env.fish instead."
+if [ -f "$HOME/.config/secrets/env.sh" ] || [ -f "$HOME/.config/secrets/env.fish" ]; then
+    echo "⚠️  Warning: a legacy env.sh/env.fish secret file exists. Secrets now live in"
+    echo "   ~/.config/environment.d/99-environment.conf (encrypted as secrets/environment.d.enc)."
+    echo "   Remove the legacy file once its keys are migrated."
 fi
 
 exit 0

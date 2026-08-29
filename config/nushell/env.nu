@@ -69,4 +69,4 @@ if ("/mnt/ai_models" | path exists) {
 $env.MISE_LOG_LEVEL = "error"
 
 # Keep machine-specific secrets outside this repository. They reach this
-# shell via systemd environment.d; fish-only secrets stay in env.fish.
+# shell via systemd environment.d (~/.config/environment.d/).

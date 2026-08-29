@@ -14,7 +14,6 @@ from __future__ import annotations
 import json
 import os
 import re
-import shlex
 from pathlib import Path
 from typing import Any
 
@@ -22,7 +21,7 @@ HOME = Path.home()
 SOURCE = HOME / ".config" / "llama.cpp" / "mcp-servers.json"
 WEBUI_CONFIG = HOME / ".config" / "llama.cpp" / "webui-config.json"
 MCP_CONFIG = HOME / ".llama.cpp" / "mcp.json"
-SECRETS_ENV = HOME / ".config" / "secrets" / "env.fish"
+SECRETS_ENV = HOME / ".config" / "environment.d" / "99-environment.conf"
 ENV_REF_RE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
 
 
@@ -41,32 +40,24 @@ def write_json_secure(path: Path, data: Any) -> None:
     os.chmod(path, 0o600)
 
 
-def load_fish_env(path: Path) -> dict[str, str]:
-    """Parse simple `set -gx NAME value` fish secret files without executing them."""
+def load_environment_d(path: Path) -> dict[str, str]:
+    """Parse a systemd environment.d `KEY=value` file without executing it."""
     if not path.exists():
         return {}
 
     env: dict[str, str] = {}
     for line in path.read_text().splitlines():
         stripped = line.strip()
-        if not stripped or stripped.startswith("#") or not stripped.startswith("set "):
+        if not stripped or stripped.startswith("#"):
             continue
-        try:
-            parts = shlex.split(stripped, comments=True, posix=True)
-        except ValueError:
+        m = re.match(r"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$", stripped)
+        if not m:
             continue
-        if not parts or parts[0] != "set":
-            continue
-
-        args = parts[1:]
-        while args and args[0].startswith("-"):
-            args = args[1:]
-        if len(args) < 2:
-            continue
-
-        name, values = args[0], args[1:]
-        if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name):
-            env[name] = " ".join(values)
+        name, value = m.group(1), m.group(2)
+        # strip surrounding quotes if present
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
+            value = value[1:-1]
+        env[name] = value
     return env
 
 
@@ -104,7 +95,7 @@ def main() -> None:
         raise SystemExit(f"{SOURCE} must contain a JSON array")
 
     env = os.environ.copy()
-    env.update(load_fish_env(SECRETS_ENV))
+    env.update(load_environment_d(SECRETS_ENV))
     try:
         expanded_servers = expand_env_refs(servers, env)
     except KeyError as exc:
