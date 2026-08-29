@@ -42,3 +42,12 @@ if command -v fzf >/dev/null 2>&1; then
     fzf --nushell > "$CACHE_DIR/fzf.nu"
     echo "Generated fzf integration"
 fi
+
+# Ensure bat indexes custom themes (e.g. ~/.config/bat/themes/*.tmTheme).
+# Without the cache, bat warns 'Unknown theme' when the alias uses a theme.
+if command -v bat >/dev/null 2>&1; then
+    if [ ! -f "${XDG_CACHE_HOME:-$HOME/.cache}/bat/themes.bin" ]; then
+        bat cache --build >/dev/null 2>&1 || true
+        echo "Built bat theme/syntax cache"
+    fi
+fi
