@@ -26,6 +26,8 @@ Openference package.
 - Added Windows bootstrap creation of the ignored npm source before Dotter deploy.
 - Added a mode-0600 host-local notification file path so the rotated topic can
   be deployed without putting it in Git or encrypted dotfiles.
+- Published non-sensitive verification notifications successfully from both
+  backup hosts using the rotated topic.
 
 ## Remaining follow-ups
 
