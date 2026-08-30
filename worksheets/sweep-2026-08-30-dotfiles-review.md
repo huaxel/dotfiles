@@ -23,6 +23,7 @@ Openference package.
   last valid plaintext; restricted the generic Unix secret directory to `0700`.
 - Removed the published ntfy topic from backup scripts and made notifications
   require a host-local `NTFY_URL`.
+- Added Windows bootstrap creation of the ignored npm source before Dotter deploy.
 
 ## Remaining follow-ups
 

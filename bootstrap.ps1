@@ -122,6 +122,14 @@ models_base_path = '$env:USERPROFILE\.cache\huggingface\hub'
     Write-Host "Created .dotter/local.toml for windows" -ForegroundColor Green
 }
 
+# Dotter maps this gitignored source to ~/.npmrc. Create it before deployment
+# so a fresh Windows clone works before registry credentials are configured.
+$npmrcSource = Join-Path $repoRoot "npmrc"
+if (-not (Test-Path -LiteralPath $npmrcSource)) {
+    New-Item -ItemType File -Path $npmrcSource -Force | Out-Null
+    Write-Host "Created empty $npmrcSource; add registry credentials locally if needed." -ForegroundColor Yellow
+}
+
 dotter deploy
 
 # --- Secrets ---
