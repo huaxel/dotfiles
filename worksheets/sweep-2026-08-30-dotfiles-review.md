@@ -29,8 +29,8 @@ Openference package.
 
 ## Remaining follow-ups
 
-- Rotate the former ntfy topic outside this repository because it remains in
-  published Git history; the tracked scripts no longer reference or default to it.
+- The former ntfy topic remains in published Git history; retire it if the
+  provider supports explicit topic deletion.
 - The Herdr-owned integration remains intentionally exempt from repository lint;
   its syntax is still checked and Herdr may overwrite it during updates.
 
@@ -53,5 +53,5 @@ Commits reviewed: `dae780a..f075599`.
   example now hashes the live plaintext and stores the bare digest expected by
   `.githooks/pre-commit`.
 
-Clean bill: yes for tracked code; rotate the former notification topic as an
-external operational follow-up.
+Clean bill: yes for tracked code and current backup-host configuration; retire
+ the former notification topic if the provider supports explicit deletion.
