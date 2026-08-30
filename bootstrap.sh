@@ -6,8 +6,9 @@
 #   Homebrew → dotter + prereqs → deploy dotfiles → brew bundle → macOS defaults
 #
 # Env toggles:
-#   SKIP_BREW_BUNDLE=1   don't install the full Brewfile
+#   SKIP_BREW_BUNDLE=1    don't install the full Brewfile
 #   SKIP_MACOS_DEFAULTS=1 don't apply macOS system defaults
+#   INSTALL_SYSTEM_CONFIG=1 install this repo's host-specific /etc files (Linux)
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR" || exit 1
@@ -151,10 +152,13 @@ step "5/8 — Deploy dotfiles"
 info "Running: dotter deploy"
 dotter deploy
 
-# Linux /etc config (root-owned, needs sudo)
-if [ "$OS" = "Linux" ] && [ -x ./etc/install-system-config.sh ]; then
+# Linux /etc config is host-specific (paths, GPU backend, and service settings),
+# so it is opt-in rather than part of generic bootstrap.
+if [ "$OS" = "Linux" ] && [ "${INSTALL_SYSTEM_CONFIG:-0}" = "1" ] && [ -x ./etc/install-system-config.sh ]; then
     info "Installing system config (/etc)..."
     sudo ./etc/install-system-config.sh || warn "system config install skipped/failed"
+elif [ "$OS" = "Linux" ]; then
+    info "Skipping host-specific /etc config (set INSTALL_SYSTEM_CONFIG=1 to install)"
 fi
 
 step "6/8 — Install packages"

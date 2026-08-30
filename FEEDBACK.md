@@ -835,3 +835,16 @@ every open). Fixed, then hardened the whole setup.
 
 ### What was frustrating / slow
 - The provider package's `check` script has no `tsconfig.json`, so it invokes TypeScript help and exits nonzero; repository CI still validates all package TypeScript successfully.
+
+## 2026-08-30 follow-up: dotfiles review fixes
+
+### What went well
+- The review found actionable cross-platform, bootstrap-safety, service-exposure, and documentation issues without changing encrypted payloads.
+- Added Openference typechecking and catalog regression coverage; the package now passes its own check and two tests.
+- Made generic Linux bootstrap safer by requiring explicit opt-in for host-specific `/etc` installation.
+
+### What was frustrating / slow
+- The ignored `.npmrc` is symlinked from inside the repository, so npm warns that its user-level `prefix` is being supplied as project configuration.
+
+### Improvements for next time
+- Keep user-level package-manager configuration outside repository paths while preserving the symlinked deployment contract.

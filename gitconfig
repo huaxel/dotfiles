@@ -76,8 +76,6 @@
 	rbc = rebase --continue --no-edit
 	unstage = reset HEAD --
 	last = log -1 HEAD --stat
-[safe]
-	directory = *
 {{#if (eq os "linux")}}
 [filter "lfs"]
 	process = git-lfs filter-process
