@@ -78,7 +78,7 @@ just sandbox acerpepe down <name>
 ## Open items
 
 - **Offsite photo copy (3-2-1)** — PIPELINE STAGED: rclone installed on liedelpi and `scripts/home-server-deploy/offsite-backup.sh` deployed (`~/scripts/offsite-backup.sh`, ntfy-alerted); DB dump verified. The weekly cron is intentionally disabled until a backend is chosen/configured. iCloud currently covers photos; future Immich growth may reach 600–800 GB, so choose capacity before enabling `ssh liedelpi 'rclone config'` (B2 / Drive / OneDrive / S3).
-- Backup freshness alerting: configure the private `NTFY_URL` environment variable on the backup host; `backup-pi.sh` and `offsite-backup.sh` send best-effort success/failure notifications when it is set. Kuma's own ntfy provider errors in its logs — cosmetic; the direct curl path bypasses it.
+- Backup freshness alerting: configure the private `NTFY_URL` environment variable or place the URL in `~/.config/backup/ntfy-url` (mode `0600`) on each backup host; `backup-pi.sh` and `offsite-backup.sh` send best-effort success/failure notifications when configured. Kuma's own ntfy provider errors in its logs — cosmetic; the direct curl path bypasses it.
 - Lenovos (Ideapad 100-15IBD ×2): planned CI node (Samsung 870 EVO) + backup/monitoring node. 10/100 NIC, 8 GB max DDR3L, 9 mm ODD caddy for second drive.
 - Portainer on liedelpi: fresh DB after Aug-2026 rescue — re-login + re-add local endpoint needed.
 

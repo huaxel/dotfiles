@@ -17,8 +17,12 @@
 set -uo pipefail
 
 PI_HOST="${1:-liedelpi}"
-# Optional: configure a private NTFY_URL in the host environment; never commit it.
+# Optional: configure a private NTFY_URL in host-local configuration; never commit it.
 NTFY_URL="${NTFY_URL:-}"
+NTFY_URL_FILE="${NTFY_URL_FILE:-$HOME/.config/backup/ntfy-url}"
+if [ -z "${NTFY_URL}" ] && [ -r "${NTFY_URL_FILE}" ]; then
+  IFS= read -r NTFY_URL < "${NTFY_URL_FILE}" || true
+fi
 LOG="/tmp/offsite-backup.log"
 
 echo "=== Offsite backup started: $(date) ===" > "${LOG}"

@@ -849,6 +849,7 @@ every open). Fixed, then hardened the whole setup.
 - Exercised the secret deployment hook after making both Unix and Windows decryption atomic.
 - Removed the published ntfy topic from tracked backup scripts and documented host-local configuration; the former topic still needs external rotation because it remains in Git history.
 - Restored Windows bootstrap parity by creating the ignored npm source before Dotter runs.
+- Added a host-local mode-0600 notification file so topic rotation does not touch encrypted repository secrets.
 
 ### What was frustrating / slow
 - The ignored npm source was symlinked from inside the repository, so npm warned that its user-level `prefix` was being supplied as project configuration.

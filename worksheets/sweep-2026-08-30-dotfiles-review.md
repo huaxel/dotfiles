@@ -24,6 +24,8 @@ Openference package.
 - Removed the published ntfy topic from backup scripts and made notifications
   require a host-local `NTFY_URL`.
 - Added Windows bootstrap creation of the ignored npm source before Dotter deploy.
+- Added a mode-0600 host-local notification file path so the rotated topic can
+  be deployed without putting it in Git or encrypted dotfiles.
 
 ## Remaining follow-ups
 
