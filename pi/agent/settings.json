@@ -9,7 +9,7 @@
     "commandcode/xiaomi/mimo-v2.5",
     "commandcode/tencent/hy3-paid",
     "commandcode/meta/muse-spark-1.2-contributor",
-    "openference/GLM-5.2",
+    "openference/*",
     "opencode-go/deepseek-v4-flash"
   ],
   "lastChangelogVersion": "0.0.0",

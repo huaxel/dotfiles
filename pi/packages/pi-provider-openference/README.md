@@ -35,16 +35,19 @@ After installing:
 /model openference/GLM-5.2
 ```
 
-The key is stored in `~/.pi/agent/auth.json`. No env var needed. If you'd
-rather use one, `OPENFERENCE_API_KEY` works as a fallback.
+The key is stored in `$PI_CODING_AGENT_DIR/auth.json` (or
+`~/.pi/agent/auth.json` by default). No env var needed. If you'd rather use
+one, `OPENFERENCE_API_KEY` works as a fallback.
 
 Bare `/login` (without the provider name) puts Openference under "Use a
 subscription." That's just pi's label for the oauth login path; the key is a
 plain API key. Easier to skip the menu and run `/login openference` directly.
 
-Pi registers a small fallback catalog immediately instead of blocking startup on
-`GET /v1/models`. Run `/openference-refresh` after changing model restrictions
-in the dashboard or when you need the latest catalog.
+When a credential is available, Pi loads the live catalog from `GET
+/v1/models` before startup completes. Without a credential or when the endpoint
+is unavailable, it uses a three-model fallback catalog. Run
+`/openference-refresh` after changing model restrictions in the dashboard or
+when you need the latest catalog.
 
 ## Files
 
