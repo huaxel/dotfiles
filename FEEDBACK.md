@@ -844,6 +844,7 @@ every open). Fixed, then hardened the whole setup.
 - Made generic Linux bootstrap safer by requiring explicit opt-in for host-specific `/etc` installation.
 - Kept Aerospace out of non-macOS deployments and fixed Windows TOML path generation.
 - Cleaned non-Herdr extension lint warnings while leaving the generated integration protected.
+- Audited all llama.cpp bind overrides and kept the laptop service and stats bridge loopback-only by default.
 
 ### What was frustrating / slow
 - The ignored npm source was symlinked from inside the repository, so npm warned that its user-level `prefix` was being supplied as project configuration.

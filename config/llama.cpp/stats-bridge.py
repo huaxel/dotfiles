@@ -47,7 +47,8 @@ LLAMA_SERVERS_RAW = os.environ.get(
 )
 
 SERVICE = os.environ.get("LLAMA_SERVICE", "llama.cpp.service")
-BRIDGE_HOST = os.environ.get("BRIDGE_HOST", "0.0.0.0")
+# The stats endpoint has no authentication; keep it local by default.
+BRIDGE_HOST = os.environ.get("BRIDGE_HOST", "127.0.0.1")
 BRIDGE_PORT = int(os.environ.get("BRIDGE_PORT", "55268"))
 POLL_INTERVAL = float(os.environ.get("POLL_INTERVAL", "1.0"))
 HISTORY_LEN = int(os.environ.get("HISTORY_LEN", "120"))
