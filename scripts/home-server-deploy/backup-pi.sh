@@ -124,8 +124,12 @@ if [ "${FAILED}" -eq 0 ]; then
 fi
 
 # Notify via ntfy when configured (best-effort; never affects the exit code).
-# Keep the private topic in the host environment, not in this tracked script.
+# Keep the private topic in host-local configuration, not in this tracked script.
 NTFY_URL="${NTFY_URL:-}"
+NTFY_URL_FILE="${NTFY_URL_FILE:-$HOME/.config/backup/ntfy-url}"
+if [ -z "${NTFY_URL}" ] && [ -r "${NTFY_URL_FILE}" ]; then
+  IFS= read -r NTFY_URL < "${NTFY_URL_FILE}" || true
+fi
 if [ "${FAILED}" -eq 0 ]; then
   MSG="Backup OK ${DATE} (${SIZE})"
 else
