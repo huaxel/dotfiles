@@ -739,30 +739,44 @@ pi-stats n="10":
 # Summary of session file storage.
 pi-session-size:
     #!/usr/bin/env bash
-    DIR="$HOME/dotfiles/pi/agent/sessions"
-        if [ ! -d "$DIR" ]; then echo "No session dir"; exit 0; fi
+    DIR="${PI_CODING_AGENT_DIR:-$HOME/dotfiles/pi/agent}/sessions"
+    if [ ! -d "$DIR" ]; then echo "No session dir"; exit 0; fi
     echo "Session storage: $(du -sh "$DIR" | cut -f1) total"
     echo ""
     echo "  Sessions by project:"
     for d in "$DIR"/--*; do
+        [ -d "$d" ] || continue
         name=$(basename "$d" | sed 's/^--//;s/--$//' | tr - " ")
         count=$(find "$d" -name "*.jsonl" 2>/dev/null | wc -l | tr -d " ")
         size=$(du -sh "$d" 2>/dev/null | cut -f1)
         echo "    $count  $size  $name"
     done | sort -rn
 
-# Prune old sessions.
+# Prune old sessions. Use project=all to target every session directory.
 pi-prune-sessions days="30" project="dotfiles":
     #!/usr/bin/env bash
-    DIR="$HOME/dotfiles/pi/agent/sessions/--Users-juanbenjumea-{{project}}--"
-        if [ ! -d "$DIR" ]; then
-        echo "Session dir not found: $DIR"
+    ROOT="${PI_CODING_AGENT_DIR:-$HOME/dotfiles/pi/agent}/sessions"
+    if [ ! -d "$ROOT" ]; then
+        echo "Session dir not found: $ROOT"
         exit 1
     fi
-    before=$(find "$DIR" -name "*.jsonl" | wc -l)
-    find "$DIR" -name "*.jsonl" -mtime +"{{days}}" -delete 2>/dev/null
-    after=$(find "$DIR" -name "*.jsonl" | wc -l)
-    echo "Deleted $((before - after)) sessions older than {{days}}d from $project"
+    targets=()
+    if [ "{{project}}" = "all" ]; then
+        while IFS= read -r -d '' dir; do targets+=("$dir"); done < <(find "$ROOT" -mindepth 1 -maxdepth 1 -type d -name '--*--' -print0)
+    else
+        while IFS= read -r -d '' dir; do targets+=("$dir"); done < <(find "$ROOT" -mindepth 1 -maxdepth 1 -type d -name '*{{project}}*' -print0)
+    fi
+    if [ "${#targets[@]}" -eq 0 ]; then
+        echo "No session directories matched project '{{project}}'"
+        exit 0
+    fi
+    before=0; after=0
+    for dir in "${targets[@]}"; do
+        before=$((before + $(find "$dir" -name '*.jsonl' -type f | wc -l)))
+        find "$dir" -name '*.jsonl' -type f -mtime +"{{days}}" -delete 2>/dev/null
+        after=$((after + $(find "$dir" -name '*.jsonl' -type f | wc -l)))
+    done
+    echo "Deleted $((before - after)) sessions older than {{days}}d from {{project}}"
     echo "Remaining: $after"
 
 # Run the full pi health check (terminal summary). Pass `--json` for machine-readable output.
