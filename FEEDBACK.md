@@ -847,6 +847,7 @@ every open). Fixed, then hardened the whole setup.
 - Audited all llama.cpp bind overrides and kept the laptop service and stats bridge loopback-only by default.
 - Removed the last hardcoded user home path from deployed Fish configuration.
 - Exercised the secret deployment hook after making both Unix and Windows decryption atomic.
+- Removed the published ntfy topic from tracked backup scripts and documented host-local configuration; the former topic still needs external rotation because it remains in Git history.
 
 ### What was frustrating / slow
 - The ignored npm source was symlinked from inside the repository, so npm warned that its user-level `prefix` was being supplied as project configuration.
