@@ -31,3 +31,16 @@ Openference package.
 - Openference `npm run check` passed.
 - Openference `npm test` passed with 2 tests.
 - `dotter deploy --dry-run` and focused Dotter/secrets checks passed.
+
+## Commit sweep
+
+Commits reviewed: `dae780a..f075599`.
+
+- Commit messages are conventional and scoped; no fixup, WIP, binary, or secret
+  additions were found.
+- Behavior changes have corresponding documentation, tests, or CI coverage.
+- An independent plan review flagged the manual checksum example; inspection
+  confirms it hashes the live plaintext and stores the bare digest expected by
+  `.githooks/pre-commit`, so no correction is required.
+
+Clean bill: yes.
