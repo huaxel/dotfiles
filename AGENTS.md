@@ -12,7 +12,7 @@ specific and overrides this file.
 
 ## Safety and completion
 
-- Keep registry credentials in the root gitignored `.npmrc`, never tracked
+- Keep registry credentials in the root gitignored `npmrc` source, never tracked
   `~/.npmrc`.
 - TypeScript type-only imports use `import type`; Python uses `uv run`.
 - Use explicit non-interactive Git commands. Never open an editor or run

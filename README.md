@@ -558,11 +558,11 @@ cd ~/dotfiles && git pull && dotter deploy
 **"Some files were skipped" / "target contents were changed"** — Dotter is
 protecting machine-local changes. Do not use `--force` blindly: it can replace
 Git LFS settings, or machine-specific llama.cpp model paths. Registry settings
-are sourced from the gitignored root `.npmrc`, which is symlinked to `~/.npmrc`.
+are sourced from the gitignored root `npmrc`, which is symlinked to `~/.npmrc`.
 Back up and reconcile Git or llama.cpp changes deliberately rather than using
 `--force`. Machine-local binary assets are ignored and are not required by the
 Dotter source tree. On a direct deploy from a fresh clone, create the ignored
-npm source first: `install -m 600 /dev/null .npmrc`.
+npm source first: `install -m 600 /dev/null npmrc`.
 
 **"Failed to decrypt"** — wrong age key:
 ```bash
