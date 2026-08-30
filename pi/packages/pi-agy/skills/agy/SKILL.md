@@ -67,7 +67,7 @@ agy_execute prompt="Implement the approved plan" conversation_id=<id> mode=accep
 ## Enhancements over upstream pi-agy
 
 - **Streaming progress** — live tool steps via `stream-json` and Pi `onUpdate`.
-- **Conversation continuity** — `conversation_id`, `continue`, session store under `~/.pi/agent/agy-sessions.json`.
+- **Conversation continuity** — `conversation_id`, `continue`, session store under `$PI_CODING_AGENT_DIR/agy-sessions.json` (or `~/.pi/agent/agy-sessions.json` by default).
 - **Repo-aware verify** — prefers `just ci` when a justfile defines `ci:`.
 - **Diff summary** — accept-edits results append `git diff --stat`.
 - **Per-directory lock** — serializes concurrent agy calls on the same tree.
