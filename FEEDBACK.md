@@ -842,6 +842,8 @@ every open). Fixed, then hardened the whole setup.
 - The review found actionable cross-platform, bootstrap-safety, service-exposure, and documentation issues without changing encrypted payloads.
 - Added Openference typechecking and catalog regression coverage; the package now passes its own check and two tests.
 - Made generic Linux bootstrap safer by requiring explicit opt-in for host-specific `/etc` installation.
+- Kept Aerospace out of non-macOS deployments and fixed Windows TOML path generation.
+- Cleaned non-Herdr extension lint warnings while leaving the generated integration protected.
 
 ### What was frustrating / slow
 - The ignored npm source was symlinked from inside the repository, so npm warned that its user-level `prefix` was being supplied as project configuration.
