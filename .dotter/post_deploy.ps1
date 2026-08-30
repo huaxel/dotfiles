@@ -45,15 +45,19 @@ function Invoke-SopsDecrypt {
         [string]$Destination
     )
 
-    New-Item -ItemType Directory -Force -Path (Split-Path $Destination -Parent) | Out-Null
+    $parent = Split-Path $Destination -Parent
+    New-Item -ItemType Directory -Force -Path $parent | Out-Null
     if (Test-Path $Destination) { attrib -R $Destination }
 
     $leafBase = [System.IO.Path]::GetFileNameWithoutExtension($Source)
+    $temporary = Join-Path $parent (".$leafBase.$([Guid]::NewGuid().ToString('N')).tmp")
     Write-Host "[...] Decrypting $leafBase..." -NoNewline
-    & sops --decrypt --output-type binary --output $Destination $Source 2>$null
+    & sops --decrypt --output-type binary --output $temporary $Source 2>$null
     if ($LASTEXITCODE -eq 0) {
+        Move-Item -Force $temporary $Destination
         Write-Host " [OK] -> $Destination" -ForegroundColor Green
     } else {
+        Remove-Item -Force -ErrorAction SilentlyContinue $temporary
         Write-Host " [FAIL]" -ForegroundColor Red
     }
 }

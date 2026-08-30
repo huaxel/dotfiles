@@ -25,6 +25,7 @@ fi
 # Decrypt secrets
 if [ -d "$SECRETS_DIR" ]; then
   mkdir -p "$DECRYPT_DIR"
+  chmod 700 "$DECRYPT_DIR"
 
   for enc_file in "$SECRETS_DIR"/*.enc; do
     [ -e "$enc_file" ] || continue
@@ -40,15 +41,18 @@ if [ -d "$SECRETS_DIR" ]; then
     esac
 
     decrypt_path="$DECRYPT_DIR/$filename"
+    tmp="$(mktemp "$DECRYPT_DIR/.tmp.${filename}.XXXXXX")"
 
     echo "🔐 Decrypting $filename..."
-    decrypt_err="$(sops --decrypt --output-type binary "$enc_file" 2>&1 >"$decrypt_path")" || {
+    decrypt_err="$(sops --decrypt --output-type binary "$enc_file" 2>&1 >"$tmp")" || {
+      rm -f "$tmp"
       echo "   ❌ Failed to decrypt $filename"
       echo "      $decrypt_err" | head -5
       echo "      (age key: $HOME/.config/sops/age/keys.txt)"
       continue
     }
-    chmod 600 "$decrypt_path"
+    chmod 600 "$tmp"
+    mv -f "$tmp" "$decrypt_path"
     echo "   ✅ Decrypted to $decrypt_path"
   done
 
@@ -62,7 +66,7 @@ if [ -d "$SECRETS_DIR" ]; then
     # Decrypt to a temp file first so a failed decrypt never truncates the
     # existing destination (which would clobber a good secret with an empty file).
     local tmp
-    tmp="$(mktemp)"
+    tmp="$(mktemp "${dest}.tmp.XXXXXX")"
     decrypt_err="$(sops --decrypt --output-type binary "$enc" 2>&1 >"$tmp")" || {
       rm -f "$tmp"
       echo "❌ Failed to decrypt $name"
@@ -70,8 +74,8 @@ if [ -d "$SECRETS_DIR" ]; then
       echo "   (age key: $HOME/.config/sops/age/keys.txt)"
       return 0
     }
-    mv "$tmp" "$dest"
-    chmod 600 "$dest"
+    chmod 600 "$tmp"
+    mv -f "$tmp" "$dest"
     echo "🔐 Decrypted $name -> $dest"
   }
 

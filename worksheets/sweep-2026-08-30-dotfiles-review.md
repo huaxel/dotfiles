@@ -19,6 +19,8 @@ Openference package.
 - Updated CI to skip linting only the Herdr-owned generated integration.
 - Bound the laptop llama.cpp override and stats bridge to loopback by default.
 - Replaced a hardcoded home directory in Fish startup with `$HOME`.
+- Made Unix and Windows secret decryption atomic so failed decrypts preserve the
+  last valid plaintext; restricted the generic Unix secret directory to `0700`.
 
 ## Remaining follow-ups
 

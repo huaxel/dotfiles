@@ -846,6 +846,7 @@ every open). Fixed, then hardened the whole setup.
 - Cleaned non-Herdr extension lint warnings while leaving the generated integration protected.
 - Audited all llama.cpp bind overrides and kept the laptop service and stats bridge loopback-only by default.
 - Removed the last hardcoded user home path from deployed Fish configuration.
+- Exercised the secret deployment hook after making both Unix and Windows decryption atomic.
 
 ### What was frustrating / slow
 - The ignored npm source was symlinked from inside the repository, so npm warned that its user-level `prefix` was being supplied as project configuration.
