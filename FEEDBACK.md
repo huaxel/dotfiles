@@ -769,3 +769,19 @@ every open). Fixed, then hardened the whole setup.
 
 ### Improvements for next time
 - Treat backup salvage as review-only until every reintroduced path is checked against deletion history and active deployment mappings.
+
+## 2026-08-30: Harden Nushell setup
+
+### What went well
+- Found and fixed an XDG/Atuin path mismatch, terminal capability override, and repeated-config validation bug.
+- Added atomic integration generation, stale-output cleanup, deterministic Atuin job cleanup, and stronger health assertions.
+- `just ci` and repeated isolated-XDG health checks passed.
+
+### What was frustrating / slow
+- The first improved health check exposed an intermittent non-zero exit from Atuin's asynchronous index preparation job.
+
+### What config change would have helped
+- A dedicated Nushell integration test fixture would make optional-tool and background-job behavior easier to validate.
+
+### Improvements for next time
+- Always run health checks repeatedly when integrations spawn background work.
