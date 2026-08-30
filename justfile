@@ -123,6 +123,14 @@ check-ts:
                 fi
             fi
         fi
+        # Herdr owns this generated integration and overwrites it on update;
+        # validate syntax above but do not lint its generated implementation.
+        case "$f" in
+            "$TOPDIR/herdr-agent-state.ts"|"$TOPDIR/herdr-omp-agent-state.ts")
+                echo "  ↪ $f lint skipped (Herdr-managed)"
+                continue
+                ;;
+        esac
         # Lint check (catches unused vars, style issues)
         lint_out=$(deno lint "$f" 2>&1 || true)
         if echo "$lint_out" | grep -q "error"; then

@@ -6,7 +6,6 @@
 gitconfig = "~/.gitconfig"
 gitignore_global = "~/.gitignore_global"
 ssh_config = "~/.ssh/config"
-aerospace = "~/.aerospace.toml"
 # Keep the source name outside npm's project-config lookup; it may contain
 # registry credentials and is gitignored.
 npmrc = "~/.npmrc"
@@ -100,6 +99,7 @@ config = "~/.config"
 # macOS-only configs. Enable with the "macos" package in local.toml.
 # ─────────────────────────────────────────────────────────────────
 [macos.files]
+aerospace = "~/.aerospace.toml"
 "config-macos/borders" = "~/.config/borders"
 
 [windows.variables]

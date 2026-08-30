@@ -14,11 +14,14 @@ Openference package.
 - Removed the global `safe.directory = *` Git bypass.
 - Corrected README contradictions about SSH symlinks and Pi OAuth state.
 - Added Openference package typechecking configuration and catalog tests.
+- Removed the macOS-only Aerospace mapping from the default package.
+- Fixed Windows bootstrap output so backslashes form a valid TOML literal path.
+- Updated CI to skip linting only the Herdr-owned generated integration.
 
 ## Remaining follow-ups
 
-- Two pre-existing Pi extension files still produce non-blocking Deno lint
-  warnings under `just ci`; one is Herdr-managed and should not be edited here.
+- The Herdr-owned integration remains intentionally exempt from repository lint;
+  its syntax is still checked and Herdr may overwrite it during updates.
 
 ## Validation
 
