@@ -825,3 +825,13 @@ every open). Fixed, then hardened the whole setup.
 
 ### What was frustrating / slow
 - The old pruning recipe was hard-coded to one macOS session path and would not act on the active Linux session store.
+
+## 2026-08-30 follow-up: Openference catalog discovery
+
+### What went well
+- Traced the three-model behavior to the fallback catalog and explicit refresh-only logic.
+- Changed Openference to fetch its live catalog before startup when authenticated, with a five-second timeout and fallback behavior.
+- Enabled `openference/*` for model cycling and updated package documentation.
+
+### What was frustrating / slow
+- The provider package's `check` script has no `tsconfig.json`, so it invokes TypeScript help and exits nonzero; repository CI still validates all package TypeScript successfully.

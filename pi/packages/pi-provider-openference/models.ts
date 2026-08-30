@@ -85,7 +85,7 @@ export function toModelConfig(info: OpenferenceModelInfo): ProviderModelConfig {
   };
 }
 
-/** Fallback when /v1/models is unreachable (e.g. no API key yet). */
+/** Fallback when /v1/models is unreachable or no API key is available. */
 export const FALLBACK_MODELS: OpenferenceModelInfo[] = [
   { id: "GLM-5.2", context_length: 1_000_000, max_output_tokens: 131_072, reasoning: { supported_efforts: ["high", "medium", "low"] } },
   { id: "DeepSeek-V4-Pro", context_length: 1_000_000, max_output_tokens: 131_072, reasoning: { supported_efforts: ["max", "high", "medium", "low"] } },
@@ -93,11 +93,11 @@ export const FALLBACK_MODELS: OpenferenceModelInfo[] = [
 ];
 
 /** Fetch live models from GET /v1/models. Throws on failure. */
-export async function fetchModels(apiKey: string | undefined): Promise<OpenferenceModelInfo[]> {
+export async function fetchModels(apiKey: string | undefined, signal?: AbortSignal): Promise<OpenferenceModelInfo[]> {
   const headers: Record<string, string> = { "User-Agent": "pi/openference" };
   if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
 
-  const res = await fetch(`${OPENFERENCE_BASE_URL}/models`, { headers });
+  const res = await fetch(`${OPENFERENCE_BASE_URL}/models`, { headers, signal });
   if (!res.ok) {
     throw new Error(`GET /v1/models -> HTTP ${res.status}`);
   }

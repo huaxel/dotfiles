@@ -2,12 +2,14 @@
  * Openference provider for pi.
  *
  * Registers the Openference gateway (https://api.openference.com/v1) as a pi
- * provider using its OpenAI-compatible /v1/chat/completions endpoint. A small
- * fallback catalog is registered immediately; the full catalog is available
- * through the explicit /openference-refresh command.
+ * provider using its OpenAI-compatible /v1/chat/completions endpoint. When a
+ * credential is available, the live catalog is fetched before startup
+ * completes; otherwise a small fallback catalog is registered. The explicit
+ * /openference-refresh command remains available for manual updates.
  *
  * Auth is via /login: the key is prompted, validated against /v1/models, and
- * stored in ~/.pi/agent/auth.json. No env var needed.
+ * stored in $PI_CODING_AGENT_DIR/auth.json (or ~/.pi/agent/auth.json by default).
+ * No env var is needed.
  *
  * Resilience to Openference's intermittent provider errors (e.g. transient
  * 400 invalid_request_error that succeeds on retry) is handled in two layers:
@@ -81,6 +83,17 @@ const openaiStreamSimple = (piAiCompat as unknown as {
  * the real OpenAI-completions one; only the routing key is custom.
  */
 export const OPENFERENCE_API = "openference-completions";
+const STARTUP_CATALOG_TIMEOUT_MS = 5_000;
+
+async function fetchStartupModels(apiKey: string): Promise<OpenferenceModelInfo[]> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), STARTUP_CATALOG_TIMEOUT_MS);
+  try {
+    return await fetchModels(apiKey, controller.signal);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 function registerOpenferenceProvider(pi: ExtensionAPI, models: readonly OpenferenceModelInfo[]): void {
   // Both apiKey and oauth are required:
@@ -134,15 +147,28 @@ function registerOpenferenceProvider(pi: ExtensionAPI, models: readonly Openfere
   });
 }
 
-export default function (pi: ExtensionAPI) {
+export default async function (pi: ExtensionAPI) {
   const apiKey = resolveStartupApiKey();
+  let models: readonly OpenferenceModelInfo[] = FALLBACK_MODELS;
 
-  // Known models keep startup local; the explicit refresh command remains
-  // available when the remote catalog needs to be updated.
-  registerOpenferenceProvider(pi, FALLBACK_MODELS);
-  if (!apiKey) {
+  if (apiKey) {
+    try {
+      const discovered = await fetchStartupModels(apiKey);
+      if (discovered.length > 0) {
+        models = discovered;
+        console.info(`[openference] loaded ${discovered.length} models`);
+      } else {
+        console.warn("[openference] catalog was empty; using fallback models");
+      }
+    } catch (error) {
+      console.warn(`[openference] catalog unavailable; using fallback models: ${(error as Error).message}`);
+    }
+  } else {
     console.info("[openference] no stored credential found; run /login openference");
   }
+
+  // Register before startup finishes so enabledModels can see the live catalog.
+  registerOpenferenceProvider(pi, models);
 
   pi.registerCommand("openference-refresh", {
     description: "Refresh the Openference model catalog",
