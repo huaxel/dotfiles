@@ -75,7 +75,7 @@ cd ~/dotfiles/secrets
 sops --encrypt --input-type binary \
   ~/.config/environment.d/99-environment.conf > environment.d.enc
 # Linux: sha256sum; macOS: shasum -a 256
-(sha256sum environment.d.enc 2>/dev/null || shasum -a 256 environment.d.enc) > environment.d.sha256  # see note below on sidecar
+(sha256sum ~/.config/environment.d/99-environment.conf 2>/dev/null || shasum -a 256 ~/.config/environment.d/99-environment.conf) | awk '{print $1}' > environment.d.sha256  # see note below on sidecar
 ```
 
 ### 4. Use it in your shell
