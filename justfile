@@ -388,12 +388,13 @@ check-nu:
             echo "  ⚠️  $f missing — skipping"
             continue
         fi
-        if nu --config config/nushell/config.nu --env-config config/nushell/env.nu -c 'print "ok"' >/dev/null 2>&1; then
-            echo "  ✅ $f parses"
-        else
+        diagnostics=$(nu --no-config-file --no-history --ide-check 100 "$f" 2>&1 || true)
+        if echo "$diagnostics" | grep -q '"severity":"Error"'; then
             echo "  ❌ $f has syntax errors"
-            nu --config config/nushell/config.nu --env-config config/nushell/env.nu -c 'print "ok"' 2>&1 | sed 's/^/    /' | head -8
+            echo "$diagnostics" | sed 's/^/    /' | head -8
             errors=$((errors + 1))
+        else
+            echo "  ✅ $f parses"
         fi
     done
     if [ "$errors" -gt 0 ]; then echo "  ❌ $errors Nushell config files have issues"; exit 1; fi
@@ -506,12 +507,13 @@ check-precommit:
     # 5. Syntax-check any staged .nu files (Nushell config)
     if command -v nu >/dev/null 2>&1; then
         while IFS= read -r f; do
-            if nu --config config/nushell/config.nu --env-config config/nushell/env.nu -c 'print "ok"' >/dev/null 2>&1; then
-                echo "  ✅ $f parses"
-            else
+            diagnostics=$(nu --no-config-file --no-history --ide-check 100 "$f" 2>&1 || true)
+            if echo "$diagnostics" | grep -q '"severity":"Error"'; then
                 echo "  ❌ $f has Nushell syntax errors"
-                nu --config config/nushell/config.nu --env-config config/nushell/env.nu -c 'print "ok"' 2>&1 | sed 's/^/    /' | head -8
+                echo "$diagnostics" | sed 's/^/    /' | head -8
                 errors=$((errors + 1))
+            else
+                echo "  ✅ $f parses"
             fi
         done < <(git diff --cached --name-only --diff-filter=ACM 2>/dev/null | grep -E '\.nu$' || true)
     fi

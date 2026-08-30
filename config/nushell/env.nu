@@ -7,8 +7,10 @@
 $env.EDITOR = "nvim"
 $env.VISUAL = "nvim"
 $env.PAGER = "less"
-$env.TERM = "xterm-256color"
-$env.XDG_CONFIG_HOME = ($env.HOME | path join ".config")
+# Respect existing XDG overrides; these defaults keep tool caches portable.
+$env.XDG_CONFIG_HOME = ($env.XDG_CONFIG_HOME? | default ($env.HOME | path join ".config"))
+$env.XDG_CACHE_HOME = ($env.XDG_CACHE_HOME? | default ($env.HOME | path join ".cache"))
+$env.XDG_DATA_HOME = ($env.XDG_DATA_HOME? | default ($env.HOME | path join ".local" "share"))
 $env.EZA_CONFIG_DIR = ($env.XDG_CONFIG_HOME | path join "eza")
 $env.MANPAGER = "sh -c 'col -bx | bat -l man -p --theme=tokyonight_night'"
 $env.LLAMA_BASE_URL = "http://127.0.0.1:8000"
@@ -74,7 +76,7 @@ $env.MISE_LOG_LEVEL = "error"
 # applies that file to user sessions automatically; on hosts without systemd
 # (e.g. macOS) parse it directly here so Nushell still gets the keys. Existing
 # environment variables are never overridden.
-let secrets_file = ($env.HOME | path join ".config" "environment.d" "99-environment.conf")
+let secrets_file = ($env.XDG_CONFIG_HOME | path join "environment.d" "99-environment.conf")
 if ($secrets_file | path exists) {
     let secrets = (open --raw $secrets_file
         | lines
