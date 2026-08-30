@@ -10,9 +10,11 @@ function stringValue(value: unknown): string | undefined {
   return typeof value === "string" ? value : undefined
 }
 
-function defaultAuthPaths(home: string): string[] {
+function defaultAuthPaths(home: string, env: NodeJS.ProcessEnv = process.env): string[] {
+  const agentDir = env.PI_CODING_AGENT_DIR?.trim()
   return [
     join(home, ".commandcode", "auth.json"),
+    ...(agentDir ? [join(agentDir, "auth.json")] : []),
     join(home, ".pi", "agent", "auth.json"),
     join(home, ".omp", "agent", "auth.json"),
   ]
@@ -38,7 +40,7 @@ export function getConfiguredApiKey(
   if (env.COMMANDCODE_API_KEY) return env.COMMANDCODE_API_KEY
 
   const home = options.homeDir?.() ?? homedir()
-  const authPaths = options.authPaths ?? defaultAuthPaths(home)
+  const authPaths = options.authPaths ?? defaultAuthPaths(home, env)
 
   for (const authPath of authPaths) {
     try {

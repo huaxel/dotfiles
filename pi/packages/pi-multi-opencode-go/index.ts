@@ -1,6 +1,7 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { loadAccounts } from "./lib/accounts.ts";
+import { getAgentDir } from "./lib/agent-dir.ts";
 import {
   AUTO_CONTINUE_ENABLED,
   AUTO_CONTINUE_PROMPT,
@@ -59,11 +60,12 @@ export default function (
       const fs = await import("node:fs");
       const path = await import("node:path");
       const homedir = (await import("node:os")).homedir;
+      const agentDir = getAgentDir();
       const agentqDir = path.join(homedir(), "projects", "agentq", "data");
 
       // Live provider set derived from auth.json keys (names only — never values)
       try {
-        const authPath = path.join(homedir(), ".pi", "agent", "auth.json");
+        const authPath = path.join(agentDir, "auth.json");
         if (fs.existsSync(authPath)) {
           const keys = Object.keys(JSON.parse(fs.readFileSync(authPath, "utf8")) as Record<string, unknown>).filter(
             (k) => !k.startsWith("quota") && !k.endsWith("-failover"),
@@ -165,7 +167,7 @@ export default function (
         const { existsSync, readFileSync } = await import("node:fs");
         const { join } = await import("node:path");
         const { homedir } = await import("node:os");
-        const historyPath = join(homedir(), ".pi", "agent", "observability", "history.jsonl");
+        const historyPath = join(agentDir, "observability", "history.jsonl");
         if (existsSync(historyPath)) {
           const recent = readFileSync(historyPath, "utf8")
             .split("\n")
