@@ -17,6 +17,7 @@ Openference package.
 - Removed the macOS-only Aerospace mapping from the default package.
 - Fixed Windows bootstrap output so backslashes form a valid TOML literal path.
 - Updated CI to skip linting only the Herdr-owned generated integration.
+- Bound the laptop llama.cpp override and stats bridge to loopback by default.
 
 ## Remaining follow-ups
 
