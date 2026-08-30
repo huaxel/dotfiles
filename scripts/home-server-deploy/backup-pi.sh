@@ -123,13 +123,16 @@ if [ "${FAILED}" -eq 0 ]; then
   echo "Size: ${SIZE}" >> "${LOG}"
 fi
 
-# Notify via ntfy (best-effort; must not affect the exit code)
-NTFY_URL="${NTFY_URL:-https://ntfy.sh/juan-home-alerts-28e25a99}"
+# Notify via ntfy when configured (best-effort; never affects the exit code).
+# Keep the private topic in the host environment, not in this tracked script.
+NTFY_URL="${NTFY_URL:-}"
 if [ "${FAILED}" -eq 0 ]; then
   MSG="Backup OK ${DATE} (${SIZE})"
 else
   MSG="Backup FAILED ${DATE} - check /data/backups/scripts/backup-pi.log"
 fi
-curl -sf -m 10 -H "Title: Pi backup" -d "${MSG}" "${NTFY_URL}" >/dev/null 2>&1 || true
+if [ -n "${NTFY_URL}" ]; then
+  curl -sf -m 10 -H "Title: Pi backup" -d "${MSG}" "${NTFY_URL}" >/dev/null 2>&1 || true
+fi
 
 exit "${FAILED}"

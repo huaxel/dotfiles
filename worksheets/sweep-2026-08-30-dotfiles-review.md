@@ -21,9 +21,13 @@ Openference package.
 - Replaced a hardcoded home directory in Fish startup with `$HOME`.
 - Made Unix and Windows secret decryption atomic so failed decrypts preserve the
   last valid plaintext; restricted the generic Unix secret directory to `0700`.
+- Removed the published ntfy topic from backup scripts and made notifications
+  require a host-local `NTFY_URL`.
 
 ## Remaining follow-ups
 
+- Rotate the former ntfy topic outside this repository because it remains in
+  published Git history; the tracked scripts no longer reference or default to it.
 - The Herdr-owned integration remains intentionally exempt from repository lint;
   its syntax is still checked and Herdr may overwrite it during updates.
 
@@ -46,4 +50,5 @@ Commits reviewed: `dae780a..f075599`.
   example now hashes the live plaintext and stores the bare digest expected by
   `.githooks/pre-commit`.
 
-Clean bill: yes.
+Clean bill: yes for tracked code; rotate the former notification topic as an
+external operational follow-up.

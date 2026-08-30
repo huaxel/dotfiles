@@ -17,7 +17,8 @@
 set -uo pipefail
 
 PI_HOST="${1:-liedelpi}"
-NTFY_URL="${NTFY_URL:-https://ntfy.sh/juan-home-alerts-28e25a99}"
+# Optional: configure a private NTFY_URL in the host environment; never commit it.
+NTFY_URL="${NTFY_URL:-}"
 LOG="/tmp/offsite-backup.log"
 
 echo "=== Offsite backup started: $(date) ===" > "${LOG}"
@@ -45,5 +46,7 @@ if [ "${RC}" -eq 0 ]; then
 else
   MSG="Offsite backup FAILED - tail ${LOG}"
 fi
-curl -sf -m 10 -H "Title: Offsite backup" -d "${MSG}" "${NTFY_URL}" >/dev/null 2>&1 || true
+if [ -n "${NTFY_URL}" ]; then
+  curl -sf -m 10 -H "Title: Offsite backup" -d "${MSG}" "${NTFY_URL}" >/dev/null 2>&1 || true
+fi
 exit "${RC}"
