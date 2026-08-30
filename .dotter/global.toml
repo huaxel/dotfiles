@@ -92,6 +92,7 @@ config = "~/.config"
 "config-linux/wofi"    = "~/.config/wofi"
 "config-linux/walker"  = "~/.config/walker"
 "config-linux/systemd" = "~/.config/systemd"
+"config-linux/llamaman" = "~/.config/llamaman"
 "config-linux/xkb"     = "~/.config/xkb"
 
 # ─────────────────────────────────────────────────────────────────

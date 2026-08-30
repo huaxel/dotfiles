@@ -9,7 +9,7 @@ Keep deployment paths stable; organize new material under the matching area belo
 - `config/` — shared Unix application configuration deployed to `~/.config`
   (includes `config/nushell/` — env.nu/config.nu/login.nu for the Nushell
   shell, managed with `just nushell-setup` / `just nu-health`).
-- `config-linux/` — Linux-only Wayland, launcher, systemd, and XKB configuration.
+- `config-linux/` — Linux-only Wayland, launcher, inference, systemd, and XKB configuration.
 - `config-macos/` — macOS-only configuration.
 - Windows roots (`powershell/`, `windows-terminal/`, `autohotkey/`, `glazewm/`,
   `zebar/`, `flow-launcher/`) — Windows-specific application files.

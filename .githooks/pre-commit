@@ -35,6 +35,22 @@ if ! command -v sops &>/dev/null; then
     exit 0
 fi
 
+# sha256_file <path>
+# Use the platform-native implementation when GNU coreutils is unavailable
+# (macOS ships shasum; Homebrew coreutils exposes gsha256sum).
+sha256_file() {
+    if command -v sha256sum &>/dev/null; then
+        sha256sum "$1" | awk '{print $1}'
+    elif command -v shasum &>/dev/null; then
+        shasum -a 256 "$1" | awk '{print $1}'
+    elif command -v gsha256sum &>/dev/null; then
+        gsha256sum "$1" | awk '{print $1}'
+    else
+        echo "❌ No SHA-256 utility found (need sha256sum, shasum, or gsha256sum)." >&2
+        return 1
+    fi
+}
+
 # encrypt_secret <live plaintext path> <enc basename without .enc>
 # Only re-encrypts when the plaintext content actually changes (tracked via
 # a SHA256 sidecar).  Without this guard, sops's random nonce produces
@@ -49,7 +65,7 @@ encrypt_secret() {
 
     # Content-hash guard: skip encryption if the plaintext hasn't changed.
     local current_hash
-    current_hash="$(sha256sum "$live" | cut -d' ' -f1)"
+    current_hash="$(sha256_file "$live")"
     if [ -f "$enc" ] && [ -f "$hash_file" ] && [ "$(cat "$hash_file" 2>/dev/null)" = "$current_hash" ]; then
         return 0
     fi

@@ -8,7 +8,9 @@ source /etc/conf.d/llama.cpp.common
 
 # ── Server-specific overrides ───────────────────────────────────────
 
-LLAMA_ARG_HOST=0.0.0.0
+# Keep the unauthenticated inference API local; expose it only via an
+# explicitly authenticated reverse proxy if remote access is required.
+LLAMA_ARG_HOST=127.0.0.1
 LLAMA_ARG_PORT=8000
 
 # Model routing via models.ini preset

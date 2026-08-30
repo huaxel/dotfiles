@@ -75,7 +75,7 @@ Set-Alias -Name vi -Value nvim
 Set-Alias -Name g -Value git
 Set-Alias -Name cat -Value bat
 Set-Alias -Name ls -Value eza -ErrorAction SilentlyContinue
-Set-Alias -Name ll -Value 'eza -la' -ErrorAction SilentlyContinue
+function ll { eza -la @args }
 
 # ============================
 # Modern Tool Aliases

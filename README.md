@@ -44,6 +44,10 @@ cd ~/dotfiles
 dotter deploy
 ```
 
+The generic bootstrap leaves the host-specific `/etc` configuration untouched.
+On the designated Linux inference host, install it explicitly with
+`INSTALL_SYSTEM_CONFIG=1 ./bootstrap.sh`.
+
 ## File Structure
 
 ```
@@ -55,7 +59,7 @@ dotter deploy
 ├── gitconfig            # Template → ~/.gitconfig
 ├── aerospace            # macOS window manager → ~/.aerospace.toml
 ├── gitignore_global     # → ~/.gitignore_global
-├── ssh_config           # → ~/.ssh/config (copied, not symlinked)
+├── ssh_config           # → ~/.ssh/config (symlinked by Dotter)
 └── config/              # → ~/.config/
     ├── nvim/
     ├── ghostty/config   # Template for shell integration
@@ -354,7 +358,7 @@ These **must** exist before running bootstrap.sh or secrets won't decrypt:
 
 | What | Path | Why |
 |---|---|---|
-| **Age key** | `~/.config/sops/age/keys.txt` | Decrypts all encrypted secrets (API keys, pi auth, env vars) |
+| **Age key** | `~/.config/sops/age/keys.txt` | Decrypts encrypted API keys and environment/app secrets |
 | **SSH keys** | `~/.ssh/` | Git push, server access |
 | **GPG keys** | `~/.gnupg/` | Commit signing |
 
@@ -390,7 +394,7 @@ cd ~/dotfiles && ./bootstrap.sh
 
 | Agent | Path | Size | What's in it |
 |---|---|---|---|
-| **Pi** | `~/dotfiles/pi/agent/auth.json` | 4 KB | Auto-decrypted from encrypted secrets; mirrored to `~/.pi/agent/auth.json` for providers that hardcode the default path. |
+| **Pi OAuth auth** | `~/dotfiles/pi/agent/auth.json` | ~4 KB | Machine-local and intentionally not synchronized; re-authenticate OAuth providers on each machine. |
 | **Pi quota cookies** | `~/dotfiles/pi/agent/quota-sessions.json` | ~1 KB | Cursor/CommandCode web session cookies for quota bars. SOPS: `pi-quota-sessions.json.enc`. |
 | **GitHub Copilot** | `~/.config/github-copilot/` | 524 KB | Auth tokens, hosts.json |
 | **Cursor** | `~/.cursor/` | 2.3 MB | Skills, hooks.json (re-creatable on sign-in) |
