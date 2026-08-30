@@ -815,3 +815,13 @@ every open). Fixed, then hardened the whole setup.
 
 ### Improvements for next time
 - Keep expected source/runtime divergence explicitly classified so operational reports remain actionable.
+
+## 2026-08-30 follow-up: portable session maintenance
+
+### What went well
+- Fixed Pi session inspection and pruning recipes to honor `PI_CODING_AGENT_DIR` and work on Linux as well as macOS.
+- Added an explicit `project=all` mode while keeping deletion opt-in.
+- Exercised both project-specific and all-project pruning against disposable data only.
+
+### What was frustrating / slow
+- The old pruning recipe was hard-coded to one macOS session path and would not act on the active Linux session store.
