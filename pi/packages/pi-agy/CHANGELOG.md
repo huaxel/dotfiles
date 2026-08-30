@@ -10,6 +10,7 @@
 - Preserve multiline prompt formatting in `/agy` command arguments.
 - Include staged files in postflight change summaries and preserve response endings when truncating output.
 - Serialize session-store updates, write atomically, and keep conversation IDs in a private file.
+- Resolve the Agy session store from `PI_CODING_AGENT_DIR` instead of always using `~/.pi/agent`.
 - Detect `Justfile`, package `ci` scripts, and npm/pnpm/yarn/bun runners for verification.
 - Ignore non-object JSON lines in streamed agy output safely.
 - Keep direct `agy_execute` calls implementation-oriented with `accept-edits` as the default; use `plan` explicitly for review.
