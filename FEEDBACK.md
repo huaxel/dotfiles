@@ -785,3 +785,21 @@ every open). Fixed, then hardened the whole setup.
 
 ### Improvements for next time
 - Always run health checks repeatedly when integrations spawn background work.
+
+## 2026-08-30: harden Pi configuration
+
+### What went well
+- Reviewed Pi settings, trust scope, package pinning, and custom agent-directory integrations together.
+- Fixed broad home-directory trust, pinned external packages, enabled the intended OpenCode Go model, and added guarded git/npm policies.
+- Added custom-agent-directory regression coverage for Agy session persistence.
+
+### What was frustrating / slow
+- The repository-level npmrc emits a prefix warning during package tests, although the tests still pass.
+- The independent review tool unexpectedly applied its plan edits; the resulting changes were inspected and retained where correct.
+
+### What config change would have helped
+- A first-class Pi configuration check could detect hard-coded `~/.pi/agent` paths and unpinned packages automatically.
+
+### Improvements for next time
+- Verify every independent review tool invocation for unintended writes immediately afterward.
+- Keep provider integrations on the shared `PI_CODING_AGENT_DIR` resolver.

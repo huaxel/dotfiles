@@ -14,7 +14,12 @@ import { homedir } from "node:os";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const AUTH_FILE = join(homedir(), ".pi", "agent", "auth.json");
+function getAuthFilePath(): string {
+  return join(
+    process.env.PI_CODING_AGENT_DIR?.trim() || join(homedir(), ".pi", "agent"),
+    "auth.json",
+  );
+}
 const API_KEY_ENV = "OPENFERENCE_API_KEY";
 
 interface StoredCredential {
@@ -29,8 +34,9 @@ export function resolveStartupApiKey(): string | undefined {
 
 function readStoredApiKey(): string | undefined {
   try {
-    if (!existsSync(AUTH_FILE)) return undefined;
-    const raw = readFileSync(AUTH_FILE, "utf-8");
+    const authFile = getAuthFilePath();
+    if (!existsSync(authFile)) return undefined;
+    const raw = readFileSync(authFile, "utf-8");
     const data = JSON.parse(raw) as Record<string, StoredCredential>;
     const cred = data["openference"];
     return cred?.access ?? cred?.key;

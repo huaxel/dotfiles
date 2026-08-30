@@ -9,7 +9,8 @@
     "commandcode/xiaomi/mimo-v2.5",
     "commandcode/tencent/hy3-paid",
     "commandcode/meta/muse-spark-1.2-contributor",
-    "openference/GLM-5.2"
+    "openference/GLM-5.2",
+    "opencode-go/deepseek-v4-flash"
   ],
   "lastChangelogVersion": "0.0.0",
   "theme": "ghostty-sync-b59692fc",
@@ -24,24 +25,24 @@
     }
   },
   "packages": [
-    "npm:pi-web-access",
-    "npm:@ff-labs/pi-fff",
-    "npm:pi-autoresearch",
-    "npm:@mobrienv/pi-tidy-tools",
+    "npm:pi-web-access@0.27.0",
+    "npm:@ff-labs/pi-fff@0.10.5",
+    "npm:pi-autoresearch@1.6.2",
+    "npm:@mobrienv/pi-tidy-tools@0.4.2",
     {
-      "source": "npm:@ogulcancelik/pi-herdr",
+      "source": "npm:@ogulcancelik/pi-herdr@0.4.0",
       "skills": []
     },
     "../packages/pi-commandcode-provider",
-    "npm:@ogulcancelik/pi-auto-permissions",
+    "npm:@ogulcancelik/pi-auto-permissions@0.1.4",
     "../packages/pi-multi-opencode-go",
     "../packages/pi-dynamic-footer",
     "../packages/pi-ghostty-theme-sync",
-    "git:github.com/huaxel/pi-ask-herdr",
+    "git:github.com/huaxel/pi-ask-herdr@fe6b4e8020b03f950cc458630fa59e774b026e7d",
     "../packages/pi-provider-openference",
-    "npm:@howaboua/pi-shepherdr",
+    "npm:@howaboua/pi-shepherdr@0.1.2",
     "../packages/pi-agy",
-    "npm:pi-context-view"
+    "npm:pi-context-view@0.4.3"
   ],
   "extensions": [
     "-extensions/nan.ts"

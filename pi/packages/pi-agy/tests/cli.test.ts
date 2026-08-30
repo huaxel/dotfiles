@@ -28,7 +28,7 @@ import {
 } from "../extensions/lib/stream.js";
 import { parseJsonResponse } from "../extensions/lib/parse.js";
 import { parseAgyCommandArgs } from "../extensions/commands.js";
-import { createSessionStore } from "../extensions/lib/sessions.js";
+import { createSessionStore, getDefaultStorePath } from "../extensions/lib/sessions.js";
 
 describe("buildAgyArgs", () => {
   it("uses stream-json for plan mode", () => {
@@ -381,6 +381,20 @@ describe("parseJsonResponse", () => {
 });
 
 describe("session store", () => {
+  it("uses PI_CODING_AGENT_DIR for the default store path", () => {
+    const previous = process.env.PI_CODING_AGENT_DIR;
+    try {
+      process.env.PI_CODING_AGENT_DIR = "/tmp/pi-agy-custom-agent";
+      assert.equal(
+        getDefaultStorePath(),
+        path.join("/tmp/pi-agy-custom-agent", "agy-sessions.json"),
+      );
+    } finally {
+      if (previous === undefined) delete process.env.PI_CODING_AGENT_DIR;
+      else process.env.PI_CODING_AGENT_DIR = previous;
+    }
+  });
+
   it("serializes concurrent updates and writes a private file", async () => {
     const tmp = await mkdtemp(path.join(os.tmpdir(), "pi-agy-sessions-"));
     const store = createSessionStore(path.join(tmp, "agy-sessions.json"));

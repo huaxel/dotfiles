@@ -11,7 +11,10 @@ export interface AgySessionRecord {
 
 type SessionStore = Record<string, AgySessionRecord>;
 
-const STORE_PATH = path.join(os.homedir(), ".pi", "agent", "agy-sessions.json");
+export function getDefaultStorePath(): string {
+  const agentDir = process.env.PI_CODING_AGENT_DIR?.trim() || path.join(os.homedir(), ".pi", "agent");
+  return path.join(agentDir, "agy-sessions.json");
+}
 
 export interface AgySessionStore {
   getSession(dir: string): Promise<AgySessionRecord | undefined>;
@@ -19,7 +22,7 @@ export interface AgySessionStore {
 }
 
 /** Create a session store; the optional path makes persistence testable. */
-export function createSessionStore(storePath = STORE_PATH): AgySessionStore {
+export function createSessionStore(storePath = getDefaultStorePath()): AgySessionStore {
   let mutationChain = Promise.resolve();
 
   async function loadStore(): Promise<SessionStore> {
