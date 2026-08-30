@@ -59,11 +59,11 @@ try {
   }
 } catch {}
 
-// npm registry token — historically in <repo-root>/.npmrc (gitignored); not
+// npm registry token — historically in <repo-root>/npmrc (gitignored); not
 // currently found in any reachable file. The npm_token / keyword_value_pairs
 // regex rules below still cover that format if it ever appears in context.
 // If you re-add it, add the read here:
-//   const npmrc = fs.readFileSync(path.join(home, "dotfiles", ".npmrc"), "utf8");
+//   const npmrc = fs.readFileSync(path.join(home, "dotfiles", "npmrc"), "utf8");
 //   const m = npmrc.match(/[:_]?authToken[=:]\s*"?([A-Za-z0-9_\-]+)"?/);
 
 // Internal hostnames — manual placeholders so the LLM sees semantic stand-ins

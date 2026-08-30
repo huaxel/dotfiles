@@ -37,52 +37,6 @@ type DowKey = string; // "Mon", "Tue", etc.
 type TodKey = string; // "after-midnight", "morning", "afternoon", "evening", "night"
 type BreakdownView = "model" | "cwd" | "dow" | "tod";
 
-function sliceByColumn(line: string, startCol: number, length: number, strict = false): string {
-	if (length <= 0) return "";
-	const endCol = startCol + length;
-	const segmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
-	let result = "";
-	let currentCol = 0;
-	let i = 0;
-	let pendingAnsi = "";
-
-	while (i < line.length) {
-		if (line[i] === "\x1b") {
-			const match = /^\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07]*(?:\x07|\x1b\\)|[PX^_][^\x1b]*(?:\x1b\\)|[@-_])/.exec(line.slice(i));
-			if (match) {
-				if (currentCol >= startCol && currentCol < endCol) {
-					result += match[0];
-				} else if (currentCol < startCol) {
-					pendingAnsi += match[0];
-				}
-				i += match[0].length;
-				continue;
-			}
-		}
-
-		const nextAnsi = line.indexOf("\x1b", i);
-		const textEnd = nextAnsi === -1 ? line.length : nextAnsi;
-		for (const { segment } of segmenter.segment(line.slice(i, textEnd))) {
-			const w = visibleWidth(segment);
-			const inRange = currentCol >= startCol && currentCol < endCol;
-			const fits = !strict || currentCol + w <= endCol;
-			if (inRange && fits) {
-				if (pendingAnsi) {
-					result += pendingAnsi;
-					pendingAnsi = "";
-				}
-				result += segment;
-			}
-			currentCol += w;
-			if (currentCol >= endCol) break;
-		}
-		i = textEnd;
-		if (currentCol >= endCol) break;
-	}
-
-	return result;
-}
-
 const DOW_NAMES: DowKey[] = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 const TOD_BUCKETS: { key: TodKey; label: string; from: number; to: number }[] = [
@@ -227,7 +181,7 @@ interface BreakdownProgressState {
 function setBorderedLoaderMessage(loader: BorderedLoader, message: string) {
 	// BorderedLoader wraps a (Cancellable)Loader which supports setMessage(),
 	// but it doesn't expose it publicly. Access the inner loader for progress updates.
-	const inner = (loader as any)["loader"]; // eslint-disable-line @typescript-eslint/no-explicit-any
+	const inner = (loader as unknown as { loader?: { setMessage?: (value: string) => void } }).loader;
 	if (inner && typeof inner.setMessage === "function") {
 		inner.setMessage(message);
 	}
@@ -276,10 +230,6 @@ function weightedMix(colors: Array<{ color: RGB; weight: number }>): RGB {
 	}
 	if (total <= 0) return EMPTY_CELL_BG;
 	return { r: Math.round(r / total), g: Math.round(g / total), b: Math.round(b / total) };
-}
-
-function ansiBg(rgb: RGB, text: string): string {
-	return `\x1b[48;2;${rgb.r};${rgb.g};${rgb.b}m${text}\x1b[0m`;
 }
 
 function ansiFg(rgb: RGB, text: string): string {
@@ -412,11 +362,23 @@ function parseSessionStartFromFilename(name: string): Date | null {
 	return Number.isFinite(d.getTime()) ? d : null;
 }
 
-function extractProviderModelAndUsage(obj: any): { api?: any; provider?: any; model?: any; modelId?: any; usage?: any } {
+type JsonRecord = Record<string, unknown>;
+
+function isJsonRecord(value: unknown): value is JsonRecord {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function extractProviderModelAndUsage(obj: JsonRecord): {
+	api?: unknown;
+	provider?: unknown;
+	model?: unknown;
+	modelId?: unknown;
+	usage?: unknown;
+} {
 	// Session format varies across versions.
 	// - Newer: { provider, model, usage } on the message wrapper
 	// - Older: { message: { provider, model, usage } }
-	const msg = obj?.message;
+	const msg = isJsonRecord(obj.message) ? obj.message : {};
 	return {
 		api: obj?.api ?? msg?.api,
 		provider: obj?.provider ?? msg?.provider,
@@ -426,24 +388,26 @@ function extractProviderModelAndUsage(obj: any): { api?: any; provider?: any; mo
 	};
 }
 
-function extractCostTotal(usage: any): number {
-	if (!usage) return 0;
-	const c = usage?.cost;
+function extractCostTotal(usage: unknown): number {
+	if (!isJsonRecord(usage)) return 0;
+	const c = usage.cost;
 	if (typeof c === "number") return Number.isFinite(c) ? c : 0;
 	if (typeof c === "string") {
 		const n = Number(c);
 		return Number.isFinite(n) ? n : 0;
 	}
-	const t = c?.total;
-	if (typeof t === "number") return Number.isFinite(t) ? t : 0;
-	if (typeof t === "string") {
-		const n = Number(t);
-		return Number.isFinite(n) ? n : 0;
+	if (isJsonRecord(c)) {
+		const t = c.total;
+		if (typeof t === "number") return Number.isFinite(t) ? t : 0;
+		if (typeof t === "string") {
+			const n = Number(t);
+			return Number.isFinite(n) ? n : 0;
+		}
 	}
 	return 0;
 }
 
-function extractTokensTotal(usage: any): number {
+function extractTokensTotal(usage: unknown): number {
 	// Usage format varies across providers and pi versions.
 	// We try a few common shapes:
 	// - { totalTokens }
@@ -453,9 +417,9 @@ function extractTokensTotal(usage: any): number {
 	// - { input_tokens, output_tokens }
 	// - { inputTokens, outputTokens }
 	// - { tokens: number | { total } }
-	if (!usage) return 0;
+	if (!isJsonRecord(usage)) return 0;
 
-	const readNum = (v: any): number => {
+	const readNum = (v: unknown): number => {
 		if (typeof v === "number") return Number.isFinite(v) ? v : 0;
 		if (typeof v === "string") {
 			const n = Number(v);
@@ -475,8 +439,10 @@ function extractTokensTotal(usage: any): number {
 	if (total > 0) return total;
 
 	// nested tokens object
-	total = readNum(usage?.tokens?.total) || readNum(usage?.tokens?.totalTokens) || readNum(usage?.tokens?.total_tokens);
-	if (total > 0) return total;
+	if (isJsonRecord(usage.tokens)) {
+		total = readNum(usage.tokens.total) || readNum(usage.tokens.totalTokens) || readNum(usage.tokens.total_tokens);
+		if (total > 0) return total;
+	}
 
 	// sum of parts
 	const a =
@@ -572,9 +538,11 @@ async function parseSessionFile(filePath: string, signal?: AbortSignal): Promise
 				return null;
 			}
 			if (!line) continue;
-			let obj: any;
+			let obj: JsonRecord;
 			try {
-				obj = JSON.parse(line);
+				const parsed: unknown = JSON.parse(line);
+				if (!isJsonRecord(parsed)) continue;
+				obj = parsed;
 			} catch {
 				continue;
 			}
@@ -1100,51 +1068,6 @@ function displayModelName(modelKey: string): string {
 	return idx === -1 ? modelKey : modelKey.slice(idx + 1);
 }
 
-function renderLegendItems(modelColors: Map<ModelKey, RGB>, orderedModels: ModelKey[], otherColor: RGB): string[] {
-	const items: string[] = [];
-	for (const mk of orderedModels) {
-		const c = modelColors.get(mk);
-		if (!c) continue;
-		items.push(`${ansiFg(c, "█")} ${displayModelName(mk)}`);
-	}
-	items.push(`${ansiFg(otherColor, "█")} other`);
-	return items;
-}
-
-function fitRight(text: string, width: number): string {
-	if (width <= 0) return "";
-	let w = visibleWidth(text);
-	let t = text;
-	if (w > width) {
-		t = sliceByColumn(t, w - width, width, true);
-		w = visibleWidth(t);
-	}
-	return " ".repeat(Math.max(0, width - w)) + t;
-}
-
-function renderLegendBlock(leftLabel: string, items: string[], width: number): string[] {
-	if (width <= 0) return [];
-	if (items.length === 0) return [truncateToWidth(leftLabel, width)];
-
-	const lines: string[] = [];
-	// First line: label on left, first item right-aligned into remaining space.
-	const leftW = visibleWidth(leftLabel);
-	if (leftW >= width) {
-		lines.push(truncateToWidth(leftLabel, width));
-		// Put all items on their own lines right-aligned.
-		for (const it of items) lines.push(fitRight(it, width));
-		return lines;
-	}
-
-	const remaining = Math.max(0, width - leftW);
-	lines.push(leftLabel + fitRight(items[0], remaining));
-
-	for (let i = 1; i < items.length; i++) {
-		lines.push(fitRight(items[i], width));
-	}
-	return lines;
-}
-
 function renderModelTable(range: RangeAgg, mode: MeasurementMode, maxRows = 8, groupProviders = false): string[] {
 	// Keep this relatively narrow: model + selected metric + cost + cost/session + share.
 	const metric = graphMetricForRange(range, mode);
@@ -1157,7 +1080,7 @@ function renderModelTable(range: RangeAgg, mode: MeasurementMode, maxRows = 8, g
 
 	let perModel: Map<ModelKey, number>;
 	let total = 0;
-	let label = kind;
+	const label = kind;
 
 	if (kind === "tokens") {
 		perModel = modelTokens;
@@ -1204,7 +1127,7 @@ function renderCwdTable(range: RangeAgg, mode: MeasurementMode, maxRows = 8): st
 
 	let perCwd: Map<CwdKey, number>;
 	let total = 0;
-	let label = kind;
+	const label = kind;
 
 	if (kind === "tokens") {
 		perCwd = range.cwdTokens;
@@ -1362,22 +1285,6 @@ function renderTodTable(range: RangeAgg, mode: MeasurementMode): string[] {
 	}
 
 	return lines;
-}
-
-function renderLeftRight(left: string, right: string, width: number): string {
-	const leftW = visibleWidth(left);
-	if (width <= 0) return "";
-	if (leftW >= width) return truncateToWidth(left, width);
-
-	const remaining = width - leftW;
-	let rightText = right;
-	const rightW = visibleWidth(rightText);
-	if (rightW > remaining) {
-		// Keep the *rightmost* part visible.
-		rightText = sliceByColumn(rightText, rightW - remaining, remaining, true);
-	}
-	const pad = Math.max(0, remaining - visibleWidth(rightText));
-	return left + " ".repeat(pad) + rightText;
 }
 
 function rangeSummary(range: RangeAgg, days: number, mode: MeasurementMode): string {

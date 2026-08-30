@@ -844,7 +844,7 @@ every open). Fixed, then hardened the whole setup.
 - Made generic Linux bootstrap safer by requiring explicit opt-in for host-specific `/etc` installation.
 
 ### What was frustrating / slow
-- The ignored `.npmrc` is symlinked from inside the repository, so npm warns that its user-level `prefix` is being supplied as project configuration.
+- The ignored npm source was symlinked from inside the repository, so npm warned that its user-level `prefix` was being supplied as project configuration.
 
 ### Improvements for next time
-- Keep user-level package-manager configuration outside repository paths while preserving the symlinked deployment contract.
+- Keep user-level package-manager configuration outside repository paths while preserving the symlinked deployment contract; the source is now named `npmrc` rather than `.npmrc`.

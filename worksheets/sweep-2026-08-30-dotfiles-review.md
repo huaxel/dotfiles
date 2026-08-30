@@ -17,12 +17,8 @@ Openference package.
 
 ## Remaining follow-ups
 
-- The local ignored `.npmrc` contains a `prefix` setting, which npm warns
-  about because the symlink source is inside the repository. Move the source
-  outside the project-config location or move `prefix` to an environment-level
-  setting.
 - Two pre-existing Pi extension files still produce non-blocking Deno lint
-  warnings under `just ci`.
+  warnings under `just ci`; one is Herdr-managed and should not be edited here.
 
 ## Validation
 
