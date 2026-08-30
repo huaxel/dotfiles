@@ -851,6 +851,7 @@ every open). Fixed, then hardened the whole setup.
 - Restored Windows bootstrap parity by creating the ignored npm source before Dotter runs.
 - Added a host-local mode-0600 notification file so topic rotation does not touch encrypted repository secrets.
 - Generated and installed a new private topic on both backup hosts without exposing it in output.
+- Verified both hosts can publish notifications successfully through the rotated topic.
 
 ### What was frustrating / slow
 - The ignored npm source was symlinked from inside the repository, so npm warned that its user-level `prefix` was being supplied as project configuration.
