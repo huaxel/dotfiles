@@ -239,4 +239,4 @@ if test -f ~/.config/environment.d/99-environment.conf
 end
 
 # Added by Antigravity CLI installer
-set -gx PATH "/home/juan/.local/bin" $PATH
+set -gx PATH "$HOME/.local/bin" $PATH
