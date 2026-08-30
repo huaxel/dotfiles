@@ -803,3 +803,15 @@ every open). Fixed, then hardened the whole setup.
 ### Improvements for next time
 - Verify every independent review tool invocation for unintended writes immediately afterward.
 - Keep provider integrations on the shared `PI_CODING_AGENT_DIR` resolver.
+
+## 2026-08-30 follow-up: healthcheck config ownership
+
+### What went well
+- Found and fixed false high-severity drift reports caused by the intentional Pi clean filter and direct `PI_CODING_AGENT_DIR` ownership.
+- The healthcheck now reports Config Hygiene A instead of treating stale fallback defaults as source failures.
+
+### What was frustrating / slow
+- The healthcheck still reports historical session volume and orphan worktrees; deleting them was intentionally avoided because it is destructive.
+
+### Improvements for next time
+- Keep expected source/runtime divergence explicitly classified so operational reports remain actionable.
