@@ -61,7 +61,8 @@ local/
 # Dotter local config (machine-specific)
 .dotter/local.toml
 
-# Pi subagents runtime artifacts
+# Pi runtime artifacts
+.pi/
 .pi-subagents/
 prime-agent/agent/update-restarts/
 
