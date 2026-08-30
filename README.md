@@ -147,10 +147,10 @@ Key bindings:
 Aliases mirror Fish: `ll`/`la`/`lt` (eza), `cat` (bat), `grep` (rg), `df`
 (duf), `top` (btop), `v`/`vi`/`vim` (nvim), `g`/`gs`/`gd`/`gc`/`gp`/`gl`
 (git), `j` (just), `m`/`mr`/`ml` (mise), `b`/`bi`/`br`/`bx` (bun),
-`openf` (xdg-open on Linux), `pi-sudo`.
+`openf` (platform opener: `open`, `xdg-open`, or `explorer.exe`), `pi-sudo`.
 
-Integrations are generated into `~/.cache/nushell/`; regenerate after tool
-upgrades with `just nushell-setup` (also rebuilds the bat theme cache).
+All shell integrations are generated into `~/.cache/nushell/`; regenerate after
+tool upgrades with `just nushell-setup` (also rebuilds the bat theme cache).
 Verify the whole setup with `just nu-health` (config, integrations,
 keybindings, aliases).
 

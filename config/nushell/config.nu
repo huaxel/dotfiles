@@ -16,7 +16,7 @@ const starship_init = ($nu.cache-dir | path join "starship.nu")
 const mise_init = ($nu.cache-dir | path join "mise.nu")
 const zoxide_init = ($nu.cache-dir | path join "zoxide.nu")
 const fzf_init = ($nu.cache-dir | path join "fzf.nu")
-const atuin_init = ($nu.home-dir | path join ".local/share/atuin/init.nu")
+const atuin_init = ($nu.cache-dir | path join "atuin.nu")
 
 const starship_source = (if ($starship_init | path exists) { $starship_init } else { null })
 const mise_source = (if ($mise_init | path exists) { $mise_init } else { null })
@@ -86,6 +86,8 @@ alias pi-sudo = sudo -iu pi-agent PI_CODING_AGENT_DIR=($env.PI_CODING_AGENT_DIR)
 def --env open-file [path: string] {
     if $nu.os-info.name == "macos" {
         ^open $path
+    } else if $nu.os-info.name == "windows" {
+        ^explorer.exe $path
     } else {
         ^xdg-open $path
     }
