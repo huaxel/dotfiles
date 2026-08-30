@@ -8,6 +8,67 @@ $env.config.history.max_size = 100_000
 $env.config.history.isolation = false
 $env.config.completions.case_sensitive = false
 
+# Keep Nushell's structured output and syntax colors aligned with Ghostty's
+# TokyoNight palette instead of relying on terminal-specific ANSI mappings.
+let tn_fg = "#c0caf5"
+let tn_muted = "#565f89"
+let tn_blue = "#7aa2f7"
+let tn_purple = "#bb9af7"
+let tn_cyan = "#7dcfff"
+let tn_green = "#9ece6a"
+let tn_yellow = "#e0af68"
+let tn_red = "#f7768e"
+let tn_colors = {
+    separator: $tn_muted
+    leading_trailing_space_bg: {bg: "#414868"}
+    header: {fg: $tn_cyan attr: b}
+    datetime: $tn_purple
+    filesize: $tn_cyan
+    row_index: {fg: $tn_muted attr: b}
+    bool: $tn_cyan
+    int: {fg: $tn_purple attr: b}
+    duration: $tn_yellow
+    range: {fg: $tn_yellow attr: b}
+    float: {fg: $tn_purple attr: b}
+    string: $tn_green
+    nothing: $tn_muted
+    binary: $tn_cyan
+    cell-path: $tn_blue
+    hints: $tn_muted
+    shape_block: {fg: $tn_blue attr: b}
+    shape_bool: $tn_cyan
+    shape_custom: {fg: $tn_purple attr: b}
+    shape_external: $tn_cyan
+    shape_externalarg: {fg: $tn_green attr: b}
+    shape_filepath: $tn_blue
+    shape_flag: {fg: $tn_blue attr: b}
+    shape_float: {fg: $tn_purple attr: b}
+    shape_garbage: {fg: $tn_fg bg: $tn_red attr: b}
+    shape_globpattern: {fg: $tn_blue attr: b}
+    shape_int: {fg: $tn_purple attr: b}
+    shape_internalcall: {fg: $tn_cyan attr: b}
+    shape_keyword: {fg: $tn_purple attr: b}
+    shape_literal: $tn_blue
+    shape_list: {fg: $tn_cyan attr: b}
+    shape_matching_brackets: {fg: $tn_cyan attr: u}
+    shape_nothing: $tn_muted
+    shape_operator: $tn_yellow
+    shape_pipe: {fg: $tn_purple attr: b}
+    shape_range: {fg: $tn_yellow attr: b}
+    shape_record: {fg: $tn_cyan attr: b}
+    shape_signature: {fg: $tn_green attr: b}
+    shape_string: $tn_green
+    shape_string_interpolation: {fg: $tn_cyan attr: b}
+    shape_table: {fg: $tn_blue attr: b}
+    shape_variable: $tn_purple
+    shape_vardecl: $tn_purple
+    shape_external_resolved: {fg: $tn_yellow attr: b}
+    shape_raw_string: $tn_purple
+    shape_match_pattern: $tn_green
+    search_result: {fg: $tn_fg bg: $tn_red}
+}
+$env.config.color_config = ($env.config.color_config | merge $tn_colors)
+
 # Nushell needs generated files for shell integrations. They live outside the
 # repository so each machine can use its installed tool versions. Run
 # `just nushell-setup` (or scripts/setup-nushell.sh) after installing or
