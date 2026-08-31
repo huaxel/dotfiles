@@ -858,3 +858,19 @@ every open). Fixed, then hardened the whole setup.
 
 ### Improvements for next time
 - Keep user-level package-manager configuration outside repository paths while preserving the symlinked deployment contract; the source is now named `npmrc` rather than `.npmrc`.
+
+## 2026-08-31: portable Memoryfield setup
+
+### What went well
+- Added and published the reviewed Memoryfield skill bundle without staging unrelated settings or skills.
+- Installed and exercised the llama-server fork on liedelpi through the remote embedding service.
+- Configured Nushell, Fish, and environment.d additively while leaving liedelpi's divergent checkout untouched.
+
+### What was frustrating / slow
+- The requested uv install cannot resolve `pysqlite3-binary` on ARM64; an isolated source checkout with that dependency removed was required to use the fork's stdlib SQLite fallback.
+
+### Config change that would have helped
+- Platform-conditional or optional `pysqlite3-binary` packaging would make the documented install command work directly on ARM hosts.
+
+### Improvements for next time
+- Check wheel/platform compatibility before attempting a fleet-wide uv tool install.
