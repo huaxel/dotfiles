@@ -1,0 +1,12 @@
+[Unit]
+Description=llama.cpp embedding server for Memoryfield
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/opt/cachy-llama/bin/llama-server --hf-repo nomic-ai/nomic-embed-text-v1.5-GGUF:Q8_0 --embedding --pooling mean --host 127.0.0.1 --port 8001 --threads 8 --batch-size 512
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
