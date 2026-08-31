@@ -1,10 +1,11 @@
 [Unit]
 Description=llama.cpp embedding server for Memoryfield
-After=network.target
+After=network-online.target tailscaled.service
+Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/opt/cachy-llama/bin/llama-server --hf-repo nomic-ai/nomic-embed-text-v1.5-GGUF:Q8_0 --embedding --pooling mean --host 127.0.0.1 --port 8001 --threads 8 --batch-size 512
+ExecStart=/bin/sh -c 'exec /opt/cachy-llama/bin/llama-server --hf-repo nomic-ai/nomic-embed-text-v1.5-GGUF:Q8_0 --embedding --pooling mean --host "$(/usr/bin/tailscale ip -4)" --port 8001 --threads 8 --batch-size 512'
 Restart=on-failure
 RestartSec=5
 
