@@ -16,7 +16,7 @@ $env.MANPAGER = "sh -c 'col -bx | bat -l man -p --theme=tokyonight_night'"
 $env.LLAMA_BASE_URL = "http://127.0.0.1:8000"
 # Memoryfield uses the dedicated llama.cpp embedding endpoint.
 $env.MEMORYFIELD_EMBED_PROVIDER = "llama-server"
-$env.MEMORYFIELD_EMBED_URL = "http://127.0.0.1:8001/v1/embeddings"
+$env.MEMORYFIELD_EMBED_URL = "http://framearch-juan.bonobo-fort.ts.net:8001/v1/embeddings"
 $env.MEMORYFIELD_EMBED_MODEL = "nomic-embed-text-v1.5"
 $env.MEMORYFIELD_MODEL_CODE = "nomic-embed-text-v1.5"
 $env.PYTHONPYCACHEPREFIX = ($env.HOME | path join ".cache/cpython")
