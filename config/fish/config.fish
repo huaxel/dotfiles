@@ -85,6 +85,11 @@ set -x XDG_CONFIG_HOME $HOME/.config
 set -x EZA_CONFIG_DIR $HOME/.config/eza
 # Native Pi llama.cpp router
 set -gx LLAMA_BASE_URL http://127.0.0.1:8000
+# Memoryfield uses the dedicated llama.cpp embedding endpoint.
+set -gx MEMORYFIELD_EMBED_PROVIDER llama-server
+set -gx MEMORYFIELD_EMBED_URL http://127.0.0.1:8001/v1/embeddings
+set -gx MEMORYFIELD_EMBED_MODEL nomic-embed-text-v1.5
+set -gx MEMORYFIELD_MODEL_CODE nomic-embed-text-v1.5
 # Keep Python bytecode out of the dotfiles tree (dotter symlinks any file in a
 # mapped dir, even gitignored __pycache__). Cache under ~/.cache instead.
 set -x PYTHONPYCACHEPREFIX $HOME/.cache/cpython
