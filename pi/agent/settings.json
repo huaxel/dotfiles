@@ -42,7 +42,8 @@
     "../packages/pi-provider-openference",
     "npm:@howaboua/pi-shepherdr@0.1.2",
     "../packages/pi-agy",
-    "npm:pi-context-view@0.4.3"
+    "npm:pi-context-view@0.4.3",
+    "npm:@pi-kaush/pi-verbatim-compaction"
   ],
   "extensions": [
     "-extensions/nan.ts"
