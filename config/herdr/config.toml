@@ -125,3 +125,18 @@ key = "prefix+m"
 type = "plugin_action"
 command = "annotate.manage"
 description = "manage annotations"
+
+# ── annotate: document and agent-reply review ────────────────────────────────
+# prefix+shift+o is reserved for opening worktrees above, so use prefix+shift+l
+# for the last agent reply.
+[[keys.command]]
+key = "prefix+o"
+type = "plugin_action"
+command = "annotate.open"
+description = "review documents in this folder"
+
+[[keys.command]]
+key = "prefix+shift+l"
+type = "plugin_action"
+command = "annotate.last"
+description = "review the agent's last reply"
