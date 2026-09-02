@@ -48,7 +48,7 @@ nushell-setup:
 # ──────────── Check recipes ────────────
 
 # Run ALL checks (the full CI pipeline)
-ci: check-sh check-ts check-ts-packages check-dotter check-secrets check-gitignore check-templates check-brewfile check-nu
+ci: check-sh check-ts check-ts-packages check-dotter check-secrets check-gitignore check-templates check-brewfile check-nu check-nix
     @echo ""
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     @echo "  🟢  All CI checks passed!  🟢"
@@ -75,6 +75,10 @@ check-sh:
     while IFS= read -r f; do
         # Skip Windows batch files masquerading as .sh
         if grep -q '%~dp0\|%ERRORLEVEL%\|^@echo\|^rem ' "$f" 2>/dev/null; then
+            continue
+        fi
+        # Skip Markdown skill templates stored with a .sh suffix
+        if head -n 1 "$f" | grep -qx -- '---'; then
             continue
         fi
         if shellcheck -x -s bash "$f" 2>/dev/null; then
@@ -408,6 +412,19 @@ check-nu:
     if [ "$errors" -gt 0 ]; then echo "  ❌ $errors Nushell config files have issues"; exit 1; fi
     echo "  ✅ All Nushell config files parse"
 
+# ── Nix ──
+
+# Validate the flake when Nix is installed; Windows remains Dotter-only.
+check-nix:
+    #!/usr/bin/env bash
+    echo "=== Nix/Home Manager ==="
+    if ! command -v nix &>/dev/null; then
+        echo "  ⚠️  nix not installed — skipping"
+        exit 0
+    fi
+    nix flake check --all-systems
+    echo "  ✅ Nix flake checks pass"
+
 # ──────────── Nushell health ────────────
 
 # Full Nushell setup health check: config, integrations, keybindings, aliases.
@@ -607,6 +624,32 @@ list:
 # Dry-run dotter deploy (preview changes without applying)
 dry-run:
     dotter deploy --dry-run
+
+# Validate the Nix flake and build one Home Manager profile without activation.
+# Usage: just nix-check juan@framearch
+nix-check profile="juan@framearch":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    nix flake check --all-systems
+    nix build '.#homeConfigurations."{{profile}}".activationPackage' --no-link --quiet
+    echo "✅ Nix profile {{profile}} builds"
+
+# Validate and activate one Home Manager profile.
+# Usage: just nix-switch juan@framearch
+nix-switch profile="juan@framearch":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    nix flake check --all-systems
+    nix run ".#home-manager" -- switch --flake '.#{{profile}}'
+
+# Build the pinned CachyLLama binary and probe host Vulkan through nixGL.
+# This is diagnostic only; it never touches the live llama.cpp service.
+nix-test-cachy-vulkan profile="qwen-0.8b" port="18123" model="":
+    scripts/nix-cachy-smoke.sh "{{profile}}" "{{port}}" "{{model}}"
+
+# Validate the future NixOS memoryfield embedding service in isolation.
+nix-test-cachy-embed port="18140":
+    scripts/nix-cachy-embed-smoke.sh "{{port}}"
 
 # Full dotter deploy (what post-merge hook runs)
 deploy:

@@ -9,6 +9,8 @@
 #   SKIP_BREW_BUNDLE=1    don't install the full Brewfile
 #   SKIP_MACOS_DEFAULTS=1 don't apply macOS system defaults
 #   INSTALL_SYSTEM_CONFIG=1 install this repo's host-specific /etc files (Linux)
+#   INSTALL_NIX_HOME=1      activate the matching Home Manager profile
+#   NIX_PROFILE=...         override automatic framearch/WSL/macOS selection
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR" || exit 1
@@ -34,7 +36,7 @@ if [ "$OS" = "Darwin" ]; then
     while true; do sudo -n true; sleep 60; kill -0 "$$" 2>/dev/null || exit; done 2>/dev/null &
 fi
 
-step "1/8 — Homebrew + core prerequisites"
+step "1/9 — Homebrew + core prerequisites"
 
 if [ "$OS" = "Darwin" ]; then
     if ! command -v brew &>/dev/null; then
@@ -53,7 +55,7 @@ if [ "$OS" = "Darwin" ]; then
     brew install dotter git age sops mas 2>/dev/null || brew install dotter git age sops mas
 fi
 
-step "2/8 — Enable git hooks + dotter config"
+step "2/9 — Enable git hooks + dotter config"
 
 if [ -d .githooks ]; then
     git config core.hooksPath .githooks
@@ -90,7 +92,7 @@ EOF
     info "Created .dotter/local.toml for $dotter_os"
 fi
 
-step "3/8 — Age key (for secret decryption)"
+step "3/9 — Age key (for secret decryption)"
 
 AGE_KEY="$HOME/.config/sops/age/keys.txt"
 if command -v age-keygen &>/dev/null && [ ! -f "$AGE_KEY" ]; then
@@ -118,7 +120,7 @@ if [ "$OS" = "Darwin" ] && [ -f "$AGE_KEY" ]; then
     fi
 fi
 
-step "4/8 — Link ~/.agents/skills → dotfiles/skills"
+step "4/9 — Link ~/.agents/skills → dotfiles/skills"
 
 AGENTS_DIR="$HOME/.agents"
 AGENTS_SKILLS="$AGENTS_DIR/skills"
@@ -147,7 +149,7 @@ if [ ! -e "$NPMRC_SOURCE" ]; then
     info "Created empty $NPMRC_SOURCE; add registry credentials locally if needed."
 fi
 
-step "5/8 — Deploy dotfiles"
+step "5/9 — Deploy dotfiles"
 
 info "Running: dotter deploy"
 dotter deploy
@@ -161,7 +163,7 @@ elif [ "$OS" = "Linux" ]; then
     info "Skipping host-specific /etc config (set INSTALL_SYSTEM_CONFIG=1 to install)"
 fi
 
-step "6/8 — Install packages"
+step "6/9 — Install packages"
 
 case "$OS" in
     Darwin)
@@ -242,13 +244,47 @@ case "$OS" in
         ;;
 esac
 
-step "7/8 — macOS system defaults"
+step "7/9 — Home Manager (optional)"
+
+if [ "${INSTALL_NIX_HOME:-0}" = "1" ]; then
+    if ! command -v nix &>/dev/null; then
+        warn "Nix not found — install it first, then run: just nix-switch <profile>"
+    elif [ ! -f "$AGE_KEY" ]; then
+        warn "Age key missing — restore $AGE_KEY before Home Manager activation"
+    else
+        if [ -n "${NIX_PROFILE:-}" ]; then
+            profile="$NIX_PROFILE"
+        elif [ "$OS" = "Darwin" ]; then
+            profile="juan@macbook"
+        elif [ "$(hostname -s 2>/dev/null || hostname)" = "arch-wsl" ]; then
+            profile="juan@arch-wsl"
+        else
+            profile="juan@framearch"
+        fi
+
+        # Ensure flakes work even on a fresh non-NixOS install, without
+        # overwriting any existing user or daemon Nix configuration.
+        nix_config="${NIX_CONFIG:-}"
+        case "$nix_config" in
+            *"experimental-features"*) ;;
+            *) nix_config="${nix_config}
+experimental-features = nix-command flakes" ;;
+        esac
+        info "Activating Home Manager profile: $profile"
+        NIX_CONFIG="$nix_config" just nix-switch "$profile" || \
+            warn "Home Manager activation failed — run manually: just nix-switch $profile"
+    fi
+else
+    info "Skipping Home Manager (set INSTALL_NIX_HOME=1 to activate it)"
+fi
+
+step "8/9 — macOS system defaults"
 
 if [ "$OS" = "Darwin" ] && [ "${SKIP_MACOS_DEFAULTS:-0}" != "1" ] && [ -x ./macos/defaults.sh ]; then
     ./macos/defaults.sh || warn "macOS defaults step had issues"
 fi
 
-step "8/8 — Post-install setup"
+step "9/9 — Post-install setup"
 
 # Install mise tool versions (if mise was just installed)
 if command -v mise &>/dev/null && [ -f "$HOME/.config/mise/config.toml" ]; then

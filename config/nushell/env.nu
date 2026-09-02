@@ -1,7 +1,7 @@
 # Nushell environment configuration
 # Loaded before config.nu. API keys and tokens reach this shell from the
 # single secret source: ~/.config/environment.d/99-environment.conf (decrypted
-# by dotter). On Linux systemd applies it to user sessions; env.nu also parses
+# by sops-nix). On Linux systemd applies it to user sessions; env.nu also parses
 # it directly so Nushell gets the keys on hosts without systemd (e.g. macOS).
 
 $env.EDITOR = "nvim"
@@ -37,6 +37,7 @@ $env.FZF_ALT_C_OPTS = "--preview 'eza --tree --color=always --icons=always {} | 
 $env.PATH = (
     $env.PATH
     | prepend [
+        ($env.HOME | path join ".nix-profile" "bin")
         ($env.HOME | path join ".local/bin")
         ($env.HOME | path join ".cargo/bin")
         ($env.HOME | path join ".opencode/bin")
