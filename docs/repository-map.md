@@ -5,17 +5,23 @@ Keep deployment paths stable; organize new material under the matching area belo
 
 ## Deployment and machine configuration
 
-- `.dotter/` — Dotter package selection, templates, and deploy hooks.
+- `.dotter/` — Dotter package selection, templates, and deploy hooks for
+  Windows and not-yet-migrated paths.
+- `flake.nix`, `flake.lock`, `home/`, and `nix.conf` — Home Manager profiles,
+  pinned inputs, and shared/per-host Unix user configuration.
+- `nixos/` — disabled, evaluated system modules for a future NixOS migration;
+  these do not configure the current Arch host.
 - `config/` — shared Unix application configuration deployed to `~/.config`
   (includes `config/nushell/` — env.nu/config.nu/login.nu for the Nushell
   shell, managed with `just nushell-setup` / `just nu-health`).
-- `config-linux/` — Linux-only Wayland, launcher, inference, systemd, and XKB configuration.
+- `config-linux/` — Linux-only Wayland, launcher, inference, and XKB configuration.
 - `config-macos/` — macOS-only configuration.
 - Windows roots (`powershell/`, `windows-terminal/`, `autohotkey/`, `glazewm/`,
   `zebar/`, `flow-launcher/`) — Windows-specific application files.
 - Root dotfiles (`zshrc`, `gitconfig`, `ssh_config`, `starship.toml`,
-  `aerospace`) — files whose target paths are not naturally grouped under
-  `config/`.
+  `aerospace`) — remaining source files whose target paths are not naturally
+  grouped under `config/`; some are now consumed by Home Manager on Unix and
+  remain Dotter-managed on Windows.
 - `secrets/` — encrypted inputs only; plaintext and decrypted files stay local.
 
 ## Executables and maintenance

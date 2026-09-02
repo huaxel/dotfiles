@@ -8,6 +8,14 @@ DECRYPT_DIR="$HOME/.config/secrets"
 PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-$DOTFILES_DIR/pi/agent}"
 DEFAULT_PI_AGENT_DIR="$HOME/.pi/agent"
 
+# Once Home Manager's sops-nix module is active, it owns secret destinations.
+# Hosts without that marker continue using the legacy Dotter path during the
+# incremental migration (notably Windows and not-yet-migrated Unix hosts).
+if [ -e "$HOME/.config/sops-nix/secrets" ] || [ -L "$HOME/.config/sops-nix/secrets" ]; then
+  echo "🔐 sops-nix is configured — skipping legacy Dotter secret decryption"
+  exit 0
+fi
+
 # Check if sops and age are available
 if ! command -v sops &>/dev/null || ! command -v age &>/dev/null; then
   echo "⚠️  sops or age not installed — skipping secret decryption"
