@@ -424,6 +424,18 @@ check-nix:
     fi
     nix flake check --all-systems
     echo "  ✅ Nix flake checks pass"
+    # flake check only evaluates profiles; build the ones this OS can.
+    case "$(uname -s)" in
+        Linux)
+            nix build '.#homeConfigurations."juan@framearch".activationPackage' --no-link --quiet
+            nix build '.#homeConfigurations."juan@arch-wsl".activationPackage' --no-link --quiet
+            echo "  ✅ Linux Home Manager profiles build"
+            ;;
+        Darwin)
+            nix build '.#homeConfigurations."juan@macbook".activationPackage' --no-link --quiet
+            echo "  ✅ macOS Home Manager profile builds"
+            ;;
+    esac
 
 # ──────────── Nushell health ────────────
 
