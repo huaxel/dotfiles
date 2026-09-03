@@ -3,9 +3,13 @@ import { stat } from "node:fs/promises";
 import {
   buildAgyPrompt,
   detectVerifyCommand,
+  isAgyModel,
+  isTransientAgyFailure,
   spawnAgyStream,
+  type AgyEffort,
   type AgyModel,
 } from "./cli.js";
+import { loadAgyConfig } from "./config.js";
 import type { AgyUsage } from "./stream.js";
 import { withDirLock } from "./lock.js";
 import { summarizeGitDiff } from "./postflight.js";
@@ -19,6 +23,7 @@ export interface AgyExecutionOptions {
   prompt: string;
   model?: AgyModel;
   tier?: "flash" | "flash-lo" | "pro";
+  effort?: AgyEffort;
   mode: AgyMode;
   dir: string;
   digest?: boolean;
@@ -35,6 +40,8 @@ export interface AgyExecutionDetails {
   dir: string;
   conversation_id?: string;
   verify_cmd: string | null;
+  permissions_skipped?: boolean;
+  effort?: AgyEffort;
   usage?: AgyUsage;
   duration_seconds?: number;
 }
@@ -50,6 +57,13 @@ export async function executeAgyTask(
   onProgress?: (message: string) => void,
 ): Promise<AgyExecutionResult> {
   const abortSignal = signal ?? new AbortController().signal;
+  const config = await loadAgyConfig();
+  const model = options.model ?? (isAgyModel(config.defaultModel) ? config.defaultModel : undefined);
+  const skipPermissions = config.skipPermissions !== false;
+
+  // The budget covers lock wait + preflight + the agy run itself, so a call
+  // queued behind a long run cannot silently exceed its own timeout.
+  const startedAt = Date.now();
 
   return withDirLock(
     options.dir,
@@ -57,8 +71,6 @@ export async function executeAgyTask(
       if (!(await stat(options.dir)).isDirectory()) {
         throw new Error(`Working directory is not a directory: ${options.dir}`);
       }
-
-      await runPreflight(options.dir, abortSignal);
 
       let conversationId = options.conversation_id;
       if (
@@ -84,28 +96,37 @@ export async function executeAgyTask(
         verifyCmd,
       );
 
-      onProgress?.(
-        `agy: starting (${options.model ?? "flash-medium"}, ${options.mode})…`,
-      );
+      const run = await runWithTransientRetry(async (trackProgress) => {
+        await runPreflight(options.dir, abortSignal);
 
-      const run = await spawnAgyStream(
-        {
-          prompt: finalPrompt,
-          model: options.model,
-          tier: options.tier,
-          mode: options.mode,
-          dir: options.dir,
-          timeout_ms: options.timeout_ms,
-          conversation_id: conversationId,
-          continue: options.continue,
-          stream: options.stream ?? true,
-        },
-        abortSignal,
-        onProgress,
-      );
+        const remainingMs = Math.max(options.timeout_ms - (Date.now() - startedAt), 1_000);
+        // Emitted via onProgress directly: progress tracking (and therefore
+        // retry eligibility) must only reflect activity from agy itself.
+        onProgress?.(
+          `agy: starting (${model ?? "flash-medium"}, ${options.mode}${options.effort ? `, effort ${options.effort}` : ""})…`,
+        );
+
+        return spawnAgyStream(
+          {
+            prompt: finalPrompt,
+            model,
+            tier: options.tier,
+            effort: options.effort,
+            mode: options.mode,
+            dir: options.dir,
+            timeout_ms: remainingMs,
+            conversation_id: conversationId,
+            continue: options.continue,
+            stream: options.stream ?? true,
+            skipPermissions,
+          },
+          abortSignal,
+          trackProgress,
+        );
+      }, onProgress);
 
       if (run.conversation_id) {
-        await saveSession(options.dir, run.conversation_id, options.model);
+        await saveSession(options.dir, run.conversation_id, model);
       }
 
       let text = run.response;
@@ -122,15 +143,46 @@ export async function executeAgyTask(
         text,
         details: {
           mode: options.mode,
-          model: options.model ?? "flash-medium",
+          model: model ?? "flash-medium",
           dir: options.dir,
           conversation_id: run.conversation_id,
           verify_cmd: verifyCmd,
+          permissions_skipped: options.mode === "accept-edits" ? skipPermissions : false,
+          effort: options.effort,
           usage: run.usage,
           duration_seconds: run.duration_seconds,
         },
       };
     },
     abortSignal,
+    options.timeout_ms,
   );
+}
+
+/**
+ * Retry once when agy fails before emitting any progress with a transient
+ * error (rate limit, network blip). Zero progress means no tool steps ran,
+ * so the retry cannot double-apply edits.
+ */
+async function runWithTransientRetry<T>(
+  attempt: (trackProgress: (message: string) => void) => Promise<T>,
+  onProgress?: (message: string) => void,
+): Promise<T> {
+  for (let tries = 0; ; tries++) {
+    let sawProgress = false;
+    const trackProgress = (message: string) => {
+      sawProgress = true;
+      onProgress?.(message);
+    };
+    try {
+      return await attempt(trackProgress);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (tries === 0 && !sawProgress && isTransientAgyFailure(message)) {
+        onProgress?.("agy: transient failure before any work — retrying once…");
+        continue;
+      }
+      throw error;
+    }
+  }
 }

@@ -29,25 +29,46 @@ export type AgyModel =
   | "opus"
   | "gpt-oss";
 
+export const AGY_MODEL_ALIASES: readonly AgyModel[] = [
+  "flash-low",
+  "flash-medium",
+  "flash-high",
+  "pro-low",
+  "pro-high",
+  "sonnet",
+  "opus",
+  "gpt-oss",
+];
+
+export function isAgyModel(value: unknown): value is AgyModel {
+  return typeof value === "string" && (AGY_MODEL_ALIASES as readonly string[]).includes(value);
+}
+
+export type AgyEffort = "low" | "medium" | "high";
+
 export interface AgyOptions {
   prompt: string;
   model?: AgyModel;
   tier?: "flash" | "flash-lo" | "pro";
+  effort?: AgyEffort;
   mode?: "plan" | "accept-edits" | "sandbox";
   dir: string;
   timeout_ms: number;
   conversation_id?: string;
   continue?: boolean;
   stream?: boolean;
+  skipPermissions?: boolean;
 }
 
 const PREFLIGHT_TIMEOUT_MS = 10_000;
 const MAX_CAPTURE_BYTES = 64 * 1024;
 
+// Static fallback for when `agy models` output is unavailable. The live
+// catalog (updated during preflight) overrides these per alias.
 const MODEL_MAP: Record<AgyModel, string> = {
-  "flash-low": "gemini-3.6-flash-low",
-  "flash-medium": "gemini-3.6-flash-medium",
-  "flash-high": "gemini-3.6-flash-high",
+  "flash-low": "gemini-3.8-flash-low",
+  "flash-medium": "gemini-3.8-flash-medium",
+  "flash-high": "gemini-3.8-flash-high",
   "pro-low": "gemini-3.1-pro-low",
   "pro-high": "gemini-3.1-pro-high",
   sonnet: "claude-sonnet-4-6",
@@ -55,21 +76,98 @@ const MODEL_MAP: Record<AgyModel, string> = {
   "gpt-oss": "gpt-oss-120b-medium",
 };
 
-const TIER_MAP: Record<NonNullable<AgyOptions["tier"]>, string> = {
-  flash: MODEL_MAP["flash-high"],
-  "flash-lo": MODEL_MAP["flash-low"],
-  pro: MODEL_MAP["pro-high"],
+const TIER_MAP: Record<NonNullable<AgyOptions["tier"]>, AgyModel> = {
+  flash: "flash-high",
+  "flash-lo": "flash-low",
+  pro: "pro-high",
 };
 
+/** alias → pattern matching concrete model ids in `agy models` output. */
+const CATALOG_PATTERNS: Record<AgyModel, RegExp> = {
+  "flash-low": /^gemini-\d+(?:\.\d+)*-flash-low$/,
+  "flash-medium": /^gemini-\d+(?:\.\d+)*-flash-medium$/,
+  "flash-high": /^gemini-\d+(?:\.\d+)*-flash-high$/,
+  "pro-low": /^gemini-\d+(?:\.\d+)*-pro-low$/,
+  "pro-high": /^gemini-\d+(?:\.\d+)*-pro-high$/,
+  sonnet: /^claude-sonnet-[\w.-]+$/,
+  opus: /^claude-opus-[\w.-]+$/,
+  "gpt-oss": /^gpt-oss-[\w.-]+$/,
+};
+
+export type AgyModelCatalog = Partial<Record<AgyModel, string>>;
+
+let modelCatalog: AgyModelCatalog = {};
+
+/**
+ * Parse `agy models` output into alias → concrete model id. Newer model
+ * generations win over older ones so aliases track the latest catalog.
+ */
+export function parseModelCatalog(output: string): AgyModelCatalog {
+  const found: AgyModelCatalog = {};
+  for (const line of output.split("\n")) {
+    const id = line.trim().split(/\s+/)[0] ?? "";
+    if (!id) continue;
+    for (const [alias, pattern] of Object.entries(CATALOG_PATTERNS) as Array<[AgyModel, RegExp]>) {
+      if (pattern.test(id) && compareModelIds(id, found[alias] ?? "") > 0) {
+        found[alias] = id;
+      }
+    }
+  }
+  return found;
+}
+
+function compareModelIds(a: string, b: string): number {
+  if (!b) return 1;
+  const versionA = /^gemini-(\d+(?:\.\d+)*)-/.exec(a)?.[1];
+  const versionB = /^gemini-(\d+(?:\.\d+)*)-/.exec(b)?.[1];
+  if (versionA && versionB) return compareDottedVersions(versionA, versionB);
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
+function compareDottedVersions(a: string, b: string): number {
+  const pa = a.split(".").map(Number);
+  const pb = b.split(".").map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const delta = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (delta !== 0) return delta;
+  }
+  return 0;
+}
+
+/** Merge freshly observed catalog entries over the in-process catalog. */
+export function updateModelCatalog(catalog: AgyModelCatalog): void {
+  modelCatalog = { ...modelCatalog, ...catalog };
+}
+
+export function getModelCatalog(): AgyModelCatalog {
+  return { ...modelCatalog };
+}
+
+/** Test helper — drop in-process catalog state. */
+export function resetModelCatalog(): void {
+  modelCatalog = {};
+}
+
+/** Resolve a model alias to a concrete agy model id, preferring the live catalog. */
+export function resolveAgyModelId(model?: AgyModel, tier?: AgyOptions["tier"]): string {
+  const alias = model ?? (tier ? TIER_MAP[tier] : undefined) ?? "flash-medium";
+  return modelCatalog[alias] ?? MODEL_MAP[alias];
+}
+
+const TRANSIENT_FAILURE_PATTERN =
+  /rate.?limit|429|overloaded|temporarily unavailable|network|connection (reset|refused)|econnreset|etimedout|socket hang up|\b50[023]\b/i;
+
+/** Heuristic for transient agy failures that are safe to retry once. */
+export function isTransientAgyFailure(message: string): boolean {
+  return TRANSIENT_FAILURE_PATTERN.test(message);
+}
+
 export function buildAgyArgs(options: AgyOptions): string[] {
-  const model = options.model
-    ? MODEL_MAP[options.model]
-    : options.tier
-      ? TIER_MAP[options.tier]
-      : MODEL_MAP["flash-medium"];
+  const model = resolveAgyModelId(options.model, options.tier);
   const timeoutSec = Math.ceil(options.timeout_ms / 1000);
   const mode = options.mode ?? "accept-edits";
   const writes = mode === "accept-edits";
+  const skipPermissions = options.skipPermissions ?? true;
   const useStream = options.stream ?? true;
   const structured = mode !== "accept-edits" || useStream;
 
@@ -80,8 +178,11 @@ export function buildAgyArgs(options: AgyOptions): string[] {
     `${timeoutSec}s`,
     "--add-dir",
     options.dir,
+    // Task text must never be interpreted as agy slash commands or skills.
+    "--disable-slash-commands",
     ...(mode === "sandbox" ? ["--sandbox"] : ["--mode", mode]),
-    ...(writes ? ["--dangerously-skip-permissions"] : []),
+    ...(writes && skipPermissions ? ["--dangerously-skip-permissions"] : []),
+    ...(options.effort ? ["--effort", options.effort] : []),
   ];
 
   if (options.continue) {
@@ -124,23 +225,26 @@ function appendBounded(chunks: Buffer[], total: number, data: Buffer): number {
 }
 
 export async function checkAgyHealth(cwd: string, signal?: AbortSignal): Promise<void> {
-  await runPreflightSpawn(["--version"], cwd, signal, "agy health check");
+  await runPreflightCommand(["--version"], cwd, signal, "agy health check", false);
 }
 
 export async function checkAgyConnectivity(cwd: string, signal?: AbortSignal): Promise<void> {
-  await runPreflightSpawn(["models"], cwd, signal, "agy connectivity check");
+  const output = await runPreflightCommand(["models"], cwd, signal, "agy connectivity check", true);
+  const catalog = parseModelCatalog(output);
+  if (Object.keys(catalog).length > 0) updateModelCatalog(catalog);
 }
 
-async function runPreflightSpawn(
+async function runPreflightCommand(
   args: string[],
   cwd: string,
   signal: AbortSignal | undefined,
   label: string,
-): Promise<void> {
+  capture: boolean,
+): Promise<string> {
   const spawn = getSpawn();
   const child = spawn("agy", args, {
     cwd,
-    stdio: ["ignore", "ignore", "pipe"],
+    stdio: ["ignore", capture ? "pipe" : "ignore", "pipe"],
     timeout: PREFLIGHT_TIMEOUT_MS,
     signal,
   });
@@ -150,6 +254,14 @@ async function runPreflightSpawn(
   child.stderr.on("data", (d: Buffer) => {
     stderrBytes = appendBounded(stderr, stderrBytes, d);
   });
+
+  const stdout: Buffer[] = [];
+  let stdoutBytes = 0;
+  if (capture) {
+    child.stdout?.on("data", (d: Buffer) => {
+      stdoutBytes = appendBounded(stdout, stdoutBytes, d);
+    });
+  }
 
   let settled = false;
 
@@ -188,6 +300,9 @@ async function runPreflightSpawn(
       });
     });
   });
+
+  const stdoutText = capture ? Buffer.concat(stdout).toString("utf8") : "";
+  return `${stdoutText}\n${Buffer.concat(stderr).toString("utf8")}`;
 }
 
 export function spawnAgy(options: AgyOptions, signal: AbortSignal): Promise<string> {
@@ -228,8 +343,6 @@ function spawnAgyInternal(
 
     child.stdout.on("data", (d: Buffer) => {
       stdoutBytes = appendBounded(stdout, stdoutBytes, d);
-      if (!onProgress) return;
-
       lineBuffer += d.toString("utf8");
       const lines = lineBuffer.split("\n");
       lineBuffer = lines.pop() ?? "";
@@ -238,8 +351,10 @@ function spawnAgyInternal(
         const parsed = parseStreamLine(line);
         if (!parsed) continue;
         runResult = accumulateRunResult(parsed, runResult);
-        const progress = formatStepProgress(parsed);
-        if (progress) onProgress(progress);
+        if (onProgress) {
+          const progress = formatStepProgress(parsed);
+          if (progress) onProgress(progress);
+        }
       }
     });
 
@@ -279,7 +394,7 @@ function spawnAgyInternal(
           return;
         }
 
-        if (lineBuffer.trim() && onProgress) {
+        if (lineBuffer.trim()) {
           const parsed = parseStreamLine(lineBuffer);
           if (parsed) runResult = accumulateRunResult(parsed, runResult);
         }
