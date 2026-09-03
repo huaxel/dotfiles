@@ -55,6 +55,9 @@ windows, swap the wrapper internals — the `defaultModelCommand` interface stay
   transient failures (including one that emits `init` first, covering the
   retry-eligibility regression).
 - `just ci` green after each commit; shellcheck clean.
+- **Runtime verification**: fresh `pi --mode rpc` process loaded the new
+  extension and executed `/agy` (immediate `success:true`, zero LLM call,
+  no `extension_error`) — end-to-end proof the next pi session starts clean.
 - **Sonnet adversarial cross-review** (`mode=plan effort=high`) found 5 real
   bugs (2 blockers): stderr leaking into catalog parsing, lexicographic version
   compare (4-10 < 4-6), init event suppressing the retry, timeout budget
