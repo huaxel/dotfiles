@@ -85,6 +85,10 @@ set -x VISUAL nvim
 set -x PAGER less
 set -x XDG_CONFIG_HOME $HOME/.config
 set -x EZA_CONFIG_DIR $HOME/.config/eza
+# The llama/memoryfield variables below intentionally mirror
+# home/framearch.nix sessionVariables: Home Manager exports them only to POSIX
+# login shells (hm-session-vars.sh), which fish does not source. Keep values in
+# sync when editing either location.
 # Native Pi llama.cpp router
 set -gx LLAMA_BASE_URL http://127.0.0.1:8000
 # Memoryfield uses the dedicated llama.cpp embedding endpoint.

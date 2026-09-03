@@ -13,6 +13,9 @@ $env.XDG_CACHE_HOME = ($env.XDG_CACHE_HOME? | default ($env.HOME | path join ".c
 $env.XDG_DATA_HOME = ($env.XDG_DATA_HOME? | default ($env.HOME | path join ".local" "share"))
 $env.EZA_CONFIG_DIR = ($env.XDG_CONFIG_HOME | path join "eza")
 $env.MANPAGER = "sh -c 'col -bx | bat -l man -p --theme=tokyonight_night'"
+# These mirror home/framearch.nix sessionVariables on purpose: Home Manager
+# exports them only to POSIX login shells (hm-session-vars.sh), which Nushell
+# does not source. Keep values in sync when editing either location.
 $env.LLAMA_BASE_URL = "http://127.0.0.1:8000"
 # Memoryfield uses the dedicated llama.cpp embedding endpoint.
 $env.MEMORYFIELD_EMBED_PROVIDER = "llama-server"
