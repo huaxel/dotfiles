@@ -923,7 +923,7 @@ every open). Fixed, then hardened the whole setup.
 ### Config change that would have helped
 - A one-line note in AGENTS.md's Pi section (or agentq's README) stating which
   providers have quota windows would have skipped the investigation entirely.
-  (Mitigated: recorded in the 2026-09-03 daily log and the session worksheet.)
+  Done: noted in AGENTS.md ## Pi (2026-09-03).
 
 ### Improvements for next time
 - Before proposing quota-aware anything, check what quota data actually exists first.

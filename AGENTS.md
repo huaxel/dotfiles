@@ -74,3 +74,8 @@ Sessions: `pi/agent/sessions/`. Commands: `just pi-stats`, `just pi-session-size
 matching files under `~/.pi/agent/extensions/`. The global masking config is
 gitignored and may contain real secrets: never print or commit it. Use native
 llama.cpp support (`/llama`, `/login llama.cpp`, `LLAMA_BASE_URL`).
+
+Quota coverage: agentq's `quota.json` tracks only opencode-go and codex
+windows — there is no Antigravity (agy) quota signal (brain transcripts carry
+no model attribution). agy model defaults steer by usage balance via
+`bin/agy-default-model.sh`, not quota windows.
