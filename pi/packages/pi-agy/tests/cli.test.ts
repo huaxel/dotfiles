@@ -96,6 +96,16 @@ describe("buildAgyArgs", () => {
     assert.ok(args.includes("--disable-slash-commands"));
   });
 
+  it("maps legacy tiers to model aliases", () => {
+    const args = buildAgyArgs({
+      prompt: "t",
+      tier: "pro",
+      dir: "/tmp",
+      timeout_ms: 60_000,
+    });
+    assert.ok(hasFlagPair(args, "--model", "gemini-3.1-pro-high"));
+  });
+
   it("passes reasoning effort", () => {
     const args = buildAgyArgs({
       prompt: "t",
@@ -458,6 +468,43 @@ describe("shared executor", () => {
     );
   });
 
+  it("honors the legacy tier over a configured default", async () => {
+    const agentDir = await mkdtemp(path.join(os.tmpdir(), "pi-agy-agentdir-"));
+    await writeFile(
+      path.join(agentDir, "agy-config.json"),
+      JSON.stringify({ defaultModel: "sonnet" }),
+    );
+    const previousDir = process.env.PI_CODING_AGENT_DIR;
+    process.env.PI_CODING_AGENT_DIR = agentDir;
+    try {
+      const raw =
+        JSON.stringify({ event: "result", result: { response: "ok", status: "SUCCESS" } }) +
+        "\n";
+      await withFakeAgy(raw, async (bin) => {
+        resetPreflightCache();
+        const result = await executeAgyTask(
+          {
+            prompt: "inspect the project",
+            tier: "pro",
+            mode: "plan",
+            dir: process.cwd(),
+            timeout_ms: 60_000,
+            new_session: true,
+            stream: true,
+          },
+          undefined,
+        );
+
+        assert.equal(result.details.model, "pro-high");
+        const args = await readFakeAgyArgs(bin);
+        assert.ok(args.some((argv) => hasFlagPair(argv, "--model", "gemini-3.1-pro-high")));
+      });
+    } finally {
+      if (previousDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
+      else process.env.PI_CODING_AGENT_DIR = previousDir;
+    }
+  });
+
   it("resolves the default model from the configured command", async () => {
     const agentDir = await mkdtemp(path.join(os.tmpdir(), "pi-agy-agentdir-"));
     await writeFile(
@@ -494,6 +541,34 @@ describe("shared executor", () => {
         resetDefaultModelCache();
       }
     });
+  });
+
+  it("enforces the timeout on the agy process", async () => {
+    const raw =
+      JSON.stringify({ event: "result", result: { response: "too late", status: "SUCCESS" } }) +
+      "\n";
+    await withFakeAgy(
+      raw,
+      async () => {
+        resetPreflightCache();
+        await assert.rejects(
+          executeAgyTask(
+            {
+              prompt: "inspect the project",
+              mode: "plan",
+              dir: process.cwd(),
+              timeout_ms: 100,
+              new_session: true,
+              stream: true,
+            },
+            undefined,
+          ),
+          /cancelled|timed out/,
+        );
+      },
+      0,
+      500,
+    );
   });
 
   it("passes effort and disables slash expansion end to end", async () => {
@@ -860,13 +935,52 @@ describe("session store", () => {
     for (let i = 0; i < 12; i++) await store.saveSession("/p", `extra-${i}`);
     assert.equal((await store.getHistory("/p")).length, 10);
   });
+
+  it("merges updates from independent store instances", async () => {
+    const tmp = await mkdtemp(path.join(os.tmpdir(), "pi-agy-sessions-"));
+    const storePath = path.join(tmp, "agy-sessions.json");
+    const stores = [createSessionStore(storePath), createSessionStore(storePath)];
+
+    await Promise.all(
+      Array.from({ length: 12 }, (_, i) =>
+        stores[i % stores.length].saveSession(`/project-${i}`, `conversation-${i}`),
+      ),
+    );
+
+    for (let i = 0; i < 12; i++) {
+      assert.equal(
+        (await stores[0].getSession(`/project-${i}`))?.last_conversation_id,
+        `conversation-${i}`,
+      );
+    }
+  });
+
+  it("ignores malformed history entries", async () => {
+    const tmp = await mkdtemp(path.join(os.tmpdir(), "pi-agy-sessions-"));
+    const storePath = path.join(tmp, "agy-sessions.json");
+    await writeFile(
+      storePath,
+      JSON.stringify({
+        [path.resolve("/p")]: {
+          history: [{ conversation_id: 42 }, null, { conversation_id: "ok", updated_at: "now" }],
+        },
+      }),
+    );
+    const store = createSessionStore(storePath);
+
+    assert.deepEqual(await store.getHistory("/p"), [
+      { conversation_id: "ok", updated_at: "now" },
+    ]);
+  });
 });
 
 async function withFakeAgy<T>(
   output: string,
   fn: (bin: string) => Promise<T>,
   failures = 0,
+  delayMs = 0,
 ): Promise<T> {
+  const delaySeconds = (delayMs / 1000).toFixed(3);
   const bin = await mkdtemp(path.join(os.tmpdir(), "pi-agy-bin-"));
   const encoded = Buffer.from(output).toString("base64");
   await writeFile(
@@ -885,6 +999,7 @@ case "$1" in
     echo "gemini-9.9-flash-medium is deprecated, use the latest" >&2
     ;;
   *)
+    if [ "${delayMs}" -gt 0 ]; then sleep "${delaySeconds}"; fi
     print_count_file="$dir/print-invocations"
     p=$(cat "$print_count_file" 2>/dev/null || echo 0)
     echo $((p + 1)) > "$print_count_file"

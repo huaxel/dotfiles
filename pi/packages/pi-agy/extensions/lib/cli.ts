@@ -169,9 +169,17 @@ export function resetModelCatalog(): void {
   modelCatalog = {};
 }
 
+/** Resolve explicit model or legacy tier to the internal alias. */
+export function resolveAgyModelAlias(
+  model?: AgyModel,
+  tier?: AgyOptions["tier"],
+): AgyModel | undefined {
+  return model ?? (tier ? TIER_MAP[tier] : undefined);
+}
+
 /** Resolve a model alias to a concrete agy model id, preferring the live catalog. */
 export function resolveAgyModelId(model?: AgyModel, tier?: AgyOptions["tier"]): string {
-  const alias = model ?? (tier ? TIER_MAP[tier] : undefined) ?? "flash-medium";
+  const alias = resolveAgyModelAlias(model, tier) ?? "flash-medium";
   return modelCatalog[alias] ?? MODEL_MAP[alias];
 }
 
@@ -245,12 +253,27 @@ function appendBounded(chunks: Buffer[], total: number, data: Buffer): number {
   return Math.min(MAX_CAPTURE_BYTES, total + data.length);
 }
 
-export async function checkAgyHealth(cwd: string, signal?: AbortSignal): Promise<void> {
-  await runPreflightCommand(["--version"], cwd, signal, "agy health check", false);
+export async function checkAgyHealth(
+  cwd: string,
+  signal?: AbortSignal,
+  timeoutMs?: number,
+): Promise<void> {
+  await runPreflightCommand(["--version"], cwd, signal, "agy health check", false, timeoutMs);
 }
 
-export async function checkAgyConnectivity(cwd: string, signal?: AbortSignal): Promise<void> {
-  const output = await runPreflightCommand(["models"], cwd, signal, "agy connectivity check", true);
+export async function checkAgyConnectivity(
+  cwd: string,
+  signal?: AbortSignal,
+  timeoutMs?: number,
+): Promise<void> {
+  const output = await runPreflightCommand(
+    ["models"],
+    cwd,
+    signal,
+    "agy connectivity check",
+    true,
+    timeoutMs,
+  );
   const catalog = parseModelCatalog(output);
   if (Object.keys(catalog).length > 0) updateModelCatalog(catalog);
 }
@@ -261,12 +284,14 @@ async function runPreflightCommand(
   signal: AbortSignal | undefined,
   label: string,
   capture: boolean,
+  timeoutMs?: number,
 ): Promise<string> {
   const spawn = getSpawn();
+  const timeout = Math.max(1, Math.min(PREFLIGHT_TIMEOUT_MS, timeoutMs ?? PREFLIGHT_TIMEOUT_MS));
   const child = spawn("agy", args, {
     cwd,
     stdio: ["ignore", capture ? "pipe" : "ignore", "pipe"],
-    timeout: PREFLIGHT_TIMEOUT_MS,
+    timeout,
     signal,
   });
 
@@ -352,7 +377,9 @@ function spawnAgyInternal(
 ): Promise<AgyRunResult> {
   const spawn = getSpawn();
   const args = buildAgyArgs(options);
-  const alignedTimeout = Math.ceil(options.timeout_ms / 1000) * 1000 + 5000;
+  // The parent process owns the hard deadline; agy's second-based timeout is
+  // rounded up, so do not add grace time here.
+  const alignedTimeout = Math.max(1, options.timeout_ms);
 
   return new Promise<AgyRunResult>((resolve, reject) => {
     const child = spawn("agy", args, {

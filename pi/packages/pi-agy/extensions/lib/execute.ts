@@ -4,6 +4,7 @@ import {
   buildAgyPrompt,
   detectVerifyCommand,
   isTransientAgyFailure,
+  resolveAgyModelAlias,
   spawnAgyStream,
   type AgyEffort,
   type AgyModel,
@@ -55,110 +56,126 @@ export async function executeAgyTask(
   signal: AbortSignal | undefined,
   onProgress?: (message: string) => void,
 ): Promise<AgyExecutionResult> {
-  const abortSignal = signal ?? new AbortController().signal;
-  // The budget covers config resolution + lock wait + preflight + the agy run
-  // itself, so a slow default-model command cannot silently eat into it.
   const startedAt = Date.now();
-  const config = await loadAgyConfig();
-  // Resolution order: explicit call model → static defaultModel →
-  // defaultModelCommand (e.g. quota-aware resolver) → flash-medium.
-  const model = options.model ?? (await resolveDefaultModel(config));
-  const skipPermissions = config.skipPermissions !== false;
-
-  // A call queued behind a long run cannot silently exceed its own timeout.
-
-  return withDirLock(
-    options.dir,
-    async () => {
-      if (!(await stat(options.dir)).isDirectory()) {
-        throw new Error(`Working directory is not a directory: ${options.dir}`);
-      }
-
-      let conversationId = options.conversation_id;
-      if (
-        !conversationId &&
-        !options.continue &&
-        options.new_session !== true
-      ) {
-        const prior = await getSession(options.dir);
-        if (prior?.last_conversation_id && options.new_session === false) {
-          conversationId = prior.last_conversation_id;
-        }
-      }
-
-      const useDigest = options.digest ?? options.mode !== "accept-edits";
-      const verifyCmd =
-        options.mode === "accept-edits"
-          ? await detectVerifyCommand(options.dir)
-          : null;
-      const finalPrompt = buildAgyPrompt(
-        options.prompt,
-        options.mode,
-        useDigest,
-        verifyCmd,
-      );
-
-      const run = await runWithTransientRetry(async (trackProgress) => {
-        await runPreflight(options.dir, abortSignal);
-
-        const remainingMs = Math.max(options.timeout_ms - (Date.now() - startedAt), 1_000);
-        // Emitted via onProgress directly: progress tracking (and therefore
-        // retry eligibility) must only reflect activity from agy itself.
-        onProgress?.(
-          `agy: starting (${model ?? "flash-medium"}, ${options.mode}${options.effort ? `, effort ${options.effort}` : ""})…`,
-        );
-
-        return spawnAgyStream(
-          {
-            prompt: finalPrompt,
-            model,
-            tier: options.tier,
-            effort: options.effort,
-            mode: options.mode,
-            dir: options.dir,
-            timeout_ms: remainingMs,
-            conversation_id: conversationId,
-            continue: options.continue,
-            stream: options.stream ?? true,
-            skipPermissions,
-          },
-          abortSignal,
-          trackProgress,
-        );
-      }, onProgress);
-
-      if (run.conversation_id) {
-        await saveSession(options.dir, run.conversation_id, model);
-      }
-
-      let text = run.response;
-      if (options.mode !== "accept-edits") {
-        text = parseJsonResponse(run.response) || run.response;
-      }
-
-      if (options.mode === "accept-edits") {
-        const diffSummary = await summarizeGitDiff(options.dir, abortSignal);
-        if (diffSummary) text = `${text}\n\n${diffSummary}`;
-      }
-
-      return {
-        text,
-        details: {
-          mode: options.mode,
-          model: model ?? "flash-medium",
-          dir: options.dir,
-          conversation_id: run.conversation_id,
-          verify_cmd: verifyCmd,
-          permissions_skipped: options.mode === "accept-edits" ? skipPermissions : false,
-          effort: options.effort,
-          usage: run.usage,
-          duration_seconds: run.duration_seconds,
-        },
-      };
-    },
-    abortSignal,
-    options.timeout_ms,
+  const budgetController = new AbortController();
+  const abortSignal = signal
+    ? AbortSignal.any([signal, budgetController.signal])
+    : budgetController.signal;
+  const budgetTimer = setTimeout(
+    () => budgetController.abort(),
+    Math.max(options.timeout_ms, 0),
   );
+
+  try {
+    const config = await loadAgyConfig(undefined, abortSignal);
+    // Explicit model → legacy tier → configured default → flash-medium.
+    const selectedModel = resolveAgyModelAlias(options.model, options.tier);
+    const model =
+      selectedModel ?? (await resolveDefaultModel(config, abortSignal));
+    const skipPermissions = config.skipPermissions !== false;
+
+    return await withDirLock(
+      options.dir,
+      async () => {
+        remainingBudget(startedAt, options.timeout_ms);
+        if (!(await stat(options.dir)).isDirectory()) {
+          throw new Error(`Working directory is not a directory: ${options.dir}`);
+        }
+
+        let conversationId = options.conversation_id;
+        if (
+          !conversationId &&
+          !options.continue &&
+          options.new_session !== true
+        ) {
+          const prior = await getSession(options.dir);
+          if (prior?.last_conversation_id && options.new_session === false) {
+            conversationId = prior.last_conversation_id;
+          }
+        }
+
+        const useDigest = options.digest ?? options.mode !== "accept-edits";
+        const verifyCmd =
+          options.mode === "accept-edits"
+            ? await detectVerifyCommand(options.dir)
+            : null;
+        remainingBudget(startedAt, options.timeout_ms);
+        const finalPrompt = buildAgyPrompt(
+          options.prompt,
+          options.mode,
+          useDigest,
+          verifyCmd,
+        );
+
+        const run = await runWithTransientRetry(async (trackProgress) => {
+          const remainingMs = remainingBudget(startedAt, options.timeout_ms);
+          await runPreflight(options.dir, abortSignal, remainingMs);
+          const runTimeoutMs = remainingBudget(startedAt, options.timeout_ms);
+          // Emitted via onProgress directly: progress tracking (and therefore
+          // retry eligibility) must only reflect activity from agy itself.
+          onProgress?.(
+            `agy: starting (${model ?? "flash-medium"}, ${options.mode}${options.effort ? `, effort ${options.effort}` : ""})…`,
+          );
+
+          return spawnAgyStream(
+            {
+              prompt: finalPrompt,
+              model,
+              effort: options.effort,
+              mode: options.mode,
+              dir: options.dir,
+              timeout_ms: runTimeoutMs,
+              conversation_id: conversationId,
+              continue: options.continue,
+              stream: options.stream ?? true,
+              skipPermissions,
+            },
+            abortSignal,
+            trackProgress,
+          );
+        }, onProgress);
+
+        if (run.conversation_id) {
+          await saveSession(options.dir, run.conversation_id, model);
+        }
+
+        let text = run.response;
+        if (options.mode !== "accept-edits") {
+          text = parseJsonResponse(run.response) || run.response;
+        }
+
+        if (options.mode === "accept-edits") {
+          const diffSummary = await summarizeGitDiff(options.dir, abortSignal);
+          if (diffSummary) text = `${text}\n\n${diffSummary}`;
+        }
+
+        return {
+          text,
+          details: {
+            mode: options.mode,
+            model: model ?? "flash-medium",
+            dir: options.dir,
+            conversation_id: run.conversation_id,
+            verify_cmd: verifyCmd,
+            permissions_skipped: options.mode === "accept-edits" ? skipPermissions : false,
+            effort: options.effort,
+            usage: run.usage,
+            duration_seconds: run.duration_seconds,
+          },
+        };
+      },
+      abortSignal,
+      remainingBudget(startedAt, options.timeout_ms),
+    );
+  } finally {
+    clearTimeout(budgetTimer);
+  }
+}
+
+function remainingBudget(startedAt: number, timeoutMs: number): number {
+  const remaining = timeoutMs - (Date.now() - startedAt);
+  if (remaining <= 0) throw new Error("agy timed out");
+  return remaining;
 }
 
 /**
