@@ -1,7 +1,7 @@
 ---
 name: worker
 description: General-purpose subagent with full capabilities, isolated context.
-model: opencode-go/deepseek-v4-flash
+model: openai-codex/gpt-5.6-terra
 session-mode: lineage-only
 auto-exit: true
 spawning: false
