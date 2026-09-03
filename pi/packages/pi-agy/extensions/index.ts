@@ -60,6 +60,12 @@ export default function piAgyExtension(pi: ExtensionAPI) {
           { description: "Model alias. Defaults to 'flash-medium'.", default: "flash-medium" },
         ),
       ),
+      effort: Type.Optional(
+        Type.Union([Type.Literal("low"), Type.Literal("medium"), Type.Literal("high")], {
+          description:
+            "Reasoning effort passed to agy (--effort). Optional; mostly useful for sonnet/opus/gpt-oss since Gemini aliases encode effort in the model id.",
+        }),
+      ),
       tier: Type.Optional(
         Type.Union(
           [Type.Literal("flash"), Type.Literal("flash-lo"), Type.Literal("pro")],
@@ -136,6 +142,7 @@ export default function piAgyExtension(pi: ExtensionAPI) {
           prompt: params.prompt,
           model,
           tier: params.tier,
+          effort: params.effort,
           mode,
           dir: cwd,
           digest: params.digest,

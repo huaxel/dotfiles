@@ -40,6 +40,7 @@ agy_execute prompt="Refactor all snake_case variables to camelCase in src/models
 agy_execute prompt="Generate exhaustive unit tests for src/auth/" model=flash-low
 agy_execute prompt="Plan the migration to ESM" model=sonnet mode=plan digest=true
 agy_execute prompt="Implement the approved plan" conversation_id=<id> mode=accept-edits
+agy_execute prompt="Adversarial review the diff" model=opus effort=high mode=plan
 ```
 
 ## Modes
@@ -61,6 +62,7 @@ agy_execute prompt="Implement the approved plan" conversation_id=<id> mode=accep
 - Escalate within the Gemini quota group to `pro-low` or `pro-high` only when needed.
 - Use `sonnet` for normal Claude-group coding/review; reserve `opus` for the hardest architecture or root-cause work.
 - Use `gpt-oss` when an open-model alternative is specifically desired.
+- Set `effort` (low/medium/high) for finer reasoning control on `sonnet`/`opus`/`gpt-oss` runs; Gemini aliases encode effort in the model id.
 - For consequential work, have one family produce and the opposite family review with `mode=plan`; do not spend both groups on trivial tasks.
 - Batch related work, avoid parallel calls within one shared-quota group or directory, and use `digest=true` (default) for non-write tasks.
 

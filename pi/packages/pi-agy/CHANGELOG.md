@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Refresh model aliases from the live `agy models` catalog during preflight; newest generation wins, static map stays as fallback.
+- Count per-directory lock wait toward the call timeout so queued runs cannot silently exceed their budget.
+- Retry once when agy fails with a transient error (rate limit, network) before emitting any progress.
+- Add an `effort` tool parameter passed through to `--effort`.
+- Pass `--disable-slash-commands` so task text never triggers agy slash/skill expansion.
+- Add optional `agy-config.json` with `skipPermissions` and `defaultModel`; record `permissions_skipped` in tool details.
+- `/agy continue`, `/agy timeout=10m`, and `/agy sessions` conversation picker; status updates throttled.
+- Session store keeps up to 10 recent conversations per directory.
+- Bound verify-command detection at the repository root; recognize `.justfile`, check the `just` binary, and add `uv run pytest` detection.
+- Accumulate stream-json results regardless of whether a progress callback is attached.
+
 - Keep sandbox runs behind agy permission checks instead of bypassing them.
 - Make streamed result statuses visible in progress updates.
 - Preserve clean successful responses when agy emits stderr diagnostics.

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { chmod, mkdir, mkdtemp, stat as statFile, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readdir, readFile, stat as statFile, writeFile } from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { promisify } from "node:util";
@@ -12,7 +12,16 @@ import type {
 
 const execAsync = promisify(execFile);
 
-import { buildAgyArgs, buildAgyPrompt } from "../extensions/lib/cli.js";
+import {
+  buildAgyArgs,
+  buildAgyPrompt,
+  isAgyModel,
+  isTransientAgyFailure,
+  parseModelCatalog,
+  resetModelCatalog,
+  resolveAgyModelId,
+  updateModelCatalog,
+} from "../extensions/lib/cli.js";
 import { resolveAgyMode, truncate } from "../extensions/index.js";
 import { registerAgyCommand } from "../extensions/commands.js";
 import { executeAgyTask } from "../extensions/lib/execute.js";
@@ -20,6 +29,7 @@ import { resetPreflightCache } from "../extensions/lib/preflight.js";
 import { withDirLock } from "../extensions/lib/lock.js";
 import { detectVerifyCommand } from "../extensions/lib/verify.js";
 import { summarizeGitDiff } from "../extensions/lib/postflight.js";
+import { loadAgyConfig } from "../extensions/lib/config.js";
 import {
   accumulateRunResult,
   finalizeRunResult,
@@ -74,6 +84,100 @@ describe("buildAgyArgs", () => {
     assert.ok(args.includes("--sandbox"));
     assert.ok(!args.includes("--dangerously-skip-permissions"));
   });
+
+  it("disables slash command expansion in print mode", () => {
+    const args = buildAgyArgs({
+      prompt: "/review everything",
+      mode: "plan",
+      dir: "/tmp",
+      timeout_ms: 60_000,
+    });
+    assert.ok(args.includes("--disable-slash-commands"));
+  });
+
+  it("passes reasoning effort", () => {
+    const args = buildAgyArgs({
+      prompt: "t",
+      mode: "plan",
+      dir: "/tmp",
+      timeout_ms: 60_000,
+      effort: "high",
+    });
+    const idx = args.indexOf("--effort");
+    assert.equal(args[idx + 1], "high");
+  });
+
+  it("can run accept-edits without bypassing permissions", () => {
+    const args = buildAgyArgs({
+      prompt: "t",
+      dir: "/tmp",
+      timeout_ms: 60_000,
+      skipPermissions: false,
+    });
+    assert.ok(!args.includes("--dangerously-skip-permissions"));
+  });
+});
+
+describe("model catalog", () => {
+  it("maps aliases to the newest catalog generation", () => {
+    const catalog = parseModelCatalog(
+      [
+        "Fetching available models...",
+        "gemini-3.6-flash-medium\tGemini 3.6 Flash (Medium)",
+        "gemini-3.8-flash-medium\tGemini 3.8 Flash (Medium)",
+        "gemini-3.8-flash-low\tGemini 3.8 Flash (Low)",
+        "gemini-3.1-pro-high\tGemini 3.1 Pro (High)",
+        "claude-sonnet-4-6\tClaude Sonnet 4.6 (Thinking)",
+      ].join("\n"),
+    );
+    assert.equal(catalog["flash-medium"], "gemini-3.8-flash-medium");
+    assert.equal(catalog["flash-low"], "gemini-3.8-flash-low");
+    assert.equal(catalog["pro-high"], "gemini-3.1-pro-high");
+    assert.equal(catalog.sonnet, "claude-sonnet-4-6");
+    assert.equal(catalog.opus, undefined);
+  });
+
+  it("prefers live catalog entries when building args", () => {
+    resetModelCatalog();
+    updateModelCatalog({ "flash-low": "gemini-9.1-flash-low" });
+    try {
+      const args = buildAgyArgs({
+        prompt: "t",
+        model: "flash-low",
+        dir: "/tmp",
+        timeout_ms: 60_000,
+      });
+      assert.ok(args.includes("gemini-9.1-flash-low"));
+    } finally {
+      resetModelCatalog();
+    }
+  });
+
+  it("falls back to the static map without a catalog", () => {
+    resetModelCatalog();
+    assert.equal(resolveAgyModelId("flash-medium"), "gemini-3.8-flash-medium");
+    assert.equal(resolveAgyModelId(undefined, "flash"), "gemini-3.8-flash-high");
+  });
+
+  it("accepts only known model aliases", () => {
+    assert.ok(isAgyModel("sonnet"));
+    assert.ok(!isAgyModel("gpt-4"));
+    assert.ok(!isAgyModel(undefined));
+  });
+});
+
+describe("isTransientAgyFailure", () => {
+  it("classifies rate limits and network blips as transient", () => {
+    assert.ok(isTransientAgyFailure("agy exited with code 1:\nrate limit exceeded"));
+    assert.ok(isTransientAgyFailure("503 overloaded, try again"));
+    assert.ok(isTransientAgyFailure("fetch failed: socket hang up"));
+  });
+
+  it("does not classify cancellations or hard errors as transient", () => {
+    assert.ok(!isTransientAgyFailure("agy was cancelled (timeout)"));
+    assert.ok(!isTransientAgyFailure("agy exited with code 2:\nunknown flag"));
+    assert.ok(!isTransientAgyFailure("Antigravity CLI not found in PATH."));
+  });
 });
 
 describe("buildAgyPrompt", () => {
@@ -120,6 +224,46 @@ describe("detectVerifyCommand", () => {
     await mkdir(nested, { recursive: true });
     await writeFile(path.join(root, "justfile"), "ci:\n  echo ok\n");
     assert.equal(await detectVerifyCommand(nested), "just ci");
+  });
+
+  it("recognizes hidden .justfile", async () => {
+    const tmp = await mkdtemp(path.join(os.tmpdir(), "pi-agy-verify-"));
+    await writeFile(path.join(tmp, ".justfile"), "ci:\n  echo ok\n");
+    assert.equal(await detectVerifyCommand(tmp), "just ci");
+  });
+
+  it("stops at the repository boundary", async () => {
+    const outer = await mkdtemp(path.join(os.tmpdir(), "pi-agy-verify-"));
+    await writeFile(path.join(outer, "justfile"), "ci:\n  echo ok\n");
+    const repo = path.join(outer, "repo");
+    await mkdir(repo, { recursive: true });
+    await execAsync("git", ["init", "-q"], { cwd: repo });
+    const nested = path.join(repo, "packages", "app");
+    await mkdir(nested, { recursive: true });
+    assert.equal(await detectVerifyCommand(nested), null);
+  });
+
+  it("falls back to npm test when just is not installed", async () => {
+    const tmp = await mkdtemp(path.join(os.tmpdir(), "pi-agy-verify-"));
+    await writeFile(path.join(tmp, "justfile"), "ci:\n  echo ok\n");
+    await writeFile(
+      path.join(tmp, "package.json"),
+      JSON.stringify({ scripts: { test: "node --test" } }),
+    );
+    assert.equal(
+      await detectVerifyCommand(tmp, { justAvailable: async () => false }),
+      "npm test",
+    );
+  });
+
+  it("detects uv run pytest for Python projects", async () => {
+    const tmp = await mkdtemp(path.join(os.tmpdir(), "pi-agy-verify-"));
+    await writeFile(
+      path.join(tmp, "pyproject.toml"),
+      "[project]\nname = 'x'\n[dependency-groups]\ndev = ['pytest']\n",
+    );
+    await writeFile(path.join(tmp, "uv.lock"), "");
+    assert.equal(await detectVerifyCommand(tmp), "uv run pytest");
   });
 });
 
@@ -267,6 +411,60 @@ describe("shared executor", () => {
       assert.ok(progress.some((message) => message.includes("SUCCESS")));
     });
   });
+
+  it("retries once after a transient failure before any work", async () => {
+    const raw =
+      JSON.stringify({ event: "result", result: { response: "recovered", status: "SUCCESS" } }) +
+      "\n";
+    await withFakeAgy(
+      raw,
+      async () => {
+        resetPreflightCache();
+        const progress: string[] = [];
+        const result = await executeAgyTask(
+          {
+            prompt: "inspect the project",
+            mode: "plan",
+            dir: process.cwd(),
+            timeout_ms: 60_000,
+            new_session: true,
+            stream: true,
+          },
+          undefined,
+          (message) => progress.push(message),
+        );
+
+        assert.equal(result.text, "recovered");
+        assert.ok(progress.some((message) => message.includes("retrying")));
+      },
+      1,
+    );
+  });
+
+  it("passes effort and disables slash expansion end to end", async () => {
+    const raw =
+      JSON.stringify({ event: "result", result: { response: "done", status: "SUCCESS" } }) + "\n";
+    await withFakeAgy(raw, async (bin) => {
+      resetPreflightCache();
+      await executeAgyTask(
+        {
+          prompt: "/review then implement",
+          model: "sonnet",
+          effort: "high",
+          mode: "plan",
+          dir: process.cwd(),
+          timeout_ms: 60_000,
+          new_session: true,
+          stream: true,
+        },
+        undefined,
+      );
+
+      const args = await readFakeAgyArgs(bin);
+      assert.ok(args.some((a) => a.includes("--effort") && a.includes("high")));
+      assert.ok(args.some((a) => a.includes("--disable-slash-commands")));
+    });
+  });
 });
 
 describe("/agy command", () => {
@@ -308,6 +506,80 @@ describe("/agy command", () => {
       assert.ok(statuses.some(([, text]) => text?.includes("starting")));
       assert.deepEqual(statuses.at(-1), ["agy", undefined]);
       assert.ok(notifications.some(([message]) => message.includes("direct result")));
+    });
+  });
+
+  it("resumes a recorded conversation via /agy sessions", async () => {
+    const agentDir = await mkdtemp(path.join(os.tmpdir(), "pi-agy-agentdir-"));
+    const cwd = process.cwd();
+    await writeFile(
+      path.join(agentDir, "agy-sessions.json"),
+      JSON.stringify({
+        [cwd]: {
+          history: [
+            {
+              conversation_id: "conv-1111",
+              model: "flash-medium",
+              updated_at: new Date().toISOString(),
+            },
+          ],
+        },
+      }),
+    );
+
+    const raw =
+      JSON.stringify({ event: "result", result: { response: "resumed", status: "SUCCESS" } }) +
+      "\n";
+    await withFakeAgy(raw, async (bin) => {
+      resetPreflightCache();
+      const previousDir = process.env.PI_CODING_AGENT_DIR;
+      process.env.PI_CODING_AGENT_DIR = agentDir;
+      try {
+        let handler:
+          | ((args: string, ctx: ExtensionCommandContext) => Promise<void>)
+          | undefined;
+        const fakePi = {
+          registerCommand: (
+            _name: string,
+            definition: { handler: (args: string, ctx: ExtensionCommandContext) => Promise<void> },
+          ) => {
+            handler = definition.handler;
+          },
+        };
+        registerAgyCommand(fakePi as unknown as ExtensionAPI);
+
+        const selections: string[] = [];
+        const notifications: Array<[string, string | undefined]> = [];
+        await handler!("sessions", {
+          mode: "tui",
+          cwd,
+          signal: undefined,
+          waitForIdle: async () => {},
+          ui: {
+            select: async (_title: string, options: string[]) => {
+              const pick = options[0];
+              selections.push(pick);
+              return pick;
+            },
+            editor: async () => "continue the refactor",
+            confirm: async () => true,
+            setStatus: () => {},
+            notify: (message: string, type?: "info" | "warning" | "error") =>
+              notifications.push([message, type]),
+          },
+        } as unknown as ExtensionCommandContext);
+
+        assert.deepEqual(selections, [
+          "1. flash-medium · just now · conv-111…",
+          "accept-edits — writes files (default)",
+        ]);
+        const args = await readFakeAgyArgs(bin);
+        assert.ok(args.some((a) => a.includes("--conversation") && a.includes("conv-1111")));
+        assert.ok(notifications.some(([message]) => message.includes("resumed")));
+      } finally {
+        if (previousDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
+        else process.env.PI_CODING_AGENT_DIR = previousDir;
+      }
     });
   });
 });
@@ -367,6 +639,25 @@ describe("parseAgyCommandArgs", () => {
     const parsed = parseAgyCommandArgs("");
     assert.deepEqual(parsed, {});
   });
+
+  it("parses continue and timeout tokens", () => {
+    const parsed = parseAgyCommandArgs("continue timeout=10m fix the failing tests");
+    assert.equal(parsed.continue, true);
+    assert.equal(parsed.timeout_ms, 600_000);
+    assert.equal(parsed.prompt, "fix the failing tests");
+  });
+
+  it("parses timeout in seconds, milliseconds, and bare minutes", () => {
+    assert.equal(parseAgyCommandArgs("timeout=90s do it").timeout_ms, 90_000);
+    assert.equal(parseAgyCommandArgs("timeout=8 do it").timeout_ms, 480_000);
+    assert.equal(parseAgyCommandArgs("timeout=1500ms do it").timeout_ms, 1_500);
+  });
+
+  it("does not swallow continue inside the prompt body", () => {
+    const parsed = parseAgyCommandArgs("plan review, then continue");
+    assert.equal(parsed.continue, undefined);
+    assert.equal(parsed.prompt, "review, then continue");
+  });
 });
 
 describe("parseJsonResponse", () => {
@@ -377,6 +668,25 @@ describe("parseJsonResponse", () => {
   it("falls back when response is not text", () => {
     const raw = JSON.stringify({ response: { text: "hello" } });
     assert.equal(parseJsonResponse(raw), raw);
+  });
+});
+
+describe("agy config", () => {
+  it("reads optional overrides from the agent config", async () => {
+    const tmp = await mkdtemp(path.join(os.tmpdir(), "pi-agy-config-"));
+    const file = path.join(tmp, "agy-config.json");
+    await writeFile(file, JSON.stringify({ skipPermissions: false, defaultModel: "sonnet" }));
+    const config = await loadAgyConfig(file);
+    assert.equal(config.skipPermissions, false);
+    assert.equal(config.defaultModel, "sonnet");
+  });
+
+  it("returns defaults for missing or malformed config", async () => {
+    assert.deepEqual(await loadAgyConfig(path.join(os.tmpdir(), "missing-agy-config.json")), {});
+    const tmp = await mkdtemp(path.join(os.tmpdir(), "pi-agy-config-"));
+    const file = path.join(tmp, "agy-config.json");
+    await writeFile(file, "not json");
+    assert.deepEqual(await loadAgyConfig(file), {});
   });
 });
 
@@ -409,19 +719,54 @@ describe("session store", () => {
     const mode = (await statFile(path.join(tmp, "agy-sessions.json"))).mode & 0o777;
     assert.equal(mode, 0o600);
   });
+
+  it("keeps a capped, most-recent-first history per directory", async () => {
+    const tmp = await mkdtemp(path.join(os.tmpdir(), "pi-agy-sessions-"));
+    const store = createSessionStore(path.join(tmp, "agy-sessions.json"));
+
+    await store.saveSession("/p", "c1", "flash-medium");
+    await store.saveSession("/p", "c2", "sonnet");
+    await store.saveSession("/p", "c1", "flash-low");
+
+    const history = await store.getHistory("/p");
+    assert.deepEqual(
+      history.map((entry) => entry.conversation_id),
+      ["c1", "c2"],
+    );
+    assert.equal(history[0].model, "flash-low");
+
+    for (let i = 0; i < 12; i++) await store.saveSession("/p", `extra-${i}`);
+    assert.equal((await store.getHistory("/p")).length, 10);
+  });
 });
 
-async function withFakeAgy<T>(output: string, fn: () => Promise<T>): Promise<T> {
+async function withFakeAgy<T>(
+  output: string,
+  fn: (bin: string) => Promise<T>,
+  failures = 0,
+): Promise<T> {
   const bin = await mkdtemp(path.join(os.tmpdir(), "pi-agy-bin-"));
   const encoded = Buffer.from(output).toString("base64");
   await writeFile(
     path.join(bin, "agy"),
     `#!/usr/bin/env bash
 set -eu
+dir="$(cd "$(dirname "$0")" && pwd)"
+count_file="$dir/invocations"
+n=$(cat "$count_file" 2>/dev/null || echo 0)
+echo $((n + 1)) > "$count_file"
+printf '%s\\n' "$@" > "$dir/args-$n"
 case "$1" in
   --version) echo "agy fake" ;;
   models) echo "fake-model" ;;
   *)
+    print_count_file="$dir/print-invocations"
+    p=$(cat "$print_count_file" 2>/dev/null || echo 0)
+    echo $((p + 1)) > "$print_count_file"
+    if [ "$p" -lt ${failures} ]; then
+      echo "rate limit exceeded, retry later" >&2
+      exit 1
+    fi
     printf '%s\\n' '{"event":"init","init":{"model":"fake"}}'
     printf '%s' '${encoded}' | base64 --decode
     ;;
@@ -433,12 +778,18 @@ esac
   const originalPath = process.env.PATH;
   process.env.PATH = `${bin}${path.delimiter}${originalPath ?? ""}`;
   try {
-    return await fn();
+    return await fn(bin);
   } finally {
     if (originalPath === undefined) delete process.env.PATH;
     else process.env.PATH = originalPath;
     resetPreflightCache();
   }
+}
+
+/** Read the argv recordings left by the fake agy binary, in invocation order. */
+async function readFakeAgyArgs(bin: string): Promise<string[]> {
+  const files = (await readdir(bin)).filter((name) => name.startsWith("args-")).sort();
+  return Promise.all(files.map((name) => readFile(path.join(bin, name), "utf8")));
 }
 
 describe("withDirLock", () => {
@@ -466,5 +817,31 @@ describe("withDirLock", () => {
     releaseFirst();
     await running;
     await withDirLock("cancel-test", async () => {});
+  });
+
+  it("times out while waiting for a previous run", async () => {
+    let releaseFirst!: () => void;
+    let firstStarted!: () => void;
+    const started = new Promise<void>((resolve) => {
+      firstStarted = resolve;
+    });
+    const first = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+
+    const running = withDirLock("deadline-test", async () => {
+      firstStarted();
+      await first;
+    });
+    await started;
+
+    await assert.rejects(
+      withDirLock("deadline-test", async () => "never", undefined, 50),
+      /timed out waiting/,
+    );
+
+    releaseFirst();
+    await running;
+    assert.equal(await withDirLock("deadline-test", async () => "ok"), "ok");
   });
 });
