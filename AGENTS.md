@@ -1,81 +1,89 @@
 # AGENTS.md
 
-Shared contract for projects and infrastructure. A project's `AGENTS.md` is more
-specific and overrides this file.
+Shared baseline for projects and infrastructure. A more-specific `AGENTS.md`
+applies to work below its directory.
+
+## Instruction precedence
+
+1. Safety, security, and explicit user constraints always apply.
+2. The nearest applicable project `AGENTS.md` overrides this file's workflow,
+   tooling, and style guidance.
+3. A project file must not weaken safety rules or authorize destructive actions
+   that this file forbids.
 
 ## Before acting
 
-- Read the applicable project `AGENTS.md` and matching skill.
-- Project instructions define stack, commands/CI, docs, worksheets, feedback,
-  review, deployment, and local tools.
-- Use `just ci` as the local gate when provided.
+- Locate and read the nearest applicable `AGENTS.md` files, then identify the
+  skill relevant to the task. If a required skill is unavailable, use the
+  documented fallback and report that limitation.
+- Inspect `git status` before editing and preserve unrelated local changes.
+- Project instructions define the stack, commands/CI, docs, worksheets,
+  feedback, review, deployment, and local tools.
+- Use `just ci` as the local gate when provided. If it is unavailable or cannot
+  run, report the skipped check and why.
 
 ## Safety and completion
 
-- Keep registry credentials in the root gitignored `npmrc` source, never tracked
-  `~/.npmrc`.
-- TypeScript type-only imports use `import type`; Python uses `uv run`.
+- When a repository uses a registry, keep credentials in its root gitignored
+  `npmrc` source. Never print, track, or copy credentials from `~/.npmrc`.
+- When writing TypeScript, use `import type` for type-only imports. When using
+  Python in project-atom, use `uv run`.
 - Use explicit non-interactive Git commands. Never open an editor or run
-  `rebase -i`; use `GIT_EDITOR=true git rebase --continue`. On revert or
-  cherry-pick, use `-m` to select the merge parent.
-- Verify the real gate before claiming success; report skipped checks.
-- Request independent review before merging substantial work: dispatch the
-  configured read-only `reviewer` agent (see `docs/patterns/uncle-bob-gauntlet.md`).
-- Before ending a session, run `docs/patterns/end-of-shift.md` and commit
-  feedback using `docs/patterns/session-feedback.md`.
+  `rebase -i`; use `GIT_EDITOR=true git rebase --continue`. For revert or
+  cherry-pick of a merge commit, use `-m <parent>`; ordinary commits do not
+  need `-m`.
+- Do not use `git reset --hard`, `git clean`, force-push, or destructive
+  deployment/migration commands unless explicitly authorized for that task.
+- Verify the real gate before claiming success and report skipped checks.
+- For substantial implementation changes, request an independent read-only
+  review before merging. Use the configured `reviewer` agent when available
+  (see `docs/patterns/uncle-bob-gauntlet.md`); otherwise report the limitation.
+- For implementation sessions, follow `docs/patterns/end-of-shift.md` as an
+  applicable checklist. It is documentation, not a command. Do not commit or
+  push automatically: do so only when explicitly requested or when the project
+  workflow clearly authorizes it, and never include unrelated changes. Record
+  feedback only when the project workflow requires it.
 
-## Completion discipline (no "go on" loop)
+## Completion discipline
 
-Treat every prompt as a complete work order, not a single step. Do not stop at
-natural boundaries waiting for a nudge; carry the task through to done.
+Treat every prompt as a complete, scoped work order. Do not stop at a natural
+boundary waiting for a nudge.
 
-- **Scope the whole task first**: list the steps, define what done means
-  (tests, gate, commit), and state any assumptions before acting.
-- **Keep going through verification**: implement, run the real gate
-  (`just ci` where provided), fix failures, then commit when green.
-- **Don't fish for permission**: decide with the available context; if a
-  tradeoff needs input, make the sensible default and flag it in the summary
-  instead of round-tripping.
-- **Stop only when genuinely blocked or the work is provably complete** — never
-  because a step happened to finish. If blocked, report the blocker and the
-  minimal unblock, don't ask open-ended questions.
-- For long-running or multi-phase work, prefer `/goal <task>` so continuation
-  is automatic; reserve one-word nudges for steering, not permission.
+- Scope the requested task first and define done appropriately: implementation
+  may require tests, review, and a gate; review or exploration may require only
+  evidence and a report. Commit only when authorized by the rule above.
+- Keep going through implementation and verification, fixing failures before
+  claiming completion.
+- Make sensible decisions from available context. Ask only for information or
+  authorization that cannot be safely inferred; otherwise state assumptions
+  and tradeoffs in the summary.
+- Stop only when genuinely blocked or the work is provably complete. If
+  blocked, report the blocker and the minimal unblock.
+- For long-running or multi-phase work, use the project's supported continuation
+  mechanism (for example, `/goal <task>`) when available.
 
-Useful patterns: `agent-tools.md`, `agent-night-shift.md`, `visual-regression.md`,
-`commit-sweep.md`, `uncle-bob-gauntlet.md`, `test-audit.md`,
-`performance-benchmarks.md`, and `profiling-tools.md` under `docs/patterns/`.
+Useful patterns, when applicable: `docs/patterns/agent-tools.md`,
+`agent-night-shift.md`, `visual-regression.md`, `commit-sweep.md`,
+`uncle-bob-gauntlet.md`, `test-audit.md`, `performance-benchmarks.md`, and
+`profiling-tools.md`.
 
 ## Skills and delegation
 
 Core skills live in `$HOME/.agents/skills/`; project skills live in `.pi/skills/`.
-Read the applicable skill before acting. In particular, read
-`$HOME/.agents/skills/herdr/SKILL.md` before using Herdr; also read
-`$HOME/.agents/skills/fleet/SKILL.md` for multi-issue fleet orchestration.
+Select a skill based on the task rather than reading every skill. In particular,
+read `$HOME/.agents/skills/herdr/SKILL.md` before using Herdr and
+`$HOME/.agents/skills/fleet/SKILL.md` before multi-issue fleet orchestration.
+
 Use `worker` for implementation/exploration and `reviewer` for read-only review.
-Delegate via named Herdr agents (`herdr_agents` from pi-shepherdr); run review agents read-only
-(`--tools read,grep,find,ls`). Never nest agents. Use `herdr` only in Herdr, `grill-me`
-only when asked, and `jules-orchestration` for Jules. Use `teach` for teaching.
-Use `agy_execute` (pi-agy) for bulk scaffolding, repetitive refactors, and exhaustive
-test generation on Antigravity quota: default to `mode=plan`, use `accept-edits` only
-for scoped batches, and always review the diff and run `just ci` after writes. Reuse
-`conversation_id`/`continue` for multi-step handoffs. Prefer Cursor for interactive
-work and Herdr for multi-agent review; use agy when burning Antigravity quota on
-batch produce.
-Cloudflare skills are scoped to nursultan-web; `uv` is scoped to project-atom.
-Coordinate related sessions through pi-intercom; use `ask` only when blocked.
+Delegate via named Herdr agents (`herdr_agents` from pi-shepherdr) when Herdr is
+available; run review agents read-only (`--tools read,grep,find,ls`). Never nest
+agents. Use `herdr` only in Herdr, `grill-me` only when asked, and
+`jules-orchestration` for Jules. Use `teach` for teaching.
 
-## Pi
-
-Sessions: `pi/agent/sessions/`. Commands: `just pi-stats`, `just pi-session-size`,
-`just pi-prune-sessions`.
-
-`~/dotfiles/pi/agent/extensions/` is the extension source of truth; synchronize
-matching files under `~/.pi/agent/extensions/`. The global masking config is
-gitignored and may contain real secrets: never print or commit it. Use native
-llama.cpp support (`/llama`, `/login llama.cpp`, `LLAMA_BASE_URL`).
-
-Quota coverage: agentq's `quota.json` tracks only opencode-go and codex
-windows — there is no Antigravity (agy) quota signal (brain transcripts carry
-no model attribution). agy model defaults steer by usage balance via
-`bin/agy-default-model.sh`, not quota windows.
+Use `agy_execute` (pi-agy) for bulk scaffolding, repetitive refactors, and
+exhaustive test generation: default to `mode=plan`, use `accept-edits` only for
+scoped batches, and always review the diff and run the project gate after writes.
+Reuse `conversation_id`/`continue` for multi-step handoffs. Prefer Cursor for
+interactive work and Herdr for multi-agent review; use agy for batch work.
+Cloudflare skills are scoped to nursultan-web, and `uv` is scoped to project-atom.
+Coordinate related sessions through pi-intercom when available.
