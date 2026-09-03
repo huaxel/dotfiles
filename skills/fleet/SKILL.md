@@ -78,7 +78,7 @@ Start the review agent with read-only tools (`herdr agent start <name> --kind pi
 Pick helper models with the quota-aware resolver, not by habit:
 
 ```bash
-~/projects/agentq/bin/resolve-model.sh small    # → e.g. opencode-go/deepseek-v4-flash
+~/projects/agentq/bin/resolve-model.sh small    # → configured provider/model
 ~/projects/agentq/bin/resolve-model.sh medium
 ~/projects/agentq/bin/resolve-model.sh big
 ~/projects/agentq/bin/resolve-model.sh check <model>   # validate a model has headroom

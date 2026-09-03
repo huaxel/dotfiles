@@ -9,8 +9,7 @@
     "commandcode/xiaomi/mimo-v2.5",
     "commandcode/tencent/hy3-paid",
     "commandcode/meta/muse-spark-1.2-contributor",
-    "openference/*",
-    "opencode-go/deepseek-v4-flash"
+    "openference/*"
   ],
   "lastChangelogVersion": "0.0.0",
   "theme": "ghostty-sync-b59692fc",
@@ -35,7 +34,6 @@
     },
     "../packages/pi-commandcode-provider",
     "npm:@ogulcancelik/pi-auto-permissions@0.1.4",
-    "../packages/pi-multi-opencode-go",
     "../packages/pi-dynamic-footer",
     "../packages/pi-ghostty-theme-sync",
     "git:github.com/huaxel/pi-ask-herdr@fe6b4e8020b03f950cc458630fa59e774b026e7d",
