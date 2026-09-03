@@ -220,10 +220,19 @@ services.juan.framearchAi = {
 Before enabling the system services, set
 `services.juan.framearchUser.enableMemoryfieldEmbed = false` in the Home
 Manager profile. Then build, inspect, boot, test health/embedding endpoints,
-and verify rollback before making the new system the default boot entry. A
-disposable VM build and serial-console boot have been verified locally; that
-only validates NixOS/systemd assembly, not AMD passthrough, the real model disk,
-or the external `/opt/cachy-llama` runtime.
+and verify rollback before making the new system the default boot entry.
+
+A disposable VM has validated the service layer with the pinned package
+enabled: all three units install, the router and embedding services run as
+`juan` (not root) with the render/video/audio groups, `ExecStart` resolves to
+the store-path `llama-server` and actually executes (restart loop on the
+absent model preset, as expected without the real disk), the environment
+carries `LLAMA_ARG_MODELS_PRESET`, the socat forwarder binds port 80 as a
+non-root user via `CAP_NET_BIND_SERVICE`, the embedding wrapper exhausts its
+Tailscale retry loop and fails closed, and the `nofail` model mount does not
+block boot when the disk is absent. Still untested: real AMD Vulkan
+passthrough, the physical `/mnt/ai_models` disk, real inference, and the
+external `/opt/cachy-llama` fallback.
 
 ## Migration order
 
