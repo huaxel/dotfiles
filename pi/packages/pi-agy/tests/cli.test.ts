@@ -29,7 +29,7 @@ import { resetPreflightCache } from "../extensions/lib/preflight.js";
 import { withDirLock } from "../extensions/lib/lock.js";
 import { detectVerifyCommand } from "../extensions/lib/verify.js";
 import { summarizeGitDiff } from "../extensions/lib/postflight.js";
-import { loadAgyConfig } from "../extensions/lib/config.js";
+import { loadAgyConfig, resetDefaultModelCache, resolveDefaultModel } from "../extensions/lib/config.js";
 import {
   accumulateRunResult,
   finalizeRunResult,
@@ -441,6 +441,44 @@ describe("shared executor", () => {
     );
   });
 
+  it("resolves the default model from the configured command", async () => {
+    const agentDir = await mkdtemp(path.join(os.tmpdir(), "pi-agy-agentdir-"));
+    await writeFile(
+      path.join(agentDir, "agy-config.json"),
+      JSON.stringify({ defaultModelCommand: "echo sonnet" }),
+    );
+
+    const raw =
+      JSON.stringify({ event: "result", result: { response: "ok", status: "SUCCESS" } }) + "\n";
+    await withFakeAgy(raw, async (bin) => {
+      resetPreflightCache();
+      resetDefaultModelCache();
+      const previousDir = process.env.PI_CODING_AGENT_DIR;
+      process.env.PI_CODING_AGENT_DIR = agentDir;
+      try {
+        const result = await executeAgyTask(
+          {
+            prompt: "inspect the project",
+            mode: "plan",
+            dir: process.cwd(),
+            timeout_ms: 60_000,
+            new_session: true,
+            stream: true,
+          },
+          undefined,
+        );
+
+        assert.equal(result.details.model, "sonnet");
+        const args = await readFakeAgyArgs(bin);
+        assert.ok(args.some((a) => a.includes("--model") && a.includes("sonnet")));
+      } finally {
+        if (previousDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
+        else process.env.PI_CODING_AGENT_DIR = previousDir;
+        resetDefaultModelCache();
+      }
+    });
+  });
+
   it("passes effort and disables slash expansion end to end", async () => {
     const raw =
       JSON.stringify({ event: "result", result: { response: "done", status: "SUCCESS" } }) + "\n";
@@ -687,6 +725,45 @@ describe("agy config", () => {
     const file = path.join(tmp, "agy-config.json");
     await writeFile(file, "not json");
     assert.deepEqual(await loadAgyConfig(file), {});
+  });
+});
+
+describe("resolveDefaultModel", () => {
+  it("prefers an explicit defaultModel over the command", async () => {
+    resetDefaultModelCache();
+    const alias = await resolveDefaultModel({
+      defaultModel: "opus",
+      defaultModelCommand: "echo sonnet",
+    });
+    assert.equal(alias, "opus");
+  });
+
+  it("uses valid command output", async () => {
+    resetDefaultModelCache();
+    assert.equal(await resolveDefaultModel({ defaultModelCommand: "echo sonnet" }), "sonnet");
+  });
+
+  it("ignores invalid output, failures, and empty commands", async () => {
+    resetDefaultModelCache();
+    assert.equal(await resolveDefaultModel({ defaultModelCommand: "echo gpt-4" }), undefined);
+    resetDefaultModelCache();
+    assert.equal(await resolveDefaultModel({ defaultModelCommand: "exit 1" }), undefined);
+    resetDefaultModelCache();
+    assert.equal(await resolveDefaultModel({ defaultModelCommand: "   " }), undefined);
+    resetDefaultModelCache();
+    assert.equal(await resolveDefaultModel({}), undefined);
+  });
+
+  it("caches the command result within the TTL", async () => {
+    resetDefaultModelCache();
+    const tmp = await mkdtemp(path.join(os.tmpdir(), "pi-agy-default-"));
+    const counter = path.join(tmp, "runs");
+    const command = `echo x >> ${counter}; echo flash-high`;
+    assert.equal(await resolveDefaultModel({ defaultModelCommand: command }), "flash-high");
+    assert.equal(await resolveDefaultModel({ defaultModelCommand: command }), "flash-high");
+    const runs = (await readFile(counter, "utf8")).split("\n").filter(Boolean).length;
+    assert.equal(runs, 1);
+    resetDefaultModelCache();
   });
 });
 

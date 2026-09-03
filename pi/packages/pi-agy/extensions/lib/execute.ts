@@ -3,13 +3,12 @@ import { stat } from "node:fs/promises";
 import {
   buildAgyPrompt,
   detectVerifyCommand,
-  isAgyModel,
   isTransientAgyFailure,
   spawnAgyStream,
   type AgyEffort,
   type AgyModel,
 } from "./cli.js";
-import { loadAgyConfig } from "./config.js";
+import { loadAgyConfig, resolveDefaultModel } from "./config.js";
 import type { AgyUsage } from "./stream.js";
 import { withDirLock } from "./lock.js";
 import { summarizeGitDiff } from "./postflight.js";
@@ -58,7 +57,9 @@ export async function executeAgyTask(
 ): Promise<AgyExecutionResult> {
   const abortSignal = signal ?? new AbortController().signal;
   const config = await loadAgyConfig();
-  const model = options.model ?? (isAgyModel(config.defaultModel) ? config.defaultModel : undefined);
+  // Resolution order: explicit call model → static defaultModel →
+  // defaultModelCommand (e.g. quota-aware resolver) → flash-medium.
+  const model = options.model ?? (await resolveDefaultModel(config));
   const skipPermissions = config.skipPermissions !== false;
 
   // The budget covers lock wait + preflight + the agy run itself, so a call
