@@ -79,6 +79,29 @@ INSTALL_NIX_HOME=1 ./bootstrap.sh
 The shortcut refuses to activate if Nix or the age key is missing; use
 `NIX_PROFILE=...` when automatic host detection is not appropriate.
 
+## Taking over an existing Dotter machine
+
+Machines that already deploy via Dotter (arch-wsl, macbook) must hand over
+ownership in the right order after pulling the Home Manager pilot. Run, in
+this order:
+
+```bash
+git pull
+dotter deploy                  # removes the now-unmapped repo symlinks
+just nix-switch juan@arch-wsl   # or juan@macbook
+```
+
+`dotter deploy` first is deliberate: with the mappings gone but the targets
+still pointing at the repo, Dotter deletes the old symlinks and purges its
+cache entries cleanly. The Home Manager switch then creates the store-owned
+links with no conflicts. There is only a brief window (between the two
+commands) where the migrated files are absent.
+
+If the switch runs first instead, Dotter skips the store-owned links with
+`[ERROR] ... doesn't point at source` warnings on every later deploy until
+the stale entries are removed from `.dotter/cache.toml` by hand. framearch
+already completed this takeover; its cache was purged directly.
+
 ## Host boundaries
 
 - `home/common.nix`: shared user packages and environment.
