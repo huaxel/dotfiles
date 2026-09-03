@@ -86,11 +86,20 @@ Pick helper models with the quota-aware resolver, not by habit:
 
 - **Routine work** (review, scout, quick fixes): `small`/`medium` tier.
 - **Escalate only when the task warrants it** (architecture, concurrency, security, hard diagnosis): `big`.
-- Before a batch, take a snapshot: `opencode_usage({})` — per-provider quota windows, recent spend per model, OpenCode Go dashboard windows and cooldowns. Optionally look up a model's price: `opencode_usage({ model: "deepseek-v4-flash" })`.
+- Before a batch, take a live snapshot for the providers actually in use with
+  the configured usage tool (for example, `opencode_usage({})` when available):
+  check quota windows and recent spend. Optionally look up a configured model's
+  price with `opencode_usage({ model: "<provider/model>" })`.
 - If quota is high or cooldowns are active, spread dispatches or downgrade a tier — provider aborts ("This operation was aborted") are a quota symptom; retrying into a cooled-down provider is slower than pacing.
 - Pass the resolved model explicitly when starting helpers: `herdr agent start <name> --kind pi --pane <id> -- --model <model>`.
 
-**Providers change over time** (added/removed ifv price, e.g. nous portal). The live provider set is derived from `~/.pi/agent/auth.json` — `opencode_usage` lists it; never assume a provider still exists from memory. When the user adds or removes a provider, the agentq data pipeline must follow: refresh pricing/quota collection (agentq `bin/collect-*.js`, cron-update-tiers.sh) and the tier lists in `agentq/src/lib/quota-resolver.js`. If a configured provider is missing from `opencode_usage`'s output, flag it instead of silently picking from the old set.
+**Providers change over time** (added, removed, or repriced). The live provider
+set is derived from `~/.pi/agent/auth.json` — the usage tool lists it; never
+assume a provider still exists from memory. When the user adds or removes a
+provider, the agentq data pipeline must follow: refresh pricing/quota
+collection (agentq `bin/collect-*.js`, `cron-update-tiers.sh`) and the tier lists
+in `agentq/src/lib/quota-resolver.js`. If a configured provider is missing from
+the live usage output, flag it instead of silently picking from the old set.
 
 ### 4. Merge and cleanup
 
