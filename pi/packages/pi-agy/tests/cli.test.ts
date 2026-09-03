@@ -23,6 +23,7 @@ import {
   updateModelCatalog,
 } from "../extensions/lib/cli.js";
 import { resolveAgyMode, truncate } from "../extensions/index.js";
+import piAgyExtension from "../extensions/index.js";
 import { registerAgyCommand } from "../extensions/commands.js";
 import { executeAgyTask } from "../extensions/lib/execute.js";
 import { resetPreflightCache } from "../extensions/lib/preflight.js";
@@ -382,6 +383,22 @@ describe("resolveAgyMode", () => {
   });
 });
 
+describe("extension registration", () => {
+  it("registers the /agy command and the agy_execute tool", () => {
+    const commands: string[] = [];
+    const tools: Array<{ name: string; parameters?: unknown }> = [];
+    const fakePi = {
+      registerCommand: (name: string) => commands.push(name),
+      registerTool: (tool: { name: string; parameters?: unknown }) => tools.push(tool),
+    };
+    piAgyExtension(fakePi as unknown as ExtensionAPI);
+    assert.deepEqual(commands, ["agy"]);
+    assert.equal(tools.length, 1);
+    assert.equal(tools[0].name, "agy_execute");
+    assert.ok(tools[0].parameters);
+  });
+});
+
 describe("shared executor", () => {
   it("runs agy directly and returns progress plus structured details", async () => {
     const raw =
@@ -506,6 +523,34 @@ describe("shared executor", () => {
 });
 
 describe("/agy command", () => {
+  it("completes modes, models, continue, and sessions from a bare prefix", () => {
+    let getCompletions: ((prefix: string) => Array<{ value: string }> | null) | undefined;
+    const fakePi = {
+      registerCommand: (
+        _name: string,
+        definition: {
+          getArgumentCompletions?: (prefix: string) => Array<{ value: string }> | null;
+        },
+      ) => {
+        getCompletions = definition.getArgumentCompletions;
+      },
+    };
+    registerAgyCommand(fakePi as unknown as ExtensionAPI);
+    assert.ok(getCompletions);
+
+    const bare = getCompletions!("").map((c) => c.value);
+    for (const expected of ["plan", "flash", "sonnet", "continue", "sessions"]) {
+      assert.ok(bare.includes(expected), `missing completion: ${expected}`);
+    }
+
+    const afterMode = getCompletions!("plan ").map((c) => c.value);
+    assert.ok(afterMode.includes("flash-medium"));
+    assert.ok(afterMode.includes("continue"));
+    assert.ok(!afterMode.includes("plan"));
+
+    assert.equal(getCompletions!("plan flash review the diff"), null);
+  });
+
   it("executes directly without sending a second user message", async () => {
     const raw =
       JSON.stringify({ event: "result", result: { response: "direct result", status: "SUCCESS" } }) +
