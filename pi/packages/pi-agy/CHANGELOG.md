@@ -7,7 +7,7 @@
 - Retry once when agy fails with a transient error (rate limit, network) before emitting any progress.
 - Add an `effort` tool parameter passed through to `--effort`.
 - Pass `--disable-slash-commands` so task text never triggers agy slash/skill expansion.
-- Add optional `agy-config.json` with `skipPermissions` and `defaultModel`; record `permissions_skipped` in tool details.
+- Add optional `agy-config.json` with `skipPermissions`, `defaultModel`, and `defaultModelCommand` (quota/usage-aware default resolution); record `permissions_skipped` in tool details.
 - `/agy continue`, `/agy timeout=10m`, and `/agy sessions` conversation picker; status updates throttled.
 - Session store keeps up to 10 recent conversations per directory.
 - Bound verify-command detection at the repository root; recognize `.justfile`, check the `just` binary, and add `uv run pytest` detection.

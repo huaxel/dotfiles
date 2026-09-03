@@ -86,8 +86,17 @@ Optional `$PI_CODING_AGENT_DIR/agy-config.json` (default
   for `accept-edits` runs. Set `false` to leave agy's own permission checks in
   place; note print mode has no interactive approval path, so restricted
   operations may fail instead of prompting.
-- `defaultModel` — alias used when `agy_execute` omits `model`/`tier`. An
-  external quota-aware resolver can rewrite this file to steer the default.
+- `defaultModel` — alias used when `agy_execute` omits `model`/`tier`.
+- `defaultModelCommand` — shell command whose stdout sets the default alias
+  when `defaultModel` is unset (an explicit `defaultModel` always wins).
+  Must print one valid alias; failures and invalid output fall back to the
+  built-in default. Result cached ~5 min per process.
+
+The dotfiles wire this to `bin/agy-default-model.sh`, which steers the
+  default across agy's quota families by recent usage balance: when the
+  Gemini group (flash/pro) carried ≥75% of the last 24h of recorded
+  conversations (min 3), the default flips to `sonnet` so routine delegation
+  rests the hot group.
 
 Tool results record `permissions_skipped` in `details` for auditability.
 
