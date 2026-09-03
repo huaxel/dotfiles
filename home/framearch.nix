@@ -22,6 +22,8 @@ let
   '';
 in
 {
+  imports = [ ./linux-desktop.nix ];
+
   options.services.juan.framearchUser = {
     enableMemoryfieldEmbed = lib.mkOption {
       type = lib.types.bool;

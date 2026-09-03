@@ -17,7 +17,9 @@ The pilot manages a shared package baseline, the Brewfile, session variables,
 the two framearch user systemd services, Nushell, Starship, Git, the global Git ignore
 file, Neovim, Ghostty, mise, Herdr, the static CI tree, the tracked Zed
 keymap, eza, the shared icon helper, the web-search wrapper, the static llama
-project files, the llama statistics bridge script, and the three encrypted secret
+project files, the Wayland desktop session configs (sway, waybar, wofi, walker,
+llamaman, xkb), the llama
+statistics bridge script, and the three encrypted secret
 destinations through sops-nix. Dotter remains the owner of the remaining
 configuration paths. Do not run
 `home-manager switch` after adding a file to `home.file` until the matching
@@ -80,6 +82,9 @@ The shortcut refuses to activate if Nix or the age key is missing; use
 ## Host boundaries
 
 - `home/common.nix`: shared user packages and environment.
+- `home/linux-desktop.nix`: Linux desktop configs (sway, waybar, wofi, walker,
+  llamaman, xkb) imported by both Linux profiles, replacing the Dotter
+  "linux" package.
 - `home/framearch.nix`: physical CachyOS desktop, model-storage paths, and
   the laptop model preset.
 - `home/arch-wsl.nix`: WSL interop and Windows-mounted paths.
