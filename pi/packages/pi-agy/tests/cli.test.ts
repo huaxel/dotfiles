@@ -470,7 +470,7 @@ describe("shared executor", () => {
 
         assert.equal(result.details.model, "sonnet");
         const args = await readFakeAgyArgs(bin);
-        assert.ok(args.some((a) => a.includes("--model") && a.includes("sonnet")));
+        assert.ok(args.some((argv) => hasFlagPair(argv, "--model", "claude-sonnet-4-6")));
       } finally {
         if (previousDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
         else process.env.PI_CODING_AGENT_DIR = previousDir;
@@ -499,8 +499,8 @@ describe("shared executor", () => {
       );
 
       const args = await readFakeAgyArgs(bin);
-      assert.ok(args.some((a) => a.includes("--effort") && a.includes("high")));
-      assert.ok(args.some((a) => a.includes("--disable-slash-commands")));
+      assert.ok(args.some((argv) => hasFlagPair(argv, "--effort", "high")));
+      assert.ok(args.some((argv) => argv.includes("--disable-slash-commands")));
     });
   });
 });
@@ -612,7 +612,7 @@ describe("/agy command", () => {
           "accept-edits — writes files (default)",
         ]);
         const args = await readFakeAgyArgs(bin);
-        assert.ok(args.some((a) => a.includes("--conversation") && a.includes("conv-1111")));
+        assert.ok(args.some((argv) => hasFlagPair(argv, "--conversation", "conv-1111")));
         assert.ok(notifications.some(([message]) => message.includes("resumed")));
       } finally {
         if (previousDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
@@ -835,12 +835,16 @@ echo $((n + 1)) > "$count_file"
 printf '%s\\n' "$@" > "$dir/args-$n"
 case "$1" in
   --version) echo "agy fake" ;;
-  models) echo "fake-model" ;;
+  models)
+    echo "fake-model"
+    echo "gemini-9.9-flash-medium is deprecated, use the latest" >&2
+    ;;
   *)
     print_count_file="$dir/print-invocations"
     p=$(cat "$print_count_file" 2>/dev/null || echo 0)
     echo $((p + 1)) > "$print_count_file"
     if [ "$p" -lt ${failures} ]; then
+      printf '%s\\n' '{"event":"init","init":{"model":"fake"}}'
       echo "rate limit exceeded, retry later" >&2
       exit 1
     fi
@@ -864,10 +868,83 @@ esac
 }
 
 /** Read the argv recordings left by the fake agy binary, in invocation order. */
-async function readFakeAgyArgs(bin: string): Promise<string[]> {
+async function readFakeAgyArgs(bin: string): Promise<string[][]> {
   const files = (await readdir(bin)).filter((name) => name.startsWith("args-")).sort();
-  return Promise.all(files.map((name) => readFile(path.join(bin, name), "utf8")));
+  const contents = await Promise.all(files.map((name) => readFile(path.join(bin, name), "utf8")));
+  return contents.map((content) => content.split("\n").filter(Boolean));
 }
+
+function hasFlagPair(argv: string[], flag: string, value: string): boolean {
+  const index = argv.indexOf(flag);
+  return index !== -1 && argv[index + 1] === value;
+}
+
+describe("agy-default-model.sh", () => {
+  const wrapper = path.join(os.homedir(), "dotfiles", "bin", "agy-default-model.sh");
+
+  async function runWrapper(agentDir: string): Promise<string> {
+    const { stdout } = await execAsync(wrapper, [], {
+      env: { ...process.env, PI_CODING_AGENT_DIR: agentDir },
+    });
+    return stdout.trim();
+  }
+
+  it("flips to sonnet on gemini-heavy usage", async () => {
+    const agentDir = await mkdtemp(path.join(os.tmpdir(), "pi-agy-balance-"));
+    const now = new Date().toISOString();
+    await writeFile(
+      path.join(agentDir, "agy-sessions.json"),
+      JSON.stringify({
+        "/p": {
+          history: [
+            { conversation_id: "a", model: "flash-medium", updated_at: now },
+            { conversation_id: "b", model: "flash-high", updated_at: now },
+            { conversation_id: "c", model: "pro-high", updated_at: now },
+          ],
+        },
+      }),
+    );
+    assert.equal(await runWrapper(agentDir), "sonnet");
+  });
+
+  it("keeps the default on sparse usage", async () => {
+    const agentDir = await mkdtemp(path.join(os.tmpdir(), "pi-agy-balance-"));
+    const now = new Date().toISOString();
+    await writeFile(
+      path.join(agentDir, "agy-sessions.json"),
+      JSON.stringify({
+        "/p": {
+          history: [
+            { conversation_id: "a", model: "flash-medium", updated_at: now },
+            { conversation_id: "b", model: "flash-medium", updated_at: now },
+          ],
+        },
+      }),
+    );
+    assert.equal(await runWrapper(agentDir), "flash-medium");
+  });
+
+  it("does not double-count the latest conversation across store fields", async () => {
+    const agentDir = await mkdtemp(path.join(os.tmpdir(), "pi-agy-balance-"));
+    const now = new Date().toISOString();
+    await writeFile(
+      path.join(agentDir, "agy-sessions.json"),
+      JSON.stringify({
+        "/p": {
+          last_conversation_id: "a",
+          last_model: "flash-medium",
+          updated_at: now,
+          history: [
+            { conversation_id: "a", model: "flash-medium", updated_at: now },
+            { conversation_id: "b", model: "flash-medium", updated_at: now },
+          ],
+        },
+      }),
+    );
+    // Two real conversations — below the minimum of three, so no flip.
+    assert.equal(await runWrapper(agentDir), "flash-medium");
+  });
+});
 
 describe("withDirLock", () => {
   it("allows a queued call to cancel without blocking later work", async () => {

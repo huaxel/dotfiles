@@ -12,6 +12,7 @@ import {
   parseStreamLine,
   type AgyProgressHandler,
   type AgyRunResult,
+  type AgyStreamLine,
 } from "./stream.js";
 
 export { detectVerifyCommand } from "./verify.js";
@@ -61,6 +62,8 @@ export interface AgyOptions {
 }
 
 const PREFLIGHT_TIMEOUT_MS = 10_000;
+// Raw stdout capture bound; only used as the non-streaming fallback — the
+// stream-json path accumulates results incrementally and is not capped by it.
 const MAX_CAPTURE_BYTES = 64 * 1024;
 
 // Static fallback for when `agy models` output is unavailable. The live
@@ -121,7 +124,25 @@ function compareModelIds(a: string, b: string): number {
   const versionA = /^gemini-(\d+(?:\.\d+)*)-/.exec(a)?.[1];
   const versionB = /^gemini-(\d+(?:\.\d+)*)-/.exec(b)?.[1];
   if (versionA && versionB) return compareDottedVersions(versionA, versionB);
-  return a < b ? -1 : a > b ? 1 : 0;
+  // Numeric-aware compare so claude-sonnet-4-10 sorts above claude-sonnet-4-6.
+  return compareNatural(a, b);
+}
+
+function compareNatural(a: string, b: string): number {
+  const sa = a.split(/(\d+)/);
+  const sb = b.split(/(\d+)/);
+  for (let i = 0; i < Math.max(sa.length, sb.length); i++) {
+    const pa = sa[i] ?? "";
+    const pb = sb[i] ?? "";
+    if (pa === pb) continue;
+    if (/^\d+$/.test(pa) && /^\d+$/.test(pb)) {
+      const na = Number(pa);
+      const nb = Number(pb);
+      if (na !== nb) return na < nb ? -1 : 1;
+    }
+    return pa < pb ? -1 : 1;
+  }
+  return 0;
 }
 
 function compareDottedVersions(a: string, b: string): number {
@@ -302,11 +323,18 @@ async function runPreflightCommand(
   });
 
   const stdoutText = capture ? Buffer.concat(stdout).toString("utf8") : "";
-  return `${stdoutText}\n${Buffer.concat(stderr).toString("utf8")}`;
+  // Stdout only: stderr diagnostics must never leak into catalog parsing.
+  return stdoutText;
 }
 
 export function spawnAgy(options: AgyOptions, signal: AbortSignal): Promise<string> {
   return spawnAgyInternal(options, signal).then((result) => result.response);
+}
+
+/** Real agy work (tool steps / model responses), as opposed to lifecycle chatter. */
+function isActivityProgress(parsed: AgyStreamLine): boolean {
+  const step = parsed.step_update;
+  return step?.step_type === "tool" || step?.step_type === "agent_response";
 }
 
 export function spawnAgyStream(
@@ -353,7 +381,7 @@ function spawnAgyInternal(
         runResult = accumulateRunResult(parsed, runResult);
         if (onProgress) {
           const progress = formatStepProgress(parsed);
-          if (progress) onProgress(progress);
+          if (progress) onProgress(progress, isActivityProgress(parsed) ? "activity" : "status");
         }
       }
     });

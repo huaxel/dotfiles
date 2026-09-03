@@ -13,6 +13,14 @@
 - Bound verify-command detection at the repository root; recognize `.justfile`, check the `just` binary, and add `uv run pytest` detection.
 - Accumulate stream-json results regardless of whether a progress callback is attached.
 
+## Post-review fixes (sonnet cross-review of b87019f + c65bb4a)
+
+- Parse only stdout when refreshing the model catalog — stderr diagnostics can no longer pollute alias resolution.
+- Numeric-aware model comparison so `claude-sonnet-4-10` sorts above `claude-sonnet-4-6`.
+- Retry eligibility now requires real agy activity (tool steps / model responses); session-start chatter no longer suppresses the transient retry.
+- The timeout budget starts before config/default-model resolution so a slow resolver cannot eat into it unaccounted.
+- `agy-default-model.sh` no longer double-counts the latest conversation when the store has both legacy `last_*` fields and `history` entries.
+
 - Keep sandbox runs behind agy permission checks instead of bypassing them.
 - Make streamed result statuses visible in progress updates.
 - Preserve clean successful responses when agy emits stderr diagnostics.

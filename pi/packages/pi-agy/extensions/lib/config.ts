@@ -31,6 +31,10 @@ export interface AgyConfig {
    * `defaultModel` is unset — e.g. a quota-aware resolver. Must print a
    * single valid alias; failures and invalid output fall back to the
    * built-in default. Result cached for a few minutes per process.
+   *
+   * Trust boundary: executed verbatim via `sh -c`. Only point this at a
+   * command you control — the config file is user-owned, single-user
+   * dotfiles context.
    */
   defaultModelCommand?: string;
 }
