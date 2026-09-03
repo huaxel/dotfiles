@@ -268,3 +268,31 @@ external `/opt/cachy-llama` fallback.
    local.
 5. Evaluate NixOS separately for the physical host after the custom AI stack is
    reproducible or deliberately kept external.
+
+## Deferred: Herdr binary + plugins on Nix hosts
+
+The pilot currently deploys only Herdr's `config.toml` (see
+`home/common.nix`). The `herdr` binary and the five plugins its keybindings
+reference (`annotate`, `cloudmanic.herdr-plus`, `herdr-file-viewer`,
+`jhochenbaum.hunkdiff`, `rohanthewiz.herdr-todo`) are provisioned by
+`scripts/setup-herdr-plugins.sh` on the brew/bootstrap path only. `bun` (the
+annotate plugin's runtime) is already in `home/common.nix`.
+
+End-state when a Nix host actually needs Herdr:
+
+- Replace the raw `home.file.".config/herdr/config.toml".source` with the
+  native Home Manager module:
+  `programs.herdr = { enable = true; package = <pkgs.herdr | herdr-nix flake>;
+  settings = lib.importTOML ../config/herdr/config.toml; }` (keeps one source
+  of truth; module reloads the server on change).
+- Pin a Herdr **≥ 0.8.0**: the config's plugin actions require it (annotate's
+  manifest declares `min_herdr_version = 0.8.0`). nixpkgs' `herdr` is still an
+  unmerged PR at 0.7.0 (`NixOS/nixpkgs#518310`); use the `herdrdev/herdr-nix`
+  prebuilt flake or build `herdrdev/herdr` from source until nixpkgs catches
+  up.
+- Provision the plugins at activation by reusing `scripts/setup-herdr-plugins.sh`
+  (idempotent) so a fresh Nix host gets the same keybindings as the brew path.
+
+Not done yet: no Nix host in the pilot runs Herdr, and there is no Nix
+installed on the primary macOS machine to validate a switch. Revisit when a
+Nix host needs Herdr or herdr ≥ 0.8 lands in nixpkgs.
