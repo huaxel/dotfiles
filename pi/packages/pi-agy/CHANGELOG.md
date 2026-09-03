@@ -20,6 +20,7 @@
 - Retry eligibility now requires real agy activity (tool steps / model responses); session-start chatter no longer suppresses the transient retry.
 - The timeout budget starts before config/default-model resolution so a slow resolver cannot eat into it unaccounted.
 - `agy-default-model.sh` no longer double-counts the latest conversation when the store has both legacy `last_*` fields and `history` entries.
+- Cover extension registration and `/agy` argument completions in tests.
 
 - Keep sandbox runs behind agy permission checks instead of bypassing them.
 - Make streamed result statuses visible in progress updates.
