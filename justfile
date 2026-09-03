@@ -630,6 +630,9 @@ dry-run:
 nix-check profile="juan@framearch":
     #!/usr/bin/env bash
     set -euo pipefail
+    # New flake modules are invisible to evaluation until Git tracks them;
+    # intent-to-add them so `git add` is not a hidden prerequisite.
+    git ls-files --others --exclude-standard -z -- home nixos | xargs -0 -r git add -N
     nix flake check --all-systems
     nix build '.#homeConfigurations."{{profile}}".activationPackage' --no-link --quiet
     echo "✅ Nix profile {{profile}} builds"
@@ -639,6 +642,7 @@ nix-check profile="juan@framearch":
 nix-switch profile="juan@framearch":
     #!/usr/bin/env bash
     set -euo pipefail
+    git ls-files --others --exclude-standard -z -- home nixos | xargs -0 -r git add -N
     nix flake check --all-systems
     nix run ".#home-manager" -- switch --flake '.#{{profile}}'
 
