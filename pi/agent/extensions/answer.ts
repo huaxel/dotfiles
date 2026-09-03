@@ -84,11 +84,10 @@ Example output:
   ]
 }`;
 
-// Extraction model preference: fast opencode-go flash first, then
-// gpt-5.6-luna via openai-codex (OAuth), then the current model.
+// Extraction model preference: gpt-5.6-luna via openai-codex (OAuth),
+// then the current model. OpenCode Go is intentionally not a default provider.
 // (Upstream prefers Codex mini / claude-haiku; adapted to configured providers.)
 const EXTRACTION_MODELS: Array<[provider: string, modelId: string]> = [
-	["opencode-go", "deepseek-v4-flash"],
 	["openai-codex", "gpt-5.6-luna"],
 ];
 
