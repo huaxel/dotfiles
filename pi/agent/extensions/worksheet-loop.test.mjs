@@ -1,8 +1,9 @@
 // Behavioral tests for worksheet-loop.ts pure block-identity helpers.
 // Run: node pi/agent/extensions/worksheet-loop.test.mjs
-import { register } from "node:module";
+import { registerHooks } from "node:module";
+import { resolve } from "./pi-resolve-hook.mjs";
 
-register(new URL("./pi-resolve-hook.mjs", import.meta.url), import.meta.url);
+registerHooks({ resolve });
 
 const { reconcileBlockIds, contentSimilarity, todoItems, todoTransitions, worksheetCounts } = await import(new URL("./worksheet-loop.ts", import.meta.url));
 

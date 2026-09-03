@@ -11,7 +11,6 @@ Session Storage, Reliability, and Observability.
 """
 import json
 import os
-import subprocess
 import sys
 import statistics
 import time
@@ -19,24 +18,19 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 # ── Paths ────────────────────────────────────────────────
-DOTFILES = Path.home() / "dotfiles"
-PI_RUNTIME = Path.home() / ".pi" / "agent"
-PI_DOTFILES = DOTFILES / "pi" / "agent"
+DOTFILES = Path(os.environ.get("DOTFILES_DIR", Path(__file__).resolve().parents[1]))
+PI_RUNTIME = Path(os.environ.get("PI_RUNTIME_DIR", Path.home() / ".pi" / "agent"))
+PI_DOTFILES = Path(os.environ.get("PI_CODING_AGENT_DIR", DOTFILES / "pi" / "agent"))
 
 HISTORY = PI_RUNTIME / "observability" / "history.jsonl"
-RUN_HISTORY = PI_RUNTIME / "run-history.jsonl"
 CRASH_LOG = PI_RUNTIME / "pi-crash.log"
 FAILOVER_LOG = PI_DOTFILES / "opencode-go-failover.log"
 SESSION_DOTFILES = PI_DOTFILES / "sessions"
 SESSION_RUNTIME = PI_RUNTIME / "sessions"
 SETTINGS_DOTFILES = PI_DOTFILES / "settings.json"
 SETTINGS_RUNTIME = PI_RUNTIME / "settings.json"
-MODELS_DOTFILES = PI_DOTFILES / "models.json"
-MODELS_RUNTIME = PI_RUNTIME / "models.json"
 TRUST_DOTFILES = PI_DOTFILES / "trust.json"
 TRUST_RUNTIME = PI_RUNTIME / "trust.json"
-SUBAGENT_CONFIG_DOTFILES = PI_DOTFILES / "extensions" / "subagent" / "config.json"
-SUBAGENT_CONFIG_RUNTIME = PI_RUNTIME / "skills" / "brainstorming" / "SKILL.md"
 
 
 # ── Helpers ──────────────────────────────────────────────
@@ -53,45 +47,6 @@ def file_size_mb(path):
         return sum(f.stat().st_size for f in path.rglob("*") if f.is_file()) / (1024 * 1024)
     except FileNotFoundError:
         return 0.0
-
-
-def count_files(path):
-    try:
-        return len(list(path.rglob("*.jsonl")))
-    except FileNotFoundError:
-        return 0
-
-
-def grade_from_score(score, thresholds):
-    """thresholds: [(high_bound, letter), ...] sorted descending"""
-    for bound, letter in thresholds:
-        if score >= bound:
-            return letter
-    return "F"
-
-
-def grade_color(grade):
-    return {"A": "\033[32m", "B": "\033[92m", "C": "\033[93m",
-            "D": "\033[33m", "F": "\033[31m"}.get(grade, "\033[0m")
-
-
-def score_to_num(score, max_val, invert=False):
-    """Convert a raw value to 0-100 score."""
-    if max_val == 0:
-        return 0
-    raw = max(0, min(1, score / max_val))
-    if invert:
-        raw = 1 - raw
-    return round(raw * 100)
-
-
-def num_to_grade(n, thresholds_a=None, thresholds_f=None):
-    """Default: A>=90, B>=70, C>=50, D>=25, F<25"""
-    t = thresholds_a or [(90, "A"), (70, "B"), (50, "C"), (25, "D")]
-    for bound, letter in t:
-        if n >= bound:
-            return letter
-    return "F"
 
 
 # ── Assessment functions ─────────────────────────────────
@@ -307,7 +262,6 @@ def assess_reliability():
                     break
 
     failover_count = 0
-    failover_errors = 0
     quota_events = 0
     if FAILOVER_LOG.exists():
         content = FAILOVER_LOG.read_text()

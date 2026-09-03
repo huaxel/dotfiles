@@ -14,7 +14,8 @@
 #   route       Show routing info
 #   all         Run setup, reconnect, and mount (default)
 #
-# For a quick alias, add to ~/.config/local/zshrc or ~/.bashrc.local:
+# For a quick alias, add to your shell config (~/.config/fish/config.fish,
+# ~/.config/nushell/config.nu, or ~/.config/environment.d for env vars):
 #   alias vpn-reconnect='~/dotfiles/scripts/wsl-vpn-setup.sh reconnect'
 
 set -euo pipefail

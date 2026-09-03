@@ -46,9 +46,7 @@
     "npm:@plannotator/pi-extension",
     "npm:pi-memory"
   ],
-  "extensions": [
-    "-extensions/nan.ts"
-  ],
+  "extensions": [],
   "doubleEscapeAction": "tree",
   "treeFilterMode": "default",
   "terminal": {

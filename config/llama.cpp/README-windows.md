@@ -9,8 +9,6 @@ Mirrors the dotfiles config at `~/Documents/dotfiles/`.
 | `llama-models.ini` (template) | Rendered per-machine |
 | `config/llama.cpp/models-laptop.ini` | Reference for this machine |
 | `/etc/conf.d/llama.cpp` | `start-server.ps1` (env vars hardcoded) |
-| `config/llama.cpp/stats-bridge.py` | Same file, runs on Windows |
-| `pi/agent/extensions/llama-stats.ts` | Same file, works as-is |
 
 ## Quick start
 

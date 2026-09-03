@@ -226,7 +226,7 @@ The two largest consumers (`project-atom` at 142 MB + `project-atom-python` at 1
 
 A `pi-prune-sessions` command already exists in the dotfiles justfile:
 ```
-just pi-prune-sessions [days=30] [project=dotfiles]
+just pi-prune-sessions 30 dotfiles
 ```
 
 Recommend extending this to:

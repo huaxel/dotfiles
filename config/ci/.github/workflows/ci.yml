@@ -5,9 +5,8 @@
 #   - GitHub-hosted runners (ubuntu-latest)
 #   - Self-hosted runners ([self-hosted, linux])
 #
-# The project justfile (from ~/dotfiles/config/ci/justfile)
-# auto-detects the project type and runs lint, typecheck,
-# test, and build — all locally reproducible with `just ci`.
+# Each project provides its own justfile and `just ci` gate.
+# The workflow installs the standard toolchains before running that gate.
 # ─────────────────────────────────────────────────────────
 
 name: CI

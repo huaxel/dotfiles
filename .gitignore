@@ -61,10 +61,11 @@ local/
 # Dotter local config (machine-specific)
 .dotter/local.toml
 
-# Pi runtime artifacts
+# Local tool runtime artifacts
 .pi/
-.pi-subagents/
+.herdr-todo/
 prime-agent/agent/update-restarts/
+prime-agent/agent/harness/
 
 # Pi goal/session runtime artifacts (machine-local: pids, instance ids)
 .pi-glla/

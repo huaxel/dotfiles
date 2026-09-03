@@ -1,8 +1,9 @@
 // Behavioral tests for restart.ts pure helpers. Run: node pi/agent/extensions/restart.test.mjs
 import { makePiHarness, assert } from "./pi-test-harness.mjs";
-import { register } from "node:module";
+import { registerHooks } from "node:module";
+import { resolve } from "./pi-resolve-hook.mjs";
 
-register(new URL("./pi-resolve-hook.mjs", import.meta.url), import.meta.url);
+registerHooks({ resolve });
 
 const { default: restart, extractHandoffText } = await import(new URL("./restart.ts", import.meta.url));
 const { initTheme } = await import("@earendil-works/pi-coding-agent");
