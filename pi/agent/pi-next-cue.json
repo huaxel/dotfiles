@@ -1,5 +1,5 @@
 {
-  "provider": "opencode-go",
-  "model": "deepseek-v4-flash",
+  "provider": "openai-codex",
+  "model": "gpt-5.6-terra",
   "keys": { "fill": "tab", "send": "enter" }
 }
