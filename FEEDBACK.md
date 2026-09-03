@@ -903,3 +903,29 @@ every open). Fixed, then hardened the whole setup.
 - Stage new Nix files with `git add -N` immediately on creation.
 - For directory migrations, enumerate files one-to-one rather than symlinking whole
   directories, so locally-created state files survive the ownership transfer.
+
+## 2026-09-03: pi-agy hardening (review → implement → cross-review loop)
+
+### What went well
+- Reviewing the user's pi-agy extension before proposing improvements caught a latent
+  accumulation bug and several UX gaps that pure feature work would have missed.
+- The opposite-family adversarial review (sonnet, mode=plan effort=high) found 5 real
+  bugs in my own two commits — 2 blockers (stderr catalog pollution, wrapper double-count).
+  This validates the produce/cross-review split from AGENTS.md; it is not ceremony.
+- Dogfooding: the review run exercised the new `effort` param and the default-model
+  resolution path in production on the way in.
+
+### What was frustrating / slow
+- Deriving that agentq has no Antigravity quota signal took ~30 min of dead ends:
+  resolve-model.sh returns OpenCode-only ids, brain transcripts have no model field,
+  and the old mitmproxy usage proxy was removed in the August sweep.
+
+### Config change that would have helped
+- A one-line note in AGENTS.md's Pi section (or agentq's README) stating which
+  providers have quota windows would have skipped the investigation entirely.
+  (Mitigated: recorded in the 2026-09-03 daily log and the session worksheet.)
+
+### Improvements for next time
+- Before proposing quota-aware anything, check what quota data actually exists first.
+- Route proposed-improvement lists through an adversarial review before merging even
+  when tests are green — all 5 review findings survived a green suite.

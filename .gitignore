@@ -71,6 +71,7 @@ prime-agent/agent/update-restarts/
 
 # Pi agent machine-local settings (not shared across machines)
 pi/agent/pi-goal.json
+pi/agent/agy-sessions.json
 pi/agent/fff/
 
 # Pi npm extension manifest + lockfile — pi-managed, per-machine, regenerated
