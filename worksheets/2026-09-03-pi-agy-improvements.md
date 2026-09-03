@@ -64,6 +64,14 @@ windows, swap the wrapper internals — the `defaultModelCommand` interface stay
   starting after config resolution, wrapper double-counting the latest
   conversation. All fixed in `d0dcae6` with regression tests.
 
+## Follow-up implementation: review findings fixed
+
+- Enforced `timeout_ms` across config resolution, lock wait, preflight, and the agy subprocess; removed the unconditional subprocess grace period.
+- Preserved legacy `tier` precedence over configured default models and report the effective alias.
+- Added an atomic inter-process session-store lock and defensive malformed-history filtering.
+- Added regression coverage for tier precedence, process timeout, independent store instances, and malformed history.
+- Verification: package suite 73/73 passing; `just ci` green.
+
 ## Follow-ups
 
 - If Antigravity exposes real quota windows: rewire the wrapper.

@@ -1,4 +1,13 @@
-import { chmod, mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
+import {
+  chmod,
+  mkdir,
+  readFile,
+  rename,
+  rm,
+  stat as statFile,
+  unlink,
+  writeFile,
+} from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { randomUUID } from "node:crypto";
@@ -19,6 +28,8 @@ export interface AgySessionRecord {
 }
 
 const HISTORY_LIMIT = 10;
+const LOCK_RETRY_MS = 25;
+const LOCK_STALE_MS = 30_000;
 
 type SessionStore = Record<string, AgySessionRecord>;
 
@@ -79,28 +90,86 @@ export function createSessionStore(
 
   async function getHistory(dir: string): Promise<AgyConversationEntry[]> {
     const store = await loadStore();
-    return (store[path.resolve(dir)]?.history ?? []).slice();
+    const history = store[path.resolve(dir)]?.history;
+    return Array.isArray(history)
+      ? history
+          .filter(
+            (entry) =>
+              entry &&
+              typeof entry.conversation_id === "string" &&
+              typeof entry.updated_at === "string",
+          )
+          .slice()
+      : [];
+  }
+
+  async function withStoreLock<T>(fn: () => Promise<T>): Promise<T> {
+    const target = resolvePath();
+    const lockPath = `${target}.lock`;
+    const owner = randomUUID();
+    await mkdir(path.dirname(target), { recursive: true });
+
+    while (true) {
+      try {
+        await mkdir(lockPath);
+        await writeFile(path.join(lockPath, "owner"), owner, {
+          encoding: "utf8",
+          mode: 0o600,
+        });
+        break;
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+        try {
+          const lockStat = await statFile(lockPath);
+          if (Date.now() - lockStat.mtimeMs > LOCK_STALE_MS) {
+            await rm(lockPath, { recursive: true, force: true });
+            continue;
+          }
+        } catch {
+          // The lock disappeared between mkdir and stat; retry immediately.
+          continue;
+        }
+        await new Promise((resolve) => setTimeout(resolve, LOCK_RETRY_MS));
+      }
+    }
+
+    try {
+      return await fn();
+    } finally {
+      try {
+        if ((await readFile(path.join(lockPath, "owner"), "utf8")) === owner) {
+          await rm(lockPath, { recursive: true, force: true });
+        }
+      } catch {
+        // Preserve the operation result if cleanup races with a stale-lock recovery.
+      }
+    }
   }
 
   function saveSession(dir: string, conversationId: string, model?: string): Promise<void> {
-    const operation = mutationChain.then(async () => {
-      const store = await loadStore();
-      const key = path.resolve(dir);
-      const record = store[key] ?? {};
-      const updatedAt = new Date().toISOString();
-      store[key] = {
-        last_conversation_id: conversationId,
-        last_model: model,
-        updated_at: updatedAt,
-        history: [
-          { conversation_id: conversationId, model, updated_at: updatedAt },
-          ...(record.history ?? []).filter(
-            (entry) => entry.conversation_id !== conversationId,
-          ),
-        ].slice(0, HISTORY_LIMIT),
-      };
-      await saveStore(store);
-    });
+    const operation = mutationChain.then(() =>
+      withStoreLock(async () => {
+        const store = await loadStore();
+        const key = path.resolve(dir);
+        const record = store[key] ?? {};
+        const updatedAt = new Date().toISOString();
+        store[key] = {
+          last_conversation_id: conversationId,
+          last_model: model,
+          updated_at: updatedAt,
+          history: [
+            { conversation_id: conversationId, model, updated_at: updatedAt },
+            ...(Array.isArray(record.history) ? record.history : []).filter(
+              (entry) =>
+                entry &&
+                typeof entry.conversation_id === "string" &&
+                entry.conversation_id !== conversationId,
+            ),
+          ].slice(0, HISTORY_LIMIT),
+        };
+        await saveStore(store);
+      }),
+    );
     mutationChain = operation.then(
       () => undefined,
       () => undefined,

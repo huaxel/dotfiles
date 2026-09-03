@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Enforce `timeout_ms` across setup, preflight, and the agy process instead of adding an unconditional grace period.
+- Preserve legacy `tier` selection in execution details and when configured default-model commands are present.
+- Serialize session-store writes across independent Pi processes and ignore malformed history entries safely.
 - Refresh model aliases from the live `agy models` catalog during preflight; newest generation wins, static map stays as fallback.
 - Count per-directory lock wait toward the call timeout so queued runs cannot silently exceed their budget.
 - Retry once when agy fails with a transient error (rate limit, network) before emitting any progress.

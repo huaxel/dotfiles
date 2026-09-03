@@ -929,3 +929,19 @@ every open). Fixed, then hardened the whole setup.
 - Before proposing quota-aware anything, check what quota data actually exists first.
 - Route proposed-improvement lists through an adversarial review before merging even
   when tests are green — all 5 review findings survived a green suite.
+
+## 2026-09-03: pi-agy review findings implemented
+
+### What went well
+- Converted the review findings into focused regressions before final verification.
+- Package tests reached 73/73 and the full `just ci` gate stayed green.
+
+### What was frustrating / slow
+- The documented independent-review skill was unavailable at its referenced path, so this batch used a manual review plus regression tests.
+
+### What config change would have helped
+- Install or replace `requesting-code-review/SKILL.md` so the required review gate is executable.
+
+### Improvements for next time
+- Add a package-local root recipe for running extension tests without an initial working-directory miss.
+- Keep subprocess timeout and cross-process persistence tests as standard seams for delegation bridges.

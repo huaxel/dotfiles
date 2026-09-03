@@ -45,9 +45,14 @@ export function getDefaultConfigPath(): string {
   return path.join(agentDir, "agy-config.json");
 }
 
-export async function loadAgyConfig(configPath = getDefaultConfigPath()): Promise<AgyConfig> {
+export async function loadAgyConfig(
+  configPath = getDefaultConfigPath(),
+  signal?: AbortSignal,
+): Promise<AgyConfig> {
   try {
-    const parsed: unknown = JSON.parse(await readFile(configPath, "utf8"));
+    const parsed: unknown = JSON.parse(
+      await readFile(configPath, { encoding: "utf8", signal }),
+    );
     if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
       return parsed as AgyConfig;
     }
@@ -63,7 +68,10 @@ let cachedCommandAlias: { at: number; alias?: AgyModel } | undefined;
  * Resolve the default model alias: an explicit `defaultModel` always wins;
  * otherwise `defaultModelCommand` runs (cached) and its output is validated.
  */
-export async function resolveDefaultModel(config: AgyConfig): Promise<AgyModel | undefined> {
+export async function resolveDefaultModel(
+  config: AgyConfig,
+  signal?: AbortSignal,
+): Promise<AgyModel | undefined> {
   if (isAgyModel(config.defaultModel)) return config.defaultModel;
   const command = config.defaultModelCommand?.trim();
   if (!command) return undefined;
@@ -72,16 +80,20 @@ export async function resolveDefaultModel(config: AgyConfig): Promise<AgyModel |
     return cachedCommandAlias.alias;
   }
 
-  const alias = await runDefaultModelCommand(command);
+  const alias = await runDefaultModelCommand(command, signal);
   cachedCommandAlias = { at: Date.now(), alias };
   return alias;
 }
 
-async function runDefaultModelCommand(command: string): Promise<AgyModel | undefined> {
+async function runDefaultModelCommand(
+  command: string,
+  signal?: AbortSignal,
+): Promise<AgyModel | undefined> {
   try {
     const { stdout } = await execFileAsync("sh", ["-c", command], {
       timeout: COMMAND_TIMEOUT_MS,
       maxBuffer: 16 * 1024,
+      signal,
     });
     const alias = stdout.trim().split("\n")[0]?.trim() ?? "";
     return isAgyModel(alias) ? alias : undefined;
