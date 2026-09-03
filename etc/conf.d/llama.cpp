@@ -21,7 +21,7 @@ LLAMA_ARG_UI_CONFIG_FILE="/home/juan/.config/llama.cpp/webui-config.json"
 LLAMA_ARG_UI_MCP_PROXY=true
 LLAMA_ARG_TOOLS=all
 
-# Prometheus metrics — consumed by the stats bridge
+# Prometheus metrics endpoint (127.0.0.1:8000/metrics) for monitoring
 LLAMA_ARG_ENDPOINT_METRICS=1
 
 # Extra args (appended to the server command line)

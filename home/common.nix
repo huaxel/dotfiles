@@ -128,11 +128,9 @@
   home.file.".config/ghostty/config".source = ../config/ghostty/config;
   home.file.".config/mise/config.toml".source = ../config/mise/config.toml;
   home.file.".config/herdr/config.toml".source = ../config/herdr/config.toml;
-  home.file.".config/ci".source = ../config/ci;
   home.file.".config/llama.cpp/.python-version".source = ../config/llama.cpp/.python-version;
   home.file.".config/llama.cpp/MODELS.md".source = ../config/llama.cpp/MODELS.md;
   home.file.".config/llama.cpp/README-windows.md".source = ../config/llama.cpp/README-windows.md;
-  home.file.".config/llama.cpp/README.md".source = ../config/llama.cpp/README.md;
   home.file.".config/llama.cpp/download-models.py".source = ../config/llama.cpp/download-models.py;
   home.file.".config/llama.cpp/main.py".source = ../config/llama.cpp/main.py;
   home.file.".config/llama.cpp/mcp-servers.json".source = ../config/llama.cpp/mcp-servers.json;

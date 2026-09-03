@@ -34,7 +34,6 @@ in
 
   config = {
   home.file.".config/llama.cpp/models-laptop.ini".source = ../config/llama.cpp/models-laptop.ini;
-  home.file.".config/llama.cpp/stats-bridge.py".source = ../config/llama.cpp/stats-bridge.py;
 
   home.sessionVariables = {
     HF_HOME = "/mnt/ai_models";
@@ -46,27 +45,6 @@ in
     MEMORYFIELD_MODEL_CODE = "nomic-embed-text-v1.5";
     PI_CODING_AGENT_DIR = "/home/juan/dotfiles/pi/agent";
     PRIME_AGENT_CODING_AGENT_DIR = "/home/juan/dotfiles/prime-agent/agent";
-  };
-
-  systemd.user.services.llama-stats-bridge = {
-    Unit = {
-      Description = "llamacpp + cachyllama live stats bridge";
-      After = [ "network.target" ];
-      Wants = [ "network.target" ];
-    };
-    Service = {
-      Type = "simple";
-      ExecStart = "${pkgs.python3}/bin/python3 ${home}/.config/llama.cpp/stats-bridge.py";
-      Restart = "on-failure";
-      RestartSec = "5s";
-      OOMScoreAdjust = "-400";
-      MemoryMax = "256M";
-      Environment = [
-        "BRIDGE_PORT=55268"
-        "LLAMA_SERVERS=llamacpp=http://127.0.0.1:8000,cachyllama=http://127.0.0.1:9092"
-      ];
-    };
-    Install.WantedBy = [ "default.target" ];
   };
 
   systemd.user.services.memoryfield-embed = lib.mkIf config.services.juan.framearchUser.enableMemoryfieldEmbed {

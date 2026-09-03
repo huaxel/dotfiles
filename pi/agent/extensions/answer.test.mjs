@@ -1,12 +1,13 @@
 // Behavioral tests for answer.ts pure helpers. Run: node pi/agent/extensions/answer.test.mjs
 // (from the repo root). Registers a resolve hook so @earendil-works/* packages
 // resolve from the pi install; no pi install needed beyond that.
-import { register } from "node:module";
+import { registerHooks } from "node:module";
+import { resolve } from "./pi-resolve-hook.mjs";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-register(new URL("./pi-resolve-hook.mjs", import.meta.url), import.meta.url);
+registerHooks({ resolve });
 
 const { parseExtractionResult, toExtractedQuestion, loadAnswerDraft, saveAnswerDraft } =
 	await import(new URL("./answer.ts", import.meta.url));

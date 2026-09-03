@@ -14,11 +14,13 @@ Keep deployment paths stable; organize new material under the matching area belo
 - `config/` — shared Unix application configuration deployed to `~/.config`
   (includes `config/nushell/` — env.nu/config.nu/login.nu for the Nushell
   shell, managed with `just nushell-setup` / `just nu-health`).
+  Exception: `config/ci/` is repo-consumed tooling (runner setup + workflow
+  template invoked by justfile), not a deployed `~/.config/ci`.
 - `config-linux/` — Linux-only Wayland, launcher, inference, and XKB configuration.
 - `config-macos/` — macOS-only configuration.
 - Windows roots (`powershell/`, `windows-terminal/`, `autohotkey/`, `glazewm/`,
   `zebar/`, `flow-launcher/`) — Windows-specific application files.
-- Root dotfiles (`zshrc`, `gitconfig`, `ssh_config`, `starship.toml`,
+- Root dotfiles (`gitconfig`, `ssh_config`, `starship.toml`,
   `aerospace`) — remaining source files whose target paths are not naturally
   grouped under `config/`; some are now consumed by Home Manager on Unix and
   remain Dotter-managed on Windows.
@@ -67,5 +69,6 @@ repository-wide delete unless you have reviewed their contents first:
    sources.
 2. Before moving a file, update `.dotter/global.toml`, scripts, README links,
    and any package manifests that reference it.
-3. Keep machine-specific values in `.dotter/local.toml` or `~/.config/local/`.
+3. Keep machine-specific values in `.dotter/local.toml` or the decrypted
+   `~/.config/environment.d/99-environment.conf`.
 4. Keep secrets encrypted in git and never add plaintext credentials.

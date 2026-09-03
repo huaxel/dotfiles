@@ -4,9 +4,8 @@
 // pi/agent/extensions tests were copy-pasting across go-on/restart/answer/
 // todos/worksheet-loop.  Import whatever you need:
 //
-//   import { register } from "node:module";
-//   register(new URL("./pi-resolve-hook.mjs", import.meta.url), import.meta.url);
-//   import { makePiHarness, fakeClock, assert, tempDir, runTests } from "./pi-test-harness.mjs";
+//   import { makePiHarness, fakeClock, assert, tempDir, runTests, registerResolveHook } from "./pi-test-harness.mjs";
+//   await registerResolveHook();
 //   const h = makePiHarness();
 //   installExtension(h.pi);
 //   await h.drive("turn_end", {}, h.ctx);
@@ -238,11 +237,10 @@ export async function importExtension(fileUrl, exportNames = []) {
   return out;
 }
 
-// Re-export a resolve-hook registration helper so callers can register the
-// hook and import @earendil-works/* modules without repeating the two-line
-// `register(new URL(...), import.meta.url)` idiom.  The `node:` specifier
-// itself needs no hook.
+// Register the local resolver so tests can import @earendil-works/* modules
+// without depending on the deprecated module.register() API.
 export async function registerResolveHook(hookUrl = "./pi-resolve-hook.mjs") {
-  const { register } = await import("node:module");
-  register(new URL(hookUrl, import.meta.url), import.meta.url);
+  const { registerHooks } = await import("node:module");
+  const hooks = await import(new URL(hookUrl, import.meta.url));
+  registerHooks({ resolve: hooks.resolve });
 }

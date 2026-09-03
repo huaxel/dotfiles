@@ -622,7 +622,7 @@ sandbox server action *args="":
 # Run the full Uncle Bob quality gauntlet (all 7 gates).
 # Usage:  just quality          # Full gauntlet
 #         just quality --quick  # Skip mutation testing
-#         just quality gate=lint # Single gate
+#         just quality --gate lint # Single gate
 quality *args="":
     #!/usr/bin/env bash
     exec {{dotfiles-dir}}/bin/quality-gauntlet {{args}}
@@ -691,56 +691,30 @@ info:
 
 # ──────────── Project CI ────────────
 
-# Run local CI on a project (uses shared template).
-# Usage:  just project-ci path=~/projects/my-project
+# Run a project's own local CI gate.
+# Usage:  just project-ci ~/projects/my-project
 #         just project-ci   (uses current dir)
 project-ci path="":
     #!/usr/bin/env bash
-    CI_TEMPLATE="{{dotfiles-dir}}/config/ci/justfile"
-    if [ ! -f "$CI_TEMPLATE" ]; then
-        echo "  ❌ CI template not found at $CI_TEMPLATE"
-        exit 1
-    fi
     PROJECT="{{path}}"
     if [ -z "$PROJECT" ]; then PROJECT="$(pwd)"; fi
     if [ ! -d "$PROJECT" ]; then
         echo "  ❌ Directory not found: $PROJECT"
         exit 1
     fi
-    echo "  Running CI on: $(basename $PROJECT)"
+    if [ ! -f "$PROJECT/justfile" ]; then
+        echo "  ❌ No justfile found in $PROJECT"
+        exit 1
+    fi
+    echo "  Running CI on: $(basename "$PROJECT")"
     echo ""
-    exec just -f "$CI_TEMPLATE" -d "$PROJECT" ci
-
-# Bootstrap CI into a project (creates/symlinks justfile).
-# Usage:  just project-init path=~/projects/my-project [mode=link]
-# Modes:  standalone (copy template), link (symlink), ghooks (link + git hooks)
-project-init path="" mode="link":
-    #!/usr/bin/env bash
-    INIT_SCRIPT="{{dotfiles-dir}}/config/ci/init.sh"
-    if [ ! -f "$INIT_SCRIPT" ]; then
-        echo "  ❌ Init script not found at $INIT_SCRIPT"
-        exit 1
-    fi
-    PROJECT="{{path}}"
-    if [ -z "$PROJECT" ]; then PROJECT="$(pwd)"; fi
-    if [ ! -d "$PROJECT" ]; then
-        echo "  ❌ Directory not found: $PROJECT"
-        exit 1
-    fi
     cd "$PROJECT"
-    MODE="{{mode}}"
-    if [ "$MODE" = "standalone" ]; then
-        bash "$INIT_SCRIPT"
-    elif [ "$MODE" = "ghooks" ]; then
-        bash "$INIT_SCRIPT" --gh
-    else
-        bash "$INIT_SCRIPT" --link
-    fi
+    exec just ci
 
-# Deploy the CI workflow (GitHub Actions) to a project.
-# Usage:  just project-init-ci path=~/projects/my-project
-# Creates .github/workflows/ci.yml that delegates to 'just ci'.
-# Auto-detects existing GH workflows and adds as a new job.
+# Copy the standard CI workflow (GitHub Actions) into a project.
+# Usage:  just project-init-ci ~/projects/my-project
+# Creates .github/workflows/ci.yml that delegates to 'just ci', prompting
+# before replacing an existing file.
 project-init-ci path="":
     #!/usr/bin/env bash
     CI_WORKFLOW="{{dotfiles-dir}}/config/ci/.github/workflows/ci.yml"
@@ -820,6 +794,8 @@ pi-session-size:
     done | sort -rn
 
 # Prune old sessions. Use project=all to target every session directory.
+# Usage:  just pi-prune-sessions 30 dotfiles
+#         just pi-prune-sessions 30 all
 pi-prune-sessions days="30" project="dotfiles":
     #!/usr/bin/env bash
     ROOT="${PI_CODING_AGENT_DIR:-$HOME/dotfiles/pi/agent}/sessions"
@@ -849,4 +825,4 @@ pi-prune-sessions days="30" project="dotfiles":
 # Run the full pi health check (terminal summary). Pass `--json` for machine-readable output.
 pi-healthcheck *args="":
     #!/usr/bin/env bash
-    cd "$HOME/dotfiles" && exec ./bin/pi-healthcheck {{args}}
+    cd "{{dotfiles-dir}}" && exec ./bin/pi-healthcheck {{args}}

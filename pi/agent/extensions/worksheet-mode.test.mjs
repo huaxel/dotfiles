@@ -1,8 +1,9 @@
 // M3 document-first mode tests (pure buildSystemPrompt + directive).
 // Run: node pi/agent/extensions/worksheet-mode.test.mjs
-import { register } from "node:module";
+import { registerHooks } from "node:module";
+import { resolve } from "./pi-resolve-hook.mjs";
 
-register(new URL("./pi-resolve-hook.mjs", import.meta.url), import.meta.url);
+registerHooks({ resolve });
 
 const { DOCUMENT_FIRST_DIRECTIVE, buildSystemPrompt, buildSteeringMessage } = await import(new URL("./worksheet-loop.ts", import.meta.url));
 

@@ -1,606 +1,219 @@
 # Dotfiles (Dotter)
 
-Migrated from chezmoi to [dotter](https://github.com/SuperCuber/dotter) for cleaner, simpler dotfile management.
+Personal multi-platform dotfiles managed with [dotter](https://github.com/SuperCuber/dotter):
+symlinked files + Handlebars templates, deployed across macOS, Linux (Arch/WSL),
+and Windows. (Migrated from chezmoi; see git history.)
 
-## Why Switch from Chezmoi?
-
-| Chezmoi Pain Point | Dotter Solution |
-|-------------------|-----------------|
-| `dot_` prefix on every file | Files named exactly as they appear |
-| Go template syntax: `{{ if eq .chezmoi.os "darwin" }}` | Handlebars: `{{#if (eq os "macos")}}` |
-| Source files in `~/.local/share/chezmoi` | Files directly in `~/dotfiles` |
-| Complex encapsulation | Simple symlink + template model |
+For a maintained map of responsibilities, deployment boundaries, and cleanup rules,
+see [`docs/repository-map.md`](docs/repository-map.md).
 
 ## Quick Start
 
-### macOS — one command (fully automated)
+### macOS — one command
 
 ```bash
 git clone https://github.com/huaxel/dotfiles.git ~/dotfiles
 cd ~/dotfiles && ./bootstrap.sh
 ```
 
-`bootstrap.sh` will, in order: install Homebrew → install dotter + git + age +
-sops + mas → enable git hooks → generate an age key if missing →
-`dotter deploy` (renders templates, symlinks, decrypts secrets) →
-`brew bundle` the full `config/Brewfile` → apply `macos/defaults.sh`.
+`bootstrap.sh` installs Homebrew → dotter + git + age + sops + mas → enables git
+hooks → generates an age key if missing → `dotter deploy` → `brew bundle`
+(`config/Brewfile`) → `macos/defaults.sh`.
 
-Toggles: `SKIP_BREW_BUNDLE=1` and `SKIP_MACOS_DEFAULTS=1`.
+Toggles: `SKIP_BREW_BUNDLE=1`, `SKIP_MACOS_DEFAULTS=1`.
 
-> Secrets: if you have an existing age key, restore it to
-> `~/.config/sops/age/keys.txt` **before** running bootstrap. Otherwise a new
-> key is generated and you must authorize it in `.sops.yaml` and rotate
-> secrets (see [Secrets Management](#secrets-management-sops--age)).
+> If you already have an age key, restore it to `~/.config/sops/age/keys.txt`
+> **before** running bootstrap, or a new key is generated and you must authorize
+> it in `.sops.yaml` and rotate secrets (see [Secrets](#secrets)).
 
 ### Linux / manual
 
 ```bash
-# 1. Install dotter (cargo) and clone
 cargo install dotter
-git clone <your-repo> ~/dotfiles
-cd ~/dotfiles
-
-# 2. Deploy (creates symlinks) — or just run ./bootstrap.sh
-dotter deploy
+git clone <your-repo> ~/dotfiles && cd ~/dotfiles
+dotter deploy          # symlink + render (or run ./bootstrap.sh)
 ```
 
-The generic bootstrap leaves the host-specific `/etc` configuration untouched.
-On the designated Linux inference host, install it explicitly with
-`INSTALL_SYSTEM_CONFIG=1 ./bootstrap.sh`.
+The generic bootstrap leaves host-specific `/etc` configuration untouched. On
+the designated Linux inference host, use `INSTALL_SYSTEM_CONFIG=1 ./bootstrap.sh`.
 
-## File Structure
+## Layout
 
 ```
 ~/dotfiles/
-├── .dotter/
-│   ├── global.toml      # Main configuration
-│   └── local.toml       # Machine-specific settings
-├── zshrc                # Template → ~/.zshrc
-├── gitconfig            # Template → ~/.gitconfig
-├── aerospace            # macOS window manager → ~/.aerospace.toml
-├── gitignore_global     # → ~/.gitignore_global
-├── ssh_config           # → ~/.ssh/config (symlinked by Dotter)
-└── config/              # → ~/.config/
-    ├── nvim/
-    ├── ghostty/config   # Template for shell integration
-    └── ...              # shared application configs
+├── .dotter/global.toml    # deployment config; local.toml = per-machine vars
+├── gitconfig, ssh_config, starship.toml, aerospace, gitignore_global
+├── config/                # shared ~/.config apps (nvim, ghostty, fish, ...)
+├── config-linux/ config-macos/   # per-OS app config
+├── home/ nixos/ flake.nix # Home Manager / NixOS (Unix hosts)
+├── powershell/ windows-terminal/ glazewm/ zebar/ autohotkey/  # Windows
+├── secrets/               # sops-encrypted (see secrets/README.md)
+├── pi/  skills/  prime-agent/   # agent tooling (pi config, skills)
+├── bin/  scripts/  justfile     # helpers + CI gate
+└── docs/  worksheets/           # investigations, patterns, session notes
 ```
 
-For a maintained map of responsibilities, deployment boundaries, and cleanup rules,
-see [`docs/repository-map.md`](docs/repository-map.md).
+## Templates
 
-## Templates (Handlebars)
-
-OS-specific configuration is much cleaner than chezmoi:
+Files are named exactly as deployed; Handlebars branches on per-machine variables
+from `.dotter/local.toml` (`bootstrap.sh` writes it on first run):
 
 ```handlebars
 {{#if (eq os "macos")}}
-# macOS-specific config
 export PATH="/opt/homebrew/bin:$PATH"
 {{/if}}
 ```
 
-Template variables are **plain names** (not a `dotter.*` namespace). They come
-from the `[variables]` table you set per machine in `.dotter/local.toml`
-(bootstrap writes this on first run):
-
-- `os` - `"macos"`, `"linux"`, or `"windows"` — set explicitly, not auto-detected
-- `name`, `email` - used by `gitconfig`, etc.
-- `hostname_color` - starship prompt accent
-- `models_base_path` - llama.cpp model cache root
-
-`github_username` is defined only in `[windows.variables]` in `global.toml`.
-Reference any of these as `{{os}}`, `{{name}}`, and so on.
+Variables: `os` (`macos`|`linux`|`windows`, set explicitly), `name`, `email`,
+`hostname_color`, `models_base_path`. `github_username` is defined only in
+`[windows.variables]`. Reference them as `{{os}}`, `{{name}}`, etc.
 
 ## Commands
 
 ```bash
-dotter deploy          # Create symlinks and render templates
-dotter undeploy        # Remove all symlinks
-dotter --dry-run       # Preview changes
-dotter watch           # Auto-deploy on file changes
+dotter deploy / undeploy / --dry-run / watch
+just ci                 # full local gate (shell, TS, dotter, secrets, nix, ...)
+just nushell-setup      # regenerate shell integrations after tool upgrades
+just nu-health          # verify nu config, integrations, keybindings, aliases
+just pi-healthcheck     # pi setup health report (also --json)
 ```
 
-### Nushell (default shell)
+### Shell
 
-Nushell is the **default** shell and is configured under `config/nushell/`,
-deployed by dotter via the shared `config = "~/.config"` mapping on
-macOS/Linux and to `%APPDATA%\nushell` on Windows. It uses the existing
-Starship, Atuin, mise, zoxide, and fzf setup, plus the same editor, pager,
-aliases, and tool paths as the previous Fish setup.
-
-```bash
-# Install/deploy on an existing machine
-paru -S nushell                 # Arch Linux
-brew install nushell            # macOS
-cd ~/dotfiles && dotter deploy
-scripts/setup-nushell.sh        # generate Starship/Atuin/mise/zoxide/fzf integrations
-chsh -s "$(command -v nu)"     # set as login shell (bootstrap.sh does this automatically)
-```
-
-`bootstrap.sh` installs Nushell on Linux, macOS, and Windows and sets it as
-the login shell (adding it to `/etc/shells` and running `chsh -s nu`). Fish
-remains installed as a fallback — `config/fish/config.fish` is kept and still
-works if you launch Fish directly. `config/nushell/login.nu` holds
-login-shell-only setup (loaded after env.nu/config.nu when nu starts as a
-login shell).
-
-### Nushell usage notes
-
-Things that differ from Fish:
-
-- **`;` pipes output into the next command.** `echo a; echo b` prints only
-  `b`. Use `nu -c 'echo a; echo b'` for sequential commands that don't
-  share a pipeline, or `^echo a` for external-only output.
-- **`ls`, `open`, `find`, `ps`, `du`, `watch` are structured builtins.**
-  They stay intact (not aliased to eza/fd/procs/dust); `ll`/`la`/`lt`
-  provide the eza views.
-- **External command output is binary until parsed.** Pipe externals through
-  `| lines` or `| decode utf-8` when feeding them to Nu commands.
-- **Config loads only in interactive mode.** `nu -c '...'` skips config;
-  use `nu -e '...'` or a real session.
-
-Key bindings:
-
-- **Ctrl-R** — atuin history search (Nu's built-in history menu is disabled)
-- **Ctrl-T** — fzf file completion (type a path prefix then Ctrl-T)
-- **Alt-C** — fzf cd into subdirectory
-- **Tab** — completions (fzf trigger is `**`)
-- **Up arrow** — atuin history (token search with Alt-Up)
-
-Aliases mirror Fish: `ll`/`la`/`lt` (eza), `cat` (bat), `grep` (rg), `df`
-(duf), `top` (btop), `v`/`vi`/`vim` (nvim), `g`/`gs`/`gd`/`gc`/`gp`/`gl`
-(git), `j` (just), `m`/`mr`/`ml` (mise), `b`/`bi`/`br`/`bx` (bun),
-`openf` (platform opener: `open`, `xdg-open`, or `explorer.exe`), `pi-sudo`.
-
-All shell integrations are generated into `~/.cache/nushell/`; regenerate after
-tool upgrades with `just nushell-setup` (also rebuilds the bat theme cache).
-Verify the whole setup with `just nu-health` (config, integrations,
-keybindings, aliases).
-
-## Migrating from Chezmoi
-
-To switch over on a machine currently using chezmoi:
-
-```bash
-# 1. Backup current state
-chezmoi state dump > ~/chezmoi-backup.json
-
-# 2. Remove chezmoi's files (careful - this removes the actual dotfiles!)
-chezmoi destroy
-
-# 3. Deploy with dotter
-cd ~/dotfiles
-dotter deploy --force
-
-# 4. Reload shell
-exec zsh
-```
-
-## Chezmoi vs Dotter Syntax
-
-| Task | Chezmoi | Dotter |
-|------|---------|--------|
-| Rename file | `dot_zshrc.tmpl` | `zshrc` |
-| OS conditional | `{{ if eq .chezmoi.os "darwin" }}` | `{{#if (eq os "macos")}}` |
-| Variable | `{{ .chezmoi.os }}` | `{{os}}` |
-| Apply | `chezmoi apply` | `dotter deploy` |
-
-## What's Not Included
-
-Removed from chezmoi migration:
-- `sketchybar-app-font/` - This is a separate project (GitHub repo), not a dotfile
-- GitHub Actions workflow files with `${{ secrets }}` syntax
-
-These should be installed separately via git clone or package manager.
+Nushell is the default shell (`config/nushell/`), with Fish kept as a fallback
+(`config/fish/config.fish`). `bootstrap.sh` installs Nushell and sets it as the
+login shell. Nu differs from Fish in a few ways (semicolon pipes, structured
+builtins, `nu -c` skips config) — details and the keybinding/alias map are
+generated into `~/.cache/nushell/` and checked by `just nu-health`.
 
 ## llama.cpp Models
 
-Model paths are machine-specific, so the models config is a **template** (`llama-models.ini`) that uses variables from `local.toml`.
+Model paths are machine-specific, so the router config is a template
+(`llama-models.ini`). Each machine's `.dotter/local.toml` sets `models_base_path`,
+and the template branches on `os` (Linux → Vulkan/RADV with MTP speculative
+decoding; macOS → Metal, smaller model set).
 
-### First-time setup on a new machine
-
-Each machine needs a `.dotter/local.toml` with the right `models_base_path`:
-
-**Linux (this machine — framearch-juan):**
 ```toml
-packages = ["default"]
-
 [variables]
 os = "linux"
 name = "Juan Benjumea"
 email = "benjumeamoreno@gmail.com"
 hostname_color = "fg:#f7768e"
-models_base_path = "/mnt/ai_models/models"
+models_base_path = "/mnt/ai_models/models"   # macOS: ~/.cache/huggingface/hub
 ```
 
-**macOS (Apple Silicon):**
-```toml
-packages = ["default"]
-
-[variables]
-os = "macos"
-name = "Juan Benjumea"
-email = "benjumeamoreno@gmail.com"
-hostname_color = "fg:#f7768e"
-models_base_path = "/Users/juanbenjumea/.cache/huggingface/hub"
-```
-
-The template branches on `os`:
-- **Linux** → Vulkan/RADV, 14 gen threads, per-model speculative decoding configs
-- **macOS** → Metal, 4 gen threads, minimal model set
-
-### Adding models
-
-Edit `llama-models.ini` in the dotfiles root, then:
+Add or update a model in `llama-models.ini`, then:
 
 ```bash
 cd ~/dotfiles && dotter deploy --force && sudo systemctl restart llama.cpp
 ```
 
-Model paths use HuggingFace Hub cache layout:
-```
-{{ models_base_path }}/models--author--model-name-GGUF/snapshots/<hash>/file.gguf
-```
+Paths use the HuggingFace Hub cache layout:
+`{{ models_base_path }}/models--author--model-GGUF/snapshots/<hash>/file.gguf`.
+See `config/llama.cpp/MODELS.md` for the benchmarked lineup.
 
-## Local Machine Config
+## Machine-Specific Config
 
-Create `~/.config/local/zshrc` for machine-specific settings not tracked in git:
+Per-machine settings live in two places:
 
-```bash
-# ~/.config/local/zshrc
-export WORK_API_KEY="secret"
-alias workvpn="openvpn --config ~/work.ovpn"
-```
+- **`.dotter/local.toml`** — the variables used by templates (`os`, `name`,
+  `email`, `hostname_color`, `models_base_path`). `bootstrap.sh` writes this on
+  first run; edit it before re-deploying on a new machine.
+- **`~/.config/environment.d/99-environment.conf`** — machine-local secrets and
+  env vars (decrypted by the post-deploy hook; see
+  [`secrets/README.md`](secrets/README.md)). Loaded by systemd and parsed by the
+  shell configs.
 
-This is sourced at the end of the main zshrc.
-
----
+Anything not meant to be shared (work VPN keys, private aliases) belongs in
+those machine-local files, never in tracked configs.
 
 ## WSL (Arch WSL on Windows)
 
-### Mirrored Networking
+Uses WSL2 **mirrored networking** so Windows VPN routes propagate into WSL.
+Windows binaries work via the `WSLInterop` binfmt handler (registered by
+`/etc/binfmt.d/wsl.conf`).
 
-WSL2 uses **mirrored networking mode** (configured in `.wslconfig`)
-so Windows VPN routes propagate automatically into WSL. The Qlik-Env
-Azure VPN provides access to the `10.7.0.0/8` corporate network.
-
-### WSL Interop (running Windows executables)
-
-To run Windows binaries (`powershell.exe`, `rasdial.exe`, `clip.exe`,
-`explorer.exe`) from WSL, the `WSLInterop` binfmt_misc handler must be
-registered. This is done via `/etc/binfmt.d/wsl.conf`
-(loaded by `systemd-binfmt` on boot).
-
-### VPN Reconnect Script
+For VPN / CIFS mount management use the helper:
 
 ```bash
-~/dotfiles/scripts/wsl-vpn-setup.sh
-```
-
-This script handles everything:
-
-| Command | What it does |
-|---------|-------------|
-| `setup` | Register WSLInterop binfmt (permanent, done once) |
-| `status` | Check VPN and `/mnt/atomsrc` mount |
-| `reconnect` | Reconnect the Qlik-Env VPN |
-| `mount` | Mount `/mnt/atomsrc` |
-| `route` | Show routing, VPN interface, and mount info |
-| `all` | Run setup + reconnect + mount (default) |
-
-For a quick alias, add to `~/.config/local/zshrc`:
-
-```bash
+~/dotfiles/scripts/wsl-vpn-setup.sh setup|status|reconnect|mount|route|all
 alias vpn-reconnect='~/dotfiles/scripts/wsl-vpn-setup.sh reconnect'
 ```
 
-The CIFS mount is defined in `/etc/fstab` on the WSL side:
+The `/mnt/atomsrc` CIFS mount is defined in `/etc/fstab` on the WSL side
+(credentials: `~/.smbcred`).
 
-```
-//10.7.0.4/MSPBFDATA /mnt/atomsrc cifs credentials=/home/juan/.smbcred,uid=1000,gid=1000,vers=3.0,noatime,soft,nofail,_netdev,x-systemd.automount 0 0
-```
+## New Machine Setup (macOS)
 
----
-
-## New Machine Setup
-
-Setting up a new Mac (e.g., MacBook Air M5): bootstrap captures most things,
-but some state must be copied from the old machine.
-
-### Order of operations
-
-```mermaid
-flowchart LR
-    A[Copy keys from old machine] --> B[Clone dotfiles]
-    B --> C[bootstrap.sh]
-    C --> D[Sign into accounts]
-    D --> E[Copy coding agent state]
-```
-
-### Copy method
-
-The repo includes a backup script (`scripts/backup-to-kingston.sh`) and a restore
-script (`scripts/restore-from-kingston.sh`). Run the backup on the old machine,
-then the restore on the new one.
-
-**On the old machine — backup everything:**
+Bootstrap captures most things, but machine-local state must be copied from the
+old machine. Use the included scripts:
 
 ```bash
-# Clone the latest bootstrap changes first
-git -C ~/dotfiles pull
+# Old machine: clone latest, then back everything up
+git -C ~/dotfiles pull && ~/dotfiles/scripts/backup-to-kingston.sh
 
-# Run the backup script
-~/dotfiles/scripts/backup-to-kingston.sh
-```
-
-This copies: age key, SSH keys, GPG keys, Claude CLI, Codex, all coding
-agents (Gemini, WakaTime, Cursor, Copilot, Orca, etc.), Alfred workflows +
-license, Itsycal prefs, Logi Options+ config, shell history, and your code
-projects.
-
-**On the new machine — restore:**
-
-```bash
-# 1. Restore keys + data from KingstonPhotos
+# New machine: restore keys FIRST, then bootstrap
 ~/dotfiles/scripts/restore-from-kingston.sh
-
-# 2. Then run bootstrap
 exec ./bootstrap.sh
 ```
 
-The restore script copies keys BEFORE bootstrap (so secrets decrypt),
-then agent state and app data after.
-
-### Step 1: Copy keys from old machine (before bootstrap!)
-
-These **must** exist before running bootstrap.sh or secrets won't decrypt:
+### 1. Copy keys (before bootstrap!)
 
 | What | Path | Why |
 |---|---|---|
-| **Age key** | `~/.config/sops/age/keys.txt` | Decrypts encrypted API keys and environment/app secrets |
-| **SSH keys** | `~/.ssh/` | Git push, server access |
-| **GPG keys** | `~/.gnupg/` | Commit signing |
+| Age key | `~/.config/sops/age/keys.txt` | decrypts `secrets/*.enc` |
+| SSH keys | `~/.ssh/` | git push, server access |
+| GPG keys | `~/.gnupg/` | commit signing |
 
-Without the age key, bootstrap creates a *new* key and every secret stays
-encrypted — you'd have to add the new key to `.sops.yaml` and re-encrypt all
-secrets from this machine.
-
-### Step 2: Clone and bootstrap
+### 2. Clone + bootstrap
 
 ```bash
 git clone https://github.com/huaxel/dotfiles.git ~/dotfiles
 cd ~/dotfiles && ./bootstrap.sh
 ```
 
-### Step 3: Sign into accounts
+### 3. Sign into accounts
 
-| Service | How |
-|---|---|
-| **Apple ID** | System Settings → sign in (needed for mas App Store apps) |
-| **Claude Desktop** | Launches → re-auth via GitHub OAuth |
-| **Claude Code** | `claude` in terminal → re-auth |
-| **Codex** | Launches → re-auth |
-| **Tailscale** | Tailscale.app → re-auth |
-| **Atuin** | `atuin login` (cloud-syncs history) or copy local db |
-| **Zed** | Open → sign into GitHub Copilot / Claude ACP |
-| **Ghostty theme** | `pi ghostty theme sync` |
-| **Cursor** | Launches → sign in |
-| **WakaTime** | Copy `~/.wakatime/wakatime.cfg` for API key or paste fresh key |
+Apple ID (mas), Claude Desktop/Codex (OAuth), Tailscale, Atuin (`atuin login` or
+copy db), Zed (Copilot/ACP), Cursor, WakaTime, `pi ghostty theme sync`.
 
-### Step 4: Copy coding agent state
+### 4. Copy coding-agent state (post-bootstrap)
 
-#### 🟢 Small / auth-only (copy after bootstrap)
+| State | Path | Notes |
+|---|---|---|
+| Pi OAuth | `~/dotfiles/pi/agent/auth.json` | machine-local, **not** synced — run `/login openai-codex` per machine |
+| Pi quota cookies | `~/dotfiles/pi/agent/quota-sessions.json` | web cookies for Cursor/CommandCode quota bars (SOPS: `pi-quota-sessions.json.enc`) |
+| GitHub Copilot | `~/.config/github-copilot/` | auth tokens |
+| Cursor | `~/.cursor/` | re-creatable on sign-in |
+| Gemini CLI | `~/.gemini/` | auth, cache; re-auth |
+| WakaTime | `~/.wakatime/` | cfg with API key |
+| OpenCode | `~/.config/opencode/` | mostly re-installable node_modules |
+| Devin / Kimi / Jules / Grok / Orca | `~/.config/devin/`, `~/.kimi-code/`, `~/.jules/`, `~/.grok/`, `~/.orca/` | small configs; copy or recreate |
+| Alfred | `~/Library/Application Support/Alfred/` | workflows, snippets, **Powerpack license** (not installed by brew) |
+| Itsycal / Logi Options+ / DisplayLink | `~/Library/...` | preferences; brew cask gives the binary only |
+| Codex CLI | `~/.codex/` (~236 MB) | auth, history, sessions (optional copy) |
+| Claude CLI / Desktop | `~/.claude/`, `~/Library/Application Support/Claude/` | projects, plugins, conversations (optional, large) |
+| Shell history | `~/.local/share/atuin/`, `~/.local/share/fish/` | or cloud-sync via `atuin login` |
 
-| Agent | Path | Size | What's in it |
-|---|---|---|---|
-| **Pi OAuth auth** | `~/dotfiles/pi/agent/auth.json` | ~4 KB | Machine-local and intentionally not synchronized; re-authenticate OAuth providers on each machine. |
-| **Pi quota cookies** | `~/dotfiles/pi/agent/quota-sessions.json` | ~1 KB | Cursor/CommandCode web session cookies for quota bars. SOPS: `pi-quota-sessions.json.enc`. |
-| **GitHub Copilot** | `~/.config/github-copilot/` | 524 KB | Auth tokens, hosts.json |
-| **Cursor** | `~/.cursor/` | 2.3 MB | Skills, hooks.json (re-creatable on sign-in) |
-| **Gemini CLI** | `~/.gemini/` | 26 MB | Auth, cache. Re-auth on first use. |
-| **WakaTime** | `~/.wakatime/` | 21 MB | WakaTime.cfg with API key. Copy or re-auth. |
-| **OpenCode** | `~/.config/opencode/` | 64 MB | Mostly re-installable `node_modules/`. Config is minimal. |
-| **Devin** | `~/.config/devin/` | 8 KB | Config — copy or recreate |
-| **Kimi Code** | `~/.kimi-code/` | 4 KB | Config |
-| **Jules** | `~/.jules/` | 4 KB | Config |
-| **Grok** | `~/.grok/` | 8 KB | Config |
-| **Orca** | `~/.orca/` | 52 KB | Config + workspace state |
+**Installs fresh (no copy needed):** nvim plugins (Lazy.nvim first launch),
+`mise install`, `npm install`, Docker pulls.
 
-### 🟡 App-specific data (NOT captured by brew cask install)
+## Secrets
 
-| App | Path | Size | Why you need it |
-|---|---|---|---|
-| **Alfred** | `~/Library/Application Support/Alfred/` | 17 MB | Workflows, snippets, clipboard history, **Powerpack license** |
-| **Itsycal** | `~/Library/Preferences/com.mowglii.ItsycalApp.plist` | 4 KB | Calendar preferences |
-| **Logi Options+** | `~/Library/Application Support/LogiOptionsPlus/` | varies | Mouse button config, MX Keys customizations |
-| **DisplayLink** | `~/Library/Preferences/com.displaylink.*.plist` | 4 KB | DisplayLink driver preferences |
+Secrets live as sops+age encrypted files in `secrets/` and auto-decrypt on
+`dotter deploy` via the post-deploy hook. The **full workflow** — adding a
+machine key, editing/re-encrypting secrets, and the pre-commit auto-encrypt
+(`*.sha256` plaintext sidecar) — is documented in
+[`secrets/README.md`](secrets/README.md).
 
-> Installing a cask via brew gives you the **app binary**, not your user data.
-> Alfred workflows, Powerpack license, mouse configs — these live in
-> `~/Library/Application Support/` and `~/Library/Preferences/` and must
-> be copied separately.
+Key points:
 
-#### 🔴 Large state (copy after bootstrap, optional)
-
-| Agent | Path | Size | What's in it |
-|---|---|---|---|
-| **Codex CLI** | `~/.codex/` | **236 MB** | Auth, config, history, sessions, skills, plugins, DBs |
-| **Codex app** | `~/Library/Application Support/Codex/` | **122 MB** | Chromium cache (skip — re-creatable) |
-| **Claude Desktop** | `~/Library/Application Support/Claude/` | **~8 GB** | Conversations, MCP configs, claude-code sessions |
-| **Claude CLI** | `~/.claude/` | **~430 MB** | Projects (344 MB), plugins (17 MB), settings |
-| **Atuin history** | `~/.local/share/atuin/` | ~8 MB | Shell history (or cloud-sync via `atuin login`) |
-| **Fish history** | `~/.local/share/fish/` | ~1 MB | Shell history (small, easy to copy) |
-
-### What gets installed fresh (no copy needed)
-
-- **nvim plugins** — auto-installed on first `nvim` launch (Lazy.nvim)
-- **mise tools** — `mise install` re-downloads from config
-- **npm packages** — re-installed via `npm install`
-- **Docker images** — re-pulled
-- **Pi sessions** — re-created as you work (in `pi/agent/sessions/`)
-
----
-
-## Secrets Management (sops + age)
-
-Encrypted secrets live in the dotfiles repo and auto-decrypt on `dotter deploy`.
-
-### Prerequisites
-
-```bash
-# macOS
-brew install sops age
-
-# Arch Linux
-pacman -S sops age
-
-# Ubuntu/Debian
-# Download from https://github.com/getsops/sops/releases
-# and https://github.com/FiloSottile/age/releases
-```
-
-### Setup on a new machine
-
-**1. Generate an age key** (one per machine):
-
-```bash
-mkdir -p ~/.config/sops/age
-age-keygen -o ~/.config/sops/age/keys.txt
-```
-
-This prints a **public key** like `age1xxx...`. Add it to `.sops.yaml` in the dotfiles repo so this machine can decrypt:
-
-```bash
-cd ~/dotfiles
-# Edit .sops.yaml and add the new public key to the age list
-git add .sops.yaml
-git commit -m "feat(secrets): add <machine-name> age key"
-git push
-```
-
-**2. Pull and deploy**:
-
-```bash
-cd ~/dotfiles && git pull
-dotter deploy
-# → secrets auto-decrypt to ~/.config/environment.d/ and ~/.config/secrets/
-```
-
-### How to add a secret
-
-Secrets for shells live in the canonical systemd `environment.d` file
-(decrypted to `~/.config/environment.d/99-environment.conf`). The pre-commit
-hook auto-re-encrypts it when the plaintext changes.
-
-**1. Edit the decrypted plaintext** (never commit this):
-
-```bash
-$EDITOR ~/.config/environment.d/99-environment.conf
-# Syntax: one KEY=value per line; comments start with #
-#   FIREWORKS_API_KEY=your-key-here
-#   OPENAI_API_KEY=your-key-here
-#   ANTHROPIC_API_KEY=your-key-here
-```
-
-**2. Commit** — the `.githooks/pre-commit` hook re-encrypts and stages the
-`.enc` + `.sha256` for you:
-
-```bash
-cd ~/dotfiles
-git add secrets/environment.d.enc secrets/environment.d.sha256
-git commit -m "chore(secrets): add API keys"
-git push
-```
-
-### How decrypted secrets reach shells
-
-- **Linux**: systemd loads `~/.config/environment.d/` for user sessions
-  automatically — log out/in after `dotter deploy`.
-- **Nushell** (`config/nushell/`): relies on systemd `environment.d`.
-- **Fish fallback** (`config/fish/config.fish`): parses the same file at
-  startup, so keys are present even without a full session restart.
-- **PowerShell**: `powershell/Load-Secrets.ps1` sources the same file.
-
-### What gets encrypted vs. what's ignored
-
-| Tracked in git | Ignored |
-|---|---|
-| `secrets/*.enc` | `secrets/*` (plaintext) |
-| `secrets/README.md` | `~/.config/secrets/` (decrypted) |
-| `.sops.yaml` | `~/.config/sops/age/keys.txt` |
-
-### Adding a new machine to decrypt existing secrets
-
-If you have a new machine that needs to read existing secrets:
-
-1. Generate age key on new machine
-2. Add the **public key** to `.sops.yaml` (comma-separated)
-3. **Re-encrypt all secrets** so the new key is included:
-
-```bash
-cd ~/dotfiles/secrets
-for f in *.enc; do
-  sops --rotate -in-place "$f"
-done
-git add *.enc
-git commit -m "chore(secrets): rotate keys for new machine"
-git push
-```
-
-Then on the new machine:
-```bash
-cd ~/dotfiles && git pull && dotter deploy
-```
-
-### Troubleshooting
-
-**"Some files were skipped" / "target contents were changed"** — Dotter is
-protecting machine-local changes. Do not use `--force` blindly: it can replace
-Git LFS settings, or machine-specific llama.cpp model paths. Registry settings
-are sourced from the gitignored root `npmrc`, which is symlinked to `~/.npmrc`.
-Back up and reconcile Git or llama.cpp changes deliberately rather than using
-`--force`. Machine-local binary assets are ignored and are not required by the
-Dotter source tree. On a direct deploy from a fresh clone, create the ignored
-npm source first: `install -m 600 /dev/null npmrc`.
-
-**"Failed to decrypt"** — wrong age key:
-```bash
-# Verify your key exists
-cat ~/.config/sops/age/keys.txt
-
-# Check which keys the file was encrypted for
-sops --show-master-keys secrets/environment.d.enc
-```
-
-**"sops: command not found"** — install it:
-```bash
-# Arch
-pacman -S sops
-# macOS
-brew install sops
-```
-
-**Secrets not decrypting on deploy** — check the post-deploy hook ran:
-```bash
-cd ~/dotfiles && dotter deploy 2>&1 | tail -20
-# Should show: "🔐 Decrypted environment.d -> ~/.config/environment.d/99-environment.conf"
-```
-
-### Full example: adding a Fireworks API key
-
-```bash
-# 1. Add the key to the canonical environment.d plaintext (decrypted by dotter):
-echo 'FIREWORKS_API_KEY=fw-abc123...' >> ~/.config/environment.d/99-environment.conf
-
-# 2. Commit — the pre-commit hook re-encrypts secrets/environment.d.enc and
-#    stages it together with its sha256 sidecar.
-cd ~/dotfiles
-git add secrets/environment.d.enc secrets/environment.d.sha256
-git commit -m "chore(secrets): add fireworks api key"
-git push
-```
-
-On the next `dotter deploy`, the secret decrypts to
-`~/.config/environment.d/99-environment.conf` and reaches Nushell, Fish, and
-PowerShell (via systemd on Linux, or direct parsing where systemd is absent).
+- Shell secrets live in one `environment.d` file → decrypted to
+  `~/.config/environment.d/99-environment.conf`, loaded by systemd (Linux) and
+  parsed directly by Nushell/Fish/PowerShell.
+- `pi/agent/auth.json` (OAuth) is intentionally **not** synced — refresh tokens
+  rotate per refresh; each machine owns its own and logs in via `/login`.
+- `secrets/*.enc` + `*.sha256` are committed; plaintext and decrypted copies are
+  never.
+- New machine: add its public age key to `.sops.yaml`, `sops --rotate -in-place`
+  each `secrets/*.enc`, commit, pull + `dotter deploy` on the new machine.

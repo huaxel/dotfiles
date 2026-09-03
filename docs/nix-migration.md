@@ -18,8 +18,7 @@ the two framearch user systemd services, Nushell, Starship, Git, the global Git 
 file, Neovim, Ghostty, mise, Herdr, the static CI tree, the tracked Zed
 keymap, eza, the shared icon helper, the web-search wrapper, the static llama
 project files, the Wayland desktop session configs (sway, waybar, wofi, walker,
-llamaman, xkb), the llama
-statistics bridge script, and the three encrypted secret
+llamaman, xkb), and the three encrypted secret
 destinations through sops-nix. Dotter remains the owner of the remaining
 configuration paths. Do not run
 `home-manager switch` after adding a file to `home.file` until the matching

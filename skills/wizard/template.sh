@@ -1,44 +1,130 @@
----
-name: wizard
-description: Generate an interactive bash wizard that walks a human through steps only they can perform. Use when provisioning infrastructure, setting up credentials or CI secrets, walking an unfamiliar third-party dashboard, or running a one-off migration or cutover. Don't invoke this for steps the agent can perform itself.
----
+#!/usr/bin/env bash
+set -euo pipefail
 
-# Wizard
+# Set this to the number of stages in your wizard.
+TOTAL_STAGES=1
+ENV_FILE="${ENV_FILE:-.env}"
+CURRENT_STAGE=0
 
-A **wizard** is a bash script that walks a human, step by step, through a manual procedure that's tedious to do by hand and tedious to re-explain to an AI every time. It opens each URL, says exactly what to click and copy, captures the values, writes them where they belong (`.env`, GitHub secrets), confirms at every stage, and shows how many stages are left. It might configure third-party services, run a one-off migration, or move the project from one state to another.
+stage() {
+  local title=$1
+  if [[ -t 1 ]]; then
+    clear
+  fi
+  CURRENT_STAGE=$((CURRENT_STAGE + 1))
+  printf '\n[%d/%d] %s\n' "$CURRENT_STAGE" "$TOTAL_STAGES" "$title"
+  printf '%s\n' '────────────────────────────────────────'
+}
 
-The delightful UX is already solved by [template.sh](template.sh): stage-by-stage progress, confirmation gates, cross-platform URL opening (including WSL), hidden secret entry, idempotent `.env` upserts, `gh secret`/`gh variable` writes, and a closing summary. **Your job is only to scope the procedure and author its stages.** The library above the `STAGES` marker is identical in every wizard; that consistency is the point: never hand-edit it.
+say() {
+  printf '%s\n' "$*"
+}
 
-A wizard is ephemeral by default: built for one run, saved to a scratch or `scripts/` path, deleted when the job's done. Commit it only when the user wants a repeatable setup path that should live in the repo.
+step() {
+  printf '  • %s\n' "$*"
+}
 
-## Process
+pause() {
+  local prompt=${1:-Press Enter when ready}
+  read -r -p "$prompt " _
+}
 
-### 1. Scope the procedure
+confirm() {
+  local prompt=${1:-Continue?}
+  local answer
+  read -r -p "$prompt [y/N] " answer
+  [[ "$answer" =~ ^[Yy]([Ee][Ss])?$ ]]
+}
 
-Work out every manual step the human must take and every value that gets captured along the way. Read the repo first, don't ask cold:
+open_url() {
+  local url=$1
+  if command -v wslview >/dev/null 2>&1; then
+    wslview "$url"
+  elif command -v xdg-open >/dev/null 2>&1; then
+    xdg-open "$url" >/dev/null 2>&1 &
+  elif command -v open >/dev/null 2>&1; then
+    open "$url" >/dev/null 2>&1 &
+  elif command -v explorer.exe >/dev/null 2>&1; then
+    explorer.exe "$url" >/dev/null 2>&1 &
+  else
+    say "Open this URL in your browser: $url"
+  fi
+}
 
-- For setup: `.env`, `.env.example`, `.env.*`, `README`, `docker-compose*`, framework config, and `.github/workflows/*` (every `secrets.*` / `vars.*` reference is a value the wizard must produce).
-- For a migration or transition: the current state, the target state, and the irreversible actions between them.
+ask() {
+  local __result=$1 prompt=$2 default=${3:-} answer
+  if [[ -n "$default" ]]; then
+    read -r -p "$prompt [$default] " answer
+    answer=${answer:-$default}
+  else
+    read -r -p "$prompt " answer
+  fi
+  printf -v "$__result" '%s' "$answer"
+}
 
-Then show the user the ordered list of stages and the values each produces, and confirm: they may add, drop, or reorder.
+ask_secret() {
+  local __result=$1 prompt=$2 answer
+  read -r -s -p "$prompt " answer
+  printf '\n'
+  printf -v "$__result" '%s' "$answer"
+}
 
-**Done when:** every stage is named in order, and for each captured value you know (a) where the human gets it, (b) where it's written (`.env`, a GitHub secret, both, or nowhere; some stages are pure actions), and (c) whether it's secret (hidden entry) or public.
+write_env() {
+  local key=$1 value=$2 dir tmp
+  [[ "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || {
+    printf 'Invalid environment variable name: %s\n' "$key" >&2
+    return 1
+  }
+  dir=$(dirname "$ENV_FILE")
+  mkdir -p "$dir"
+  touch "$ENV_FILE"
+  chmod 600 "$ENV_FILE"
+  tmp=$(mktemp "${ENV_FILE}.tmp.XXXXXX")
+  WIZARD_ENV_VALUE=$value awk -v key="$key" '
+    BEGIN { value = ENVIRON["WIZARD_ENV_VALUE"]; replaced = 0 }
+    $0 ~ ("^" key "=") {
+      if (!replaced) print key "=" value
+      replaced = 1
+      next
+    }
+    { print }
+    END { if (!replaced) print key "=" value }
+  ' "$ENV_FILE" >"$tmp"
+  chmod 600 "$tmp"
+  mv "$tmp" "$ENV_FILE"
+}
 
-### 2. Map each stage's journey
+set_secret() {
+  local name=$1 value=$2
+  command -v gh >/dev/null 2>&1 || {
+    say "gh is not installed; skipped GitHub secret $name"
+    return 0
+  }
+  printf '%s' "$value" | gh secret set "$name"
+}
 
-For each stage, write the precise path a human follows: which URL to open, what to do there, where a value is shown, which variable it fills: e.g. "Dashboard → Developers → API keys → Reveal test key → copy". Where you don't actually know the current UI or the exact command, say so and ask the user or check the docs: never invent steps that may not exist.
+set_var() {
+  local name=$1 value=$2
+  command -v gh >/dev/null 2>&1 || {
+    say "gh is not installed; skipped GitHub variable $name"
+    return 0
+  }
+  printf '%s' "$value" | gh variable set "$name"
+}
 
-**Done when:** every stage traces to concrete instructions a stranger could follow.
+finish() {
+  local status=$?
+  if (( status == 0 )); then
+    printf '\nWizard complete. %d/%d stages finished.\n' "$CURRENT_STAGE" "$TOTAL_STAGES"
+  else
+    printf '\nWizard stopped after stage %d/%d.\n' "$CURRENT_STAGE" "$TOTAL_STAGES" >&2
+  fi
+  exit "$status"
+}
+trap finish EXIT
 
-### 3. Author the wizard
-
-Copy `template.sh` to the target path. Replace the example stage with one `stage` per step, in dependency order. Use the library helpers: `stage`, `say`/`step`, `open_url`, `ask`/`ask_secret`, `write_env`, `set_secret`/`set_var`, `pause`/`confirm`. Set `TOTAL_STAGES` to the number of stages you wrote.
-
-Hold the bar the template sets: open the URL before asking for its value, use `ask_secret` for anything secret, `write_env` every persisted value, `set_secret` only the values CI actually needs, and `confirm` before any irreversible action. Each `stage` clears the screen so only the current step is visible: keep a stage to one focused task so nothing the human needs scrolls away. Don't touch the library above the marker.
-
-### 4. Verify and hand off
-
-- `bash -n <script>`; run `shellcheck` if available.
-- `chmod +x <script>`.
-- Don't run it end-to-end yourself: it opens browsers and blocks on human input. Trace it statically instead: every value from step 1 is captured and lands where step 1 said, and every `set_secret` name exactly matches a `secrets.*` reference in CI.
-- Tell the user how to run it. If it's a repeatable setup path, commit it and link it from the README so the next person runs the script instead of asking an AI.
+# ── STAGES ──────────────────────────────────────────────────────────────────
+# Replace this example with one stage per manual step, then update TOTAL_STAGES.
+stage "Example stage"
+say "Replace this stage with a focused manual action."
+pause

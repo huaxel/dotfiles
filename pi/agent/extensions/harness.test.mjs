@@ -1,10 +1,11 @@
 // Self-test for pi-test-harness.mjs helpers (fakeClock, tempDir, runTests,
 // makeCtx, registerResolveHook). Run: node pi/agent/extensions/harness.test.mjs
-import { register } from "node:module";
+import { registerHooks } from "node:module";
+import { resolve } from "./pi-resolve-hook.mjs";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-register(new URL("./pi-resolve-hook.mjs", import.meta.url), import.meta.url);
+registerHooks({ resolve });
 const {
   fakeClock,
   tempDir,
