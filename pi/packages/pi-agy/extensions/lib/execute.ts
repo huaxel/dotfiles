@@ -56,15 +56,16 @@ export async function executeAgyTask(
   onProgress?: (message: string) => void,
 ): Promise<AgyExecutionResult> {
   const abortSignal = signal ?? new AbortController().signal;
+  // The budget covers config resolution + lock wait + preflight + the agy run
+  // itself, so a slow default-model command cannot silently eat into it.
+  const startedAt = Date.now();
   const config = await loadAgyConfig();
   // Resolution order: explicit call model → static defaultModel →
   // defaultModelCommand (e.g. quota-aware resolver) → flash-medium.
   const model = options.model ?? (await resolveDefaultModel(config));
   const skipPermissions = config.skipPermissions !== false;
 
-  // The budget covers lock wait + preflight + the agy run itself, so a call
-  // queued behind a long run cannot silently exceed its own timeout.
-  const startedAt = Date.now();
+  // A call queued behind a long run cannot silently exceed its own timeout.
 
   return withDirLock(
     options.dir,
@@ -161,25 +162,25 @@ export async function executeAgyTask(
 }
 
 /**
- * Retry once when agy fails before emitting any progress with a transient
- * error (rate limit, network blip). Zero progress means no tool steps ran,
- * so the retry cannot double-apply edits.
+ * Retry once when agy fails before emitting any activity (tool step or model
+ * response) with a transient error (rate limit, network blip). Zero activity
+ * means no tool steps ran, so the retry cannot double-apply edits.
  */
 async function runWithTransientRetry<T>(
   attempt: (trackProgress: (message: string) => void) => Promise<T>,
   onProgress?: (message: string) => void,
 ): Promise<T> {
   for (let tries = 0; ; tries++) {
-    let sawProgress = false;
-    const trackProgress = (message: string) => {
-      sawProgress = true;
+    let sawActivity = false;
+    const trackProgress = (message: string, kind?: "status" | "activity") => {
+      if (kind === "activity") sawActivity = true;
       onProgress?.(message);
     };
     try {
       return await attempt(trackProgress);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      if (tries === 0 && !sawProgress && isTransientAgyFailure(message)) {
+      if (tries === 0 && !sawActivity && isTransientAgyFailure(message)) {
         onProgress?.("agy: transient failure before any work — retrying once…");
         continue;
       }

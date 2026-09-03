@@ -44,7 +44,11 @@ export interface AgyRunResult {
   duration_seconds?: number;
 }
 
-export type AgyProgressHandler = (message: string) => void;
+export type AgyProgressHandler = (
+  message: string,
+  /** "activity" = real agy work (tool step or response text); "status" = lifecycle chatter. */
+  kind?: "status" | "activity",
+) => void;
 
 export function parseStreamLine(line: string): AgyStreamLine | null {
   const trimmed = line.trim().replace(/^\uFEFF/, "");

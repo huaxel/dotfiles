@@ -42,7 +42,7 @@ try {
     const entries = [
       ...(Array.isArray(record.history) ? record.history : []),
       ...(record.last_conversation_id
-        ? [{ model: record.last_model, updated_at: record.updated_at }]
+        ? [{ conversation_id: record.last_conversation_id, model: record.last_model, updated_at: record.updated_at }]
         : []),
     ];
     const seen = new Set();
