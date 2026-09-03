@@ -874,3 +874,32 @@ every open). Fixed, then hardened the whole setup.
 
 ### Improvements for next time
 - Check wheel/platform compatibility before attempting a fleet-wide uv tool install.
+
+## 2026-09-03: Home Manager pilot and NixOS module contracts
+
+### What went well
+- Migrated all portable config (llama project files, presets, Brewfile, wrapper,
+  Wayland desktop session) from Dotter to Home Manager without a single dual-ownership
+  incident; the `dotter deploy --dry-run` check caught every stale cache entry.
+- Validated future NixOS modules three ways: evaluation assertions in `nix flake check`,
+  a disposable VM that booted to serial login, and isolated GPU smoke tests for both
+  chat routing and the embedding endpoint.
+- Preserved cross-machine parity by moving Linux desktop configs to a shared module
+  imported by both Linux profiles instead of silently dropping WSL coverage.
+- Kept the live Arch host, llama router, and embedding service untouched throughout;
+  every test ran in isolated processes with cleanup.
+
+### What was frustrating / slow
+- Home Manager evaluation errors on untracked files (`not tracked by Git`) required
+  a manual `git add -N` before each new module could be checked.
+- Upstream CachyLLama's Nix package emits stdenv deprecation warnings on every
+  evaluation; cosmetic but noisy.
+
+### Config change that would have helped
+- A flake check that tolerates or auto-stages new files, or a just recipe wrapping
+  `git add -N` before `nix flake check`.
+
+### Improvements for next time
+- Stage new Nix files with `git add -N` immediately on creation.
+- For directory migrations, enumerate files one-to-one rather than symlinking whole
+  directories, so locally-created state files survive the ownership transfer.
