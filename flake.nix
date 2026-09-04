@@ -22,7 +22,10 @@
       flake = true;
     };
 
-    # Required only for Vulkan diagnostics on the current non-NixOS Arch host.
+    # nixgl is only needed for Vulkan smoke tests on the current Arch host.
+    # Kept as an explicit input so it's available, but not pulled into the
+    # flake evaluation graph for Darwin or non-Vulkan builds — the package is
+    # only referenced in legacyPackages (evaluation-only), never in homeConfigurations.
     nixgl.url = "github:guibou/nixGL/b6105297e6f0cd041670c3e8628394d4ee247ed5";
   };
 
