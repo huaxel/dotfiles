@@ -50,6 +50,10 @@
 
 [filter "strip-pi-machine-config"]
 	clean = node scripts/strip-pi-machine-config.mjs
+	# smudge is required for fresh clones: `required = true` with a missing
+	# smudge makes checkout fail before bootstrap runs. The committed blob is
+	# already machine-stripped, so `cat` is the correct pass-through smudge.
+	smudge = cat
 	required = true
 
 [push]
