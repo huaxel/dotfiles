@@ -25,7 +25,6 @@ config/vscode/sync/
 config/eza/eza-themes/imgs/
 config/eza/eza-themes/test_dir/
 config/eza/eza-themes/dot_git/
-config/wallpapers/
 config/vscode/globalStorage/**/*.vscdb
 config/vscode/globalStorage/**/*.vscdb.backup
 config/vscode/globalStorage/**/*.json
@@ -33,7 +32,6 @@ config/vscode/**/*.vscdb
 config/vscode/**/*.vscdb.backup
 config/composer/*.lock
 config/composer/keys.*
-config/tmc/
 config/nvim/lazy-lock.json
 
 # ─────────────────────────────────────────────────────────────
@@ -61,6 +59,7 @@ local/
 
 # Local tool runtime artifacts
 .pi/
+.pi-subagents/
 .herdr-todo/
 
 # Pi goal/session runtime artifacts (machine-local: pids, instance ids)
