@@ -106,7 +106,7 @@ already completed this takeover; its cache was purged directly.
 - `home/common.nix`: shared user packages and environment.
 - `home/linux-desktop.nix`: Linux desktop configs (sway, waybar, wofi, walker,
   llamaman, xkb) imported by both Linux profiles, replacing the Dotter
-  "linux" package.
+  "linux" package (which has since been removed from global.toml).
 - `home/framearch.nix`: physical CachyOS desktop, model-storage paths, and
   the laptop model preset.
 - `home/arch-wsl.nix`: WSL interop and Windows-mounted paths.

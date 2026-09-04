@@ -73,14 +73,22 @@ git config filter.strip-pi-machine-config.smudge \
 if [ ! -f .dotter/local.toml ]; then
     case "$OS" in
         Darwin*) dotter_os="macos"; os_pkg="macos"; models_base_path="$HOME/.cache/huggingface/hub" ;;
-        *)       dotter_os="linux"; os_pkg="linux"; models_base_path="/mnt/ai_models/models" ;;
+        *)       dotter_os="linux"; os_pkg=""; models_base_path="/mnt/ai_models/models" ;;
     esac
 
     git_name=$(git config --global user.name 2>/dev/null || printf '%s' "${USER:-Your Name}")
     git_email=$(git config --global user.email 2>/dev/null || printf '%s' "your@email.com")
 
+    # Linux has no Dotter OS-specific package (configs moved to Home Manager),
+    # so emit just [default, unix] to avoid a trailing-comma TOML.
+    if [ -n "$os_pkg" ]; then
+        packages_line='packages = ["default", "unix", "'"$os_pkg"'"]'
+    else
+        packages_line='packages = ["default", "unix"]'
+    fi
+
     cat > .dotter/local.toml <<EOF
-packages = ["default", "unix", "$os_pkg"]
+$packages_line
 
 [variables]
 os = "$dotter_os"

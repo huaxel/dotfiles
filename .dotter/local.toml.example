@@ -1,11 +1,11 @@
 # Machine-specific dotter configuration
 # Copy this to .dotter/local.toml and set your OS/package set.
 # macOS:        packages = ["default", "unix", "macos"]
-# Linux / WSL:  packages = ["default", "unix", "linux"]
+# Linux / WSL:  packages = ["default", "unix"]  (no OS-specific package; configs moved to Home Manager)
 # Windows:      packages = ["default", "windows"]
 #
-# "unix" = shared macOS+Linux configs; "macos"/"linux" add OS-specific
-# configs (config-macos/, config-linux/) so they don't deploy on the wrong OS.
+# "unix" = shared macOS+Linux configs; "macos" adds config-macos/
+# (config-linux/ is deployed via Home Manager on Unix hosts).
 
 packages = ["default", "unix", "macos"]
 
