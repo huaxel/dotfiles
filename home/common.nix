@@ -125,6 +125,19 @@
   home.file.".local/bin/web-search".source = ../bin/web-search;
   home.file.".ssh/config".source = ../ssh_config;
   home.file.".config/nvim".source = ../config/nvim;
+
+  # Pi fallback config: when launched without PI_CODING_AGENT_DIR (bash/cron/
+  # systemd/subprocesses with a reset env), pi reads ~/.pi/agent/settings.json.
+  # Symlink it to the tracked source so the fallback matches the live config.
+  # On sops-nix hosts the Dotter post-deploy hook exits early, so this Home
+  # Manager entry is what actually provisions the link on Unix. The
+  # strip-pi-machine-config git clean filter keeps machine-local fields out
+  # of git, so pi writing back through the link creates no git noise.
+  # (auth.json is NOT managed here — it is gitignored per-machine and created
+  # ad-hoc after `/login openai-codex`.)
+  home.file.".pi/agent/settings.json".source =
+    config.lib.file.mkOutOfStoreSymlink
+      "${config.home.homeDirectory}/dotfiles/pi/agent/settings.json";
   home.file.".config/ghostty/config".source = ../config/ghostty/config;
   home.file.".config/mise/config.toml".source = ../config/mise/config.toml;
   home.file.".config/herdr/config.toml".source = ../config/herdr/config.toml;
