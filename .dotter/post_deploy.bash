@@ -101,6 +101,17 @@ if [ -d "$SECRETS_DIR" ]; then
     ln -sfn "$PI_AGENT_DIR/auth.json" "$DEFAULT_PI_AGENT_DIR/auth.json" 2>/dev/null || cp -f "$PI_AGENT_DIR/auth.json" "$DEFAULT_PI_AGENT_DIR/auth.json"
   fi
 
+  # Mirror settings.json into the default config dir so pi behaves identically
+  # when launched without PI_CODING_AGENT_DIR (bash/cron/systemd/subprocesses
+  # with a reset env). The tracked file is the source of truth; the
+  # strip-pi-machine-config git clean filter keeps machine-local fields
+  # (lastChangelogVersion, defaultProvider/Model) out of git, so pi writing
+  # back through the symlink does not create git noise.
+  if [ -f "$PI_AGENT_DIR/settings.json" ] && [ "$PI_AGENT_DIR/settings.json" != "$DEFAULT_PI_AGENT_DIR/settings.json" ]; then
+    mkdir -p "$DEFAULT_PI_AGENT_DIR"
+    ln -sfn "$PI_AGENT_DIR/settings.json" "$DEFAULT_PI_AGENT_DIR/settings.json" 2>/dev/null || cp -f "$PI_AGENT_DIR/settings.json" "$DEFAULT_PI_AGENT_DIR/settings.json"
+  fi
+
 fi
 
 echo ""

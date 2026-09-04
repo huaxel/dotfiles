@@ -109,6 +109,15 @@ if (Test-Path $SECRETS_DIR) {
     if (Test-Path $sourceAuth) {
         Sync-CompatAuth -Source $sourceAuth -CompatPath $compatAuth
     }
+
+    # Mirror settings.json into the default config dir so pi behaves
+    # identically when launched without PI_CODING_AGENT_DIR. The tracked file
+    # is the source of truth; the git clean filter strips machine-local fields.
+    $compatSettings = Join-Path $DEFAULT_PI_AGENT_DIR "settings.json"
+    $sourceSettings = Join-Path $PI_AGENT_DIR "settings.json"
+    if (Test-Path $sourceSettings) {
+        Sync-CompatAuth -Source $sourceSettings -CompatPath $compatSettings
+    }
 }
 
 Write-Host ""
