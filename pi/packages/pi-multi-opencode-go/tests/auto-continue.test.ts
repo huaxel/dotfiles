@@ -6,6 +6,8 @@
 // network, no real auth.json, and no real pi/agent log writes occur
 // (PI_CODING_AGENT_DIR points at a temp dir).
 import assert from "node:assert/strict";
+import { rm, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { after, before, test } from "node:test";
 
 import { AUTO_CONTINUE_PROMPT } from "../lib/constants.ts";
@@ -63,6 +65,27 @@ test("quota error at message_end switches account and auto-continues exactly onc
   await drive(handlers, "turn_start", { turnIndex: 2 }, ctx);
   await drive(handlers, "agent_settled", {}, ctx);
   assert.equal(sent.length, 1, "flag consumed — no double fire");
+});
+
+test("persisted cooldowns are applied before selecting an account", async () => {
+  const { handlers, commands, ctx } = await bootWithClock(env.tmpAgentDir);
+  const statePath = join(env.tmpAgentDir, "opencode-go-failover-state.json");
+  try {
+    await writeFile(
+      statePath,
+      JSON.stringify({ cooldowns: { "sub-1": Date.now() + 3_600_000 } }),
+    );
+
+    const refresh = commands.get("opencode-accounts");
+    assert.ok(refresh, "account status command registered");
+    await refresh!.handler("", ctx);
+
+    const headersEvent = { headers: {} as Record<string, string> };
+    await drive(handlers, "before_provider_headers", headersEvent, ctx);
+    assert.equal(headersEvent.headers.Authorization, "Bearer key-sub-2");
+  } finally {
+    await rm(statePath, { force: true });
+  }
 });
 
 test("HTTP 429 at after_provider_response also arms the auto-continue", async () => {
