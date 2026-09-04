@@ -63,6 +63,7 @@ Keep deployment paths stable; organize new material under the matching area belo
 - `docs/investigations/pi-health-check/` — findings and decision tickets for the
   Pi health-check project; keep new investigation material here.
 - `PLAN.md`, `FEEDBACK.md` — repository-level backlog and session feedback.
+  Pre-2026-08 feedback entries are archived in `docs/feedback-archive.md`.
 
 ## Local-only directories
 

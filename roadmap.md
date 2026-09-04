@@ -1,5 +1,10 @@
 # 30-Day Roadmap
 
+> **Status: window elapsed.** This roadmap covered 2026-08-10 → 2026-09-09.
+> The one-sentence framing and measures below remain useful as standing
+> guidance; the dated weekly phases are historical. See `FEEDBACK.md` for
+> what actually happened and `PLAN.md` for the current pi-health-check map.
+
 The goal is not more agent power. It is more finished work with a named user.
 
 ## This week: stop the leaks
