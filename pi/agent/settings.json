@@ -41,7 +41,6 @@
     "npm:@howaboua/pi-shepherdr@0.1.2",
     "../packages/pi-agy",
     "npm:pi-context-view@0.4.3",
-    "npm:@pi-kaush/pi-verbatim-compaction",
     "npm:@ogulcancelik/pi-codex-compaction",
     "npm:@plannotator/pi-extension",
     "npm:pi-memory"
