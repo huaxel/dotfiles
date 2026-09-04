@@ -26,6 +26,25 @@ Toggles: `SKIP_BREW_BUNDLE=1`, `SKIP_MACOS_DEFAULTS=1`.
 > **before** running bootstrap, or a new key is generated and you must authorize
 > it in `.sops.yaml` and rotate secrets (see [Secrets](#secrets)).
 
+### Windows — one command
+
+```powershell
+git clone https://github.com/huaxel/dotfiles.git ~/dotfiles
+cd ~/dotfiles
+.\bootstrap.ps1
+```
+
+`bootstrap.ps1` installs Scoop → dotter + git + age + sops → enables git hooks →
+creates `.dotter/local.toml` (using your global git name/email) → `dotter deploy`
+→ runs `.\,.dotter\post_deploy.ps1` to decrypt secrets.
+
+Toggles are inline in the script (same age-key restoration rule as macOS — restore
+before running if you have an existing key).
+
+After bootstrap: restart PowerShell, run `glazewm` to start the window manager,
+and `zebar` for the status bar. For llama.cpp inference: `cd ~/.config/llama.cpp
+&& .\start-server.ps1`.
+
 ### Linux / manual
 
 ```bash
