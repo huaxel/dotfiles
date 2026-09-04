@@ -41,13 +41,16 @@ Keep deployment paths stable; organize new material under the matching area belo
 - `pi/agent/` — tracked Pi configuration, extensions, skills, and package sources.
   The tracked `settings.json` is the source of truth for pi config; it is read
   directly when `PI_CODING_AGENT_DIR` is set (the normal case for nushell/fish
-  shells) and is compat-symlinked into `~/.pi/agent/settings.json` by the
-  Dotter post-deploy hook so env-less launches (bash, cron, systemd) see the same
-  config. Machine-local fields (`lastChangelogVersion`, `defaultProvider`,
-  `defaultModel`) are stripped on commit by the `strip-pi-machine-config` git
-  clean filter (`.gitattributes`), so pi writing them back through the symlink
-  does not create git noise. The same compat-symlink pattern is used for
-  `auth.json`.
+  shells) and is compat-symlinked into `~/.pi/agent/settings.json` so env-less
+  launches (bash, cron, systemd, subprocesses with a reset env) see the same
+  config. On Nix hosts Home Manager provisions that symlink
+  (`home/common.nix`, via `mkOutOfStoreSymlink`); on Windows and
+  not-yet-migrated Unix hosts the Dotter post-deploy hook creates it. Machine-
+  local fields (`lastChangelogVersion`, `defaultProvider`, `defaultModel`) are
+  stripped on commit by the `strip-pi-machine-config` git clean filter
+  (`.gitattributes`), so pi writing them back through the symlink does not
+  create git noise. The same compat-symlink pattern is used for `auth.json`
+  (ad-hoc after `/login`, since auth is gitignored per-machine).
 - `pi/packages/` — TypeScript packages managed by the root npm workspace.
 - `skills/` — reusable skills shared by agents and projects.
 - `prime-agent/` — local/runtime integration; generated state is intentionally
