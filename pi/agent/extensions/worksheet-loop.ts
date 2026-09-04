@@ -512,46 +512,98 @@ export default function (pi: ExtensionAPI) {
   // ── detect agent writes to .worksheets/ files ───────────────────────────
   //
   // Three-layer guard against re-injection loops:
-  //   1. Process-local flag — set in tool_call (before the tool runs).
-  //   2. Filesystem sentinel (.ws-lock) — written on arm so OTHER pi
-  //      processes (subagents) see that a write is in flight.
+  //   1. Process-local paths — set in tool_call (before the tool runs).
+  //   2. Per-process filesystem sentinel — written on arm so OTHER pi
+  //      processes (subagents) see which files are being written.
   //   3. Hash bookkeeping — on a guarded skip we still update the stored
   //      hash, so a later spurious fs.watch event (guard down) matches
   //      instead of injecting.
   //
-  // Lifecycle: arm() on tool_call, disarm() on tool_execution_end.  The
-  // timer is a CRASH SAFETY-NET only (a process that dies mid-write would
-  // otherwise leave a permanent sentinel).  The 1s timer was too short:
-  // the edit tool + cross-process fs.watch delivery took ~1.025s, so the
-  // parent saw no sentinel and injected.  disarm() now removes the
-  // sentinel on confirmed completion; the timer is the fallback at 30s,
-  // matching the watcher's stale-lock window.
+  // Each process owns a different sentinel. A single shared sentinel lets
+  // one process disarm another process's in-flight write. The timer is a
+  // crash safety-net; normal completion removes only this process's paths.
 
-  const SENTINEL = path.resolve(WORKSHEETS_DIR, ".ws-lock");
+  const SENTINEL_PREFIX = ".ws-lock-";
+  const SENTINEL = path.resolve(WORKSHEETS_DIR, `${SENTINEL_PREFIX}${process.pid}`);
+  const STALE_SENTINEL_MS = 30_000;
+
+  type WorksheetLockRecord = { pid: number; paths: string[] };
+
+  function writeWorksheetSentinel(paths: Set<string>): void {
+    if (paths.size === 0) {
+      try { fs.unlinkSync(SENTINEL); } catch { /* ignore */ }
+      return;
+    }
+    try {
+      fs.writeFileSync(
+        SENTINEL,
+        JSON.stringify({ pid: process.pid, paths: [...paths] } satisfies WorksheetLockRecord),
+        "utf-8",
+      );
+    } catch { /* best effort */ }
+  }
+
+  function hasExternalWorksheetLock(targetPath: string): boolean {
+    let entries: string[];
+    try {
+      entries = fs.readdirSync(path.resolve(WORKSHEETS_DIR));
+    } catch {
+      return false;
+    }
+
+    for (const entry of entries) {
+      if (!entry.startsWith(SENTINEL_PREFIX) || entry === path.basename(SENTINEL)) continue;
+      const lockPath = path.join(path.resolve(WORKSHEETS_DIR), entry);
+      try {
+        const age = Date.now() - fs.statSync(lockPath).mtimeMs;
+        if (age >= STALE_SENTINEL_MS) {
+          fs.unlinkSync(lockPath);
+          continue;
+        }
+        const raw = fs.readFileSync(lockPath, "utf-8");
+        const parsed = JSON.parse(raw) as Partial<WorksheetLockRecord>;
+        if (Array.isArray(parsed.paths) && parsed.paths.includes(targetPath)) return true;
+      } catch {
+        // A lock being created or removed is treated as active for safety.
+        return true;
+      }
+    }
+    return false;
+  }
 
   const worksheetGuard = {
-    active: false,
-    timer: null as ReturnType<typeof setTimeout> | null,
-    arm(targetPath: string) {
-      if (targetPath && isWorksheetPath(path.resolve(targetPath))) {
-        this.active = true;
-        if (this.timer) clearTimeout(this.timer);
-        // Crash safety-net: if this process dies before disarm(), the
-        // sentinel must not stay forever.  30s matches the watcher's
-        // stale-lock threshold so a dead process is cleaned up promptly.
-        this.timer = setTimeout(() => {
-          this.active = false;
-          this.timer = null;
-          try { fs.unlinkSync(SENTINEL); } catch { /* ignore */ }
-        }, 30_000);
-        // Cross-process sentinel: touch file so other pi sessions see it
-        try { fs.writeFileSync(SENTINEL, String(process.pid)); } catch { /* ignore */ }
-      }
+    paths: new Set<string>(),
+    timers: new Map<string, ReturnType<typeof setTimeout>>(),
+    isActiveFor(targetPath: string): boolean {
+      return this.paths.has(path.resolve(targetPath));
     },
-    disarm() {
-      this.active = false;
-      if (this.timer) { clearTimeout(this.timer); this.timer = null; }
-      try { fs.unlinkSync(SENTINEL); } catch { /* ignore */ }
+    arm(targetPath: string) {
+      const normalizedPath = path.resolve(targetPath);
+      if (!targetPath || !isWorksheetPath(normalizedPath)) return;
+
+      this.paths.add(normalizedPath);
+      const previousTimer = this.timers.get(normalizedPath);
+      if (previousTimer) clearTimeout(previousTimer);
+      this.timers.set(normalizedPath, setTimeout(() => {
+        this.paths.delete(normalizedPath);
+        this.timers.delete(normalizedPath);
+        writeWorksheetSentinel(this.paths);
+      }, STALE_SENTINEL_MS));
+      writeWorksheetSentinel(this.paths);
+    },
+    disarm(targetPath: string) {
+      const normalizedPath = path.resolve(targetPath);
+      this.paths.delete(normalizedPath);
+      const timer = this.timers.get(normalizedPath);
+      if (timer) clearTimeout(timer);
+      this.timers.delete(normalizedPath);
+      writeWorksheetSentinel(this.paths);
+    },
+    reset() {
+      for (const timer of this.timers.values()) clearTimeout(timer);
+      this.timers.clear();
+      this.paths.clear();
+      writeWorksheetSentinel(this.paths);
     },
   };
 
@@ -575,7 +627,7 @@ export default function (pi: ExtensionAPI) {
     const armedPath = armedPaths.get(event.toolCallId);
     if (armedPath) {
       armedPaths.delete(event.toolCallId);
-      worksheetGuard.disarm();
+      worksheetGuard.disarm(armedPath);
       // Record the agent's own write in the audit log.  Recording is
       // distinct from steering: we log actor "agent" but never re-inject
       // the change as a worksheet update.  This also refreshes the stored
@@ -650,27 +702,18 @@ export default function (pi: ExtensionAPI) {
       // Guarded: an agent (this process or another) is writing. Skip
       // injection, but refresh the stored hash so a later fs.watch event
       // cannot re-inject the agent's own write.
-      if (worksheetGuard.active || fs.existsSync(SENTINEL)) {
-        if (fs.existsSync(SENTINEL)) {
-          try {
-            const age = Date.now() - fs.statSync(SENTINEL).mtimeMs;
-            if (age >= 30_000) {
-              fs.unlinkSync(SENTINEL); // stale lock from a crashed process
-            } else {
-              try {
-                const content = fs.readFileSync(filePath, "utf-8");
-                if (content.trim()) {
-                  rememberFile(filePath, content);
-                }
-              } catch { /* raced */ }
-              return;
-            }
-          } catch {
-            return;
+      const normalizedFilePath = path.resolve(filePath);
+      if (
+        worksheetGuard.isActiveFor(normalizedFilePath) ||
+        hasExternalWorksheetLock(normalizedFilePath)
+      ) {
+        try {
+          const content = fs.readFileSync(filePath, "utf-8");
+          if (content.trim()) {
+            rememberFile(filePath, content);
           }
-        } else {
-          return; // process-local guard active
-        }
+        } catch { /* raced */ }
+        return;
       }
 
       const previousTimer = debounceTimers.get(filePath);
@@ -743,6 +786,7 @@ export default function (pi: ExtensionAPI) {
   });
 
   pi.on("session_shutdown", () => {
+    worksheetGuard.reset();
     closeWatcher?.();
     closeWatcher = null;
     rescanWatcher = null;
@@ -860,10 +904,11 @@ export default function (pi: ExtensionAPI) {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
-  /** Build the path for a new worksheet: .worksheets/ws-<epoch>-<slug>.md */
+  /** Build a collision-resistant path for a new worksheet. */
   function worksheetPath(slug: string): string {
-    const epoch = Math.floor(Date.now() / 1000);
-    return path.resolve(WORKSHEETS_DIR, `ws-${epoch}-${slug}.md`);
+    const stamp = Date.now();
+    const suffix = crypto.randomBytes(4).toString("hex");
+    return path.resolve(WORKSHEETS_DIR, `ws-${stamp}-${suffix}-${slug}.md`);
   }
 
   /** Render the standard worksheet template. */
@@ -902,9 +947,10 @@ ${task}
   ): Promise<void> {
     const rel = path.relative(process.cwd(), wsPath);
     try {
-      const { execSync } = await import("node:child_process");
-      const out = execSync(
-        `herdr pane split --direction right --cwd "${process.cwd()}" --focus`,
+      const { execFileSync } = await import("node:child_process");
+      const out = execFileSync(
+        "herdr",
+        ["pane", "split", "--direction", "right", "--cwd", process.cwd(), "--focus"],
         { timeout: 5000, encoding: "utf-8" },
       );
       const parsed = JSON.parse(out) as {
@@ -912,7 +958,7 @@ ${task}
       };
       const newPaneId = parsed.result?.pane?.pane_id ?? "";
       if (newPaneId) {
-        execSync(`herdr pane run "${newPaneId}" nvim "${wsPath}"`, {
+        execFileSync("herdr", ["pane", "run", newPaneId, "nvim", wsPath], {
           timeout: 5000,
         });
         ctx.ui.notify(`📄 ${path.basename(wsPath)} opened in split`, "info");
@@ -986,7 +1032,7 @@ ${task}
 
         try {
           fs.mkdirSync(path.resolve(WORKSHEETS_DIR), { recursive: true });
-          fs.writeFileSync(wsPath, worksheetTemplate(title, task), "utf-8");
+          fs.writeFileSync(wsPath, worksheetTemplate(title, task), { encoding: "utf-8", flag: "wx" });
           // Seed the hash so the agent's own create doesn't trigger injection.
           const content = fs.readFileSync(wsPath, "utf-8");
           rememberFile(wsPath, content);

@@ -1335,7 +1335,14 @@ async function computeBreakdown(
 		parsedFiles += 1;
 		onProgress?.({ phase: "parse", parsedFiles, totalFiles, currentFile: path.basename(filePath) });
 
-		const session = await parseSessionFile(filePath, signal);
+		let session: ParsedSession | null;
+		try {
+			session = await parseSessionFile(filePath, signal);
+		} catch {
+			// Session files can disappear or become unreadable while Pi is running.
+			// One raced file should not discard the entire report.
+			continue;
+		}
 		if (!session) continue;
 
 		const sessionDay = localMidnight(session.startedAt);
@@ -1630,7 +1637,7 @@ export default function sessionBreakdownExtension(pi: ExtensionAPI) {
 	pi.registerCommand("session-breakdown", {
 		description: "Interactive breakdown of last 7/30/90 days of Pi session usage (sessions/messages/tokens + cost by model)",
 		handler: async (_args, ctx: ExtensionContext) => {
-			if (!ctx.hasUI) {
+			if (ctx.mode !== "tui") {
 				// Non-interactive fallback: just notify.
 				const data = await computeBreakdown(undefined);
 				const range = data.ranges.get(30)!;

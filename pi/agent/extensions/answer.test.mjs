@@ -9,7 +9,7 @@ import path from "node:path";
 
 registerHooks({ resolve });
 
-const { parseExtractionResult, toExtractedQuestion, loadAnswerDraft, saveAnswerDraft } =
+const { parseExtractionResult, toExtractedQuestion, questionsMatch, loadAnswerDraft, saveAnswerDraft } =
 	await import(new URL("./answer.ts", import.meta.url));
 
 const assert = (cond, msg) => {
@@ -66,6 +66,8 @@ const tmpDir = mkdtempSync(path.join(tmpdir(), "answer-draft-"));
 const draftPath = path.join(tmpDir, "draft.json");
 const qs = [{ question: "A?" }, { question: "B?" }];
 await saveAnswerDraft(draftPath, qs, ["answer a", ""]);
+assert(questionsMatch(qs, [{ question: "A?" }, { question: "B?" }]), "matching draft questions accepted");
+assert(!questionsMatch(qs, [{ question: "A?" }, { question: "C?" }]), "different draft questions rejected");
 const draft = await loadAnswerDraft(draftPath);
 assert(draft?.answers?.length === 2 && draft.answers[0] === "answer a", "draft roundtrip");
 assert(await loadAnswerDraft(path.join(tmpDir, "missing.json")) === null, "missing draft returns null");

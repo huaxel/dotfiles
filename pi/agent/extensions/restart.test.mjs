@@ -5,9 +5,22 @@ import { resolve } from "./pi-resolve-hook.mjs";
 
 registerHooks({ resolve });
 
-const { default: restart, extractHandoffText } = await import(new URL("./restart.ts", import.meta.url));
+const {
+  default: restart,
+  extractHandoffText,
+  hasNativeCodexCheckpoint,
+  isNativeCodexModel,
+  shouldOfferContextHandoff,
+} = await import(new URL("./restart.ts", import.meta.url));
 const { initTheme } = await import("@earendil-works/pi-coding-agent");
 initTheme();
+
+assert(isNativeCodexModel({ provider: "openai-codex", api: "openai-codex-responses" }), "native Codex model detected");
+assert(hasNativeCodexCheckpoint([{ type: "compaction", details: { kind: "openai-codex-native-compaction" } }]), "native checkpoint detected");
+assert(!hasNativeCodexCheckpoint([{ type: "compaction", details: { kind: "text-summary" } }]), "text summary is not treated as native checkpoint");
+assert(!shouldOfferContextHandoff({ provider: "openai-codex", api: "openai-codex-responses" }), "restart guard yields to native compaction");
+assert(shouldOfferContextHandoff({ provider: "openai-codex", api: "openai-codex-responses" }, true), "restart guard recovers after compaction failure");
+assert(shouldOfferContextHandoff({ provider: "openai-codex", api: "openai-responses" }), "non-native Codex API keeps restart guard");
 
 assert(
   extractHandoffText({
@@ -37,13 +50,15 @@ assert(
   "non-text completion is rejected",
 );
 
-function makeHarness({ completion, selectChoice, editorText = "" } = {}) {
+function makeHarness({ completion, selectChoice, editorText = "", contextPercent = 85, nativeCheckpoint = false, confirmChoice = true } = {}) {
   const harness = makePiHarness();
   const notifications = [];
   const completeOptions = [];
   const completeContexts = [];
   const sent = [];
+  const statuses = [];
   let selectCount = 0;
+  let confirmCount = 0;
   let editor = editorText;
 
   const branch = [
@@ -70,11 +85,22 @@ function makeHarness({ completion, selectChoice, editorText = "" } = {}) {
       },
     },
   ];
+  if (nativeCheckpoint) {
+    branch.push({
+      id: "compaction-1",
+      parentId: "entry-2",
+      type: "compaction",
+      summary: "OpenAI Codex native checkpoint",
+      firstKeptEntryId: "entry-2",
+      tokensBefore: 100,
+      details: { kind: "openai-codex-native-compaction" },
+    });
+  }
   const ctx = {
     mode: "tui",
     model: { provider: "test", id: "model" },
     isIdle: () => true,
-    getContextUsage: () => ({ percent: 85 }),
+    getContextUsage: () => ({ percent: contextPercent }),
     sessionManager: {
       getBranch: () => branch,
       getLeafId: () => "entry-2",
@@ -91,8 +117,13 @@ function makeHarness({ completion, selectChoice, editorText = "" } = {}) {
     },
     ui: {
       notify: (message, type) => notifications.push({ message, type }),
+      confirm: async () => {
+        confirmCount += 1;
+        return confirmChoice;
+      },
       getEditorText: () => editor,
       setEditorText: (text) => { editor = text; },
+      setStatus: (id, text) => statuses.push({ id, text }),
       select: async () => {
         selectCount += 1;
         return selectChoice;
@@ -125,8 +156,10 @@ function makeHarness({ completion, selectChoice, editorText = "" } = {}) {
     completeOptions,
     completeContexts,
     sent,
+    statuses,
     getEditor: () => editor,
     getSelectCount: () => selectCount,
+    getConfirmCount: () => confirmCount,
   };
 }
 
@@ -142,6 +175,20 @@ function makeHarness({ completion, selectChoice, editorText = "" } = {}) {
   assert(handoffInput.includes("<goal>\nkeep going\n</goal>"), "handoff goal has an explicit boundary");
   assert(!handoffInput.includes("private reasoning"), "private reasoning is excluded from handoff input");
   assert(handoffInput.includes("Public conclusion"), "public assistant conclusion is preserved");
+}
+
+{
+  const h = makeHarness({ nativeCheckpoint: true, confirmChoice: false });
+  await h.commands.get("restart")("", h.ctx);
+  assert(h.getConfirmCount() === 1, "native checkpoint requires explicit restart confirmation");
+  assert(h.completeContexts.length === 0, "cancelled native restart does not generate a lossy handoff");
+}
+
+{
+  const h = makeHarness({ nativeCheckpoint: true, confirmChoice: true, completion: async () => ({ stopReason: "stop", content: [{ type: "text", text: "## Task\nContinue" }] }) });
+  await h.commands.get("restart")("", h.ctx);
+  assert(h.getConfirmCount() === 1, "native checkpoint confirmation precedes handoff");
+  assert(h.notifications.some((notification) => notification.message.includes("lossy textual handoff")), "lossy native restart is disclosed");
 }
 
 {
@@ -165,10 +212,25 @@ function makeHarness({ completion, selectChoice, editorText = "" } = {}) {
 }
 
 {
-  const h = makeHarness({ selectChoice: undefined });
-  await h.drive("turn_end", {}, h.ctx);
-  await h.drive("turn_end", {}, h.ctx);
+  const h = makeHarness({ selectChoice: undefined, contextPercent: 90 });
+  await h.drive("agent_settled", {}, h.ctx);
+  await h.drive("agent_settled", {}, h.ctx);
   assert(h.getSelectCount() === 1, "dismissed guard does not reopen at the same percentage");
+}
+
+{
+  const h = makeHarness({ contextPercent: 85 });
+  await h.drive("agent_settled", {}, h.ctx);
+  assert(h.getSelectCount() === 0, "80% warning remains passive");
+  assert(h.statuses.at(-1)?.text === "Context 85% — /restart available", "passive warning uses footer status");
+  assert(h.getEditor() === "", "passive warning does not modify the editor");
+}
+
+{
+  const h = makeHarness({ selectChoice: "Prepare handoff", contextPercent: 90 });
+  await h.drive("agent_settled", {}, h.ctx);
+  assert(h.getSelectCount() === 1, "90% warning offers an explicit handoff action");
+  assert(h.getEditor() === "", "handoff prompt does not prefill the editor");
 }
 
 {

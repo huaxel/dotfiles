@@ -85,6 +85,7 @@ interface TodoRecord extends TodoFrontMatter {
 interface LockInfo {
 	id: string;
 	pid: number;
+	token?: string;
 	session?: string | null;
 	created_at: string;
 }
@@ -785,7 +786,11 @@ async function readTodoSettings(todosDir: string): Promise<TodoSettings> {
 	return normalizeTodoSettings(data);
 }
 
-async function garbageCollectTodos(todosDir: string, settings: TodoSettings): Promise<void> {
+async function garbageCollectTodos(
+	todosDir: string,
+	settings: TodoSettings,
+	ctx: ExtensionContext,
+): Promise<void> {
 	if (!settings.gc) return;
 
 	let entries: string[] = [];
@@ -802,7 +807,11 @@ async function garbageCollectTodos(todosDir: string, settings: TodoSettings): Pr
 			.map(async (entry) => {
 				const id = entry.slice(0, -3);
 				const filePath = path.join(todosDir, entry);
+				let release: (() => Promise<void>) | null = null;
 				try {
+					const lock = await acquireLock(todosDir, id, ctx, true);
+					if (typeof lock === "object") return;
+					release = lock;
 					const content = await fs.readFile(filePath, "utf8");
 					const { frontMatter } = splitFrontMatter(content);
 					const parsed = parseFrontMatter(frontMatter, id);
@@ -816,7 +825,9 @@ async function garbageCollectTodos(todosDir: string, settings: TodoSettings): Pr
 						await fs.rename(filePath, path.join(trashDir, entry)).catch(() => undefined);
 					}
 				} catch {
-					// ignore unreadable todo
+					// ignore unreadable or concurrently removed todo
+				} finally {
+					await release?.();
 				}
 			}),
 	);
@@ -1003,16 +1014,26 @@ async function acquireLock(
 	for (let attempt = 0; attempt < 2; attempt += 1) {
 		try {
 			const handle = await fs.open(lockPath, "wx");
+			const token = crypto.randomBytes(16).toString("hex");
 			const info: LockInfo = {
 				id,
 				pid: process.pid,
+				token,
 				session,
 				created_at: new Date(now).toISOString(),
 			};
-			await handle.writeFile(JSON.stringify(info, null, 2), "utf8");
-			await handle.close();
+			try {
+				await handle.writeFile(JSON.stringify(info, null, 2), "utf8");
+				await handle.close();
+			} catch (error) {
+				await handle.close().catch(() => undefined);
+				await fs.unlink(lockPath).catch(() => undefined);
+				throw error;
+			}
 			return async () => {
 				try {
+					const current = await readLockInfo(lockPath);
+					if (current?.token !== token) return;
 					await fs.unlink(lockPath);
 				} catch {
 					// ignore
@@ -1557,7 +1578,7 @@ export default function todosExtension(pi: ExtensionAPI) {
 		const todosDir = getTodosDir(ctx.cwd);
 		await ensureTodosDir(todosDir);
 		const settings = await readTodoSettings(todosDir);
-		await garbageCollectTodos(todosDir, settings);
+		await garbageCollectTodos(todosDir, settings, ctx);
 	});
 
 	// Tell the agent the project has a shared backlog (only when it does), so
@@ -1567,7 +1588,12 @@ export default function todosExtension(pi: ExtensionAPI) {
 		if (!existsSync(todosDir)) {
 			return;
 		}
-		const hasTodos = readdirSync(todosDir).some((e) => e.endsWith(".md"));
+		let hasTodos = false;
+		try {
+			hasTodos = readdirSync(todosDir).some((e) => e.endsWith(".md"));
+		} catch {
+			return;
+		}
 		if (!hasTodos) {
 			return;
 		}
@@ -1978,7 +2004,7 @@ export default function todosExtension(pi: ExtensionAPI) {
 			const currentSessionId = ctx.sessionManager.getSessionId();
 			const searchTerm = (args ?? "").trim();
 
-			if (!ctx.hasUI) {
+			if (ctx.mode !== "tui") {
 				const text = formatTodoList(todos);
 				console.log(text);
 				return;
