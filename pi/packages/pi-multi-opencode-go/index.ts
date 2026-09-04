@@ -244,10 +244,10 @@ export default function (
     const results = await Promise.all(accounts.map(fetchAccountUsage));
     usages = results;
     const now = Date.now();
+    mergePersistedCooldowns(usages);
     activeAccount = pickBestAccount(usages, accounts, now);
     lastFetch = now;
     forceRefresh = false;
-    mergePersistedCooldowns(usages);
     publishCoordinationFlags(usages, now, activeAccount);
     setActiveAccountLabel(activeAccount);
     // Accounts recovered (or cooldowns cleared) → ready for the next cycle.

@@ -2,6 +2,24 @@
 
 > Older entries (pre-2026-08) archived to [`docs/feedback-archive.md`](docs/feedback-archive.md).
 
+## 2026-09-04: session and failover review fixes
+
+### What went well
+- Reproduced the session-directory, persisted-cooldown, and agy cache defects before changing them.
+- Independent sandbox review found cancellation-cache poisoning and tilde expansion gaps; both were fixed with focused tests.
+- `just ci` passed after the final changes.
+
+### What was frustrating / slow
+- The installed Pi runtime lacks `@earendil-works/pi-server`, so answer/restart/todos integration tests cannot run here.
+- The first OpenCode regression test needed an explicit refresh trigger because startup had already populated its in-memory usage cache.
+
+### What config change would have helped
+- A lightweight extension-test runtime that stubs optional Pi server exports would allow the remaining integration suites to run.
+
+### Improvements for next time
+- Include cancellation and alternate-cache-key cases whenever adding process-level command caching.
+- Exercise persistence fixes through the same refresh path used by production lifecycle events.
+
 ## 2026-08-28: `/go-on mode` activation
 
 ### What went well

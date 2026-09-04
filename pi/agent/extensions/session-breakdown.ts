@@ -1,7 +1,8 @@
 /**
  * /session-breakdown
  *
- * Interactive TUI that analyzes ~/.pi/agent/sessions (recursively, *.jsonl) and shows
+ * Interactive TUI that analyzes $PI_CODING_AGENT_DIR/sessions (or
+ * ~/.pi/agent/sessions) recursively (*.jsonl) and shows
  * last 7/30/90 days of:
  * - sessions/day
  * - messages/day
@@ -15,7 +16,7 @@
  * - Brightness: selected metric per day (log-scaled)
  */
 
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { getAgentDir, type ExtensionAPI, type ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { BorderedLoader } from "@earendil-works/pi-coding-agent";
 import {
 	Key,
@@ -163,7 +164,10 @@ interface BreakdownData {
 	};
 }
 
-const SESSION_ROOT = path.join(os.homedir(), ".pi", "agent", "sessions");
+export function getSessionRoot(): string {
+	return path.join(getAgentDir(), "sessions");
+}
+
 const RANGE_DAYS = [7, 30, 90] as const;
 
 type MeasurementMode = "sessions" | "messages" | "tokens";
@@ -1312,7 +1316,7 @@ async function computeBreakdown(
 
 	onProgress?.({ phase: "scan", foundFiles: 0, parsedFiles: 0, totalFiles: 0, currentFile: undefined });
 
-	const candidates = await walkSessionFiles(SESSION_ROOT, start90, signal, (found) => {
+	const candidates = await walkSessionFiles(getSessionRoot(), start90, signal, (found) => {
 		onProgress?.({ phase: "scan", foundFiles: found });
 	});
 
@@ -1624,7 +1628,7 @@ class BreakdownComponent implements Component {
 
 export default function sessionBreakdownExtension(pi: ExtensionAPI) {
 	pi.registerCommand("session-breakdown", {
-		description: "Interactive breakdown of last 7/30/90 days of ~/.pi session usage (sessions/messages/tokens + cost by model)",
+		description: "Interactive breakdown of last 7/30/90 days of Pi session usage (sessions/messages/tokens + cost by model)",
 		handler: async (_args, ctx: ExtensionContext) => {
 			if (!ctx.hasUI) {
 				// Non-interactive fallback: just notify.

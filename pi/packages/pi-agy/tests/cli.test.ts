@@ -885,6 +885,35 @@ describe("resolveDefaultModel", () => {
     assert.equal(runs, 1);
     resetDefaultModelCache();
   });
+
+  it("caches independent commands separately", async () => {
+    resetDefaultModelCache();
+    const tmp = await mkdtemp(path.join(os.tmpdir(), "pi-agy-default-"));
+    const firstRuns = path.join(tmp, "first-runs");
+    const secondRuns = path.join(tmp, "second-runs");
+    const first = `echo x >> ${firstRuns}; echo flash-low`;
+    const second = `echo x >> ${secondRuns}; echo sonnet`;
+    assert.equal(await resolveDefaultModel({ defaultModelCommand: first }), "flash-low");
+    assert.equal(await resolveDefaultModel({ defaultModelCommand: second }), "sonnet");
+    assert.equal(await resolveDefaultModel({ defaultModelCommand: first }), "flash-low");
+    assert.equal(await resolveDefaultModel({ defaultModelCommand: second }), "sonnet");
+    assert.equal((await readFile(firstRuns, "utf8")).trim(), "x");
+    assert.equal((await readFile(secondRuns, "utf8")).trim(), "x");
+    resetDefaultModelCache();
+  });
+
+  it("does not cache an aborted command result", async () => {
+    resetDefaultModelCache();
+    const tmp = await mkdtemp(path.join(os.tmpdir(), "pi-agy-default-"));
+    const marker = path.join(tmp, "marker");
+    const command = `test -f ${marker} && echo sonnet || echo flash-low`;
+    const controller = new AbortController();
+    controller.abort();
+    assert.equal(await resolveDefaultModel({ defaultModelCommand: command }, controller.signal), undefined);
+    await writeFile(marker, "ready");
+    assert.equal(await resolveDefaultModel({ defaultModelCommand: command }), "sonnet");
+    resetDefaultModelCache();
+  });
 });
 
 describe("session store", () => {

@@ -62,7 +62,7 @@ export async function loadAgyConfig(
   return {};
 }
 
-let cachedCommandAlias: { at: number; alias?: AgyModel } | undefined;
+const cachedCommandAliases = new Map<string, { at: number; alias?: AgyModel }>();
 
 /**
  * Resolve the default model alias: an explicit `defaultModel` always wins;
@@ -76,12 +76,15 @@ export async function resolveDefaultModel(
   const command = config.defaultModelCommand?.trim();
   if (!command) return undefined;
 
-  if (cachedCommandAlias && Date.now() - cachedCommandAlias.at < COMMAND_TTL_MS) {
-    return cachedCommandAlias.alias;
+  const cached = cachedCommandAliases.get(command);
+  if (cached && Date.now() - cached.at < COMMAND_TTL_MS) {
+    return cached.alias;
   }
 
   const alias = await runDefaultModelCommand(command, signal);
-  cachedCommandAlias = { at: Date.now(), alias };
+  if (!signal?.aborted) {
+    cachedCommandAliases.set(command, { at: Date.now(), alias });
+  }
   return alias;
 }
 
@@ -104,5 +107,5 @@ async function runDefaultModelCommand(
 
 /** Test helper — drop the cached default-model command result. */
 export function resetDefaultModelCache(): void {
-  cachedCommandAlias = undefined;
+  cachedCommandAliases.clear();
 }
