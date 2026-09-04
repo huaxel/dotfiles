@@ -414,7 +414,8 @@ check-nu:
 
 # ── Nix ──
 
-# Validate the flake when Nix is installed; Windows remains Dotter-only.
+# Validate the Nix flake (evaluate-only, fast). Windows remains Dotter-only.
+# To build and verify a specific Home Manager profile, use `just nix-check <profile>`.
 check-nix:
     #!/usr/bin/env bash
     echo "=== Nix/Home Manager ==="
@@ -424,18 +425,6 @@ check-nix:
     fi
     nix flake check --all-systems
     echo "  ✅ Nix flake checks pass"
-    # flake check only evaluates profiles; build the ones this OS can.
-    case "$(uname -s)" in
-        Linux)
-            nix build '.#homeConfigurations."juan@framearch".activationPackage' --no-link --quiet
-            nix build '.#homeConfigurations."juan@arch-wsl".activationPackage' --no-link --quiet
-            echo "  ✅ Linux Home Manager profiles build"
-            ;;
-        Darwin)
-            nix build '.#homeConfigurations."juan@macbook".activationPackage' --no-link --quiet
-            echo "  ✅ macOS Home Manager profile builds"
-            ;;
-    esac
 
 # ──────────── Nushell health ────────────
 
