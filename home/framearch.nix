@@ -44,7 +44,7 @@ in
     MEMORYFIELD_EMBED_MODEL = "nomic-embed-text-v1.5";
     MEMORYFIELD_MODEL_CODE = "nomic-embed-text-v1.5";
     PI_CODING_AGENT_DIR = "/home/juan/dotfiles/pi/agent";
-    PRIME_AGENT_CODING_AGENT_DIR = "/home/juan/dotfiles/prime-agent/agent";
+    PRIME_AGENT_CODING_AGENT_DIR = "/home/juan/prime-agent/agent";
   };
 
   systemd.user.services.memoryfield-embed = lib.mkIf config.services.juan.framearchUser.enableMemoryfieldEmbed {

@@ -61,7 +61,7 @@ check: ci
 
 # Lint all shell scripts with ShellCheck
 # Excludes: node_modules (npm deps), pi/agent/npm/node_modules (Pi npm deps),
-#           prime-agent runtime files, .dotter/cache (dotter generated),
+#           pi/agent/git, pi/agent/herdr-plugins, pi_npm/node_modules,
 #           and Windows .bat-styled .sh files
 check-sh:
     #!/usr/bin/env bash
@@ -87,7 +87,7 @@ check-sh:
             echo "  ❌ $f has issues"
             errors=$((errors + 1))
         fi
-    done < <(find . \( -path ./node_modules -o -path ./pi/agent/npm/node_modules -o -path ./pi/agent/git -o -path ./pi/agent/herdr-plugins -o -path ./pi_npm/node_modules -o -path ./prime-agent -o -path ./.git -o -path ./.dotter/cache \) -prune -o -type f \( -name '*.sh' -o -name '*.bash' \) -print 2>/dev/null | sort || true)
+    done < <(find . \( -path ./node_modules -o -path ./pi/agent/npm/node_modules -o -path ./pi/agent/git -o -path ./pi/agent/herdr-plugins -o -path ./pi_npm/node_modules -o -path ./.git -o -path ./.dotter/cache \) -prune -o -type f \( -name '*.sh' -o -name '*.bash' \) -print 2>/dev/null | sort || true)
     echo "  Checked $count shell scripts"
     if [ "$errors" -gt 0 ]; then echo "  ❌ $errors files have issues"; exit 1; fi
     echo "  ✅ All shell scripts pass ShellCheck"
