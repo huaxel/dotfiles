@@ -64,10 +64,6 @@ local/
 # Local tool runtime artifacts
 .pi/
 .herdr-todo/
-# prime-agent is a separate runtime tool (not dotfiles config);
-# it lives here by convention but can be moved outside the repo.
-prime-agent/agent/update-restarts/
-prime-agent/agent/harness/
 
 # Pi goal/session runtime artifacts (machine-local: pids, instance ids)
 .pi-glla/

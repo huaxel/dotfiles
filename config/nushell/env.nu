@@ -24,7 +24,7 @@ $env.MEMORYFIELD_EMBED_MODEL = "nomic-embed-text-v1.5"
 $env.MEMORYFIELD_MODEL_CODE = "nomic-embed-text-v1.5"
 $env.PYTHONPYCACHEPREFIX = ($env.HOME | path join ".cache/cpython")
 $env.PI_CODING_AGENT_DIR = ($env.HOME | path join "dotfiles/pi/agent")
-$env.PRIME_AGENT_CODING_AGENT_DIR = ($env.HOME | path join "dotfiles/prime-agent/agent")
+$env.PRIME_AGENT_CODING_AGENT_DIR = ($env.HOME | path join "prime-agent/agent")
 $env.BUN_INSTALL = ($env.HOME | path join ".bun")
 $env.JUST_GLOBAL_JUSTFILE = ($env.HOME | path join ".config/just/justfile")
 

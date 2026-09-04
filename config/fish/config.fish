@@ -100,7 +100,7 @@ set -gx MEMORYFIELD_MODEL_CODE nomic-embed-text-v1.5
 # mapped dir, even gitignored __pycache__). Cache under ~/.cache instead.
 set -x PYTHONPYCACHEPREFIX $HOME/.cache/cpython
 set -x PI_CODING_AGENT_DIR $HOME/dotfiles/pi/agent
-set -x PRIME_AGENT_CODING_AGENT_DIR $HOME/dotfiles/prime-agent/agent
+set -x PRIME_AGENT_CODING_AGENT_DIR $HOME/prime-agent/agent
 
 # Let agy select its own Cloud Code endpoint; stale overrides cause 429s.
 set -e CLOUD_CODE_URL

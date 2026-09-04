@@ -5,6 +5,6 @@
 
   home.sessionVariables = {
     PI_CODING_AGENT_DIR = "/Users/juan/dotfiles/pi/agent";
-    PRIME_AGENT_CODING_AGENT_DIR = "/Users/juan/dotfiles/prime-agent/agent";
+    PRIME_AGENT_CODING_AGENT_DIR = "/Users/juan/prime-agent/agent";
   };
 }

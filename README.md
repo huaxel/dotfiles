@@ -48,7 +48,7 @@ the designated Linux inference host, use `INSTALL_SYSTEM_CONFIG=1 ./bootstrap.sh
 ├── home/ nixos/ flake.nix # Home Manager / NixOS (Unix hosts)
 ├── powershell/ windows-terminal/ glazewm/ zebar/ autohotkey/  # Windows
 ├── secrets/               # sops-encrypted (see secrets/README.md)
-├── pi/  skills/  prime-agent/   # agent tooling (pi config, skills)
+├── pi/  skills/   # agent tooling (pi config, skills)
 ├── bin/  scripts/  justfile     # helpers + CI gate
 └── docs/  worksheets/           # investigations, patterns, session notes
 ```
