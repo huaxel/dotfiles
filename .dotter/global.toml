@@ -73,8 +73,6 @@ gitignore_global = "~\\.gitignore_global"
 # on the wrong OS. Keep each root explicit so migrated roots can be removed
 # without leaving Dotter and Home Manager managing the same path.
 "config/htop" = "~/.config/htop"
-"config/tmc" = "~/.config/tmc"
-"config/wallpapers" = "~/.config/wallpapers"
 # config/gh and config/qBittorrent were previously listed here but those apps
 # self-manage their config dirs (gh writes config.yml/hosts.yml on login;
 # qBittorrent creates its own dir on first run) and the empty source dirs are
