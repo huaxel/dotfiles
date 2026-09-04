@@ -1,0 +1,27 @@
+# EditorConfig — cross-editor formatting consistency for the dotfiles repo.
+# Matches .gitattributes conventions: LF for Unix files, CRLF for Windows scripts.
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.ps1]
+end_of_line = crlf
+
+[*.bat]
+end_of_line = crlf
+
+[*.cmd]
+end_of_line = crlf
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.{enc,sha256}]
+end_of_line = unset
+insert_final_newline = unset
+trim_trailing_whitespace = unset
