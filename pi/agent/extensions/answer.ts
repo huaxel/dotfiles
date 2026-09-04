@@ -212,6 +212,13 @@ interface AnswerDraft {
 	answers: string[];
 }
 
+function questionsMatch(a: ExtractedQuestion[], b: ExtractedQuestion[]): boolean {
+	return a.length === b.length && a.every((question, index) =>
+		question.question.trim().replace(/\s+/g, " ") ===
+			b[index]?.question.trim().replace(/\s+/g, " "),
+	);
+}
+
 function getDraftPath(ctx: ExtensionContext): string | null {
 	const sessionFile = ctx.sessionManager.getSessionFile();
 	return sessionFile ? `${sessionFile}.answer-drafts.json` : null;
@@ -610,7 +617,7 @@ class QnAComponent implements Component {
 
 export default function (pi: ExtensionAPI) {
 	const answerHandler = async (ctx: ExtensionContext) => {
-			if (!ctx.hasUI) {
+			if (ctx.mode !== "tui") {
 				ctx.ui.notify("answer requires interactive mode", "error");
 				return;
 			}
@@ -725,6 +732,7 @@ export default function (pi: ExtensionAPI) {
 				const draft = await loadAnswerDraft(draftPath);
 				if (
 					draft &&
+					questionsMatch(draft.questions, extractionResult.questions) &&
 					draft.answers.length === extractionResult.questions.length &&
 					draft.answers.some((a) => a.trim())
 				) {
@@ -814,6 +822,7 @@ export default function (pi: ExtensionAPI) {
 export {
 	parseExtractionResult,
 	toExtractedQuestion,
+	questionsMatch,
 	loadAnswerDraft,
 	saveAnswerDraft,
 };

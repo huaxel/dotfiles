@@ -36,7 +36,7 @@
     "npm:@ogulcancelik/pi-auto-permissions@0.1.4",
     "../packages/pi-dynamic-footer",
     "../packages/pi-ghostty-theme-sync",
-    "git:github.com/huaxel/pi-ask-herdr@fe6b4e8020b03f950cc458630fa59e774b026e7d",
+    "../packages/pi-ask-herdr",
     "../packages/pi-provider-openference",
     "npm:@howaboua/pi-shepherdr@0.1.2",
     "../packages/pi-agy",

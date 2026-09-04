@@ -1,0 +1,48 @@
+{
+  "name": "pi-ask-herdr",
+  "version": "0.2.2",
+  "description": "Pi extension that adds an ask_user tool and integrates with Herdr notifications/agent state.",
+  "type": "module",
+  "main": "./index.ts",
+  "keywords": [
+    "pi-package",
+    "pi",
+    "pi-extension",
+    "herdr",
+    "ask-user"
+  ],
+  "homepage": "https://github.com/leset0ng/pi-ask-herdr#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/leset0ng/pi-ask-herdr.git"
+  },
+  "bugs": {
+    "url": "https://github.com/leset0ng/pi-ask-herdr/issues"
+  },
+  "license": "MIT",
+  "files": [
+    "index.ts",
+    "src/**/*",
+    "README.md",
+    "package.json"
+  ],
+  "scripts": {
+    "test": "tsx --test tests/*.test.ts",
+    "typecheck": "tsc --noEmit --strict --allowImportingTsExtensions --moduleResolution bundler --module esnext --target esnext --skipLibCheck index.ts src/*.ts"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*",
+    "typebox": "*"
+  },
+  "devDependencies": {
+    "tsx": "^4.22.4",
+    "typescript": "^5.0.0"
+  },
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

@@ -84,6 +84,20 @@ const openaiStreamSimple = (piAiCompat as unknown as {
  */
 export const OPENFERENCE_API = "openference-completions";
 const STARTUP_CATALOG_TIMEOUT_MS = 5_000;
+const OPENFERENCE_SOURCE_ID = "pi-provider-openference";
+
+// `pi.registerProvider()` wires the main model registry, but extensions such as
+// auto-permissions call pi-ai's compat `completeSimple()` directly. Register the
+// private API there too, otherwise those calls fail before reaching this provider.
+const openferenceRetryStream = createRetryStream(openaiStreamSimple);
+
+function registerOpenferenceApi(): void {
+  piAiCompat.registerApiProvider({
+    api: OPENFERENCE_API,
+    stream: openferenceRetryStream,
+    streamSimple: openferenceRetryStream,
+  }, OPENFERENCE_SOURCE_ID);
+}
 
 async function fetchStartupModels(apiKey: string): Promise<OpenferenceModelInfo[]> {
   const controller = new AbortController();
@@ -96,6 +110,8 @@ async function fetchStartupModels(apiKey: string): Promise<OpenferenceModelInfo[
 }
 
 function registerOpenferenceProvider(pi: ExtensionAPI, models: readonly OpenferenceModelInfo[]): void {
+  registerOpenferenceApi();
+
   // Both apiKey and oauth are required:
   //   - apiKey ($ENV) is the fallback for env-var users and makes the provider
   //     appear in the /login selector.
@@ -111,7 +127,7 @@ function registerOpenferenceProvider(pi: ExtensionAPI, models: readonly Openfere
     models: models.map(toModelConfig),
     // Primary resilience layer: bounded in-stream retry for transient provider
     // errors, scoped to this provider via OPENFERENCE_API. See retry-stream.ts.
-    streamSimple: createRetryStream(openaiStreamSimple),
+    streamSimple: openferenceRetryStream,
     oauth: {
       name: "Openference (API key)",
       async login(callbacks: OAuthLoginCallbacks): Promise<OAuthCredentials> {
