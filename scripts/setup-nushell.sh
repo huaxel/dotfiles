@@ -2,7 +2,13 @@
 # Generate Nushell integrations in the user cache.
 set -euo pipefail
 
-CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/nushell"
+# Nushell uses ~/Library/Caches on macOS and XDG_CACHE_HOME on Unix.
+# Ask Nushell for the authoritative path so config.nu and this generator agree.
+CACHE_DIR=""
+if command -v nu >/dev/null 2>&1; then
+    CACHE_DIR=$(nu -n -c "print \$nu.cache-dir" 2>/dev/null || true)
+fi
+CACHE_DIR="${CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/nushell}"
 ATUIN_INIT="$CACHE_DIR/atuin.nu"
 
 mkdir -p "$CACHE_DIR" "${ATUIN_INIT%/*}"

@@ -645,7 +645,8 @@ nix-switch profile="juan@framearch":
     set -euo pipefail
     git ls-files --others --exclude-standard -z -- home nixos | xargs -0 -r git add -N
     nix flake check --all-systems
-    nix run ".#home-manager" -- switch --flake '.#{{profile}}'
+    # Back up pre-existing paths during the Dotter → Home Manager handoff.
+    nix run ".#home-manager" -- -b hm-backup switch --flake '.#{{profile}}'
 
 # Build the pinned CachyLLama binary and probe host Vulkan through nixGL.
 # This is diagnostic only; it never touches the live llama.cpp service.

@@ -17,10 +17,11 @@ cd ~/dotfiles && ./bootstrap.sh
 ```
 
 `bootstrap.sh` installs Homebrew → dotter + git + age + sops + mas → enables git
-hooks → generates an age key if missing → `dotter deploy` → `brew bundle`
-(`config/Brewfile`) → `macos/defaults.sh`.
+hooks → generates an age key if missing → `dotter deploy` → Nix + Home Manager
+→ `brew bundle` (`config/Brewfile`) → `macos/defaults.sh`.
 
-Toggles: `SKIP_BREW_BUNDLE=1`, `SKIP_MACOS_DEFAULTS=1`.
+Toggles: `SKIP_BREW_BUNDLE=1`, `SKIP_MACOS_DEFAULTS=1`,
+`SKIP_NIX_HOME=1` (leaves Home Manager-owned configs inactive).
 
 > If you already have an age key, restore it to `~/.config/sops/age/keys.txt`
 > **before** running bootstrap, or a new key is generated and you must authorize

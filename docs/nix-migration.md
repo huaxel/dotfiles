@@ -68,14 +68,14 @@ install -m 600 /secure/backup/age-keys.txt ~/.config/sops/age/keys.txt
 
 Then run the profile matching the machine: `juan@framearch`,
 `juan@arch-wsl`, or `juan@macbook` (Apple Silicon). The secret files are
-materialized by sops-nix during activation. On a fresh clone, the equivalent
-bootstrap shortcut is:
+materialized by sops-nix during activation. On a fresh clone, `bootstrap.sh`
+installs Nix and activates the matching profile automatically:
 
 ```bash
-INSTALL_NIX_HOME=1 ./bootstrap.sh
+./bootstrap.sh
 ```
 
-The shortcut refuses to activate if Nix or the age key is missing; use
+Use `SKIP_NIX_HOME=1` only when deliberately keeping Home Manager inactive, and
 `NIX_PROFILE=...` when automatic host detection is not appropriate.
 
 ## Taking over an existing Dotter machine
