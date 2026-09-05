@@ -10,6 +10,7 @@
 # ─────────────────────────────────────────────────────────────
 # npm registry auth token — secret, never commit (~/.npmrc symlinks to npmrc, keep tokens here)
 /npmrc
+/.npmrc
 config/zed/private_*
 config/zed/conversations/
 config/zed/embeddings/
