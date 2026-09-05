@@ -1,0 +1,123 @@
+{
+  "runId": "4b48fb59",
+  "agent": "reviewer",
+  "task": "Review the uncommitted change to pi/agent/extensions/restart.ts. Requirements: /restart must generate a complete handoff from the current branch and use Pi's documented ctx.newSession({withSession}) flow; the 80% guard must never try to call command-only session replacement from an event/tool context, must not inject recursive LLM handoff turns, and should avoid repeated prompts across session IDs. Check API compatibility with installed Pi 0.81.1 and the diff against HEAD. Read-only; report critical/important/minor issues and whether ready.",
+  "exitCode": 0,
+  "usage": {
+    "input": 15334,
+    "output": 10398,
+    "cacheRead": 89856,
+    "cacheWrite": 0,
+    "cost": 0.005309796800000001,
+    "turns": 9
+  },
+  "model": "opencode-go/deepseek-v4-flash",
+  "attemptedModels": [
+    "opencode-go/deepseek-v4-flash"
+  ],
+  "modelAttempts": [
+    {
+      "model": "opencode-go/deepseek-v4-flash",
+      "success": true,
+      "exitCode": 0,
+      "usage": {
+        "input": 15334,
+        "output": 10398,
+        "cacheRead": 89856,
+        "cacheWrite": 0,
+        "cost": 0.005309796800000001,
+        "turns": 9
+      }
+    }
+  ],
+  "durationMs": 114704,
+  "toolCount": 21,
+  "acceptance": {
+    "status": "attested",
+    "explicit": false,
+    "effectiveAcceptance": {
+      "level": "attested",
+      "explicit": false,
+      "inferredReason": [
+        "read-only/reviewer-style agent"
+      ],
+      "criteria": [
+        {
+          "id": "criterion-1",
+          "must": "Return concrete findings with file paths and severity when applicable",
+          "evidence": [
+            "review-findings",
+            "residual-risks"
+          ],
+          "severity": "required"
+        }
+      ],
+      "evidence": [
+        "review-findings",
+        "residual-risks"
+      ],
+      "verify": [],
+      "stopRules": []
+    },
+    "inferredReason": [
+      "read-only/reviewer-style agent"
+    ],
+    "criteria": [
+      {
+        "id": "criterion-1",
+        "must": "Return concrete findings with file paths and severity when applicable",
+        "evidence": [
+          "review-findings",
+          "residual-risks"
+        ],
+        "severity": "required"
+      }
+    ],
+    "runtimeChecks": [],
+    "verifyRuns": [],
+    "childReport": {
+      "criteriaSatisfied": [
+        {
+          "id": "criterion-1",
+          "status": "satisfied",
+          "evidence": "Reviewed all ~300 lines of pi/agent/extensions/restart.ts. Found 4 critical issues, 6 warnings, 3 suggestions with specific file paths and line numbers."
+        }
+      ],
+      "changedFiles": [
+        "pi/agent/extensions/restart.ts"
+      ],
+      "testsAddedOrUpdated": [],
+      "commandsRun": [],
+      "validationOutput": [
+        "API compatibility check: imports from @earendil-works/pi-ai/compat, BorderedLoader, convertToLlm, serializeConversation are unverified against Pi 0.81.1",
+        "context guard analysis: turn_end handler correctly avoids ctx.newSession(), only writes /restart to editor",
+        "repeated-prompt analysis: lastPromptedPct Map keyed by session ID + RE_PROMPT_INTERVAL=5 gate works correctly",
+        "compaction handling: getHandoffMessages reverses temporal ordering, compactionSummary role may be dropped by convertToLlm"
+      ],
+      "residualRisks": [
+        "Cannot verify API compatibility without access to installed Pi 0.81.1 type definitions (node_modules/@earendil-works/ not found on disk)",
+        "Cannot produce git diff vs HEAD — git output was unavailable, full file content reviewed instead"
+      ],
+      "noStagedFiles": true,
+      "diffSummary": "Full file review (no diff available). New extension implementing /restart command with context-guard and session handoff via ctx.newSession({withSession}) pattern.",
+      "reviewFindings": [
+        "critical: restart.ts:10 - @earendil-works/pi-ai/compat subpath may not exist in Pi 0.81.1",
+        "critical: restart.ts:17-21 - BorderedLoader, convertToLlm, serializeConversation may not be public exports of pi-coding-agent",
+        "critical: restart.ts:136-166 - getHandoffMessages compaction reconstruction reverses temporal order; compactionSummary role may be dropped by convertToLlm",
+        "critical: restart.ts:275 - newSessionResult.cancelled property name unverified against actual return type",
+        "warning: restart.ts:240,252 - duplicate notify('Agent stopped', 'info')",
+        "warning: restart.ts:237-238 - ctx.waitForIdle() may not exist on ExtensionCommandContext",
+        "warning: restart.ts:195-199 - ctx.compact({onComplete,onError}) callback API unverified",
+        "warning: restart.ts:45 - lastPromptedPct Map memory leak across many sessions",
+        "warning: restart.ts:233 - unhandled AbortError rejection from aborted ctx.ui.select",
+        "warning: restart.ts:274 - parentSession property name speculative, may not match actual API",
+        "suggestion: restart.ts:160 - use Array.findLastIndex instead of manual reverse scan",
+        "suggestion: restart.ts:246 - avoid blocking notify calls before session teardown",
+        "suggestion: restart.ts:84 - cache model lookups for repeat invocations"
+      ],
+      "manualNotes": "Not ready for merge. Resolve 4 critical items (import paths, compaction ordering, return type verification) before committing. Install Pi 0.81.1 locally to validate API surface against actual type definitions."
+    }
+  },
+  "transcriptPath": "/Users/juanbenjumea/dotfiles/.pi-subagents/artifacts/4b48fb59_reviewer_0_transcript.jsonl",
+  "timestamp": 1784822685061
+}
