@@ -12,7 +12,12 @@ fi
 
 errors=0
 
-CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/nushell"
+# Match Nushell’s platform-specific cache directory (Library/Caches on macOS).
+CACHE_DIR=""
+if command -v nu >/dev/null 2>&1; then
+    CACHE_DIR=$(nu -n -c 'print $nu.cache-dir' 2>/dev/null || true)
+fi
+CACHE_DIR="${CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/nushell}"
 ATUIN_INIT="$CACHE_DIR/atuin.nu"
 
 # 1. Config parses

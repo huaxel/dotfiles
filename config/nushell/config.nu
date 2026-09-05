@@ -91,6 +91,12 @@ source $zoxide_source
 source $fzf_source
 source $atuin_source
 
+# mise activation can rebuild PATH, so restore the Nix daemon tools after
+# integrations have loaded. This keeps `nix` available in interactive Nu.
+if ("/nix/var/nix/profiles/default/bin" | path exists) {
+    $env.PATH = ($env.PATH | prepend "/nix/var/nix/profiles/default/bin" | uniq)
+}
+
 # Fish semantics: atuin owns Ctrl-R for history search (its init does
 # `bind ctrl-r _atuin_search`, replacing the default). Nushell's built-in
 # history_menu also binds Ctrl-R, so null out its event to let atuin take

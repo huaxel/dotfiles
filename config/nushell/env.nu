@@ -41,6 +41,7 @@ $env.PATH = (
     $env.PATH
     | prepend [
         ($env.HOME | path join ".nix-profile" "bin")
+        "/nix/var/nix/profiles/default/bin"
         ($env.HOME | path join ".local/bin")
         ($env.HOME | path join ".cargo/bin")
         ($env.HOME | path join ".opencode/bin")

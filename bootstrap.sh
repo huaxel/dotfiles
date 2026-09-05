@@ -9,7 +9,8 @@
 #   SKIP_BREW_BUNDLE=1    don't install the full Brewfile
 #   SKIP_MACOS_DEFAULTS=1 don't apply macOS system defaults
 #   INSTALL_SYSTEM_CONFIG=1 install this repo's host-specific /etc files (Linux)
-#   INSTALL_NIX_HOME=1      activate the matching Home Manager profile
+#   SKIP_NIX_HOME=1         skip Nix/Home Manager setup (not recommended)
+#   INSTALL_NIX_HOME=0      legacy alias for SKIP_NIX_HOME=1
 #   NIX_PROFILE=...         override automatic framearch/WSL/macOS selection
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -252,11 +253,46 @@ case "$OS" in
         ;;
 esac
 
-step "7/9 — Home Manager (optional)"
+step "7/9 — Nix + Home Manager"
 
-if [ "${INSTALL_NIX_HOME:-0}" = "1" ]; then
+# Nushell, Starship, session variables, and several shared configs are now
+# Home Manager-owned. Skipping this step leaves a fresh machine incomplete.
+if [ "${SKIP_NIX_HOME:-0}" = "1" ] || [ "${INSTALL_NIX_HOME:-1}" = "0" ]; then
+    warn "Skipping Nix/Home Manager — canonical shell and shared configs will not be activated"
+else
     if ! command -v nix &>/dev/null; then
-        warn "Nix not found — install it first, then run: just nix-switch <profile>"
+        case "$OS" in
+            Darwin)
+                info "Installing Nix (multi-user daemon)..."
+                sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install) --daemon || \
+                    warn "Nix installation failed — install it manually, then run: just nix-switch juan@macbook"
+                ;;
+            Linux)
+                if command -v pacman &>/dev/null; then
+                    info "Installing Nix..."
+                    sudo pacman -S --needed --noconfirm nix || \
+                        warn "Nix installation failed — install it manually, then run: just nix-switch <profile>"
+                    sudo systemctl enable --now nix-daemon.socket 2>/dev/null || \
+                        warn "Could not start nix-daemon.socket — start it before Home Manager activation"
+                else
+                    warn "Nix is not installed and this OS has no supported automatic installer"
+                fi
+                ;;
+            *)
+                warn "Nix is not installed — install it manually before Home Manager activation"
+                ;;
+        esac
+    fi
+
+    # The installer places the daemon profile outside the normal Homebrew/PATH
+    # locations. Load it in this process so the activation below works now.
+    if [ -f /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
+        # shellcheck disable=SC1091
+        . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+    fi
+
+    if ! command -v nix &>/dev/null; then
+        warn "Nix unavailable — run Home Manager manually after installation"
     elif [ ! -f "$AGE_KEY" ]; then
         warn "Age key missing — restore $AGE_KEY before Home Manager activation"
     else
@@ -282,8 +318,6 @@ experimental-features = nix-command flakes" ;;
         NIX_CONFIG="$nix_config" just nix-switch "$profile" || \
             warn "Home Manager activation failed — run manually: just nix-switch $profile"
     fi
-else
-    info "Skipping Home Manager (set INSTALL_NIX_HOME=1 to activate it)"
 fi
 
 step "8/9 — macOS system defaults"

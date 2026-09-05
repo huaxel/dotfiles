@@ -34,6 +34,7 @@ end
 # Cross-platform PATH additions — prefer the Home Manager profile over
 # distro/AUR copies so every interactive agent sees the declared toolset.
 fish_add_path --prepend --move $HOME/.nix-profile/bin
+fish_add_path /nix/var/nix/profiles/default/bin
 fish_add_path $HOME/.local/bin
 fish_add_path $HOME/.cargo/bin
 

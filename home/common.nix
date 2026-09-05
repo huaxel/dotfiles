@@ -3,7 +3,9 @@
 {
   # Keep this pilot package-only until each Dotter path is explicitly migrated.
   # This prevents Home Manager and Dotter from managing the same file.
-  home.username = "juan";
+  # Linux profiles use the historical `juan` account; host modules may
+  # override this for machines with a different local username.
+  home.username = lib.mkDefault "juan";
   home.homeDirectory = lib.mkDefault (
     if pkgs.stdenv.hostPlatform.isDarwin then "/Users/juan" else "/home/juan"
   );
@@ -121,6 +123,18 @@
   home.file.".config/nushell/config.nu".source = ../config/nushell/config.nu;
   home.file.".config/nushell/env.nu".source = ../config/nushell/env.nu;
   home.file.".config/nushell/login.nu".source = ../config/nushell/login.nu;
+  # Nushell uses ~/Library/Application Support/nushell on macOS unless it is
+  # started with --config-home. Keep that native location in sync with the
+  # XDG-style path above so Terminal-launched Nushell loads these dotfiles.
+  home.file."Library/Application Support/nushell/config.nu" = lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
+    source = ../config/nushell/config.nu;
+  };
+  home.file."Library/Application Support/nushell/env.nu" = lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
+    source = ../config/nushell/env.nu;
+  };
+  home.file."Library/Application Support/nushell/login.nu" = lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
+    source = ../config/nushell/login.nu;
+  };
   home.file.".config/starship.toml".text = builtins.replaceStrings
     [ "{{hostname_color}}" ]
     [ "fg:#f7768e" ]
