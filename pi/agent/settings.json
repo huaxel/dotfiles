@@ -4,12 +4,17 @@
     "openai-codex/gpt-5.6-terra",
     "openai-codex/gpt-5.6-sol",
     "commandcode/deepseek/deepseek-v4-flash",
-    "commandcode/zai-org/GLM-5.2",
-    "commandcode/MiniMaxAI/MiniMax-M3",
-    "commandcode/xiaomi/mimo-v2.5",
-    "commandcode/tencent/hy3-paid",
-    "commandcode/meta/muse-spark-1.2-contributor",
-    "openference/*"
+    "openference/GLM-5.2",
+    "openference/GLM-5.3",
+    "openference/GLM-5.3-Flash",
+    "openference/DeepSeek-V4-Flash-Vision-Exp",
+    "openference/DeepSeek-V4-Flash-0731",
+    "openference/MiniMax M3",
+    "openference/DeepSeek-V4-Pro-0813",
+    "openference/Kimi K2.7 Code",
+    "openference/Kimi K3",
+    "opencode-go/deepseek-v4-flash",
+    "opencode-go/muse-spark-1.3-contributor"
   ],
   "lastChangelogVersion": "0.0.0",
   "theme": "ghostty-sync-b59692fc",
@@ -25,7 +30,10 @@
   },
   "packages": [
     "npm:pi-web-access@0.27.0",
-    "npm:@ff-labs/pi-fff@0.10.5",
+    {
+      "source": "npm:@ff-labs/pi-fff@0.10.5",
+      "extensions": []
+    },
     "npm:pi-autoresearch@1.6.2",
     "npm:@mobrienv/pi-tidy-tools@0.4.2",
     {

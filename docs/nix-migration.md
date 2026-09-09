@@ -206,12 +206,12 @@ path. Do not replace the running Arch system in place as part of the Home
 Manager pilot.
 
 `nixos/framearch-ai.nix` records the intended service contract and is exported
-as `nixosModules.framearchAi`, but it is deliberately not activated by the
-current Arch host or exposed as a switchable `nixosConfiguration` yet. A future
-NixOS host can select the pinned package with
-`services.juan.framearchAi.package`; leaving it null preserves the current
-external `/opt/cachy-llama` fallback. `nixos/framearch-hardware.nix` separately records the AMD graphics,
-render/video/audio groups, and current kernel tuning behind
+as `nixosModules.framearchAi`. The disposable host definition in
+`nixos/framearch.nix` now exposes `nixosConfigurations.framearch`, but it is
+not a replacement for the current Arch host. It selects the pinned package
+with `services.juan.framearchAi.package`; leaving that option null preserves
+the external `/opt/cachy-llama` fallback. `nixos/framearch-hardware.nix`
+separately records the AMD graphics, render/video/audio groups, and current kernel tuning behind
 `services.juan.framearchHardware.enable`; it is also opt-in. It records the
 current model filesystem as an additional opt-in mount:
 `/dev/disk/by-uuid/fcef66f9-3a98-42ff-83f6-890cb249a22e` (ext4) at
@@ -226,8 +226,17 @@ owner.
 ### Bootable test checklist
 
 Use a disposable VM or separate bootable disk; do not replace the current Arch
-root. In a future NixOS flake configuration, import both exported modules and
-pass the pinned package explicitly:
+root. The flake now provides the host directly. Evaluate it first, then build
+its system or VM artifact deliberately:
+
+```bash
+nix eval '.#nixosConfigurations.framearch.config.system.build.toplevel.drvPath'
+nix build '.#nixosConfigurations.framearch.config.system.build.toplevel'
+# For a disposable VM, build and run the generated result/\"bin/run-*-vm\".
+nix build '.#nixosConfigurations.framearch.config.system.build.vm'
+```
+
+For a custom future host, import both exported modules and pass the pinned package explicitly:
 
 ```nix
 imports = [
@@ -268,10 +277,10 @@ external `/opt/cachy-llama` fallback.
 2. Split Dotter's blanket `config = "~/.config"` mapping before moving any
    individual paths. This is complete for the first migrated roots.
 3. Move remaining application roots one owner at a time.
-4. Keep mutable application state (such as htop's rewritten config) in
-   Dotter until it has a suitable Home Manager representation. Keep sops-nix
-   keys backed up per machine; OAuth state and caches remain
-   local.
+4. Keep mutable application state (such as the generated llama model
+   routing and unused htop config) in Dotter until it has a suitable Home
+   Manager representation. Keep sops-nix keys backed up per machine; OAuth
+   state and caches remain local.
 5. Evaluate NixOS separately for the physical host after the custom AI stack is
    reproducible or deliberately kept external.
 
