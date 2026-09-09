@@ -40,10 +40,12 @@ fish_add_path $HOME/.cargo/bin
 
 # OS-specific PATH
 if test (uname) = Darwin
-    fish_add_path /opt/homebrew/bin
-    fish_add_path /opt/homebrew/sbin
-    fish_add_path /opt/local/bin
-    fish_add_path $HOME/.antigravity/antigravity/bin
+    # Keep Home Manager's CLI profile first; Homebrew is for GUI and
+    # macOS-integrated tools that are not provided by the profile.
+    fish_add_path --append --move /opt/homebrew/bin
+    fish_add_path --append --move /opt/homebrew/sbin
+    fish_add_path --append --move /opt/local/bin
+    fish_add_path --append --move $HOME/.antigravity/antigravity/bin
 
     # Use the Microsoft installer .NET SDKs/runtimes at the canonical
     # /usr/local/share/dotnet location (covers both 8.0 and 10.0 SDKs).

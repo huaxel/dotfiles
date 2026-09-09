@@ -317,6 +317,13 @@ experimental-features = nix-command flakes" ;;
         info "Activating Home Manager profile: $profile"
         NIX_CONFIG="$nix_config" just nix-switch "$profile" || \
             warn "Home Manager activation failed — run manually: just nix-switch $profile"
+        # Home Manager cannot update this shell's parent environment. Put the
+        # activated CLI profile first so the remaining bootstrap steps use Nix
+        # tools rather than falling back to Homebrew duplicates.
+        if [ -d "$HOME/.nix-profile/bin" ]; then
+            PATH="$HOME/.nix-profile/bin:$PATH"
+            export PATH
+        fi
     fi
 fi
 

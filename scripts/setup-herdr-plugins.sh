@@ -5,8 +5,8 @@
 # dotfiles config, so keybindings in config.toml silently do nothing until the
 # plugins are installed. This script restores them idempotently.
 #
-# Safe to re-run. Requires the `herdr` binary (Brewfile) — no Herdr server
-# needs to be running, but one must exist to query state.
+# Safe to re-run. Requires the `herdr` binary (Home Manager or Homebrew) — no
+# Herdr server needs to be running, but one must exist to query state.
 #
 # Install: ./scripts/setup-herdr-plugins.sh
 

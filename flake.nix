@@ -9,6 +9,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    herdr = {
+      url = "github:herdrdev/herdr/v0.9.0";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     sops-nix = {
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -29,13 +34,16 @@
     nixgl.url = "github:guibou/nixGL/b6105297e6f0cd041670c3e8628394d4ee247ed5";
   };
 
-  outputs = { nixpkgs, home-manager, sops-nix, cachy-llama, nixgl, ... }:
+  outputs = { nixpkgs, home-manager, herdr, sops-nix, cachy-llama, nixgl, ... }:
     let
       mkHome = { system, hostModule }:
         home-manager.lib.homeManagerConfiguration {
           pkgs = import nixpkgs {
             inherit system;
             config.allowUnfree = true;
+          };
+          extraSpecialArgs = {
+            herdrPackage = herdr.packages.${system}.default;
           };
           modules = [
             sops-nix.homeManagerModules.sops
