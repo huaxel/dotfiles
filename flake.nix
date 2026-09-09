@@ -51,6 +51,16 @@
             hostModule
           ];
         };
+
+      # Disposable/separate-disk host definition. Keep this separate from the
+      # current Arch installation until hardware and rollback are validated.
+      framearchNixos = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        specialArgs = {
+          cachyLlamaPackage = cachy-llama.packages.x86_64-linux.vulkan;
+        };
+        modules = [ ./nixos/framearch.nix ];
+      };
     in {
       # Kept under legacyPackages so `nix flake check` validates the module
       # without compiling the large Vulkan/WebUI derivation on every change.
@@ -61,6 +71,8 @@
 
       nixosModules.framearchAi = ./nixos/framearch-ai.nix;
       nixosModules.framearchHardware = ./nixos/framearch-hardware.nix;
+
+      nixosConfigurations.framearch = framearchNixos;
 
       apps.x86_64-linux.home-manager = {
         type = "app";
@@ -75,24 +87,7 @@
 
       checks.x86_64-linux.framearchNixos =
         let
-          evaluated = nixpkgs.lib.nixosSystem {
-            system = "x86_64-linux";
-            modules = [
-              ./nixos/framearch-ai.nix
-              ./nixos/framearch-hardware.nix
-              {
-                services.juan.framearchAi = {
-                  enable = true;
-                  package = cachy-llama.packages.x86_64-linux.vulkan;
-                  enablePortForward = true;
-                };
-                services.juan.framearchHardware = {
-                  enable = true;
-                  enableModelStorage = true;
-                };
-              }
-            ];
-          };
+          evaluated = framearchNixos;
           ai = evaluated.config.services.juan.framearchAi;
           embedding = evaluated.config.systemd.services.memoryfield-embed;
           embeddingService = embedding.serviceConfig;

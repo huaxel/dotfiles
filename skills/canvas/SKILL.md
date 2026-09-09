@@ -1,6 +1,6 @@
 ---
 name: canvas
-description: ''
+description: Create and edit standalone IDE canvas artifacts. Use when the user asks for a canvas or a separate visual artifact.
 metadata:
   surfaces:
     - ide

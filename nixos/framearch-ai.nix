@@ -126,13 +126,20 @@ in
     };
 
     portForwardTarget = lib.mkOption {
-      type = lib.types.str;
-      default = "192.168.1.138:32657";
-      description = "Destination for the optional socat HTTP forwarder.";
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      description = "Explicit destination for the optional socat HTTP forwarder.";
     };
   };
 
   config = lib.mkIf cfg.enable {
+    assertions = [
+      {
+        assertion = !cfg.enablePortForward || cfg.portForwardTarget != null;
+        message = "services.juan.framearchAi.portForwardTarget must be set when port forwarding is enabled";
+      }
+    ];
+
     systemd.services."llama.cpp" = {
       description = "llama.cpp Server (framearch)";
       after = [ "network.target" "local-fs.target" ];
@@ -146,6 +153,7 @@ in
         Environment = environment;
         ExecStart = serverExecutable;
         Restart = "always";
+        RestartSec = 5;
         TimeoutStopSec = 120;
       };
     };
@@ -167,7 +175,7 @@ in
       };
     };
 
-    systemd.services.port-forward-llama = lib.mkIf cfg.enablePortForward {
+    systemd.services.port-forward-llama = lib.mkIf (cfg.enablePortForward && cfg.portForwardTarget != null) {
       description = "Port forward HTTP to the llama reverse proxy";
       after = [ "network.target" ];
       wantedBy = [ "multi-user.target" ];
