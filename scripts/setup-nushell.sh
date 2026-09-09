@@ -61,6 +61,16 @@ if command -v atuin >/dev/null 2>&1; then
         sed 's/e>|/|/g' "$ATUIN_INIT" > "$tmp" && mv "$tmp" "$ATUIN_INIT"
         echo "Applied atuin e>| fix (upstream issue #3358)"
     fi
+    # Some Atuin releases give both Ctrl-R and Up the same `atuin` name,
+    # which makes Nushell warn about duplicate keybinding names. Keep the
+    # Ctrl-R name used by health checks and give the second binding a unique
+    # name without depending on a particular Atuin version.
+    if [ "$(grep -c '^            name: atuin$' "$ATUIN_INIT" 2>/dev/null || true)" -gt 1 ]; then
+        tmp=$(mktemp "${ATUIN_INIT}.tmp.XXXXXX")
+        awk '/^            name: atuin$/ { count++; if (count > 1) sub(/name: atuin$/, "name: atuin_up_arrow") } { print }' \
+            "$ATUIN_INIT" > "$tmp" && mv "$tmp" "$ATUIN_INIT"
+        echo "Renamed duplicate Atuin keybinding"
+    fi
     echo "Generated Atuin integration"
 else
     rm -f "$ATUIN_INIT"

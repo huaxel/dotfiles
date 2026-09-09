@@ -54,7 +54,9 @@ $env.PATH = (
 
 # macOS additions, mirroring the Fish setup.
 if $nu.os-info.name == "macos" {
-    $env.PATH = ($env.PATH | prepend [
+    # Keep Home Manager's CLI profile first; Homebrew is for GUI and
+    # macOS-integrated tools that are not provided by the profile.
+    $env.PATH = ($env.PATH | append [
         "/opt/homebrew/bin"
         "/opt/homebrew/sbin"
         "/opt/local/bin"

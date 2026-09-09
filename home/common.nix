@@ -1,5 +1,48 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, herdrPackage ? pkgs.herdr, ... }:
 
+let
+  # The Nixpkgs Atuin package currently lags the database migration already
+  # applied locally (20260818000000). Pin the upstream release that contains
+  # that migration instead of making Atuin downgrade or editing SQLite state.
+  atuinRelease = {
+    "aarch64-darwin" = {
+      archive = "atuin-aarch64-apple-darwin.tar.gz";
+      directory = "atuin-aarch64-apple-darwin";
+      hash = "sha256-x4rBWcicOO4LVutqEdnApzQN46A7mPu8zUT44tkebm4=";
+    };
+    "aarch64-linux" = {
+      archive = "atuin-aarch64-unknown-linux-gnu.tar.gz";
+      directory = "atuin-aarch64-unknown-linux-gnu";
+      hash = "sha256-297if3/Ge5LncNGvidO0IQUUmaBYzT5GmNEj4BF/qVA=";
+    };
+    "x86_64-darwin" = {
+      archive = "atuin-x86_64-apple-darwin.tar.gz";
+      directory = "atuin-x86_64-apple-darwin";
+      hash = "sha256-dO/RCwi/IeXpRI5LTC/OmZXGVZKImbA3VBHUJ77Dw0c=";
+    };
+    "x86_64-linux" = {
+      archive = "atuin-x86_64-unknown-linux-gnu.tar.gz";
+      directory = "atuin-x86_64-unknown-linux-gnu";
+      hash = "sha256-Q02CtMX2kbbwQj8wpLkx30r97RmwWnlaKAGS/fimGi0=";
+    };
+  };
+  atuin = let
+    system = pkgs.stdenv.hostPlatform.system;
+    release = builtins.getAttr system atuinRelease;
+  in pkgs.stdenv.mkDerivation {
+    pname = "atuin";
+    version = "18.21.0";
+    src = pkgs.fetchurl {
+      url = "https://github.com/atuinsh/atuin/releases/download/v18.21.0/${release.archive}";
+      hash = release.hash;
+    };
+    dontUnpack = true;
+    installPhase = ''
+      tar -xzf "$src" -C "$TMPDIR"
+      install -Dm755 "$TMPDIR/${release.directory}/atuin" "$out/bin/atuin"
+    '';
+  };
+in
 {
   # Keep this pilot package-only until each Dotter path is explicitly migrated.
   # This prevents Home Manager and Dotter from managing the same file.
@@ -117,6 +160,20 @@
 
   programs.home-manager.enable = true;
 
+  # Keep Herdr on its upstream flake input so it can be updated independently
+  # from the rest of nixpkgs. The native module also reloads its settings.
+  programs.herdr = {
+    enable = true;
+    package = herdrPackage;
+    settings = lib.importTOML ../config/herdr/config.toml;
+  };
+
+  # Plugin registrations are per-user state, so install them after the Nix
+  # profile is available. The script is idempotent and works on fresh hosts.
+  home.activation.herdrPlugins = lib.hm.dag.entryAfter [ "installPackages" ] ''
+    PATH="${herdrPackage}/bin:$PATH" ${../scripts/setup-herdr-plugins.sh}
+  '';
+
   # Migrated paths. Their former Dotter mappings are removed explicitly.
   home.file.".config/Brewfile".source = ../config/Brewfile;
   home.file.".config/nix/nix.conf".source = ../nix.conf;
@@ -158,7 +215,6 @@
       "${config.home.homeDirectory}/dotfiles/pi/agent/settings.json";
   home.file.".config/ghostty/config".source = ../config/ghostty/config;
   home.file.".config/mise/config.toml".source = ../config/mise/config.toml;
-  home.file.".config/herdr/config.toml".source = ../config/herdr/config.toml;
   home.file.".config/llama.cpp/.python-version".source = ../config/llama.cpp/.python-version;
   home.file.".config/llama.cpp/MODELS.md".source = ../config/llama.cpp/MODELS.md;
   home.file.".config/llama.cpp/README-windows.md".source = ../config/llama.cpp/README-windows.md;
