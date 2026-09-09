@@ -283,9 +283,8 @@ plugin actions' minimum version of 0.8.0. The module imports
 `config/herdr/config.toml`, preserving one source of truth and enabling reloads
 when settings change.
 
-The five plugin registrations (`annotate`, `cloudmanic.herdr-plus`,
-`herdr-file-viewer`, `jhochenbaum.hunkdiff`, and `rohanthewiz.herdr-todo`) are
-installed by the idempotent activation hook that reuses
+The three plugin registrations (`annotate`, `herdr-file-viewer`, and
+`jhochenbaum.hunkdiff`) are installed by the idempotent activation hook that reuses
 `scripts/setup-herdr-plugins.sh`. The hook pins each plugin to an immutable Git
 revision and reports existing revision drift instead of silently accepting a
 different version. `bun` (the annotate plugin's runtime) remains in the Home

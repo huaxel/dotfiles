@@ -16,10 +16,8 @@ set -euo pipefail
 # Keep these revisions pinned so a fresh machine gets the same plugin set.
 PLUGIN_SOURCES="
 annotate	plannotator/herdr-annotate	bccf884b874f5f39ccbef1bb6ac67625c5fb5d54
-cloudmanic.herdr-plus	cloudmanic/herdr-plus	87bbaa2a48b178a935b1d74f719f2e9d3f5047eb
 herdr-file-viewer	smarzban/herdr-file-viewer	647f03236d9aa20de0b07c9de0a951e13a1e59bf
 jhochenbaum.hunkdiff	jhochenbaum/herdr-hunk-diff	ad6f670b78887cd0becb473fd486945e5255c062
-rohanthewiz.herdr-todo	rohanthewiz/herdr-todo	9c8a3ea7810464f8a0ac79b449926b4b75213a58
 "
 
 info() { echo "  $*"; }
