@@ -51,7 +51,7 @@
     "npm:pi-context-view@0.4.3",
     "npm:@ogulcancelik/pi-codex-compaction",
     "npm:@plannotator/pi-extension",
-    "npm:pi-memory",
+    "npm:pi-memory@0.4.2",
     "npm:@sting8k/pi-vcc"
   ],
   "extensions": [],
