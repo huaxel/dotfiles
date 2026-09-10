@@ -1,0 +1,350 @@
+diff --git a/node_modules/pi-memory/README.md b/node_modules/pi-memory/README.md
+index 819156e..19fb4fc 100644
+--- a/node_modules/pi-memory/README.md
++++ b/node_modules/pi-memory/README.md
+@@ -97,18 +97,24 @@ If the first search doesn't find what you need, try rephrasing or switching mode
+ 
+ ## File layout
+ 
++By default, memory is scoped automatically to the current Git repository:
++
+ ```
+ ~/.pi/agent/memory/
+-  MEMORY.md              # Curated long-term memory
+-  SCRATCHPAD.md           # Checklist of things to fix/remember
+-  daily/
+-    2026-02-15.md         # Daily append-only log
+-    2026-02-14.md
+-    ...
+-  recovery/
+-    <recovery-id>.json    # Complete payload and restore state for a memory_forget deletion
++  MEMORY.md              # Global memory used outside Git repositories
++  projects/
++    <project-key>/       # One isolated memory tree per repository
++      MEMORY.md
++      SCRATCHPAD.md
++      daily/
++      recovery/
+ ```
+ 
++Each project gets a separate qmd collection, so search cannot return memories
++from another repository. Git worktrees share the main repository's project key.
++Existing global files are not copied automatically; set `PI_MEMORY_PROJECT_SCOPE=0`
++or `PI_MEMORY_DIR` to keep using the legacy tree while migrating them.
++
+ ## How it works
+ 
+ ### Context injection
+@@ -185,7 +191,8 @@ This ensures in-progress context survives compaction and is visible in the next
+ 
+ | Variable | Values | Default | Description |
+ |----------|--------|---------|-------------|
+-| `PI_MEMORY_DIR` | path | `~/.pi/agent/memory` | Override the memory storage directory |
++| `PI_MEMORY_DIR` | path | `~/.pi/agent/memory` | Override the memory storage directory; an explicit value disables automatic project scoping |
++| `PI_MEMORY_PROJECT_SCOPE` | `0` or unset | unset (enabled) | Set to `0` to keep the legacy single global memory tree |
+ | `PI_MEMORY_SNAPSHOT` | `stable`, `per-turn` | `stable` | `stable` snapshots memory at checkpoints for KV cache stability; `per-turn` rebuilds every turn (legacy behavior) |
+ | `PI_MEMORY_QMD_UPDATE` | `background`, `manual`, `off` | `background` | Controls automatic `qmd update` + `qmd embed` after writes |
+ | `PI_MEMORY_QMD_SEARCH_TIMEOUT_MS` | positive integer (milliseconds) | `60000` | Sets the timeout for explicit `memory_search` qmd queries |
+@@ -204,7 +211,7 @@ Run the `memory_status` tool first — it reports most of these at a glance.
+ | `memory_search` says qmd is required | qmd not installed or not on `PATH` | Install qmd (`npm install -g @tobilu/qmd`); if installed via Bun, ensure `~/.bun/bin` is on `PATH` |
+ | Search returns nothing for terms you know exist | Index is stale | A background `qmd update` runs after writes; if disabled (`PI_MEMORY_QMD_UPDATE=off`), run `qmd update` manually |
+ | “need embeddings” on semantic/deep search | Vectors not built yet | Embedding starts automatically in the background — retry shortly. If `PI_MEMORY_QMD_UPDATE` is `manual`/`off`, run `qmd embed` yourself |
+-| Collection `pi-memory` missing | Auto-setup didn't run (qmd installed mid-session) | Run any `memory_search` (auto-creates it) or `qmd collection add ~/.pi/agent/memory --name pi-memory` |
++| A project collection is missing | Auto-setup didn't run (qmd installed mid-session) | Run any `memory_search` (auto-creates the active project collection) or follow the collection-specific command from `memory_status` |
+ | qmd works in the shell but not from pi on Windows | Broken `.cmd`/`.ps1` shims | The extension bypasses them by invoking qmd's JS entry with `node`; make sure the npm global `node_modules` dir is on `PATH` |
+ | Memory isn't being injected after a write | Cache-stable snapshot only refreshes at checkpoints | Long-term writes refresh next turn; for daily/scratchpad use `memory_read`, or set `PI_MEMORY_SNAPSHOT=per-turn` |
+ 
+diff --git a/node_modules/pi-memory/index.ts b/node_modules/pi-memory/index.ts
+index 3ad496d..65cdcca 100644
+--- a/node_modules/pi-memory/index.ts
++++ b/node_modules/pi-memory/index.ts
+@@ -5,12 +5,15 @@
+  * Core memory tools (write/read/scratchpad) work without qmd installed.
+  * The memory_search tool requires qmd for keyword, semantic, and hybrid search.
+  *
+- * Layout (under ~/.pi/agent/memory/):
++ * Default project layout (under ~/.pi/agent/memory/projects/<project-key>/):
+  *   MEMORY.md              — curated long-term memory (decisions, preferences, durable facts)
+  *   SCRATCHPAD.md           — checklist of things to keep in mind / fix later
+  *   daily/YYYY-MM-DD.md    — daily append-only log (today + yesterday loaded at session start)
+  *   recovery/*.json        — durable records for restoring memory_forget deletions
+  *
++ * Outside Git repositories, or with project scoping disabled, the legacy
++ * global layout is used directly under ~/.pi/agent/memory/.
++ *
+  * Tools:
+  *   memory_write   — write to MEMORY.md or daily log
+  *   memory_forget  — delete matching memory entries and create a recovery record
+@@ -23,8 +26,8 @@
+  *   - MEMORY.md + SCRATCHPAD.md + today's + yesterday's daily logs injected into every turn
+  */
+ 
+-import { type ExecFileOptions, execFile } from "node:child_process";
+-import { randomUUID } from "node:crypto";
++import { execFile, execFileSync, type ExecFileOptions } from "node:child_process";
++import { createHash, randomUUID } from "node:crypto";
+ import * as fs from "node:fs";
+ import * as path from "node:path";
+ import { type Message, StringEnum, Type } from "@earendil-works/pi-ai";
+@@ -57,24 +60,83 @@ export function resolveMemoryDir(env: MemoryEnv = process.env): string {
+ 	return path.join(home, ".pi", "agent", "memory");
+ }
+ 
++const DEFAULT_QMD_COLLECTION = "pi-memory";
++const PROJECT_SCOPE_ENV = "PI_MEMORY_PROJECT_SCOPE";
++
+ let MEMORY_DIR = resolveMemoryDir();
++let QMD_COLLECTION = DEFAULT_QMD_COLLECTION;
+ let MEMORY_FILE = path.join(MEMORY_DIR, "MEMORY.md");
+ let SCRATCHPAD_FILE = path.join(MEMORY_DIR, "SCRATCHPAD.md");
+ let DAILY_DIR = path.join(MEMORY_DIR, "daily");
+ let RECOVERY_DIR = path.join(MEMORY_DIR, "recovery");
+ 
+-/** Override base directory (for testing). */
+-export function _setBaseDir(baseDir: string) {
++function setMemoryScope(baseDir: string, collection = DEFAULT_QMD_COLLECTION) {
+ 	MEMORY_DIR = baseDir;
++	QMD_COLLECTION = collection;
+ 	MEMORY_FILE = path.join(baseDir, "MEMORY.md");
+ 	SCRATCHPAD_FILE = path.join(baseDir, "SCRATCHPAD.md");
+ 	DAILY_DIR = path.join(baseDir, "daily");
+ 	RECOVERY_DIR = path.join(baseDir, "recovery");
+ }
+ 
++/** Override base directory (for testing). */
++export function _setBaseDir(baseDir: string) {
++	setMemoryScope(baseDir);
++}
++
+ /** Reset to default paths (for testing). */
+ export function _resetBaseDir() {
+-	_setBaseDir(resolveMemoryDir());
++	setMemoryScope(resolveMemoryDir());
++}
++
++export interface MemoryScope {
++	dir: string;
++	collection: string;
++}
++
++function gitProjectRoot(cwd: string): string | null {
++	try {
++		const topLevel = execFileSync("git", ["-C", cwd, "rev-parse", "--show-toplevel"], {
++			encoding: "utf8",
++			stdio: ["ignore", "pipe", "ignore"],
++		}).trim();
++		if (!topLevel) return null;
++
++		// Worktrees share the main repository's git common dir, so they share
++		// project memory instead of silently fragmenting it per worktree.
++		const commonDir = execFileSync("git", ["-C", cwd, "rev-parse", "--git-common-dir"], {
++			encoding: "utf8",
++			stdio: ["ignore", "pipe", "ignore"],
++		}).trim();
++		if (!commonDir) return path.resolve(topLevel);
++		const resolvedCommonDir = path.resolve(cwd, commonDir);
++		return path.basename(resolvedCommonDir) === ".git" ? path.dirname(resolvedCommonDir) : path.resolve(topLevel);
++	} catch {
++		return null;
++	}
++}
++
++function projectKey(projectRoot: string): string {
++	const label = path.basename(projectRoot).replace(/[^A-Za-z0-9._-]/g, "-") || "project";
++	const digest = createHash("sha256").update(projectRoot).digest("hex").slice(0, 12);
++	return `${label}-${digest}`;
++}
++
++export function resolveMemoryScope(cwd: string, env: MemoryEnv = process.env): MemoryScope {
++	const baseDir = resolveMemoryDir(env);
++	// An explicit PI_MEMORY_DIR remains an exact override for compatibility.
++	if (env.PI_MEMORY_DIR || env[PROJECT_SCOPE_ENV] === "0") {
++		return { dir: baseDir, collection: DEFAULT_QMD_COLLECTION };
++	}
++
++	const root = gitProjectRoot(cwd);
++	if (!root) return { dir: baseDir, collection: DEFAULT_QMD_COLLECTION };
++
++	const key = projectKey(root);
++	return {
++		dir: path.join(baseDir, "projects", key),
++		collection: `${DEFAULT_QMD_COLLECTION}-${key}`,
++	};
+ }
+ 
+ // ---------------------------------------------------------------------------
+@@ -1021,26 +1083,26 @@ export function qmdInstallInstructions(): string {
+ 		"",
+ 		"The extension auto-creates the collection on next session start.",
+ 		"To set it up manually instead:",
+-		`  qmd collection add ${MEMORY_DIR} --name pi-memory`,
+-		"  qmd embed",
++		`  qmd collection add ${MEMORY_DIR} --name ${QMD_COLLECTION}`,
++		`  qmd embed -c ${QMD_COLLECTION}`,
+ 	].join("\n");
+ }
+ 
+ export function qmdCollectionInstructions(): string {
+ 	return [
+-		"qmd collection pi-memory is not configured.",
++		`qmd collection ${QMD_COLLECTION} is not configured.`,
+ 		"",
+ 		"Set up the collection (one-time):",
+-		`  qmd collection add ${MEMORY_DIR} --name pi-memory`,
+-		"  qmd embed",
++		`  qmd collection add ${MEMORY_DIR} --name ${QMD_COLLECTION}`,
++		`  qmd embed -c ${QMD_COLLECTION}`,
+ 	].join("\n");
+ }
+ 
+-/** Auto-create the pi-memory collection and path contexts in qmd. */
++/** Auto-create the active memory collection and path contexts in qmd. */
+ export async function setupQmdCollection(): Promise<boolean> {
+ 	try {
+ 		await new Promise<void>((resolve, reject) => {
+-			execFileFn("qmd", ["collection", "add", MEMORY_DIR, "--name", "pi-memory"], { timeout: 10_000 }, (err) =>
++			execFileFn("qmd", ["collection", "add", MEMORY_DIR, "--name", QMD_COLLECTION], { timeout: 10_000 }, (err) =>
+ 				err ? reject(err) : resolve(),
+ 			);
+ 		});
+@@ -1051,13 +1113,14 @@ export async function setupQmdCollection(): Promise<boolean> {
+ 
+ 	// Add path contexts (best-effort, ignore errors)
+ 	const contexts: [string, string][] = [
+-		["/daily", "Daily append-only work logs organized by date"],
+-		["/", "Curated long-term memory: decisions, preferences, facts, lessons"],
++		["daily", "Daily append-only work logs organized by date"],
++		["", "Curated long-term memory: decisions, preferences, facts, lessons"],
+ 	];
+ 	for (const [ctxPath, desc] of contexts) {
+ 		try {
+ 			await new Promise<void>((resolve, reject) => {
+-				execFileFn("qmd", ["context", "add", ctxPath, desc, "-c", "pi-memory"], { timeout: 10_000 }, (err) =>
++				const virtualPath = `qmd://${QMD_COLLECTION}/${ctxPath}`;
++				execFileFn("qmd", ["context", "add", virtualPath, desc], { timeout: 10_000 }, (err) =>
+ 					err ? reject(err) : resolve(),
+ 				);
+ 			});
+@@ -1065,9 +1128,9 @@ export async function setupQmdCollection(): Promise<boolean> {
+ 			// Ignore — context may already exist
+ 		}
+ 	}
+-	// Seed the cache so checkCollection("pi-memory") doesn't redundantly re-run
+-	// setupQmdCollection during the short negative-cache window.
+-	qmdCollectionStatusCache.set("pi-memory", { checkedAt: Date.now(), exists: true });
++	// Seed the cache so checkCollection(QMD_COLLECTION) doesn't redundantly
++	// re-run setupQmdCollection during the short negative-cache window.
++	qmdCollectionStatusCache.set(QMD_COLLECTION, { checkedAt: Date.now(), exists: true });
+ 	return true;
+ }
+ 
+@@ -1150,7 +1213,7 @@ export function ensureQmdEmbed(): boolean {
+ 		return true;
+ 	}
+ 	embedInFlight = true;
+-	execFileFn("qmd", ["embed"], { timeout: QMD_EMBED_TIMEOUT_MS }, () => {
++	execFileFn("qmd", ["embed", "-c", QMD_COLLECTION], { timeout: QMD_EMBED_TIMEOUT_MS }, () => {
+ 		embedInFlight = false;
+ 		if (embedPending) {
+ 			embedPending = false;
+@@ -1203,7 +1266,7 @@ export async function searchRelevantMemories(prompt: string): Promise<string> {
+ 
+ 	let timer: ReturnType<typeof setTimeout> | undefined;
+ 	try {
+-		const hasCollection = await checkCollection("pi-memory");
++		const hasCollection = await checkCollection(QMD_COLLECTION);
+ 		if (!hasCollection) return "";
+ 
+ 		const results = await Promise.race([
+@@ -1294,7 +1357,7 @@ export function runQmdSearch(
+ 	limit: number,
+ ): Promise<{ results: QmdSearchResult[]; stderr: string }> {
+ 	const subcommand = mode === "keyword" ? "search" : mode === "semantic" ? "vsearch" : "query";
+-	const args = [subcommand, "--json", "-c", "pi-memory", "-n", String(limit), query];
++	const args = [subcommand, "--json", "-c", QMD_COLLECTION, "-n", String(limit), query];
+ 	const timeoutMs = getQmdSearchTimeoutMs();
+ 
+ 	return new Promise((resolve, reject) => {
+@@ -1424,8 +1487,19 @@ export function _resetMemorySnapshot() {
+ // ---------------------------------------------------------------------------
+ 
+ export default function (pi: ExtensionAPI) {
+-	// --- session_start: detect qmd, auto-setup collection ---
++	// --- session_start: select project scope, then detect qmd and auto-setup ---
+ 	pi.on("session_start", async (_event, ctx) => {
++		const scope = resolveMemoryScope(ctx.cwd);
++		const scopeChanged = scope.dir !== MEMORY_DIR || scope.collection !== QMD_COLLECTION;
++		setMemoryScope(scope.dir, scope.collection);
++		ensureDirs();
++		if (scopeChanged) {
++			qmdCollectionStatusCache.clear();
++			if (updateTimer) {
++				clearTimeout(updateTimer);
++				updateTimer = null;
++			}
++		}
+ 		exitSummaryReason = null;
+ 		if (terminalInputUnsubscribe) {
+ 			terminalInputUnsubscribe();
+@@ -1450,7 +1524,7 @@ export default function (pi: ExtensionAPI) {
+ 			return;
+ 		}
+ 
+-		const hasCollection = await checkCollection("pi-memory");
++		const hasCollection = await checkCollection(QMD_COLLECTION);
+ 		if (!hasCollection) {
+ 			await setupQmdCollection();
+ 		}
+@@ -2253,7 +2327,7 @@ export default function (pi: ExtensionAPI) {
+ 				};
+ 			}
+ 
+-			let hasCollection = await checkCollection("pi-memory");
++			let hasCollection = await checkCollection(QMD_COLLECTION);
+ 			if (!hasCollection) {
+ 				const created = await setupQmdCollection();
+ 				if (created) {
+@@ -2265,7 +2339,7 @@ export default function (pi: ExtensionAPI) {
+ 					content: [
+ 						{
+ 							type: "text",
+-							text: "Could not set up qmd pi-memory collection. Check that qmd is working and the memory directory exists.",
++							text: `Could not set up qmd ${QMD_COLLECTION} collection. Check that qmd is working and the memory directory exists.`,
+ 						},
+ 					],
+ 					isError: true,
+@@ -2353,7 +2427,7 @@ export default function (pi: ExtensionAPI) {
+ 		label: "Memory Status",
+ 		description:
+ 			"Report the health of the memory system: where files live, what's stored, " +
+-			"whether qmd search is available, whether the pi-memory collection exists, " +
++			"whether qmd search is available, whether the active project collection exists, " +
+ 			"whether embeddings are ready, and the active configuration. " +
+ 			"Use this when search behaves unexpectedly or to confirm setup.",
+ 		parameters: Type.Object({}),
+@@ -2365,7 +2439,7 @@ export default function (pi: ExtensionAPI) {
+ 			let collectionOk = false;
+ 			let embeddings: "ready" | "missing" | "unknown" | "n/a" = "n/a";
+ 			if (qmdOk) {
+-				collectionOk = await checkCollection("pi-memory");
++				collectionOk = await checkCollection(QMD_COLLECTION);
+ 				embeddings = collectionOk ? await probeEmbeddings() : "n/a";
+ 			}
+ 
+@@ -2383,7 +2457,7 @@ export default function (pi: ExtensionAPI) {
+ 			];
+ 
+ 			if (qmdOk) {
+-				lines.push(`- Collection \`pi-memory\`: ${mark(collectionOk)}`);
++				lines.push(`- Collection \`${QMD_COLLECTION}\`: ${mark(collectionOk)}`);
+ 				if (collectionOk) {
+ 					const embMark = embeddings === "ready" ? "✓" : embeddings === "missing" ? "⚠" : "?";
+ 					lines.push(`- Embeddings (semantic/deep): ${embMark} ${embeddings}`);
+@@ -2410,6 +2484,7 @@ export default function (pi: ExtensionAPI) {
+ 				`- PI_MEMORY_QMD_UPDATE: ${getQmdUpdateMode()}`,
+ 				`- PI_MEMORY_QMD_SEARCH_TIMEOUT_MS: ${getQmdSearchTimeoutMs()}`,
+ 				`- PI_MEMORY_DIR: ${process.env.PI_MEMORY_DIR ? "set" : "default"}`,
++				`- ${PROJECT_SCOPE_ENV}: ${process.env[PROJECT_SCOPE_ENV] === "0" ? "disabled" : "enabled"}`,
+ 				`- PI_MEMORY_EXIT_SUMMARY: ${isExitSummaryEnabled() ? "enabled" : "disabled"}`,
+ 				`- PI_MEMORY_EXIT_SUMMARY_MODEL: ${process.env.PI_MEMORY_EXIT_SUMMARY_MODEL?.trim() || "session model"}`,
+ 				`- PI_MEMORY_EXIT_SUMMARY_TIMEOUT_MS: ${getExitSummaryTimeoutMs()}`,
