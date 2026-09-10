@@ -1,0 +1,47 @@
+{
+  "name": "pi-auto-permissions-local",
+  "version": "0.1.4",
+  "description": "Context-aware Bash permissions for Pi with automated guardian review.",
+  "type": "module",
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "safety",
+    "permissions",
+    "auto-approval",
+    "command-review"
+  ],
+  "author": "Can Celik",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ogulcancelik/pi-extensions/issues"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "scripts": {
+    "test": "bun test"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": ">=0.80.7",
+    "@earendil-works/pi-coding-agent": ">=0.80.7",
+    "@earendil-works/pi-tui": ">=0.80.7"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "files": [
+    "index.ts",
+    "config.ts",
+    "gates.ts",
+    "review.ts",
+    "session-headers.ts",
+    "README.md",
+    "LICENSE"
+  ]
+}

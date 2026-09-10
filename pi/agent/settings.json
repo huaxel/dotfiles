@@ -41,7 +41,7 @@
       "skills": []
     },
     "../packages/pi-commandcode-provider",
-    "npm:@ogulcancelik/pi-auto-permissions@0.1.4",
+    "../packages/pi-auto-permissions",
     "../packages/pi-dynamic-footer",
     "../packages/pi-ghostty-theme-sync",
     "../packages/pi-ask-herdr",
