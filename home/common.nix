@@ -194,7 +194,7 @@ in
   };
   home.file.".config/starship.toml".text = builtins.replaceStrings
     [ "{{hostname_color}}" ]
-    [ "fg:#f7768e" ]
+    [ "fg:#f768e" ]
     (builtins.readFile ../starship.toml);
   home.file.".gitignore_global".source = ../gitignore_global;
   home.file.".local/bin/web-search".source = ../bin/web-search;

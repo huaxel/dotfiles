@@ -3,7 +3,6 @@
     "openai-codex/gpt-5.6-luna",
     "openai-codex/gpt-5.6-terra",
     "openai-codex/gpt-5.6-sol",
-    "commandcode/deepseek/deepseek-v4-flash",
     "openference/GLM-5.2",
     "openference/GLM-5.3",
     "openference/GLM-5.3-Flash",
@@ -17,7 +16,7 @@
     "opencode-go/muse-spark-1.3-contributor"
   ],
   "lastChangelogVersion": "0.0.0",
-  "theme": "ghostty-sync-b59692fc",
+  "theme": "dark",
   "defaultProvider": null,
   "defaultModel": null,
   "defaults": {
@@ -40,9 +39,8 @@
       "source": "npm:@ogulcancelik/pi-herdr@0.4.0",
       "skills": []
     },
-    "../packages/pi-commandcode-provider",
-    "../packages/pi-auto-permissions",
-    "../packages/pi-dynamic-footer",
+    "npm:@ogulcancelik/pi-auto-permissions@0.1.4",
+    "npm:@juanbenjumea/pi-dynamic-footer@0.1.10",
     "../packages/pi-ghostty-theme-sync",
     "../packages/pi-ask-herdr",
     "../packages/pi-provider-openference",
