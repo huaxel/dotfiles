@@ -36,7 +36,7 @@ while IFS=$'\t' read -r id source ref; do
     [ -n "$id" ] || continue
     current_ref="$({
         herdr plugin list --plugin "$id" --json 2>/dev/null || true
-    } | grep -o '"resolved_commit":"[^"]*"' | head -1 | cut -d'"' -f4)"
+    } | grep -o '"resolved_commit":"[^"]*"' | head -1 | cut -d'"' -f4 || true)"
 
     if [ "$current_ref" = "$ref" ]; then
         info "✔ $id pinned at ${ref:0:12}"
