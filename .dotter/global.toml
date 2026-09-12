@@ -13,6 +13,8 @@ npmrc = "~/.npmrc"
 [windows.files]
 # Unix SSH configuration is Home Manager-owned; Windows remains Dotter-managed.
 ssh_config = "~\\.ssh\\config"
+# Project Atom runtime defaults for MSYS2 SSH and scheduled jobs.
+"config/msys2/project-atom-env.sh" = "~\\.config\\project-atom\\env.sh"
 # Git configuration remains Dotter-managed on Windows.
 gitconfig = "~\\.gitconfig"
 # Git ignore file remains Dotter-managed on Windows.
