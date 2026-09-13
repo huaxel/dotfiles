@@ -218,16 +218,17 @@ case "$OS" in
         if ! command -v pacman &>/dev/null; then
             warn "No pacman found — install packages manually."
         else
+            # Home Manager owns the portable user CLI baseline. Keep this
+            # list limited to bootstrap prerequisites and Arch/native tools.
+            # git/just/age/sops remain bootstrap exceptions: they are needed
+            # before or during the first Home Manager activation.
+            # User language runtimes are owned by mise (config/mise/config.toml).
             packages=(
-                git neovim nodejs python rust
-                nushell starship zoxide atuin fzf
-                eza bat fd ripgrep procs dust duf btop bottom fastfetch yazi
-                github-cli jq glow lazygit uv just opencode pnpm
-                age gnupg sops
-                make curl wget tree htop
+                git just age sops
+                procs dust duf bottom opencode
+                gnupg make curl wget tree htop
             )
             extra=()
-            pacman -Qi git-lfs &>/dev/null || extra+=("git-lfs")
             pacman -Qi usage &>/dev/null || extra+=("usage")
 
             missing=()

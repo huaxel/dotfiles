@@ -11,11 +11,6 @@ starship init fish | source
 # Suppress mise rate-limit / version-check spam
 set -x MISE_LOG_LEVEL error
 
-# Activate mise (version manager)
-if command -sq mise
-    mise activate fish | source
-end
-
 # Atuin — shell history with sync
 if command -sq atuin
     atuin init fish | source
@@ -56,6 +51,15 @@ if test (uname) = Darwin
 else
     fish_add_path /usr/local/bin
     fish_add_path /usr/bin
+end
+
+# Activate mise after the base PATH is assembled so project runtimes win over
+# distro-installed node/python/go/rust binaries.
+if command -sq mise
+    mise activate fish | source
+    # Apply the selected global tools immediately; activation alone can leave
+    # distro runtimes ahead until the first mise environment refresh.
+    mise env -s fish | source
 end
 
 # Note: ~/Projects and ~/Developer are workspace directories, not binary paths
