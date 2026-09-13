@@ -1,12 +1,10 @@
-# Post-deploy hook: decrypt secrets with sops (Windows)
-# Run manually after `dotter deploy`, or integrate into bootstrap.ps1:
-#   . .\.dotter\post_deploy.ps1
-#
-# Requires: scoop install age sops
-# NOTE: Keep this file ASCII-safe (no emoji) to avoid encoding issues
-#       when invoked through the dotter hook dispatcher.
+#Requires -Version 5.1
 
-$DOTFILES_DIR = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Definition)
+# Decrypt sops/age secrets for native Windows.
+# Requires: scoop install age sops
+# NOTE: Keep this file ASCII-safe (no emoji) for Windows PowerShell.
+
+$DOTFILES_DIR = Split-Path -Parent $PSScriptRoot
 $SECRETS_DIR = Join-Path $DOTFILES_DIR "secrets"
 $DECRYPT_DIR = [System.IO.Path]::Combine($env:USERPROFILE, ".config", "secrets")
 $PI_AGENT_DIR = if ($env:PI_CODING_AGENT_DIR) {
@@ -36,7 +34,7 @@ function Sync-CompatAuth {
     }
 
     New-Item -ItemType Directory -Force -Path (Split-Path $CompatPath -Parent) | Out-Null
-    Copy-Item -Force $Source $CompatPath
+    Copy-Item -LiteralPath $Source -Destination $CompatPath -Force
 }
 
 function Invoke-SopsDecrypt {
@@ -54,7 +52,7 @@ function Invoke-SopsDecrypt {
     Write-Host "[...] Decrypting $leafBase..." -NoNewline
     & sops --decrypt --output-type binary --output $temporary $Source 2>$null
     if ($LASTEXITCODE -eq 0) {
-        Move-Item -Force $temporary $Destination
+        Move-Item -LiteralPath $temporary -Destination $Destination -Force
         Write-Host " [OK] -> $Destination" -ForegroundColor Green
     } else {
         Remove-Item -Force -ErrorAction SilentlyContinue $temporary
@@ -85,7 +83,7 @@ $env:SOPS_AGE_KEY_FILE = $ageKeyPath
 if (Test-Path $SECRETS_DIR) {
     New-Item -ItemType Directory -Force -Path $DECRYPT_DIR | Out-Null
 
-    foreach ($file in Get-ChildItem "$SECRETS_DIR\*.enc" -File) {
+    foreach ($file in Get-ChildItem -Path "$SECRETS_DIR\*.enc" -File) {
         $encFile = $file.FullName
         $filename = $file.BaseName  # name without .enc
 

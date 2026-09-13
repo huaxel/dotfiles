@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Install tracked system config files (the etc/ tree) into /, with sudo.
 #
-# dotter only manages user-owned files under $HOME; root-owned files in /etc
+# Home Manager manages user-owned files under $HOME; root-owned files in /etc
 # live here instead. Every file under etc/ mirrors its real path: e.g.
 # etc/conf.d/llama.cpp -> /etc/conf.d/llama.cpp.
 #

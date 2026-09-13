@@ -3,7 +3,7 @@
 # Usage: git clone <repo> ~/dotfiles && cd ~/dotfiles && ./bootstrap.sh
 #
 # Idempotent — safe to re-run. macOS path is fully automated:
-#   Homebrew → dotter + prereqs → deploy dotfiles → brew bundle → macOS defaults
+#   Homebrew → prerequisites → Home Manager → brew bundle → macOS defaults
 #
 # Env toggles:
 #   SKIP_BREW_BUNDLE=1    don't install the full Brewfile
@@ -52,11 +52,11 @@ if [ "$OS" = "Darwin" ]; then
         eval "$(/usr/local/bin/brew shellenv)"
     fi
 
-    info "Installing core prerequisites (dotter, git, age, sops, mas)..."
-    brew install dotter git age sops mas 2>/dev/null || brew install dotter git age sops mas
+    info "Installing core prerequisites (git, age, sops, mas)..."
+    brew install git age sops mas 2>/dev/null || brew install git age sops mas
 fi
 
-step "2/9 — Enable git hooks + dotter config"
+step "2/9 — Enable git hooks"
 
 if [ -d .githooks ]; then
     git config core.hooksPath .githooks
@@ -67,39 +67,10 @@ fi
 # spurious merge commits/conflicts when 3 machines drift independently)
 git config pull.rebase true
 
+git config filter.strip-pi-machine-config.clean \
+    'node scripts/strip-pi-machine-config.mjs' 2>/dev/null || true
 git config filter.strip-pi-machine-config.smudge \
     'node scripts/strip-pi-machine-config.mjs 2>/dev/null || cat' 2>/dev/null || true
-
-# Create .dotter/local.toml on first run
-if [ ! -f .dotter/local.toml ]; then
-    case "$OS" in
-        Darwin*) dotter_os="macos"; os_pkg="macos"; models_base_path="$HOME/.cache/huggingface/hub" ;;
-        *)       dotter_os="linux"; os_pkg=""; models_base_path="/mnt/ai_models/models" ;;
-    esac
-
-    git_name=$(git config --global user.name 2>/dev/null || printf '%s' "${USER:-Your Name}")
-    git_email=$(git config --global user.email 2>/dev/null || printf '%s' "your@email.com")
-
-    # Linux has no Dotter OS-specific package (configs moved to Home Manager),
-    # so emit just [default, unix] to avoid a trailing-comma TOML.
-    if [ -n "$os_pkg" ]; then
-        packages_line='packages = ["default", "unix", "'"$os_pkg"'"]'
-    else
-        packages_line='packages = ["default", "unix"]'
-    fi
-
-    cat > .dotter/local.toml <<EOF
-$packages_line
-
-[variables]
-os = "$dotter_os"
-name = "$git_name"
-email = "$git_email"
-hostname_color = "fg:#f7768e"
-models_base_path = "$models_base_path"
-EOF
-    info "Created .dotter/local.toml for $dotter_os"
-fi
 
 step "3/9 — Age key (for secret decryption)"
 
@@ -147,8 +118,8 @@ if [ ! -e "$AGENTS_SKILLS" ]; then
     info "Created symlink: ~/.agents/skills → dotfiles/skills"
 fi
 
-# Dotter maps this gitignored source to ~/.npmrc. Create an empty local file
-# on fresh clones so deployment does not fail before credentials are configured.
+# Keep npm credentials outside Git and outside the Nix store. Home Manager
+# links this file into place after it exists.
 NPMRC_SOURCE="$SCRIPT_DIR/npmrc"
 if [ -L "$NPMRC_SOURCE" ] && [ ! -e "$NPMRC_SOURCE" ]; then
     rm "$NPMRC_SOURCE"
@@ -158,10 +129,10 @@ if [ ! -e "$NPMRC_SOURCE" ]; then
     info "Created empty $NPMRC_SOURCE; add registry credentials locally if needed."
 fi
 
-step "5/9 — Deploy dotfiles"
+step "5/9 — Prepare local configuration"
 
-info "Running: dotter deploy"
-dotter deploy
+# Home Manager owns the tracked Unix configuration. Create the ignored npmrc
+# source before activation so its out-of-store link is never dangling.
 
 # Linux /etc config is host-specific (paths, GPU backend, and service settings),
 # so it is opt-in rather than part of generic bootstrap.
@@ -316,8 +287,9 @@ else
 experimental-features = nix-command flakes" ;;
         esac
         info "Activating Home Manager profile: $profile"
-        NIX_CONFIG="$nix_config" just nix-switch "$profile" || \
+        if ! NIX_CONFIG="$nix_config" just nix-switch "$profile"; then
             warn "Home Manager activation failed — run manually: just nix-switch $profile"
+        fi
         # Home Manager cannot update this shell's parent environment. Put the
         # activated CLI profile first so the remaining bootstrap steps use Nix
         # tools rather than falling back to Homebrew duplicates.
@@ -326,6 +298,18 @@ experimental-features = nix-command flakes" ;;
             export PATH
         fi
     fi
+fi
+
+# Deliberately skipped Home Manager means the normal declarative activation
+# did not run. Keep the opt-out useful with the standalone renderers.
+if [ "${SKIP_NIX_HOME:-0}" = "1" ] || [ "${INSTALL_NIX_HOME:-1}" = "0" ]; then
+    case "$OS" in
+        Darwin*) model_platform="macos"; model_base="$HOME/.cache/huggingface/hub" ;;
+        *)       model_platform="linux"; model_base="/mnt/ai_models/models" ;;
+    esac
+    "$SCRIPT_DIR/scripts/render-llama-models.sh" "$model_platform" "$model_base" \
+        "$HOME/.config/llama.cpp/models.ini"
+    "$SCRIPT_DIR/scripts/deploy-secrets.sh"
 fi
 
 step "8/9 — macOS system defaults"
@@ -415,7 +399,7 @@ echo "    1. Restart your shell (or log out/in for defaults to apply)"
 echo "    2. Sign into the App Store to install mas apps:"
 echo "         brew bundle --file=$SCRIPT_DIR/config/Brewfile"
 echo "    3. If secrets didn't decrypt: add this machine's age key to"
-echo "       .sops.yaml, re-encrypt secrets, then run: dotter deploy"
+echo "       .sops.yaml, re-encrypt secrets, then run: just nix-switch <profile>"
 echo ""
 echo "  🔑 Manual restore (copy from old machine if not done):"
 echo "     ~/.config/sops/age/keys.txt   ← decrypts secrets"

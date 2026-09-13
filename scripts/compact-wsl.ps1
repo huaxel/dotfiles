@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 
 <#
 .SYNOPSIS
@@ -106,14 +106,14 @@ if (-not $SkipLinuxCleanup) {
     Write-Header "WSL internal cleanup"
 
     Write-Info "Running cleanup script inside WSL..."
-    wsl --distribution $Distro -- bash -c @"
+    $cleanupScript = @"
         set -euo pipefail
         echo '→ Pacman cache...'
         sudo pacman -Sc --noconfirm 2>/dev/null || true
-        orphans=\$(pacman -Qtdq 2>/dev/null || true)
-        if [ -n \"\$orphans\" ]; then
+        orphans=`$(pacman -Qtdq 2>/dev/null || true)
+        if [ -n "`$orphans" ]; then
             echo "→ Removing orphaned packages..."
-            sudo pacman -Rns --noconfirm \$orphans 2>/dev/null || true
+            sudo pacman -Rns --noconfirm `$orphans 2>/dev/null || true
         fi
         echo '→ npm cache...'
         npm cache clean --force 2>/dev/null || true
@@ -126,7 +126,9 @@ if (-not $SkipLinuxCleanup) {
         echo '→ Trimming filesystem...'
         sudo fstrim -v / 2>/dev/null || echo '  (trim not supported)'
         echo '✓ Cleanup complete'
-"@ 2>&1 | ForEach-Object { Write-Host "  $_" -ForegroundColor Gray }
+"@
+    wsl --distribution $Distro -- bash -c $cleanupScript 2>&1 |
+        ForEach-Object { Write-Host "  $_" -ForegroundColor Gray }
 
     Write-Ok "WSL internal cleanup complete"
 }

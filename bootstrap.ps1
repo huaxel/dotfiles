@@ -2,8 +2,8 @@
 
 # Bootstrap script for Windows machines
 # Run this after cloning the dotfiles repo:
-#   git clone https://github.com/huaxel/dotfiles ~/dotfiles
-#   cd ~/dotfiles
+#   git clone https://github.com/huaxel/dotfiles $HOME\dotfiles
+#   cd $HOME\dotfiles
 #   ./bootstrap.ps1
 
 $ErrorActionPreference = "Stop"
@@ -20,11 +20,16 @@ if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
 }
 
 # --- Buckets ---
+function Test-ScoopBucket {
+    param([string]$Name)
+    $pattern = "^\s*$([regex]::Escape($Name))(\s|$)"
+    return [bool](scoop bucket list | Select-String -Pattern $pattern)
+}
+
 Write-Host "Adding Scoop buckets..." -ForegroundColor Yellow
 $buckets = @("main", "extras")
 foreach ($bucket in $buckets) {
-    $existing = scoop bucket list | Select-String -Pattern "^$bucket$"
-    if (-not $existing) {
+    if (-not (Test-ScoopBucket $bucket)) {
         scoop bucket add $bucket
     }
 }
@@ -35,8 +40,7 @@ $customBuckets = @{
 }
 foreach ($alias in $customBuckets.Keys) {
     $name = $alias.Split('/')[1]
-    $existing = scoop bucket list | Select-String -Pattern "^$name$"
-    if (-not $existing) {
+    if (-not (Test-ScoopBucket $name)) {
         scoop bucket add $alias $customBuckets[$alias]
     }
 }
@@ -79,9 +83,14 @@ $packages = @(
     "wget", "tree"
 )
 
+function Test-ScoopPackage {
+    param([string]$Name)
+    $pattern = "^\s*$([regex]::Escape($Name))(\s|$)"
+    return [bool](scoop list | Select-String -Pattern $pattern)
+}
+
 foreach ($pkg in $packages) {
-    $installed = scoop list | Select-String -Pattern "^$pkg\s"
-    if (-not $installed) {
+    if (-not (Test-ScoopPackage $pkg)) {
         Write-Host "  Installing $pkg" -ForegroundColor Gray
         scoop install $pkg
     } else {
@@ -89,54 +98,24 @@ foreach ($pkg in $packages) {
     }
 }
 
-# --- Dotter ---
-if (-not (Get-Command dotter -ErrorAction SilentlyContinue)) {
-    Write-Host "`nInstalling dotter..." -ForegroundColor Yellow
-    cargo install dotter
-}
-
-# --- Deploy ---
-Write-Host "`nDeploying dotfiles with dotter..." -ForegroundColor Yellow
-$repoRoot = Split-Path -Parent $MyInvocation.MyCommand.Definition
+# --- Git integration and configuration ---
+$repoRoot = $PSScriptRoot
 Push-Location $repoRoot
+try {
+    if (Test-Path -LiteralPath ".githooks") {
+        git config core.hooksPath .githooks
+        Write-Host "Git hooks enabled from .githooks/" -ForegroundColor Green
+    }
+    git config pull.rebase true
+    git config filter.strip-pi-machine-config.clean 'node scripts/strip-pi-machine-config.mjs'
+    git config filter.strip-pi-machine-config.smudge 'node scripts/strip-pi-machine-config.mjs 2>/dev/null || cat'
 
-# Create machine-local Dotter config on fresh clones
-if (-not (Test-Path ".dotter/local.toml")) {
-    $gitName = (git config --global user.name 2>$null)
-    if (-not $gitName) { $gitName = "Your Name" }
-    $gitEmail = (git config --global user.email 2>$null)
-    if (-not $gitEmail) { $gitEmail = "your@email.com" }
-    $gitName = $gitName.Replace('"', '\"')
-    $gitEmail = $gitEmail.Replace('"', '\"')
-
-@"
-packages = ["default", "windows"]
-
-[variables]
-os = "windows"
-name = "$gitName"
-email = "$gitEmail"
-hostname_color = "fg:#f7768e"
-models_base_path = '$env:USERPROFILE\.cache\huggingface\hub'
-"@ | Set-Content -Path ".dotter/local.toml" -Encoding UTF8
-    Write-Host "Created .dotter/local.toml for windows" -ForegroundColor Green
+    Write-Host "`nDeploying native Windows configuration..." -ForegroundColor Yellow
+    & (Join-Path $repoRoot "scripts\deploy-windows.ps1")
 }
-
-# Dotter maps this gitignored source to ~/.npmrc. Create it before deployment
-# so a fresh Windows clone works before registry credentials are configured.
-$npmrcSource = Join-Path $repoRoot "npmrc"
-if (-not (Test-Path -LiteralPath $npmrcSource)) {
-    New-Item -ItemType File -Path $npmrcSource -Force | Out-Null
-    Write-Host "Created empty $npmrcSource; add registry credentials locally if needed." -ForegroundColor Yellow
+finally {
+    Pop-Location
 }
-
-dotter deploy
-
-# --- Secrets ---
-Write-Host "`nDecrypting secrets..." -ForegroundColor Yellow
-. .\.dotter\post_deploy.ps1
-
-Pop-Location
 
 Write-Host "`n Windows dotfiles deployed successfully!" -ForegroundColor Green
 Write-Host "`nNext steps:" -ForegroundColor Cyan

@@ -103,7 +103,7 @@ set -gx MEMORYFIELD_EMBED_PROVIDER llama-server
 set -gx MEMORYFIELD_EMBED_URL http://framearch-juan.bonobo-fort.ts.net:8001/v1/embeddings
 set -gx MEMORYFIELD_EMBED_MODEL nomic-embed-text-v1.5
 set -gx MEMORYFIELD_MODEL_CODE nomic-embed-text-v1.5
-# Keep Python bytecode out of the dotfiles tree (dotter symlinks any file in a
+# Keep Python bytecode out of the dotfiles tree (deployment symlinks files in a
 # mapped dir, even gitignored __pycache__). Cache under ~/.cache instead.
 set -x PYTHONPYCACHEPREFIX $HOME/.cache/cpython
 set -x PI_CODING_AGENT_DIR $HOME/dotfiles/pi/agent

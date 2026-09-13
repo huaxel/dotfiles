@@ -7,7 +7,8 @@ This directory contains **encrypted** secrets that sync across machines via git.
 1. **Encrypt** a secret file with `sops --encrypt`
 2. **Commit** the `.enc` file to this repo
 3. **Pull** on another machine
-4. **`dotter deploy`** auto-decrypts secrets to their target paths via `post_deploy.sh` (or `post_deploy.ps1` on Windows)
+4. Home Manager materializes secrets on Unix; on Windows run
+   `scripts/deploy-secrets.ps1` (or the full `scripts/deploy-windows.ps1`)
 
 ## Secret sources
 
@@ -81,7 +82,7 @@ sops --encrypt --input-type binary \
 ### 4. Use it in your shell
 
 - **Linux**: systemd loads `~/.config/environment.d/` for user sessions
-  automatically — log out/in (or start a new session) after `dotter deploy`.
+  automatically — log out/in (or start a new session) after activation.
 - **Nushell / Fish**: also parse the file directly at startup, so the keys are
   available even without a full session restart.
 - **PowerShell**: `powershell/Load-Secrets.ps1` sources the same file.

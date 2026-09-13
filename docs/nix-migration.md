@@ -1,7 +1,7 @@
 # Nix/Home Manager migration
 
-This repository is migrating user-environment management from Dotter toward
-Home Manager. The migration is intentionally incremental.
+Home Manager is the authoritative Unix user-environment manager in this
+repository. Native Windows configuration is handled by platform scripts.
 
 ## Current pilot
 
@@ -19,14 +19,12 @@ file, Neovim, Ghostty, mise, Herdr, the static CI tree, the tracked Zed
 keymap, eza, the shared icon helper, the web-search wrapper, the static llama
 project files, the Wayland desktop session configs (sway, waybar, wofi, walker,
 llamaman, xkb), and the three encrypted secret
-destinations through sops-nix. Dotter remains the owner of the remaining
-configuration paths. Do not run
-`home-manager switch` after adding a file to `home.file` until the matching
-Dotter mapping has been removed; two managers must never own the same path.
+destinations through sops-nix. No second configuration manager owns those
+Unix paths; each path has one Home Manager owner.
 
 On macOS, Home Manager owns the reproducible CLI baseline. The Brewfile keeps
 Homebrew for GUI applications, macOS-integrated/runtime-specific formulae, and
-bootstrap prerequisites (`age`, `git`, `sops`, and `dotter`). Duplicate CLI
+bootstrap prerequisites (`age`, `git`, and `sops`). Duplicate CLI
 formulae should not be added back to the Brewfile; bootstrap prepends the
 activated Nix profile for its remaining setup steps.
 
@@ -39,8 +37,8 @@ just nix-check juan@framearch
 
 `just ci` also runs the flake check when Nix is installed; this includes an
 inert enabled-module evaluation for graphics, model storage, service users, and
-port-forward capabilities. Windows skips it and continues using Dotter
-validation.
+port-forward capabilities. Windows uses PowerShell deployment scripts and
+continues with the platform-independent checks.
 
 Switch only after reviewing the activation diff:
 
@@ -84,35 +82,26 @@ installs Nix and activates the matching profile automatically:
 Use `SKIP_NIX_HOME=1` only when deliberately keeping Home Manager inactive, and
 `NIX_PROFILE=...` when automatic host detection is not appropriate.
 
-## Taking over an existing Dotter machine
+## Taking over an existing machine
 
-Machines that already deploy via Dotter (arch-wsl, macbook) must hand over
-ownership in the right order after pulling the Home Manager pilot. Run, in
-this order:
+Machines previously deployed by the retired manager (arch-wsl, macbook, and
+Windows) can move directly to the current owner for their platform. On Unix,
+activate the matching profile; Home Manager backs up conflicting paths when
+requested:
 
 ```bash
-git pull
-dotter deploy                  # removes the now-unmapped repo symlinks
-just nix-switch juan@arch-wsl   # or juan@macbook
+just nix-switch juan@arch-wsl   # or juan@macbook / juan@framearch
 ```
 
-`dotter deploy` first is deliberate: with the mappings gone but the targets
-still pointing at the repo, Dotter deletes the old symlinks and purges its
-cache entries cleanly. The Home Manager switch then creates the store-owned
-links with no conflicts. There is only a brief window (between the two
-commands) where the migrated files are absent.
-
-If the switch runs first instead, Dotter skips the store-owned links with
-`[ERROR] ... doesn't point at source` warnings on every later deploy until
-the stale entries are removed from `.dotter/cache.toml` by hand. framearch
-already completed this takeover; its cache was purged directly.
+On Windows, run `powershell -ExecutionPolicy Bypass -File
+scripts\deploy-windows.ps1`. Existing regular files are preserved with a
+`.dotfiles-backup-<timestamp>` suffix before links are created.
 
 ## Host boundaries
 
 - `home/common.nix`: shared user packages and environment.
 - `home/linux-desktop.nix`: Linux desktop configs (sway, waybar, wofi, walker,
-  llamaman, xkb) imported by both Linux profiles, replacing the Dotter
-  "linux" package (which has since been removed from global.toml).
+  llamaman, xkb) imported by both Linux profiles.
 - `home/framearch.nix`: physical CachyOS desktop, model-storage paths, and
   the laptop model preset.
 - `home/arch-wsl.nix`: WSL interop and Windows-mounted paths.
@@ -124,9 +113,8 @@ the generated model preset, and custom `/opt/cachy-llama` runtime remain
 outside Home Manager. Host-specific static presets are now owned by their
 matching profiles (`models-laptop.ini` on framearch and `models-macbook.ini`
 on macOS).
-The residual llama.cpp state—generated model routing and runtime-specific files—
-is explicitly Dotter-mapped so this mixed mutable state directory does not block
-incremental migration. Root-owned services
+The model router is rendered by a Home Manager activation script, while
+runtime-specific files remain outside Home Manager. Root-owned services
 and `/etc` configuration require a later NixOS decision, not Home Manager alone.
 
 ## NixOS readiness audit
@@ -218,10 +206,9 @@ current model filesystem as an additional opt-in mount:
 `/mnt/ai_models`, enabled with `services.juan.framearchHardware.enableModelStorage`.
 The mount declaration still needs a bootable NixOS rollback test. The Home
 Manager embedding service is enabled by default on framearch, but has an
-explicit opt-out for the future NixOS system-service handoff. The Dotter
-secret hook also recognizes a configured-but-not-yet-materialized sops-nix
-symlink, preventing legacy decryption from overwriting the future secret
-owner.
+explicit opt-out for the future NixOS system-service handoff. The standalone
+secret fallback is used only when sops-nix is not active, preventing duplicate
+secret writers from overwriting the managed destinations.
 
 ### Bootable test checklist
 
@@ -271,16 +258,12 @@ block boot when the disk is absent. Still untested: real AMD Vulkan
 passthrough, the physical `/mnt/ai_models` disk, real inference, and the
 external `/opt/cachy-llama` fallback.
 
-## Migration order
+## Ownership rules
 
-1. Add native Home Manager modules for plain shared user configuration.
-2. Split Dotter's blanket `config = "~/.config"` mapping before moving any
-   individual paths. This is complete for the first migrated roots.
-3. Move remaining application roots one owner at a time.
-4. Keep mutable application state (such as the generated llama model
-   routing and unused htop config) in Dotter until it has a suitable Home
-   Manager representation. Keep sops-nix keys backed up per machine; OAuth
-   state and caches remain local.
+1. Keep shared Unix user configuration in Home Manager modules.
+2. Render machine-specific model routing during Home Manager activation.
+3. Keep mutable application state, OAuth state, and caches local to each machine.
+4. Use `scripts/deploy-windows.ps1` for native Windows application paths.
 5. Evaluate NixOS separately for the physical host after the custom AI stack is
    reproducible or deliberately kept external.
 

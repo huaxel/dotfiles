@@ -1,8 +1,7 @@
-# Dotfiles (Dotter)
+# Dotfiles
 
-Personal multi-platform dotfiles managed with [dotter](https://github.com/SuperCuber/dotter):
-symlinked files + Handlebars templates, deployed across macOS, Linux (Arch/WSL),
-and Windows. (Migrated from chezmoi; see git history.)
+Personal multi-platform dotfiles managed with Nix/Home Manager on Unix and
+small platform-native scripts on Windows.
 
 For a maintained map of responsibilities, deployment boundaries, and cleanup rules,
 see [`docs/repository-map.md`](docs/repository-map.md).
@@ -16,9 +15,9 @@ git clone https://github.com/huaxel/dotfiles.git ~/dotfiles
 cd ~/dotfiles && ./bootstrap.sh
 ```
 
-`bootstrap.sh` installs Homebrew → dotter + git + age + sops + mas → enables git
-hooks → generates an age key if missing → `dotter deploy` → Nix + Home Manager
-→ `brew bundle` (`config/Brewfile`) → `macos/defaults.sh`.
+`bootstrap.sh` installs Homebrew prerequisites → enables git hooks → generates an
+age key if missing → Nix + Home Manager → `brew bundle`
+(`config/Brewfile`) → `macos/defaults.sh`.
 
 Toggles: `SKIP_BREW_BUNDLE=1`, `SKIP_MACOS_DEFAULTS=1`,
 `SKIP_NIX_HOME=1` (leaves Home Manager-owned configs inactive).
@@ -30,28 +29,28 @@ Toggles: `SKIP_BREW_BUNDLE=1`, `SKIP_MACOS_DEFAULTS=1`,
 ### Windows — one command
 
 ```powershell
-git clone https://github.com/huaxel/dotfiles.git ~/dotfiles
-cd ~/dotfiles
+git clone https://github.com/huaxel/dotfiles.git $HOME\dotfiles
+cd $HOME\dotfiles
 .\bootstrap.ps1
 ```
 
-`bootstrap.ps1` installs Scoop → dotter + git + age + sops → enables git hooks →
-creates `.dotter/local.toml` (using your global git name/email) → `dotter deploy`
-→ runs `.\,.dotter\post_deploy.ps1` to decrypt secrets.
+`bootstrap.ps1` installs Scoop → enables git hooks → deploys native Windows
+configuration with `scripts\deploy-windows.ps1` → decrypts secrets.
 
 Toggles are inline in the script (same age-key restoration rule as macOS — restore
 before running if you have an existing key).
 
 After bootstrap: restart PowerShell, run `glazewm` to start the window manager,
-and `zebar` for the status bar. For llama.cpp inference: `cd ~/.config/llama.cpp
-&& .\start-server.ps1`.
+and `zebar` for the status bar. For llama.cpp inference:
+`cd ~/.config/llama.cpp; .\start-server.ps1`.
 
 ### Linux / manual
 
 ```bash
-cargo install dotter
 git clone <your-repo> ~/dotfiles && cd ~/dotfiles
-dotter deploy          # symlink + render (or run ./bootstrap.sh)
+./bootstrap.sh
+# or activate an existing profile:
+just nix-switch juan@framearch   # or juan@arch-wsl / juan@macbook
 ```
 
 The generic bootstrap leaves host-specific `/etc` configuration untouched. On
@@ -61,42 +60,34 @@ the designated Linux inference host, use `INSTALL_SYSTEM_CONFIG=1 ./bootstrap.sh
 
 ```
 ~/dotfiles/
-├── .dotter/global.toml    # deployment config; local.toml = per-machine vars
+├── flake.nix, flake.lock, home/, nixos/  # Nix/Home Manager (Unix)
 ├── gitconfig, ssh_config, starship.toml, aerospace, gitignore_global
-├── config/                # shared ~/.config apps (nvim, ghostty, fish, ...)
-├── config-linux/ config-macos/   # per-OS app config
-├── home/ nixos/ flake.nix # Home Manager / NixOS (Unix hosts)
+├── config/ config-linux/ config-macos/   # application configuration
 ├── powershell/ windows-terminal/ glazewm/ zebar/ autohotkey/  # Windows
-├── secrets/               # sops-encrypted (see secrets/README.md)
-├── pi/  skills/   # agent tooling (pi config, skills)
-├── bin/  scripts/  justfile     # helpers + CI gate
-└── docs/  worksheets/           # investigations, patterns, session notes
+├── secrets/                               # sops-encrypted (see secrets/README.md)
+├── pi/ skills/                            # agent tooling
+├── bin/ scripts/ justfile                 # helpers + CI gate
+└── docs/ worksheets/                      # investigations and notes
 ```
 
 ## Templates
 
-Files are named exactly as deployed; Handlebars branches on per-machine variables
-from `.dotter/local.toml` (`bootstrap.sh` writes it on first run):
-
-```handlebars
-{{#if (eq os "macos")}}
-export PATH="/opt/homebrew/bin:$PATH"
-{{/if}}
-```
-
-Variables: `os` (`macos`|`linux`|`windows`, set explicitly), `name`, `email`,
-`hostname_color`, `models_base_path`. `github_username` is defined only in
-`[windows.variables]`. Reference them as `{{os}}`, `{{name}}`, etc.
+Nix/Home Manager renders the Starship hostname color and the platform-specific
+llama.cpp model router. The renderer is `scripts/render-llama-models.sh`; it is
+run automatically during Home Manager activation. Windows rendering happens in
+`scripts/deploy-windows.ps1`.
 
 ## Commands
 
 ```bash
-dotter deploy / undeploy / --dry-run / watch
-just ci                 # full local gate (shell, TS, dotter, secrets, nix, ...)
+just ci                 # full local gate (shell, TS, secrets, nix, ...)
+just nix-switch <host>  # activate a Home Manager profile
 just nushell-setup      # regenerate shell integrations after tool upgrades
 just nu-health          # verify nu config, integrations, keybindings, aliases
 just pi-healthcheck     # pi setup health report (also --json)
 ```
+
+On Windows, run `powershell -ExecutionPolicy Bypass -File scripts\deploy-windows.ps1`.
 
 ### Shell
 
@@ -108,44 +99,33 @@ generated into `~/.cache/nushell/` and checked by `just nu-health`.
 
 ## llama.cpp Models
 
-Model paths are machine-specific, so the router config is a template
-(`llama-models.ini`). Each machine's `.dotter/local.toml` sets `models_base_path`,
-and the template branches on `os` (Linux → Vulkan/RADV with MTP speculative
-decoding; macOS → Metal, smaller model set).
+Model paths are machine-specific. `llama-models.ini` contains both platform
+branches, and the renderer writes the correct branch to
+`~/.config/llama.cpp/models.ini` during Home Manager activation (or Windows
+deployment).
 
-```toml
-[variables]
-os = "linux"
-name = "Juan Benjumea"
-email = "benjumeamoreno@gmail.com"
-hostname_color = "fg:#f7768e"
-models_base_path = "/mnt/ai_models/models"   # macOS: ~/.cache/huggingface/hub
-```
-
-Add or update a model in `llama-models.ini`, then:
+Add or update a model in `llama-models.ini`, then activate the matching profile:
 
 ```bash
-cd ~/dotfiles && dotter deploy --force && sudo systemctl restart llama.cpp
+just nix-switch juan@framearch   # or juan@arch-wsl / juan@macbook
+sudo systemctl restart llama.cpp
 ```
 
-Paths use the HuggingFace Hub cache layout:
-`{{ models_base_path }}/models--author--model-GGUF/snapshots/<hash>/file.gguf`.
-See `config/llama.cpp/MODELS.md` for the benchmarked lineup.
+Paths use the HuggingFace Hub cache layout. See `config/llama.cpp/MODELS.md` for
+the benchmarked lineup.
 
 ## Machine-Specific Config
 
-Per-machine settings live in two places:
+Per-machine state is kept outside tracked configuration:
 
-- **`.dotter/local.toml`** — the variables used by templates (`os`, `name`,
-  `email`, `hostname_color`, `models_base_path`). `bootstrap.sh` writes this on
-  first run; edit it before re-deploying on a new machine.
-- **`~/.config/environment.d/99-environment.conf`** — machine-local secrets and
-  env vars (decrypted by the post-deploy hook; see
-  [`secrets/README.md`](secrets/README.md)). Loaded by systemd and parsed by the
-  shell configs.
+- **`npmrc`** — local, gitignored registry credentials; Home Manager links it to
+  `~/.npmrc` on Unix, while the Windows deployment script preserves and links it.
+- **`~/.config/environment.d/99-environment.conf`** — decrypted machine-local
+  secrets and environment variables.
+- **Nix host modules** — profile-specific paths and services for each Unix host.
 
 Anything not meant to be shared (work VPN keys, private aliases) belongs in
-those machine-local files, never in tracked configs.
+machine-local files, never in tracked configs.
 
 ## WSL (Arch WSL on Windows)
 
@@ -220,9 +200,10 @@ copy db), Zed (Copilot/ACP), Cursor, WakaTime, `pi ghostty theme sync`.
 
 ## Secrets
 
-Secrets live as sops+age encrypted files in `secrets/` and auto-decrypt on
-`dotter deploy` via the post-deploy hook. The **full workflow** — adding a
-machine key, editing/re-encrypting secrets, and the pre-commit auto-encrypt
+Secrets live as sops+age encrypted files in `secrets/` and are materialized by
+Home Manager on Unix or `scripts/deploy-secrets.ps1` on Windows. The **full
+workflow** — adding a machine key, editing/re-encrypting secrets, and the
+pre-commit auto-encrypt
 (`*.sha256` plaintext sidecar) — is documented in
 [`secrets/README.md`](secrets/README.md).
 
@@ -236,4 +217,5 @@ Key points:
 - `secrets/*.enc` + `*.sha256` are committed; plaintext and decrypted copies are
   never.
 - New machine: add its public age key to `.sops.yaml`, `sops --rotate -in-place`
-  each `secrets/*.enc`, commit, pull + `dotter deploy` on the new machine.
+  each `secrets/*.enc`, commit, pull, then run the matching bootstrap or
+  `scripts/deploy-secrets.ps1` on the new machine.
