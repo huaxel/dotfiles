@@ -1,7 +1,7 @@
 # ────────────────────────────────────────────────────────
 # Local CI for ~/dotfiles
 # Fast, self-contained, zero-dependency-on-GitHub-Actions.
-# Requires: just (already installed), dotter, sops, age.
+# Requires: just (already installed), sops, age.
 # Optional: shellcheck (brew/cargo install shellcheck),
 #           deno (for TS type-checking).
 # ────────────────────────────────────────────────────────
@@ -48,7 +48,7 @@ nushell-setup:
 # ──────────── Check recipes ────────────
 
 # Run ALL checks (the full CI pipeline)
-ci: check-sh check-ts check-ts-packages check-dotter check-secrets check-gitignore check-templates check-brewfile check-nu check-nix
+ci: check-sh check-ts check-ts-packages check-secrets check-gitignore check-templates check-brewfile check-nu check-nix
     @echo ""
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     @echo "  🟢  All CI checks passed!  🟢"
@@ -87,7 +87,7 @@ check-sh:
             echo "  ❌ $f has issues"
             errors=$((errors + 1))
         fi
-    done < <(find . \( -path ./node_modules -o -path ./pi/agent/npm/node_modules -o -path ./pi/agent/git -o -path ./pi/agent/herdr-plugins -o -path ./pi_npm/node_modules -o -path ./.git -o -path ./.dotter/cache \) -prune -o -type f \( -name '*.sh' -o -name '*.bash' \) -print 2>/dev/null | sort || true)
+    done < <(find . \( -path ./node_modules -o -path ./pi/agent/npm/node_modules -o -path ./pi/agent/git -o -path ./pi/agent/herdr-plugins -o -path ./pi_npm/node_modules -o -path ./.git \) -prune -o -type f \( -name '*.sh' -o -name '*.bash' \) -print 2>/dev/null | sort || true)
     echo "  Checked $count shell scripts"
     if [ "$errors" -gt 0 ]; then echo "  ❌ $errors files have issues"; exit 1; fi
     echo "  ✅ All shell scripts pass ShellCheck"
@@ -236,67 +236,6 @@ check-ts-packages:
     if [ "$errors" -gt 0 ]; then exit 1; fi
     echo "  ✅ All package TypeScript files pass"
 
-# ── Dotter config ──
-
-# Validate dotter configuration (global.toml, local.toml, templates)
-check-dotter:
-    #!/usr/bin/env bash
-    echo "=== Dotter Configuration ==="
-    if ! command -v dotter &>/dev/null; then echo "  ❌ dotter not installed"; exit 1; fi
-    # 1. global.toml exists
-    if [ ! -f .dotter/global.toml ]; then echo "  ❌ .dotter/global.toml missing"; exit 1; fi
-    echo "  ✅ .dotter/global.toml present"
-    # 2. local.toml.example exists
-    if [ ! -f .dotter/local.toml.example ]; then echo "  ❌ .dotter/local.toml.example missing"; exit 1; fi
-    echo "  ✅ .dotter/local.toml.example present"
-    # 3. TOML lint if taplo available
-    if command -v taplo &>/dev/null; then
-        if taplo check .dotter/global.toml 2>/dev/null; then
-            echo "  ✅ global.toml is valid TOML"
-        else
-            taplo check .dotter/global.toml 2>/dev/null | sed 's/^/    /'
-            echo "  ❌ global.toml has TOML errors"; exit 1
-        fi
-    else
-        echo "  ✓ global.toml exists (install taplo for TOML validation)"
-    fi
-    # 4. Dry-run dotter deploy (skip if no local config on this machine)
-    if [ ! -f .dotter/local.toml ]; then
-        echo "  ✓ dotter deploy --dry-run skipped (no local config on this machine)"
-    elif output=$(dotter deploy --dry-run 2>&1); then
-        changes=$(echo "$output" | grep -c "will be" 2>/dev/null || true)
-        if [ "$changes" -gt 0 ] 2>/dev/null; then
-            echo "  ✅ dotter deploy --dry-run OK (${changes} pending changes)"
-        else
-            echo "  ✅ dotter deploy --dry-run OK (up to date)"
-        fi
-    else
-        # Tolerate protected machine-local targets: gitconfig may contain a
-        # Git LFS filter and llama-models.ini may carry machine-resolved model
-        # paths. Dotter refuses to overwrite these and exits non-zero. Only
-        # treat it as failure if OTHER errors exist.
-        if echo "$output" | grep -E '\[ERROR\]' | grep -vE 'gitconfig|llama-models.ini|Some files were skipped' | grep -q .; then
-            echo "$output" | sed 's/^/    /'
-            echo "  ❌ dotter deploy --dry-run failed"; exit 1
-        elif echo "$output" | grep -q '\[ERROR\]'; then
-            echo "  ⚠️  Protected local targets (gitconfig/llama-models.ini) differ — dotter skips them"
-            echo "  ✅ dotter deploy --dry-run OK (local target divergence only)"
-        else
-            echo "$output" | sed 's/^/    /'
-            echo "  ❌ dotter deploy --dry-run failed"; exit 1
-        fi
-    fi
-    # 5. Pre/post deploy hook syntax
-    for hook in .dotter/pre_deploy.sh .dotter/post_deploy.sh; do
-        if [ -f "$hook" ]; then
-            if bash -n "$hook" 2>/dev/null; then
-                echo "  ✅ $(basename $hook) syntax OK"
-            else
-                echo "  ❌ $hook has shell syntax errors"; exit 1
-            fi
-        fi
-    done
-
 # ── Secrets ──
 
 # Verify encrypted secrets are consistent with current sops config
@@ -316,7 +255,6 @@ check-secrets:
     echo "  Checked $count encrypted secrets"
     if [ "$errors" -gt 0 ]; then echo "  ❌ $errors secrets have issues"; exit 1; fi
     echo "  ✅ All secrets decryptable"
-    # Check .sops.yaml is valid YAML
     if command -v yq &>/dev/null; then
         if yq . .sops.yaml >/dev/null 2>&1; then
             echo "  ✅ .sops.yaml is valid YAML"
@@ -339,7 +277,6 @@ check-gitignore:
     #!/usr/bin/env bash
     echo "=== Git Hygiene ==="
     if ! git rev-parse --git-dir &>/dev/null; then echo "  ⚠️  Not a git repo — skipping"; exit 0; fi
-    # Check for tracked files that gitignore says should be ignored
     stale=$(git ls-files -ci --exclude-standard 2>/dev/null)
     if [ -n "$stale" ]; then
         echo "  ⚠️  Stale tracked files (should be in .gitignore):"
@@ -348,12 +285,9 @@ check-gitignore:
     else
         echo "  ✅ No stale tracked files"
     fi
-    # Check for whitespace issues
     bad=$(git diff --check HEAD 2>/dev/null || true)
     if [ -n "$bad" ]; then echo "  ⚠️  Whitespace issues:"; echo "$bad" | sed 's/^/    /'; fi
-    # Check .gitallowed present
     if [ -f .gitallowed ]; then echo "  ✅ .gitallowed present"; fi
-    # Check no unencrypted secrets committed
     committed_secrets=$(git ls-files 'secrets/*' 2>/dev/null | grep -v '\.enc$' | grep -v '\.sha256$' | grep -v '\.gitkeep' | grep -v 'README.md' || true)
     if [ -n "$committed_secrets" ]; then
         echo "  ❌ Unencrypted secrets tracked in git:"
@@ -364,7 +298,7 @@ check-gitignore:
 
 # ── Template syntax ──
 
-# Check handlebars template syntax in dotter-template files
+# Check template markers used by the model and Starship renderers
 check-templates:
     #!/usr/bin/env bash
     echo "=== Templates ==="
@@ -382,6 +316,20 @@ check-templates:
         fi
     done
     if [ "$errors" -gt 0 ]; then echo "  ❌ $errors template files have issues"; exit 1; fi
+    if [ -x scripts/render-llama-models.sh ]; then
+        rendered_tmp=$(mktemp -d)
+        trap 'rm -rf "$rendered_tmp"' EXIT
+        for platform in linux macos windows; do
+            scripts/render-llama-models.sh "$platform" /tmp/models "$rendered_tmp/$platform.ini" >/dev/null
+            if grep -q '[{}]' "$rendered_tmp/$platform.ini"; then
+                echo "  ❌ $platform model router still has template markers"
+                exit 1
+            fi
+        done
+        rm -rf "$rendered_tmp"
+        trap - EXIT
+        echo "  ✅ Model renderer selects clean platform branches"
+    fi
     echo "  ✅ All templates balanced"
 
 # ── Nushell ──
@@ -414,7 +362,7 @@ check-nu:
 
 # ── Nix ──
 
-# Validate the Nix flake (evaluate-only, fast). Windows remains Dotter-only.
+# Validate the Nix flake (evaluate-only, fast). Windows uses bootstrap scripts.
 # To build and verify a specific Home Manager profile, use `just nix-check <profile>`.
 check-nix:
     #!/usr/bin/env bash
@@ -504,33 +452,14 @@ check-precommit:
         echo "$staged_secrets" | sed 's/^/    /'
         errors=$((errors + 1))
     fi
-    # 3. Quick dotter validation if global.toml changed
-    if git diff --cached --name-only 2>/dev/null | grep -q '.dotter/global.toml'; then
-        if command -v dotter &>/dev/null; then
-            if output=$(dotter deploy --dry-run 2>&1); then
-                echo "  ✅ dotter config OK"
-            elif echo "$output" | grep -E '\[ERROR\]' | grep -vE 'gitconfig|llama-models.ini|Some files were skipped' | grep -q .; then
-                echo "  ❌ dotter deploy --dry-run failed"
-                echo "$output" | sed 's/^/    /'
-                errors=$((errors + 1))
-            elif echo "$output" | grep -q '\[ERROR\]'; then
-                echo "  ⚠️  Protected local targets differ — dotter skips them"
-                echo "  ✅ dotter config OK (local target divergence only)"
-            else
-                echo "  ❌ dotter deploy --dry-run failed"
-                echo "$output" | sed 's/^/    /'
-                errors=$((errors + 1))
-            fi
-        fi
-    fi
-    # 4. Check for merge conflict markers in staged files
+    # 3. Check for merge conflict markers in staged files
     conflicts=$(git diff --cached --name-only -G'^<<<<<<< |^=======$|^>>>>>>>' 2>/dev/null || true)
     if [ -n "$conflicts" ]; then
         echo "  ❌ Merge conflict markers found in:"
         echo "$conflicts" | sed 's/^/    /'
         errors=$((errors + 1))
     fi
-    # 5. Syntax-check any staged .nu files (Nushell config)
+    # 4. Syntax-check any staged .nu files (Nushell config)
     if command -v nu >/dev/null 2>&1; then
         while IFS= read -r f; do
             diagnostics=$(nu --no-config-file --no-history --ide-check 100 "$f" 2>&1 || true)
@@ -622,9 +551,9 @@ quality *args="":
 list:
     @just --list --justfile {{justfile()}}
 
-# Dry-run dotter deploy (preview changes without applying)
-dry-run:
-    dotter deploy --dry-run
+# Deploy native Windows configuration (Scoop handles packages).
+windows-deploy:
+    powershell.exe -ExecutionPolicy Bypass -File scripts\\deploy-windows.ps1
 
 # Validate the Nix flake and build one Home Manager profile without activation.
 # Usage: just nix-check juan@framearch
@@ -645,7 +574,7 @@ nix-switch profile="juan@framearch":
     set -euo pipefail
     git ls-files --others --exclude-standard -z -- home nixos | xargs -0 -r git add -N
     nix flake check --all-systems
-    # Back up pre-existing paths during the Dotter → Home Manager handoff.
+    # Back up pre-existing paths during the Home Manager handoff.
     nix run ".#home-manager" -- -b hm-backup switch --flake '.#{{profile}}'
 
 # Build the pinned CachyLLama binary and probe host Vulkan through nixGL.
@@ -657,10 +586,6 @@ nix-test-cachy-vulkan profile="qwen-0.8b" port="18123" model="":
 nix-test-cachy-embed port="18140":
     scripts/nix-cachy-embed-smoke.sh "{{port}}"
 
-# Full dotter deploy (what post-merge hook runs)
-deploy:
-    dotter deploy
-
 # Patch Pi npm packages (tidy-tools pi-fff adapter for symlinked npm root)
 patch-pi-npm:
     bash {{dotfiles-dir}}/bin/patch-tidy-pi-fff
@@ -671,7 +596,6 @@ info:
     echo "=== Environment ==="
     echo "  Repo:      {{dotfiles-dir}}"
     echo "  just:      $(just --version 2>/dev/null || echo 'not found')"
-    echo "  dotter:    $(dotter --version 2>/dev/null || echo 'not found')"
     echo "  sops:      $(sops --version 2>/dev/null | head -1 || echo 'not found')"
     echo "  age:       $(age --version 2>/dev/null || echo 'not found')"
     echo "  shellcheck: $(command -v shellcheck 2>/dev/null && shellcheck --version 2>/dev/null | head -1 || echo 'not found')"

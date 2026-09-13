@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Post-deploy hook: decrypt secrets with sops
-# This runs after dotter deploys files
+# Decrypt secrets for Unix hosts without an active sops-nix deployment.
 
 DOTFILES_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 SECRETS_DIR="$DOTFILES_DIR/secrets"
@@ -9,10 +8,9 @@ PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-$DOTFILES_DIR/pi/agent}"
 DEFAULT_PI_AGENT_DIR="$HOME/.pi/agent"
 
 # Once Home Manager's sops-nix module is active, it owns secret destinations.
-# Hosts without that marker continue using the legacy Dotter path during the
-# incremental migration (notably Windows and not-yet-migrated Unix hosts).
+# Hosts without that marker use this standalone fallback.
 if [ -e "$HOME/.config/sops-nix/secrets" ] || [ -L "$HOME/.config/sops-nix/secrets" ]; then
-  echo "🔐 sops-nix is configured — skipping legacy Dotter secret decryption"
+  echo "🔐 sops-nix is configured — skipping fallback secret decryption"
   exit 0
 fi
 
@@ -88,7 +86,7 @@ if [ -d "$SECRETS_DIR" ]; then
   }
 
   # App-specific secrets: decrypt to their real config path.
-  # (enc basename -> destination; mirrors post_deploy.ps1 on Windows)
+  # (enc basename -> destination; mirrors the Windows deployment script)
   app_secret "llama-webui-config.json" "$HOME/.config/llama.cpp/webui-config.json"
   # auth.json is intentionally NOT synced/decrypted: OAuth refresh tokens rotate
   # per refresh, so a shared credential desyncs across machines. Each machine

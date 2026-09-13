@@ -1,4 +1,4 @@
-# Force LF line endings for all shell scripts and dotter config
+# Force LF line endings for all shell scripts and configuration
 # Prevents CRLF issues when sharing dotfiles between Windows, WSL, macOS, and Linux
 
 *.sh text eol=lf

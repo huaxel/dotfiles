@@ -1,5 +1,5 @@
 # Linux desktop configuration shared by framearch and arch-wsl, matching the
-# Dotter "linux" package it replaces. Files map one-to-one from config-linux/.
+# The shared Linux desktop module. Files map one-to-one from config-linux/.
 { ... }:
 
 {

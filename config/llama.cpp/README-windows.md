@@ -1,13 +1,13 @@
 # llama.cpp on Windows
 
-Mirrors the dotfiles config at `~/Documents/dotfiles/`.
+Mirrors the dotfiles config at `~/dotfiles/`.
 
 ## Structure
 
 | Linux dotfiles | Windows equivalent |
 |---|---|
-| `llama-models.ini` (template) | Rendered per-machine |
-| `config/llama.cpp/models-laptop.ini` | Reference for this machine |
+| `llama-models.ini` (template) | Rendered per-machine by `scripts/deploy-windows.ps1` |
+| `config/llama.cpp/models-laptop.ini` | Linux reference preset |
 | `/etc/conf.d/llama.cpp` | `start-server.ps1` (env vars hardcoded) |
 
 ## Quick start

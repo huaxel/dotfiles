@@ -44,8 +44,7 @@ let
   };
 in
 {
-  # Keep this pilot package-only until each Dotter path is explicitly migrated.
-  # This prevents Home Manager and Dotter from managing the same file.
+  # Home Manager is the sole Unix user-configuration owner.
   # Linux profiles use the historical `juan` account; host modules may
   # override this for machines with a different local username.
   home.username = lib.mkDefault "juan";
@@ -174,7 +173,7 @@ in
     PATH="${herdrPackage}/bin:$PATH" ${../scripts/setup-herdr-plugins.sh}
   '';
 
-  # Migrated paths. Their former Dotter mappings are removed explicitly.
+  # Shared Unix configuration paths.
   home.file.".config/Brewfile".source = ../config/Brewfile;
   home.file.".config/nix/nix.conf".source = ../nix.conf;
   home.file.".config/nushell/config.nu".source = ../config/nushell/config.nu;
@@ -194,18 +193,29 @@ in
   };
   home.file.".config/starship.toml".text = builtins.replaceStrings
     [ "{{hostname_color}}" ]
-    [ "fg:#f768e" ]
+    [ "fg:#f7768e" ]
     (builtins.readFile ../starship.toml);
+  home.file.".npmrc".source =
+    config.lib.file.mkOutOfStoreSymlink
+      "${config.home.homeDirectory}/dotfiles/npmrc";
   home.file.".gitignore_global".source = ../gitignore_global;
   home.file.".local/bin/web-search".source = ../bin/web-search;
   home.file.".ssh/config".source = ../ssh_config;
   home.file.".config/nvim".source = ../config/nvim;
+  home.file.".config/htop".source = ../config/htop;
+
+  home.activation.renderLlamaModels = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    AWK=${pkgs.gawk}/bin/awk ${pkgs.bash}/bin/bash ${../scripts/render-llama-models.sh} \
+      ${if pkgs.stdenv.hostPlatform.isDarwin then "macos" else "linux"} \
+      ${if pkgs.stdenv.hostPlatform.isDarwin then "${config.home.homeDirectory}/.cache/huggingface/hub" else "/mnt/ai_models/models"} \
+      "${config.home.homeDirectory}/.config/llama.cpp/models.ini" \
+      ${../llama-models.ini}
+  '';
 
   # Pi fallback config: when launched without PI_CODING_AGENT_DIR (bash/cron/
   # systemd/subprocesses with a reset env), pi reads ~/.pi/agent/settings.json.
   # Symlink it to the tracked source so the fallback matches the live config.
-  # On sops-nix hosts the Dotter post-deploy hook exits early, so this Home
-  # Manager entry is what actually provisions the link on Unix. The
+  # Home Manager provisions the link on Unix. The
   # strip-pi-machine-config git clean filter keeps machine-local fields out
   # of git, so pi writing back through the link creates no git noise.
   # (auth.json is NOT managed here — it is gitignored per-machine and created

@@ -68,7 +68,7 @@ if [ "$ACTION" = "validate" ]; then
     ssh "$HOST" "cat ~/actions-runner/.runner 2>/dev/null && echo 'Runner configured' || echo 'Runner not configured'"
     echo ""
     echo "=== Available tools ==="
-    ssh "$HOST" 'for cmd in just node python3 deno cargo go uv age sops dotter git; do
+    ssh "$HOST" 'for cmd in just node python3 deno cargo go uv age sops git; do
         ver=$($cmd --version 2>/dev/null | head -1 || echo "not found")
         printf "  %-12s %s\n" "$cmd:" "$ver"
     done'
