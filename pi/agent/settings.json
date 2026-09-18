@@ -45,7 +45,7 @@
     "npm:@juanbenjumea/pi-ask-herdr@0.2.2",
     "npm:@juanbenjumea/pi-provider-openference@0.5.0",
     "npm:@howaboua/pi-shepherdr@0.1.2",
-    "npm:@juanbenjumea/pi-agy@0.5.0",
+    "npm:@juanbenjumea/pi-agy",
     "npm:pi-context-view@0.4.3",
     "npm:@ogulcancelik/pi-codex-compaction",
     "npm:@plannotator/pi-extension",
