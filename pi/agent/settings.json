@@ -31,7 +31,7 @@
   "packages": [
     "npm:pi-web-access",
     {
-      "source": "npm:@ff-labs/pi-fff",
+      "source": "npm:@ff-labs/pi-fff@0.10.5",
       "extensions": []
     },
     "npm:pi-autoresearch",
@@ -40,12 +40,12 @@
       "source": "npm:@ogulcancelik/pi-herdr",
       "skills": []
     },
-    "npm:@ogulcancelik/pi-auto-permissions",
+    "npm:@ogulcancelik/pi-auto-permissions@0.1.4",
     "npm:@juanbenjumea/pi-dynamic-footer",
     "../packages/pi-ghostty-theme-sync",
     "npm:@juanbenjumea/pi-ask-herdr",
     "npm:@juanbenjumea/pi-provider-openference",
-    "npm:@howaboua/pi-shepherdr",
+    "npm:@howaboua/pi-shepherdr@0.1.2",
     "npm:@juanbenjumea/pi-agy",
     "npm:pi-context-view",
     "npm:@ogulcancelik/pi-codex-compaction",
