@@ -24,14 +24,14 @@ applies to work below its directory.
 
 ## Safety and completion
 
-- When a repository uses a registry, keep credentials in its root gitignored
+- In this dotfiles repository, keep registry credentials in the root gitignored
   `npmrc` source. Never print, track, or copy credentials from `~/.npmrc`.
 - When writing TypeScript, use `import type` for type-only imports. When using
   Python in project-atom, use `uv run`.
-- Use explicit non-interactive Git commands. Never open an editor or run
-  `rebase -i`; use `GIT_EDITOR=true git rebase --continue`. For revert or
-  cherry-pick of a merge commit, use `-m <parent>`; ordinary commits do not
-  need `-m`.
+- Use explicit non-interactive Git commands. Never invoke an interactive Git
+  editor or run `rebase -i`; use `GIT_EDITOR=true git rebase --continue`. For
+  revert or cherry-pick of a merge commit, use `-m <parent>`; ordinary commits
+  do not need `-m`.
 - Do not use `git reset --hard`, `git clean`, force-push, or destructive
   deployment/migration commands unless explicitly authorized for that task.
 - Verify the real gate before claiming success and report skipped checks.
@@ -62,7 +62,7 @@ boundary waiting for a nudge.
 - For long-running or multi-phase work, use the project's supported continuation
   mechanism (for example, `/goal <task>`) when available.
 
-Useful patterns, when applicable: `docs/patterns/agent-tools.md`,
+Useful patterns under `docs/patterns/`, when applicable: `agent-tools.md`,
 `agent-night-shift.md`, `visual-regression.md`, `commit-sweep.md`,
 `uncle-bob-gauntlet.md`, `test-audit.md`, `performance-benchmarks.md`, and
 `profiling-tools.md`.
@@ -74,16 +74,18 @@ Select a skill based on the task rather than reading every skill. In particular,
 read `$HOME/.agents/skills/herdr/SKILL.md` before using Herdr and
 `$HOME/.agents/skills/fleet/SKILL.md` before multi-issue fleet orchestration.
 
-Use `worker` for implementation/exploration and `reviewer` for read-only review.
-Delegate via named Herdr agents (`herdr_agents` from pi-shepherdr) when Herdr is
-available; run review agents read-only (`--tools read,grep,find,ls`). Never nest
-agents. Use `herdr` only in Herdr, `grill-me` only when asked, and
-`jules-orchestration` for Jules. Use `teach` for teaching.
+When delegation is useful, use `worker` for implementation/exploration and
+`reviewer` for read-only review. When the user explicitly requests Herdr and
+`HERDR_ENV=1`, use the `herdr` skill and delegate via named Herdr agents
+(`herdr_agents` from pi-shepherdr). Run review agents read-only
+(`--tools read,grep,find,ls`), and never nest agents. Use `grill-me` only when
+asked, `jules-orchestration` for Jules, and `teach` for teaching.
 
 Use `agy_execute` (pi-agy) for bulk scaffolding, repetitive refactors, and
 exhaustive test generation: default to `mode=plan`, use `accept-edits` only for
 scoped batches, and always review the diff and run the project gate after writes.
 Reuse `conversation_id`/`continue` for multi-step handoffs. Prefer Cursor for
-interactive work and Herdr for multi-agent review; use agy for batch work.
+interactive work and, when explicitly requested, Herdr for multi-agent review;
+use agy for batch work.
 Cloudflare skills are scoped to nursultan-web, and `uv` is scoped to project-atom.
 Coordinate related sessions through pi-intercom when available.

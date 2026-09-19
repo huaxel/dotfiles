@@ -261,12 +261,20 @@ check-secrets:
         else
             echo "  ❌ .sops.yaml parse error"; exit 1
         fi
-    elif command -v python3 &>/dev/null; then
+    elif command -v python3 &>/dev/null && python3 -c "import yaml" >/dev/null 2>&1; then
         if python3 -c "import yaml; yaml.safe_load(open('.sops.yaml'))" 2>/dev/null; then
             echo "  ✅ .sops.yaml is valid YAML"
         else
             echo "  ❌ .sops.yaml parse error"; exit 1
         fi
+    elif command -v ruby &>/dev/null; then
+        if ruby -e 'require "yaml"; YAML.safe_load_file(ARGV.fetch(0), permitted_classes: [], aliases: false)' .sops.yaml 2>/dev/null; then
+            echo "  ✅ .sops.yaml is valid YAML"
+        else
+            echo "  ❌ .sops.yaml parse error"; exit 1
+        fi
+    else
+        echo "  ⚠️  No YAML parser available — skipping .sops.yaml syntax check"
     fi
     if [ -f secrets/README.md ]; then echo "  ✅ secrets/README.md present"; fi
 
