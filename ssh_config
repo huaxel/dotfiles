@@ -15,7 +15,7 @@ Host liedelpi
 Host arch-wsl
     HostName 100.81.226.52
     User juan
-    RequestTTY no
+    RequestTTY auto
 
 Host mac-juan
     HostName mac-juan.bonobo-fort.ts.net
