@@ -34,7 +34,6 @@
       "source": "npm:@ff-labs/pi-fff@0.10.5",
       "extensions": []
     },
-    "npm:pi-autoresearch",
     "npm:@mobrienv/pi-tidy-tools",
     {
       "source": "npm:@ogulcancelik/pi-herdr",
