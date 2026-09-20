@@ -26,6 +26,7 @@ Review my Pi setup and suggest improvements.
 - Implemented the minimal autonomy, reproducibility, safety, session-routing, and test-gate improvements.
 - Preserved both session trees; no session files were deleted or pruned.
 - Published commits `26d59a8` and `73237cf` to `origin/main`; the latter makes autoresearch opt-in.
+- Smoke-tested the published setup and removed the now-orphaned autoresearch patch from the active patch directory.
 
 ## Findings
 
@@ -47,7 +48,7 @@ Review my Pi setup and suggest improvements.
 
 7. **The package test gate is repaired.** `pi/packages/pi-multi-opencode-go` now builds its local dependency before testing, and the package test is included in `just ci`.
 
-8. **The autoresearch patch now matches the installed package version.** It was renamed to `pi-autoresearch+1.8.1.patch`; package entries remain floating by user preference.
+8. **Autoresearch is opt-in.** Its patch was removed from the active patch directory after smoke testing found that the package is no longer installed; this keeps the standard installer from failing on an unused patch.
 
 ### Recommended minimal target
 
