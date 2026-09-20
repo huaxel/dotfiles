@@ -140,9 +140,14 @@ in
       }
     ];
 
+    networking.firewall.allowedTCPPorts = lib.mkAfter (lib.optional cfg.enablePortForward 80);
+    networking.firewall.interfaces.tailscale0.allowedTCPPorts =
+      lib.mkAfter (lib.optional cfg.enableEmbedding cfg.embeddingPort);
+
     systemd.services."llama.cpp" = {
       description = "llama.cpp Server (framearch)";
-      after = [ "network.target" "local-fs.target" ];
+      after = [ "network-online.target" "local-fs.target" ];
+      wants = [ "network-online.target" ];
       wantedBy = [ "multi-user.target" ];
       serviceConfig = {
         Type = "simple";
@@ -155,6 +160,16 @@ in
         Restart = "always";
         RestartSec = 5;
         TimeoutStopSec = 120;
+        NoNewPrivileges = true;
+        PrivateTmp = true;
+        ProtectSystem = "full";
+        ProtectHome = "read-only";
+        ReadWritePaths = [ "${userHome}/.cache" ];
+        ProtectKernelTunables = true;
+        ProtectKernelModules = true;
+        ProtectControlGroups = true;
+        RestrictSUIDSGID = true;
+        LockPersonality = true;
       };
     };
 
@@ -172,6 +187,16 @@ in
         ExecStart = embeddingScript;
         Restart = "always";
         RestartSec = 5;
+        NoNewPrivileges = true;
+        PrivateTmp = true;
+        ProtectSystem = "full";
+        ProtectHome = "read-only";
+        ReadWritePaths = [ "${userHome}/.cache" ];
+        ProtectKernelTunables = true;
+        ProtectKernelModules = true;
+        ProtectControlGroups = true;
+        RestrictSUIDSGID = true;
+        LockPersonality = true;
       };
     };
 
@@ -186,6 +211,14 @@ in
         AmbientCapabilities = [ "CAP_NET_BIND_SERVICE" ];
         CapabilityBoundingSet = [ "CAP_NET_BIND_SERVICE" ];
         NoNewPrivileges = true;
+        PrivateTmp = true;
+        ProtectSystem = "strict";
+        ProtectHome = true;
+        ProtectKernelTunables = true;
+        ProtectKernelModules = true;
+        ProtectControlGroups = true;
+        RestrictSUIDSGID = true;
+        LockPersonality = true;
         Restart = "always";
         RestartSec = 5;
       };

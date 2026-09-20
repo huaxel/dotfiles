@@ -370,17 +370,38 @@ check-nu:
 
 # ── Nix ──
 
-# Validate the Nix flake (evaluate-only, fast). Windows uses bootstrap scripts.
-# To build and verify a specific Home Manager profile, use `just nix-check <profile>`.
+# Validate the Nix flake and build profiles native to this machine.
+# Windows uses bootstrap scripts; cross-platform profiles are evaluated but not
+# built here because local builders cannot build foreign system derivations.
 check-nix:
     #!/usr/bin/env bash
+    set -euo pipefail
     echo "=== Nix/Home Manager ==="
     if ! command -v nix &>/dev/null; then
         echo "  ⚠️  nix not installed — skipping"
         exit 0
     fi
     nix flake check --all-systems
-    echo "  ✅ Nix flake checks pass"
+
+    system=$(nix eval --impure --raw --expr 'builtins.currentSystem')
+    profiles=()
+    case "$system" in
+        x86_64-linux)
+            profiles=("juan@framearch" "juan@arch-wsl")
+            ;;
+        aarch64-darwin)
+            profiles=("juan@macbook")
+            ;;
+        *)
+            echo "  ⚠️  no native Home Manager profile for $system — evaluation only"
+            ;;
+    esac
+
+    for profile in "${profiles[@]}"; do
+        echo "  Building $profile..."
+        nix build ".#homeConfigurations.\"$profile\".activationPackage" --no-link --quiet
+    done
+    echo "  ✅ Nix flake checks and native Home Manager builds pass"
 
 # ──────────── Nushell health ────────────
 
@@ -568,8 +589,13 @@ windows-deploy:
 nix-check profile="juan@framearch":
     #!/usr/bin/env bash
     set -euo pipefail
-    # New flake modules are invisible to evaluation until Git tracks them;
-    # intent-to-add them so `git add` is not a hidden prerequisite.
+    # New flake modules are invisible to evaluation until Git tracks them.
+    # Use a temporary index so intent-to-add never mutates the user's index.
+    index_path="${GIT_INDEX_FILE:-$(git rev-parse --git-path index)}"
+    temp_index=$(mktemp)
+    cp "$index_path" "$temp_index"
+    export GIT_INDEX_FILE="$temp_index"
+    trap 'rm -f "$temp_index"' EXIT
     git ls-files --others --exclude-standard -z -- home nixos | xargs -0 -r git add -N
     nix flake check --all-systems
     nix build '.#homeConfigurations."{{profile}}".activationPackage' --no-link --quiet
@@ -580,10 +606,31 @@ nix-check profile="juan@framearch":
 nix-switch profile="juan@framearch":
     #!/usr/bin/env bash
     set -euo pipefail
+    # Use a temporary index for untracked Nix modules; preserve the real index.
+    index_path="${GIT_INDEX_FILE:-$(git rev-parse --git-path index)}"
+    temp_index=$(mktemp)
+    cp "$index_path" "$temp_index"
+    export GIT_INDEX_FILE="$temp_index"
+    trap 'rm -f "$temp_index"' EXIT
     git ls-files --others --exclude-standard -z -- home nixos | xargs -0 -r git add -N
     nix flake check --all-systems
     # Back up pre-existing paths during the Home Manager handoff.
     nix run ".#home-manager" -- -b hm-backup switch --flake '.#{{profile}}'
+
+# Build the NixOS system closure without activating it.
+# Run on an x86_64-linux builder; the disposable host profile is not cross-built.
+nixos-check:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    nix flake check --all-systems
+    system=$(nix eval --impure --raw --expr 'builtins.currentSystem')
+    if [ "$system" != "x86_64-linux" ]; then
+        echo "⚠️  NixOS framearch build requires x86_64-linux; current host is $system"
+        echo "   Evaluation passed; run this recipe on the target or a matching builder."
+        exit 0
+    fi
+    nix build '.#nixosConfigurations.framearch.config.system.build.toplevel' --no-link --quiet
+    echo "✅ NixOS framearch system builds"
 
 # Build the pinned CachyLLama binary and probe host Vulkan through nixGL.
 # This is diagnostic only; it never touches the live llama.cpp service.

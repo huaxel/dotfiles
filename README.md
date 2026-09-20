@@ -56,6 +56,20 @@ just nix-switch juan@framearch   # or juan@arch-wsl / juan@macbook
 The generic bootstrap leaves host-specific `/etc` configuration untouched. On
 the designated Linux inference host, use `INSTALL_SYSTEM_CONFIG=1 ./bootstrap.sh`.
 
+The separate NixOS inference-host profile is intentionally not part of generic
+bootstrap. On the target NixOS machine, from this checkout:
+
+```bash
+nix flake check --all-systems
+nix build '.#nixosConfigurations.framearch.config.system.build.toplevel'
+sudo nixos-rebuild build --flake .#framearch
+# After verifying the generated system and disk labels:
+sudo nixos-rebuild switch --flake .#framearch
+```
+
+It expects a root filesystem labelled `nixos` and model storage at the configured
+UUID. Do not switch this profile on the existing Arch installation.
+
 ## Layout
 
 ```

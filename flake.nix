@@ -102,6 +102,16 @@
         assert builtins.elem "tailscaled.service" embedding.after;
         assert portForward.User == "juan";
         assert portForward.AmbientCapabilities == [ "CAP_NET_BIND_SERVICE" ];
+        assert builtins.elem 80 evaluated.config.networking.firewall.allowedTCPPorts;
+        assert builtins.elem 8001 evaluated.config.networking.firewall.interfaces.tailscale0.allowedTCPPorts;
+        assert evaluated.config.networking.useDHCP;
+        assert evaluated.config.services.tailscale.openFirewall;
+        assert builtins.elem "flakes" evaluated.config.nix.settings.experimental-features;
+        assert builtins.elem "network-online.target" evaluated.config.systemd.services."llama.cpp".after;
+        assert evaluated.config.systemd.services."llama.cpp".serviceConfig.NoNewPrivileges;
+        assert evaluated.config.systemd.services."llama.cpp".serviceConfig.ProtectHome == "read-only";
+        assert builtins.elem "/home/juan/.cache" evaluated.config.systemd.services."llama.cpp".serviceConfig.ReadWritePaths;
+        assert evaluated.config.systemd.services.memoryfield-embed.serviceConfig.NoNewPrivileges;
         assert ai.modelsPreset == "/home/juan/.config/llama.cpp/models.ini";
         nixpkgs.legacyPackages.x86_64-linux.runCommand "framearch-nixos-module-check" { } ''
           touch $out
