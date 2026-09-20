@@ -661,13 +661,11 @@ export default function (pi: ExtensionAPI) {
     ].filter(Boolean).join("\n\n");
     if (!additions) return;
 
-    // `systemPrompt` is a getter in current Pi releases. Mutate the structured
-    // options instead so the prompt remains cache-friendly and chainable with
-    // other before_agent_start handlers.
-    const existing = event.systemPromptOptions.appendSystemPrompt;
-    event.systemPromptOptions.appendSystemPrompt = existing
-      ? `${existing}\n\n${additions}`
-      : additions;
+    // `systemPrompt` is a getter in current Pi releases. Return the supported
+    // hook result instead of mutating the event object.
+    return {
+      systemPrompt: `${event.systemPrompt}${event.systemPrompt ? "\n\n" : ""}${additions}`,
+    };
   });
 
   // ── watch .worksheets/ for human edits ──────────────────────────────────
