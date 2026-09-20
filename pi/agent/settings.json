@@ -60,5 +60,5 @@
     "showTerminalProgress": true
   },
   "tuiMode": "fullscreen",
-  "defaultThinkingLevel": "high"
+  "defaultThinkingLevel": "medium"
 }

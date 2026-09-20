@@ -21,6 +21,41 @@
       "level": "guarded",
       "group": "npm",
       "label": "npm publish"
+    },
+    {
+      "pattern": "\\bgit\\s+(?:reset\\s+--hard|clean\\b)",
+      "flags": "i",
+      "level": "guarded",
+      "group": "git-destructive",
+      "label": "Destructive Git cleanup"
+    },
+    {
+      "pattern": "\\bgit\\s+(?:restore|checkout)\\b[^\\n]*--",
+      "flags": "i",
+      "level": "guarded",
+      "group": "git-destructive",
+      "label": "Discard Git changes"
+    },
+    {
+      "pattern": "\\brm\\s+-[^\\n]*r",
+      "flags": "i",
+      "level": "guarded",
+      "group": "filesystem-destructive",
+      "label": "Recursive file deletion"
+    },
+    {
+      "pattern": "\\b(?:sudo|doas)\\b",
+      "flags": "i",
+      "level": "guarded",
+      "group": "system",
+      "label": "Privileged command"
+    },
+    {
+      "pattern": "\\b(?:kubectl|helm|terraform|pulumi)\\s+(?:apply|destroy|delete|rollout)\\b",
+      "flags": "i",
+      "level": "guarded",
+      "group": "deployment",
+      "label": "Deployment mutation"
     }
   ]
 }

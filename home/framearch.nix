@@ -44,6 +44,7 @@ in
     MEMORYFIELD_EMBED_MODEL = "nomic-embed-text-v1.5";
     MEMORYFIELD_MODEL_CODE = "nomic-embed-text-v1.5";
     PI_CODING_AGENT_DIR = "/home/juan/dotfiles/pi/agent";
+    PI_CODING_AGENT_SESSION_DIR = "/home/juan/dotfiles/pi/agent/sessions";
     PRIME_AGENT_CODING_AGENT_DIR = "/home/juan/prime-agent/agent";
   };
 
