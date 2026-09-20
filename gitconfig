@@ -27,7 +27,7 @@
 {{else}}
 	pager = delta
 	autocrlf = input
-	fsmonitor = true
+	fsmonitor = false
 
 [interactive]
 	diffFilter = delta --color-only

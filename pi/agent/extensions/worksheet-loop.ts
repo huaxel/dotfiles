@@ -752,10 +752,19 @@ export default function (pi: ExtensionAPI) {
       }
     };
 
-    const watcher = fs.watch(worksheetsAbs, (_eventType, filename) => {
-      const name = filename?.toString();
-      if (name?.endsWith(".md")) processChange(path.join(worksheetsAbs, name));
-    });
+    let watcher: fs.FSWatcher;
+    try {
+      watcher = fs.watch(worksheetsAbs, (_eventType, filename) => {
+        const name = filename?.toString();
+        if (name?.endsWith(".md")) processChange(path.join(worksheetsAbs, name));
+      });
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      if (ctx.hasUI) {
+        ctx.ui.notify(`📄 worksheet watcher unavailable: ${detail}`, "warning");
+      }
+      return;
+    }
 
     const watchAttachedFile = (filePath: string): boolean => {
       if (!filePath.endsWith(".md") || !fs.existsSync(filePath)) return false;
