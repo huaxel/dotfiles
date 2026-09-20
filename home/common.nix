@@ -106,7 +106,9 @@ in
         excludesfile = "~/.gitignore_global";
         pager = "delta";
         autocrlf = "input";
-        fsmonitor = true;
+        # Git fsmonitor can exhaust the host's inotify instance limit when
+        # many worktrees/processes are active.
+        fsmonitor = false;
       };
       interactive.diffFilter = "delta --color-only";
       delta = {
