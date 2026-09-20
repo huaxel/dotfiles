@@ -24,6 +24,7 @@ await runTests(
       assert(isGitCommand("cd repo && git diff"), "chained Git command is recognized");
       assert(!isGitCommand("echo legitimate wording"), "unrelated text is ignored");
       assert(!isGitCommand("echo git status"), "quoted or embedded Git text is ignored");
+      assert(!interceptGitCommand("echo git commit --no-verify").block, "policy text is not blocked");
     },
     "prefixes Git commands with noninteractive editor settings": async () => {
       const result = interceptGitCommand("git commit -m 'message'");
