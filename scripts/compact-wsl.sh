@@ -67,12 +67,15 @@ if command -v pacman &>/dev/null; then
     ok "Package cache: ${CACHE_BEFORE} → ${CACHE_AFTER}"
 
     # Orphaned packages
-    ORPHANS=$(pacman -Qtdq 2>/dev/null || true)
-    if [ -n "$ORPHANS" ]; then
-        ORPHAN_COUNT=$(echo "$ORPHANS" | wc -l)
+    mapfile -t ORPHANS < <(pacman -Qtdq 2>/dev/null || true)
+    if [ "${#ORPHANS[@]}" -gt 0 ]; then
+        ORPHAN_COUNT=${#ORPHANS[@]}
         info "Removing ${ORPHAN_COUNT} orphaned packages..."
-        sudo pacman -Rns --noconfirm "$ORPHANS" 2>/dev/null || true
-        ok "Orphaned packages removed"
+        if sudo pacman -Rns --noconfirm "${ORPHANS[@]}" 2>/dev/null; then
+            ok "Orphaned packages removed"
+        else
+            warn "Orphan removal failed; no success claimed"
+        fi
     else
         ok "No orphaned packages"
     fi
@@ -143,7 +146,7 @@ fi
 # Atom data — the script can remove it if backed up externally
 if [ -d ~/atom-data ]; then
     ATOM=$(du -sh ~/atom-data 2>/dev/null | awk '{print $1}' || echo "0")
-    if [ "${PURGE_ATOM_DATA}" = "true" ] || [ "${1}" = "--purge-atom" ]; then
+    if [ "${PURGE_ATOM_DATA:-false}" = "true" ] || [ "${1:-}" = "--purge-atom" ]; then
         info "Removing atom-data (${ATOM}) as requested..."
         rm -rf ~/atom-data
         ok "atom-data deleted"
@@ -187,17 +190,17 @@ else
     info "Enabling sparse VHDX for distro '${DISTRO}'..."
     if "$WSL_EXE" --manage "$DISTRO" --set-sparse true 2>&1; then
         ok "Sparse VHDX enabled — space will be automatically reclaimed."
-    else
-        warn "Trying with --allow-unsafe flag..."
+    elif [ "${ALLOW_UNSAFE_SPARSE:-false}" = "true" ]; then
+        warn "Trying explicitly approved --allow-unsafe mode..."
         if "$WSL_EXE" --manage "$DISTRO" --set-sparse true --allow-unsafe 2>&1; then
             ok "Sparse VHDX enabled (allow-unsafe) — space will be auto-reclaimed."
         else
-            warn "Could not enable sparse VHDX. Falling back to export/re-import."
-            warn "  wsl --shutdown"
-            warn "  wsl --export ${DISTRO} backup.tar"
-            warn "  wsl --unregister ${DISTRO}"
-            warn "  wsl --import ${DISTRO} <install-location> backup.tar --version 2"
+            warn "Could not enable sparse VHDX. No destructive fallback was run."
         fi
+    else
+        warn "Safe sparse mode failed; --allow-unsafe was not attempted."
+        warn "Set ALLOW_UNSAFE_SPARSE=true only after backing up critical WSL data."
+        warn "For export/re-import, use compact-wsl.ps1 -ExportFallback -ConfirmDestructive."
     fi
 fi
 

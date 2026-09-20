@@ -18,19 +18,23 @@
     Skip the internal cleanup (pacman, caches, fstrim). Only enable sparse VHDX.
 
 .PARAMETER ExportFallback
-    Use export/re-import instead of --set-sparse (more aggressive, requires temp space).
+    Use export/re-import instead of --set-sparse (destructive: unregisters and recreates the distro).
+
+.PARAMETER ConfirmDestructive
+    Required with ExportFallback after critical WSL data has been backed up.
 
 .EXAMPLE
     .\scripts\compact-wsl.ps1
 
 .EXAMPLE
-    .\scripts\compact-wsl.ps1 -Distro Ubuntu -ExportFallback
+    .\scripts\compact-wsl.ps1 -Distro Ubuntu -ExportFallback -ConfirmDestructive
 #>
 
 param(
     [string]$Distro = "",
     [switch]$SkipLinuxCleanup,
-    [switch]$ExportFallback
+    [switch]$ExportFallback,
+    [switch]$ConfirmDestructive
 )
 
 $ErrorActionPreference = "Stop"
@@ -40,6 +44,41 @@ function Write-Ok    { Write-Host "✓ $($args[0])" -ForegroundColor Green }
 function Write-Warn  { Write-Host "⚠ $($args[0])" -ForegroundColor Yellow }
 function Write-Err   { Write-Host "✗ $($args[0])" -ForegroundColor Red }
 function Write-Header{ Write-Host "`n━━━ $($args[0]) ━━━" -ForegroundColor Cyan }
+
+if ($ExportFallback -and -not $ConfirmDestructive) {
+    throw "Export/re-import unregisters the distro. Re-run with -ExportFallback -ConfirmDestructive after ensuring critical WSL data is backed up."
+}
+
+function Invoke-ExportReimport {
+    param([string]$Name)
+
+    $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
+    $backup = Join-Path $env:TEMP "${Name}-backup-${stamp}.tar"
+    $installPath = Join-Path $env:LOCALAPPDATA "WSL\$Name"
+
+    Write-Warn "This will unregister and recreate '$Name'. The export is retained until import succeeds."
+    Write-Info "Exporting ${Name} to ${backup}..."
+    wsl --export $Name $backup
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $backup) -or (Get-Item $backup).Length -eq 0) {
+        throw "WSL export failed or produced an empty archive; the distro was not unregistered."
+    }
+    Write-Ok "Export verified ($('{0:N2} GB' -f ((Get-Item $backup).Length / 1GB)))"
+
+    Write-Info "Unregistering old distro..."
+    wsl --unregister $Name
+    if ($LASTEXITCODE -ne 0) {
+        throw "WSL unregister failed. The verified export remains at $backup"
+    }
+
+    Write-Info "Importing into ${installPath}..."
+    wsl --import $Name $installPath $backup --version 2
+    if ($LASTEXITCODE -ne 0) {
+        throw "WSL import failed. Recovery archive retained at $backup"
+    }
+
+    Remove-Item -LiteralPath $backup -Force
+    Write-Ok "Re-import complete; verified temporary export removed"
+}
 
 # ── Detect distro ──────────────────────────────────────────────────────
 
@@ -129,6 +168,9 @@ if (-not $SkipLinuxCleanup) {
 "@
     wsl --distribution $Distro -- bash -c $cleanupScript 2>&1 |
         ForEach-Object { Write-Host "  $_" -ForegroundColor Gray }
+    if ($LASTEXITCODE -ne 0) {
+        throw "WSL cleanup failed with exit code $LASTEXITCODE"
+    }
 
     Write-Ok "WSL internal cleanup complete"
 }
@@ -139,30 +181,16 @@ Write-Header "WSL shutdown"
 
 Write-Info "Shutting down all WSL instances..."
 wsl --shutdown 2>&1 | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    throw "WSL shutdown failed with exit code $LASTEXITCODE"
+}
 Write-Ok "WSL shut down"
 
 # ── Step 4: Compact VHDX ────────────────────────────────────────────────
 
 if ($ExportFallback) {
-    # ── Export / re-import method ──────────────────────────────────────
-    Write-Header "Compact via export/re-import"
-
-    $backup = "$env:TEMP\${Distro}-backup.tar"
-    Write-Info "Exporting ${Distro} to ${backup}..."
-    wsl --export $Distro $backup
-    Write-Ok "Export complete ($('{0:N2} GB' -f ((Get-Item $backup).Length / 1GB)))"
-
-    Write-Info "Unregistering old distro..."
-    wsl --unregister $Distro
-
-    Write-Info "Importing back with fresh VHDX..."
-    $installPath = "$env:LOCALAPPDATA\WSL\$Distro"
-    wsl --import $Distro $installPath $backup --version 2
-    Write-Ok "Import complete — fresh compact VHDX created"
-
-    Write-Info "Cleaning up backup..."
-    Remove-Item $backup -Force
-    Write-Ok "Backup deleted"
+    Write-Header "Compact via explicit export/re-import"
+    Invoke-ExportReimport -Name $Distro
 } else {
     # ── Sparse VHDX method ─────────────────────────────────────────────
     Write-Header "Set sparse VHDX"
@@ -178,17 +206,8 @@ if ($ExportFallback) {
         if ($LASTEXITCODE -eq 0) {
             Write-Ok "Sparse VHDX enabled (allow-unsafe)."
         } else {
-            Write-Warn "--allow-unsafe also failed. Falling back to export/re-import..."
-            $fallback = "$env:TEMP\${Distro}-backup.tar"
-            Write-Info "Exporting ${Distro}..."
-            wsl --export $Distro $fallback
-            Write-Info "Unregistering..."
-            wsl --unregister $Distro
-            $installPath = "$env:LOCALAPPDATA\WSL\$Distro"
-            Write-Info "Importing back..."
-            wsl --import $Distro $installPath $fallback --version 2
-            Remove-Item $fallback -Force
-            Write-Ok "Re-import complete"
+            Write-Err "Could not enable sparse VHDX: $result2"
+            throw "No destructive fallback was run. After backing up critical data, re-run with -ExportFallback -ConfirmDestructive."
         }
     }
 }

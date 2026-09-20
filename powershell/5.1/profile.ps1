@@ -1,14 +1,21 @@
 # PowerShell 5.1 Profile
 # Source: ~/dotfiles/powershell/5.1/profile.ps1
 
+$InteractiveSession = -not [Console]::IsInputRedirected -and -not [Console]::IsOutputRedirected
+
 # Starship Prompt
 $env:STARSHIP_CONFIG = "$env:USERPROFILE\.config\starship.toml"
-Invoke-Expression (&starship init powershell)
+if ($InteractiveSession -and (Get-Command starship -ErrorAction SilentlyContinue)) {
+    Invoke-Expression (& starship init powershell)
+}
 
-# PSReadLine
-Set-PSReadLineOption -PredictionSource History
-Set-PSReadLineOption -EditMode Windows
-Set-PSReadLineKeyHandler -Key Tab -Function MenuComplete
+# PSReadLine. PredictionSource requires newer PSReadLine than some Windows
+# PowerShell 5.1 installations provide, so keep it optional.
+if ($InteractiveSession -and (Get-Command Set-PSReadLineOption -ErrorAction SilentlyContinue)) {
+    try { Set-PSReadLineOption -PredictionSource History -ErrorAction Stop } catch {}
+    Set-PSReadLineOption -EditMode Windows
+    Set-PSReadLineKeyHandler -Key Tab -Function MenuComplete
+}
 
 # Aliases
 Set-Alias -Name vim -Value nvim

@@ -34,11 +34,12 @@ cd $HOME\dotfiles
 .\bootstrap.ps1
 ```
 
-`bootstrap.ps1` installs Scoop → enables git hooks → deploys native Windows
-configuration with `scripts\deploy-windows.ps1` → decrypts secrets.
-
-Toggles are inline in the script (same age-key restoration rule as macOS — restore
-before running if you have an existing key).
+`bootstrap.ps1` installs Scoop and configured fonts → enables git hooks →
+deploys native Windows configuration with `scripts\deploy-windows.ps1` →
+decrypts secrets. Enable Windows Developer Mode (or use an elevated shell) so
+configuration symlinks can be created. Restore the existing age key to
+`~/.config/sops/age/keys.txt` before bootstrap; missing tools, keys, packages, or
+secret decryption now fail the deployment instead of printing false success.
 
 After bootstrap: restart PowerShell, run `glazewm` to start the window manager,
 and `zebar` for the status bar. For llama.cpp inference:
@@ -100,6 +101,7 @@ just nix-switch <host>  # activate a Home Manager profile
 just nushell-setup      # regenerate shell integrations after tool upgrades
 just nu-health          # verify nu config, integrations, keybindings, aliases
 just pi-healthcheck     # pi setup health report (also --json)
+just check-windows      # static Windows/WSL deployment checks
 ```
 
 On Windows, run `powershell -ExecutionPolicy Bypass -File scripts\deploy-windows.ps1`.
@@ -156,7 +158,20 @@ alias vpn-reconnect='~/dotfiles/scripts/wsl-vpn-setup.sh reconnect'
 ```
 
 The `/mnt/atomsrc` CIFS mount is defined in `/etc/fstab` on the WSL side
-(credentials: `~/.smbcred`).
+(credentials: `~/.smbcred`). `wsl-vpn-setup.sh status` is read-only; use its
+`mount` or `all` commands to change mount state.
+
+For VHDX compaction, safe sparse mode is the default. Export/re-import
+unregisters the distro and therefore requires both explicit switches after a
+separate backup:
+
+```powershell
+.\scripts\compact-wsl.ps1 -Distro archlinux -ExportFallback -ConfirmDestructive
+```
+
+A verified export is retained if unregister/import fails. The WSL-side script
+similarly requires `ALLOW_UNSAFE_SPARSE=true` before using WSL's
+`--allow-unsafe` mode.
 
 ## New Machine Setup (macOS)
 
