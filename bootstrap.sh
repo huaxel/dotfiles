@@ -166,29 +166,31 @@ case "$OS" in
                 brew trust "$tap" 2>/dev/null || true
             done
 
-            # Phase 1: taps + formulae (the bulk of packages)
+            # Phase 1: taps, formulae, and casks. Exclude App Store entries:
+            # `brew bundle` otherwise attempts them before we can check whether
+            # this fresh machine is signed in to the App Store.
             info "Installing formulae + casks (this will take a while)..."
-            brew bundle --file="$BREWFILE" || \
-                warn "Some packages failed — review output above"
-
-            # Phase 2: mas (App Store) — only if signed in
-            if mas account &>/dev/null; then
-                info "Installing App Store apps..."
-                # Filter only mas lines and install them individually so one
-                # failure doesn't block the rest
-                grep '^mas "' "$BREWFILE" | while IFS= read -r line; do
-                    app_name=$(echo "$line" | sed -n 's/^mas "\(.*\)", id: \([0-9]*\)/\1/p')
-                    app_id=$(echo "$line" | sed -n 's/^mas "\(.*\)", id: \([0-9]*\)/\2/p')
-                    [ -n "$app_name" ] && [ -n "$app_id" ] || continue
-                    if ! mas list 2>/dev/null | grep -q "$app_id"; then
-                        info "  Installing $app_name..."
-                        mas install "$app_id" 2>/dev/null || warn "Failed to install $app_name"
-                    fi
-                done
-            else
-                warn "Not signed into the App Store — mas apps skipped."
-                warn "  Sign in to App Store.app, then run: brew bundle --file=$BREWFILE"
+            brewfile_without_mas=$(mktemp "${TMPDIR:-/tmp}/dotfiles-brewfile.XXXXXX")
+            grep -v '^mas "' "$BREWFILE" > "$brewfile_without_mas"
+            if ! brew bundle --file="$brewfile_without_mas"; then
+                critical "Some Homebrew packages failed — review output above"
             fi
+            rm -f "$brewfile_without_mas"
+
+            # Phase 2: App Store apps. mas 7 removed its old `account`
+            # subcommand, so attempt only missing apps and report failures.
+            # A signed-out machine remains usable and gets a clear next step.
+            info "Installing missing App Store apps..."
+            grep '^mas "' "$BREWFILE" | while IFS= read -r line; do
+                app_name=$(echo "$line" | sed -n 's/^mas "\(.*\)", id: \([0-9]*\)/\1/p')
+                app_id=$(echo "$line" | sed -n 's/^mas "\(.*\)", id: \([0-9]*\)/\2/p')
+                [ -n "$app_name" ] && [ -n "$app_id" ] || continue
+                if ! mas list 2>/dev/null | awk '{print $1}' | grep -qx "$app_id"; then
+                    info "  Installing $app_name..."
+                    mas install "$app_id" 2>/dev/null || \
+                        warn "Failed to install $app_name — sign in to App Store.app and retry"
+                fi
+            done
         fi
         ;;
     Linux)
