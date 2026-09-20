@@ -655,10 +655,19 @@ export default function (pi: ExtensionAPI) {
   }
 
   pi.on("before_agent_start", (event) => {
-    event.systemPrompt = buildSystemPrompt(event.systemPrompt, {
-      documentFirst,
-      skillContent: loadSkillContent(),
-    });
+    const additions = [
+      loadSkillContent(),
+      documentFirst ? DOCUMENT_FIRST_DIRECTIVE : "",
+    ].filter(Boolean).join("\n\n");
+    if (!additions) return;
+
+    // `systemPrompt` is a getter in current Pi releases. Mutate the structured
+    // options instead so the prompt remains cache-friendly and chainable with
+    // other before_agent_start handlers.
+    const existing = event.systemPromptOptions.appendSystemPrompt;
+    event.systemPromptOptions.appendSystemPrompt = existing
+      ? `${existing}\n\n${additions}`
+      : additions;
   });
 
   // ── watch .worksheets/ for human edits ──────────────────────────────────
