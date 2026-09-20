@@ -52,6 +52,11 @@ local/
 .pi/
 .pi-subagents/
 .herdr-todo/
+.dotter/
+
+# Machine-specific skill integrations and trust decisions
+/skills/cua-driver
+pi/agent/trust.json
 
 # Pi goal/session runtime artifacts (machine-local: pids, instance ids)
 .pi-glla/
@@ -103,9 +108,9 @@ pi/agent/models-store.json
 # npm workspace installs (created by `npm install` at repo root)
 node_modules/
 
-# Root npm workspace lockfile — generated per-machine by `npm install`
-# (pi/packages workspace deps resolve on any clone; lock is not shared)
-package-lock.json
+# The root npm workspace lockfile is tracked for reproducible installs;
+# package-local locks are npm-generated duplicates in this workspace.
+/pi/packages/*/package-lock.json
 
 # Worksheet audit sidecar — derived per-machine state, not collaboration content.
 # The visible Markdown worksheets remain tracked; only the .history event log

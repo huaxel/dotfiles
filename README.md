@@ -94,7 +94,8 @@ run automatically during Home Manager activation. Windows rendering happens in
 ## Commands
 
 ```bash
-just ci                 # full local gate (shell, TS, secrets, nix, ...)
+just ci                 # full local gate (shell, TS, recovery, secrets, nix, ...)
+just ci-strict          # same gate, but fail if required tooling is missing
 just nix-switch <host>  # activate a Home Manager profile
 just nushell-setup      # regenerate shell integrations after tool upgrades
 just nu-health          # verify nu config, integrations, keybindings, aliases
@@ -163,13 +164,25 @@ Bootstrap captures most things, but machine-local state must be copied from the
 old machine. Use the included scripts:
 
 ```bash
-# Old machine: clone latest, then back everything up
-git -C ~/dotfiles pull && ~/dotfiles/scripts/backup-to-kingston.sh
+# Old machine: clone latest, verify the encrypted destination, then back up
+git -C ~/dotfiles pull
+cd ~/dotfiles && just backup-preflight
+just backup-workstation
 
-# New machine: restore keys FIRST, then bootstrap
+# New machine: restore keys and state, then bootstrap
 ~/dotfiles/scripts/restore-from-kingston.sh
 exec ./bootstrap.sh
 ```
+
+A successful backup contains `.backup-complete`; the restore script refuses an
+unmarked timestamped backup by default. This prevents interrupted or partially
+failed copies from looking restorable. For a legacy backup that you have
+manually verified, use `ALLOW_INCOMPLETE_BACKUP=1` for that restore only.
+Because the backup contains private age/SSH/GPG keys, macOS backups refuse an
+unencrypted destination by default. `ALLOW_UNENCRYPTED_BACKUP=1` is an explicit
+one-run escape hatch, not a recommended configuration. Machine-local OAuth and
+quota credentials are intentionally excluded; sign in again or materialize
+them from SOPS on the destination.
 
 ### 1. Copy keys (before bootstrap!)
 

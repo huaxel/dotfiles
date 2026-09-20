@@ -95,10 +95,10 @@ in
       };
       credential.helper = if pkgs.stdenv.hostPlatform.isDarwin then "osxkeychain" else "cache";
       fetch = {
-        fsckObjects = false;
+        fsckObjects = true;
         prune = true;
       };
-      transfer.fsckObjects = false;
+      transfer.fsckObjects = true;
       pack.threads = 0;
       http.postBuffer = 524288000;
       init.defaultBranch = "main";

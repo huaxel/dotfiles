@@ -1,9 +1,0 @@
-packages = ["default", "unix"]
-
-[variables]
-os = "linux"
-name = "Juan Benjumea"
-email = "benjumeamoreno@gmail.com"
-hostname_color = "fg:#f7768e"
-# Base path for GGUF models — differs per machine
-models_base_path = "/mnt/ai_models/models"
