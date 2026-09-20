@@ -23,12 +23,13 @@ function Remove-Or-Backup {
     if (-not $existing) { return }
 
     if ($existing.LinkType) {
-        Remove-Item -LiteralPath $Path -Force -Recurse
+        # Never recurse through a directory link/junction; remove the link only.
+        Remove-Item -LiteralPath $Path -Force
         return
     }
 
     $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
-    $backup = "$Path.dotfiles-backup-$stamp"
+    $backup = "$Path.dotfiles-backup-$stamp-$PID"
     Move-Item -LiteralPath $Path -Destination $backup
     Write-Host "  Backed up existing $Path -> $backup" -ForegroundColor Yellow
 }
@@ -155,6 +156,7 @@ $links = @(
     @{ Source = "flow-launcher\README.md"; Target = (Join-Path $HOME ".config\flow-launcher\README.md") },
     @{ Source = "glazewm\config.yaml"; Target = (Join-Path $HOME ".glzr\glazewm\config.yaml") },
     @{ Source = "zebar\settings.json"; Target = (Join-Path $HOME ".glzr\zebar\settings.json") },
+    @{ Source = "zebar\bar"; Target = (Join-Path $HOME ".glzr\zebar\bar") },
     @{ Source = "config\nvim"; Target = (Join-Path $HOME "AppData\Local\nvim") },
     @{ Source = "config\llama.cpp\start-server.ps1"; Target = (Join-Path $HOME ".config\llama.cpp\start-server.ps1") },
     @{ Source = "config\llama.cpp\README-windows.md"; Target = (Join-Path $HOME ".config\llama.cpp\README.md") },

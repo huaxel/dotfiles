@@ -63,11 +63,20 @@ function Sync-OpenferenceAuth {
                     $data[$prop.Name] = $prop.Value
                 }
             } catch {
-                $data = @{}
+                Write-Warning "Skipping Openference auth sync because '$path' is not valid JSON: $($_.Exception.Message)"
+                continue
             }
         }
 
         $data["openference"] = @{ type = "api_key"; key = $ApiKey }
-        $data | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $path -Encoding utf8
+        $jsonText = $data | ConvertTo-Json -Depth 20
+        $temporary = "$path.$([Guid]::NewGuid().ToString('N')).tmp"
+        $encoding = New-Object System.Text.UTF8Encoding($false)
+        try {
+            [System.IO.File]::WriteAllText($temporary, $jsonText, $encoding)
+            Move-Item -LiteralPath $temporary -Destination $path -Force
+        } finally {
+            Remove-Item -LiteralPath $temporary -Force -ErrorAction SilentlyContinue
+        }
     }
 }

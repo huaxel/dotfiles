@@ -83,7 +83,7 @@
             },
             {
                 "colorScheme": "TokyoNight",
-                "commandline": "C:\\Users\\jbenjumeamoreno\\scoop\\apps\\pwsh\\current\\pwsh.exe",
+                "commandline": "%USERPROFILE%\\scoop\\apps\\pwsh\\current\\pwsh.exe",
                 "font":
                 {
                     "face": "JetBrainsMono Nerd Font"

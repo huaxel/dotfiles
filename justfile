@@ -48,7 +48,7 @@ nushell-setup:
 # ──────────── Check recipes ────────────
 
 # Run ALL checks (the full CI pipeline)
-ci: check-sh check-ts check-ts-packages test-pi-packages check-recovery check-lockfile check-secrets check-gitignore check-templates check-brewfile check-nu check-nix
+ci: check-sh check-ts check-ts-packages test-pi-packages check-recovery check-windows check-lockfile check-secrets check-gitignore check-templates check-brewfile check-nu check-nix
     @echo ""
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     @echo "  🟢  All CI checks passed!  🟢"
@@ -62,7 +62,7 @@ ci-strict:
     #!/usr/bin/env bash
     set -euo pipefail
     missing=()
-    for tool in shellcheck deno sops nu nix npm node bun rsync; do
+    for tool in shellcheck deno sops nu nix npm node bun rsync python3; do
         command -v "$tool" >/dev/null 2>&1 || missing+=("$tool")
     done
     if [ "${#missing[@]}" -gt 0 ]; then
@@ -220,6 +220,19 @@ pi-test-multi-opencode-go: test-pi-packages
 # Verify workstation backup/restore behavior with isolated fixtures.
 check-recovery:
     bash scripts/tests/recovery-scripts.test.sh
+
+# Validate Windows/WSL deployment invariants on any platform. When pwsh is
+# installed, also parse every tracked PowerShell source with its native AST.
+check-windows:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    python3 scripts/tests/windows-wsl-config.test.py
+    if command -v pwsh >/dev/null 2>&1; then
+        pwsh -NoProfile -Command '$failed=$false; Get-ChildItem bootstrap.ps1,powershell,scripts,config/llama.cpp -Recurse -Filter *.ps1 | ForEach-Object { $tokens=$null; $errors=$null; [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName,[ref]$tokens,[ref]$errors); if($errors.Count){$failed=$true; $errors | ForEach-Object { Write-Error ("{0}: {1}" -f $_.Extent.File,$_.Message) }} }; if($failed){exit 1}'
+        echo "  ✅ PowerShell sources parse"
+    else
+        echo "  ⚠️  pwsh unavailable — static Windows checks passed; AST parse skipped"
+    fi
 
 # Check mounted destination, encryption, keys, capacity, and session size.
 backup-preflight volume="/Volumes/KingstonPhotos":

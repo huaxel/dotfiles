@@ -107,7 +107,16 @@ reconnect_vpn() {
     fi
 }
 
-# ── 4. Mount atomsrc ───────────────────────────────────────────────────
+# ── 4. Check/mount atomsrc ─────────────────────────────────────────────
+
+check_mount() {
+    if mountpoint -q /mnt/atomsrc 2>/dev/null; then
+        ok "/mnt/atomsrc is mounted."
+        return 0
+    fi
+    warn "/mnt/atomsrc is not mounted."
+    return 2
+}
 
 mount_atomsrc() {
     if mountpoint -q /mnt/atomsrc 2>/dev/null; then
@@ -153,7 +162,11 @@ usage() {
 main() {
     case "${1:-all}" in
         setup)     setup_interop ;;
-        status)    check_vpn && mount_atomsrc ;;
+        status)
+            vpn_rc=0; check_vpn || vpn_rc=$?
+            mount_rc=0; check_mount || mount_rc=$?
+            [ "$vpn_rc" -eq 0 ] && [ "$mount_rc" -eq 0 ]
+            ;;
         reconnect) reconnect_vpn ;;
         mount)     mount_atomsrc ;;
         route)     show_routing ;;

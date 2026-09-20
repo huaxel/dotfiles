@@ -57,22 +57,20 @@ function Invoke-SopsDecrypt {
     } else {
         Remove-Item -Force -ErrorAction SilentlyContinue $temporary
         Write-Host " [FAIL]" -ForegroundColor Red
+        throw "Failed to decrypt $Source"
     }
 }
 
 # Check if sops and age are available
 if (-not (Get-Command sops -ErrorAction SilentlyContinue) -or `
     -not (Get-Command age -ErrorAction SilentlyContinue)) {
-    Write-Host "[WARN] sops or age not found -- install with: scoop install age sops" -ForegroundColor Yellow
-    return
+    throw "sops or age not found -- install with: scoop install age sops"
 }
 
 # Check if age key exists
 $ageKeyPath = "$env:USERPROFILE\.config\sops\age\keys.txt"
 if (-not (Test-Path $ageKeyPath)) {
-    Write-Host "[WARN] Age key not found at $ageKeyPath" -ForegroundColor Yellow
-    Write-Host "   Generate one with: age-keygen -o $ageKeyPath" -ForegroundColor Yellow
-    return
+    throw "Age key not found at $ageKeyPath. Restore the existing key before deployment."
 }
 
 # sops on Windows does not auto-detect ~/.config/sops/age/keys.txt
@@ -80,6 +78,9 @@ if (-not (Test-Path $ageKeyPath)) {
 $env:SOPS_AGE_KEY_FILE = $ageKeyPath
 
 # Decrypt secrets
+if (-not (Test-Path -LiteralPath $SECRETS_DIR)) {
+    throw "Secrets directory not found: $SECRETS_DIR"
+}
 if (Test-Path $SECRETS_DIR) {
     New-Item -ItemType Directory -Force -Path $DECRYPT_DIR | Out-Null
 
@@ -97,9 +98,10 @@ if (Test-Path $SECRETS_DIR) {
 
     foreach ($entry in $appSecrets.GetEnumerator()) {
         $encFile = Join-Path $SECRETS_DIR ($entry.Key + ".enc")
-        if (Test-Path $encFile) {
-            Invoke-SopsDecrypt -Source $encFile -Destination $entry.Value
+        if (-not (Test-Path -LiteralPath $encFile)) {
+            throw "Required encrypted secret is missing: $encFile"
         }
+        Invoke-SopsDecrypt -Source $encFile -Destination $entry.Value
     }
 
     $compatAuth = Join-Path $DEFAULT_PI_AGENT_DIR "auth.json"
