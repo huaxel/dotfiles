@@ -10,6 +10,10 @@
   # not a replacement configuration for the running Arch installation.
   system.stateVersion = "25.11";
   networking.hostName = "framearch-nixos";
+  networking.useDHCP = true;
+
+  # Keep the host self-sufficient for flake-based rebuilds after installation.
+  nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
   nixpkgs.config.allowUnfree = true;
 
@@ -23,7 +27,10 @@
     fsType = "ext4";
   };
 
-  services.tailscale.enable = true;
+  services.tailscale = {
+    enable = true;
+    openFirewall = true;
+  };
 
   users.users.juan = {
     isNormalUser = true;
