@@ -52,7 +52,10 @@
     "npm:pi-memory",
     "npm:@sting8k/pi-vcc"
   ],
-  "extensions": [],
+  "extensions": [
+    "./extensions/continue-after-compaction.ts",
+    "./extensions/git-interceptor.ts"
+  ],
   "doubleEscapeAction": "tree",
   "treeFilterMode": "default",
   "terminal": {

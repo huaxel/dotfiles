@@ -4,7 +4,8 @@ import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
 export const GIT_ENV_PREFIX =
   "export GIT_EDITOR=true GIT_SEQUENCE_EDITOR=true GIT_MERGE_AUTOEDIT=no\n";
 
-export const NO_VERIFY_RE = /--no-verify\b/;
+export const NO_VERIFY_RE = /\bgit\b[^;\n]*\bcommit\b[^;\n]*(?:--no-verify\b|(?:^|\s)-n(?=\s|$))/;
+export const GIT_COMMAND_RE = /(?:^|[;&|]|\n)\s*git(?:\s|$)/;
 
 export const BLOCK_REASON =
   "BLOCKED: --no-verify is not allowed. Git hooks exist for a reason. " +
@@ -12,7 +13,7 @@ export const BLOCK_REASON =
   "is causing the hook to fail, or ask the user for help.";
 
 export function isGitCommand(command: string): boolean {
-  return /\bgit\b/.test(command);
+  return GIT_COMMAND_RE.test(command);
 }
 
 export interface GitInterception {

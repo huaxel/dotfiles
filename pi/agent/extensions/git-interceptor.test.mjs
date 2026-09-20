@@ -20,8 +20,11 @@ await runTests(
   {
     "recognizes Git commands without matching unrelated words": async () => {
       assert(isGitCommand("git status"), "direct Git command is recognized");
+      assert(isGitCommand("  git status"), "indented Git command is recognized");
       assert(isGitCommand("cd repo && git diff"), "chained Git command is recognized");
       assert(!isGitCommand("echo legitimate wording"), "unrelated text is ignored");
+      assert(!isGitCommand("echo git status"), "quoted or embedded Git text is ignored");
+      assert(!interceptGitCommand("echo git commit --no-verify").block, "policy text is not blocked");
     },
     "prefixes Git commands with noninteractive editor settings": async () => {
       const result = interceptGitCommand("git commit -m 'message'");
@@ -35,6 +38,12 @@ await runTests(
       assert(result.block, "no-verify command is blocked");
       assert(result.command === command, "blocked command is unchanged");
       assert(result.reason === BLOCK_REASON, "block reason explains the policy");
+
+      const shortForm = interceptGitCommand("git commit -n -m 'message'");
+      assert(shortForm.block, "short no-verify form is blocked");
+
+      const globalOption = interceptGitCommand("git -C repo commit -n -m 'message'");
+      assert(globalOption.block, "global-option no-verify form is blocked");
     },
     "wires policy through bash tool calls only": async () => {
       const harness = makePiHarness();
