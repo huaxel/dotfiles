@@ -9,55 +9,60 @@
 #   ./macos/cleanup.sh           # safe wins (~9-10 GiB, zero data loss)
 #   AGGRESSIVE=1 ./macos/cleanup.sh   # also Claude VM bundles + Playwright (~7 GiB more)
 #   DRY_RUN=1 ./macos/cleanup.sh  # print what would run, do nothing
-set -uo pipefail
+set -euo pipefail
 
 [ "$(uname -s)" = "Darwin" ] || { echo "Not macOS — skipping."; exit 0; }
 
 DRY_RUN="${DRY_RUN:-0}"
 AGGRESSIVE="${AGGRESSIVE:-0}"
+for value in "$DRY_RUN" "$AGGRESSIVE"; do
+  case "$value" in
+    0|1) ;;
+    *) echo "DRY_RUN and AGGRESSIVE must be 0 or 1" >&2; exit 2 ;;
+  esac
+done
 
 run() {
-  if [ "$DRY_RUN" = "1" ]; then
-    echo "  [dry-run] $*"
-  else
-    echo "  → $*"
-    # shellcheck disable=SC2294
-    eval "$@"
-  fi
+  printf '  %s' "$([ "$DRY_RUN" = "1" ] && echo '[dry-run]' || echo '→')"
+  printf ' %q' "$@"
+  echo
+  [ "$DRY_RUN" = "1" ] || "$@"
 }
 
-echo "🧹 macOS cleanup (safe mode${AGGRESSIVE:+, aggressive=$AGGRESSIVE})"
+mode="safe"
+[ "$AGGRESSIVE" = "1" ] && mode="aggressive"
+echo "🧹 macOS cleanup ($mode mode)"
 echo "    before: $(df -h / | awk 'NR==2{print $4" free"}')"
 
 # --- 1. Regenerable user caches -------------------------------------------
 echo "1) User caches (auto-regenerate)…"
 for c in zen CloudKit com.apple.bookassetd; do
-  [ -d "$HOME/Library/Caches/$c" ] && run "rm -rf \"$HOME/Library/Caches/$c\""
+  [ -d "$HOME/Library/Caches/$c" ] && run rm -rf -- "$HOME/Library/Caches/$c"
 done
 
 # --- 2. Homebrew cache -----------------------------------------------------
 if command -v brew &>/dev/null; then
   echo "2) Homebrew cache…"
-  run "brew cleanup -s"
+  run brew cleanup -s
   cache_dir="$(brew --cache 2>/dev/null)"
-  [ -n "$cache_dir" ] && [ -d "$cache_dir" ] && run "rm -rf \"$cache_dir\""
+  [ -n "$cache_dir" ] && [ -d "$cache_dir" ] && run rm -rf -- "$cache_dir"
 fi
 
 # --- 3. JS package-manager stores -----------------------------------------
 echo "3) npm / pnpm stores…"
-command -v npm  &>/dev/null && run "npm cache clean --force"
-command -v pnpm &>/dev/null && run "pnpm store prune"
-[ -d "$HOME/Library/Caches/pnpm" ] && run "rm -rf \"$HOME/Library/Caches/pnpm\""
+command -v npm  &>/dev/null && run npm cache clean --force
+command -v pnpm &>/dev/null && run pnpm store prune
+[ -d "$HOME/Library/Caches/pnpm" ] && run rm -rf -- "$HOME/Library/Caches/pnpm"
 
 # --- 4. Stray files dumped in /Applications -------------------------------
 echo "4) Stray non-app files in /Applications…"
 for f in "/Applications/.DS_Store" "/Applications/Flow.csv" "/Applications/Flow.txt"; do
-  [ -f "$f" ] && run "rm -f \"$f\""
+  [ -f "$f" ] && run rm -f -- "$f"
 done
 # Large stray screen recording → move to Desktop rather than delete.
 shopt -s nullglob
 for mov in /Applications/Screen\ Recording*.mov; do
-  run "mv \"$mov\" \"$HOME/Desktop/\""
+  run mv -n -- "$mov" "$HOME/Desktop/"
 done
 shopt -u nullglob
 
@@ -66,8 +71,12 @@ echo "5) Stale Dropbox launch agents…"
 for la in com.dropbox.DropboxUpdater.wake com.dropbox.dropboxmacupdate.xpcservice; do
   plist="$HOME/Library/LaunchAgents/$la.plist"
   if [ -f "$plist" ]; then
-    run "launchctl unload \"$plist\" 2>/dev/null || true"
-    run "rm -f \"$plist\""
+    if [ "$DRY_RUN" = "1" ]; then
+      echo "  [dry-run] launchctl bootout gui/$(id -u) $plist"
+    else
+      launchctl bootout "gui/$(id -u)" "$plist" 2>/dev/null || true
+    fi
+    run rm -f -- "$plist"
   fi
 done
 
@@ -79,11 +88,11 @@ if [ "$AGGRESSIVE" = "1" ]; then
   else
     for d in "vm_bundles" "Cache"; do
       target="$HOME/Library/Application Support/Claude/$d"
-      [ -d "$target" ] && run "rm -rf \"$target\""
+      [ -d "$target" ] && run rm -rf -- "$target"
     done
   fi
   for d in ms-playwright ms-playwright-go; do
-    [ -d "$HOME/Library/Caches/$d" ] && run "rm -rf \"$HOME/Library/Caches/$d\""
+    [ -d "$HOME/Library/Caches/$d" ] && run rm -rf -- "$HOME/Library/Caches/$d"
   done
 else
   cat <<'EOF'

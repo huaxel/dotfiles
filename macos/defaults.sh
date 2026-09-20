@@ -104,8 +104,10 @@ defaults write NSGlobalDomain PMPrintingExpandedStateForPrint -bool true
 defaults write NSGlobalDomain PMPrintingExpandedStateForPrint2 -bool true
 # Save to disk (not iCloud) by default for new documents.
 defaults write NSGlobalDomain NSDocumentSaveNewDocumentsToCloud -bool false
-# Don't nag when opening apps downloaded from the internet.
-defaults write com.apple.LaunchServices LSQuarantine -bool false
+# Keep the first-launch warning for downloaded applications. Delete the old
+# opt-out written by earlier versions of this script so macOS uses its secure
+# default. `defaults delete` returns non-zero when the key is already absent.
+defaults delete com.apple.LaunchServices LSQuarantine 2>/dev/null || true
 # Faster window resize / sheet animations.
 defaults write NSGlobalDomain NSWindowResizeTime -float 0.001
 defaults write NSGlobalDomain NSAutomaticWindowAnimationsEnabled -bool false

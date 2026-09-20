@@ -48,7 +48,7 @@ nushell-setup:
 # ──────────── Check recipes ────────────
 
 # Run ALL checks (the full CI pipeline)
-ci: check-sh check-ts check-ts-packages test-pi-packages check-recovery check-windows check-lockfile check-secrets check-gitignore check-templates check-brewfile check-nu check-nix
+ci: check-sh check-ts check-ts-packages test-pi-packages check-recovery check-windows check-macos check-lockfile check-secrets check-gitignore check-templates check-brewfile check-nu check-nix
     @echo ""
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     @echo "  🟢  All CI checks passed!  🟢"
@@ -220,6 +220,10 @@ pi-test-multi-opencode-go: test-pi-packages
 # Verify workstation backup/restore behavior with isolated fixtures.
 check-recovery:
     bash scripts/tests/recovery-scripts.test.sh
+
+# Validate macOS provisioning safety on every platform.
+check-macos:
+    python3 scripts/tests/macos-config.test.py
 
 # Validate Windows/WSL deployment invariants on any platform. When pwsh is
 # installed, also parse every tracked PowerShell source with its native AST.
