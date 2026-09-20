@@ -25,6 +25,7 @@ Review my Pi setup and suggest improvements.
 - Researched current Pi autonomy patterns: thin prompt-first loops, on-demand skills, saved workflows, and natural-language subagent delegation.
 - Implemented the minimal autonomy, reproducibility, safety, session-routing, and test-gate improvements.
 - Preserved both session trees; no session files were deleted or pruned.
+- Published commits `26d59a8` and `73237cf` to `origin/main`; the latter makes autoresearch opt-in.
 
 ## Findings
 
@@ -38,21 +39,21 @@ Review my Pi setup and suggest improvements.
 
 4. **Autonomy has good primitives but no single default workflow.** `go-on` has sensible stopping heuristics and a 15-nudge cap; compaction continuation and autoresearch persist work across context limits; auto-permissions fails closed for its configured rules; Shepherdr provides worker/reviewer roles. However, the human still has to know when to arm `go-on` or invoke a subagent. A short global autonomy contract in `pi/agent/AGENTS.md` plus one saved workflow/skill would make “implement this” mean research → change → verify → independent review → summarize, without memorizing commands.
 
-5. **Safety policy is too narrow for unattended work.** `pi-auto-permissions/config.json` guards only `git commit`, `git push`, and `npm publish`. It does not cover high-impact local operations such as `git reset --hard`, `git clean`, destructive restores, deployment commands, or broad credential/file exfiltration patterns. Add a small destructive-operations group rather than another overlapping permission extension. This remains policy, not a sandbox; Pi's own security docs recommend a container/VM and minimal credentials for untrusted or unattended work.
+5. **Safety policy was too narrow for unattended work.** `pi-auto-permissions/config.json` now adds guarded rules for destructive Git cleanup/restores, recursive deletion, privileged commands, and deployment mutations. This remains policy, not a sandbox; Pi's own security docs recommend a container/VM and minimal credentials for untrusted or unattended work.
 
 ### Medium priority
 
-6. **Model routing is split across settings, environment, and agent profiles.** The committed settings have no default provider/model and set global thinking to `high`; the current environment selects `openai-codex/gpt-5.6-luna`, `pi-next-cue.json` points to Terra, and worker/reviewer profiles select their own models. The configured model IDs are present in the current catalog, but this is fragile. Define a small role-based model policy in one place, use medium by default, and reserve high thinking for reviewer/architecture work.
+6. **Model routing remains split across settings, environment, and agent profiles.** The current environment selects `openai-codex/gpt-5.6-luna`, `pi-next-cue.json` points to Terra, and worker/reviewer profiles select their own models. The global thinking default is now `medium`; reserve high thinking for reviewer/architecture work.
 
-7. **One package test path is broken even though repository CI passes.** Extension tests and the full `just ci` gate pass. The package test sweep fails in `pi/packages/pi-multi-opencode-go` because `@juanbenjumea/opencode-go-usage/dist/...` has not been built before tests run. Make that package test build its local dependency first, or test against source exports; add the package test to the project gate.
+7. **The package test gate is repaired.** `pi/packages/pi-multi-opencode-go` now builds its local dependency before testing, and the package test is included in `just ci`.
 
-8. **The autoresearch patch is valid but stale-named.** `pi-autoresearch@1.8.1` installs successfully with a patch named for `1.6.2`; `patch-package --dry-run` reports a version-mismatch warning. Regenerate/rename the patch after reviewing the new upstream version, or pin the dependency to the patched version.
+8. **The autoresearch patch now matches the installed package version.** It was renamed to `pi-autoresearch+1.8.1.patch`; package entries remain floating by user preference.
 
 ### Recommended minimal target
 
 Keep: Pi core, `go-on`, compaction continuation, auto-permissions, one delegation/reviewer mechanism (Shepherdr or a newer natural-language subagent package, not both), memory, web access, and observability. Make autoresearch opt-in rather than part of every startup. Add one small `autonomous-change` skill or global AGENTS contract; prefer this over installing a large workflow bundle immediately. Consider `pi-load-skill` only if the skill catalog grows enough to affect context.
 
-Modern alternatives worth evaluating in an isolated branch—not installing blindly—are `pi-ouroboros` (prompt-first recoverable loop), `pi-agenticoding` (saved workflows/model groups/handoffs), `pi-subagents` (plain-language delegation), and `pi-load-skill` (on-demand skill loading). Their package pages explicitly warn that they run with Pi's local permissions, so source review and pinning are prerequisites.
+Modern alternatives worth evaluating in an isolated branch—not installing blindly—are `pi-ouroboros` (prompt-first recoverable loop), `pi-agenticoding` (saved workflows/model groups/handoffs), `pi-subagents` (plain-language delegation), and `pi-load-skill` (on-demand skill loading). Their package pages explicitly warn that they run with Pi's local permissions, so source review remains a prerequisite.
 
 ### Research references
 
@@ -72,5 +73,5 @@ Modern alternatives worth evaluating in an isolated branch—not installing blin
 
 ## Questions / Next steps
 
-- Restart Pi or run `/reload` to load the pinned package settings, global autonomy contract, and expanded permission policy.
-- Review the working-tree diff and commit when ready; no commit was created automatically.
+- Restart Pi or run `/reload` to load the global autonomy contract and expanded permission policy.
+- No further repository changes are pending; existing sessions remain available for token-spend tracking.
