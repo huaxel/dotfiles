@@ -48,7 +48,7 @@ nushell-setup:
 # ──────────── Check recipes ────────────
 
 # Run ALL checks (the full CI pipeline)
-ci: check-sh check-ts check-ts-packages pi-test-multi-opencode-go check-secrets check-gitignore check-templates check-brewfile check-nu check-nix
+ci: check-sh check-ts check-ts-packages test-pi-packages check-recovery check-lockfile check-secrets check-gitignore check-templates check-brewfile check-nu check-nix
     @echo ""
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     @echo "  🟢  All CI checks passed!  🟢"
@@ -56,6 +56,20 @@ ci: check-sh check-ts check-ts-packages pi-test-multi-opencode-go check-secrets 
 
 # Alias: `just check` = `just ci`
 check: ci
+
+# CI for automation/fresh hosts: fail instead of silently skipping unavailable tools.
+ci-strict:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    missing=()
+    for tool in shellcheck deno sops nu nix npm node bun rsync; do
+        command -v "$tool" >/dev/null 2>&1 || missing+=("$tool")
+    done
+    if [ "${#missing[@]}" -gt 0 ]; then
+        echo "❌ Missing required CI tools: ${missing[*]}"
+        exit 1
+    fi
+    exec just ci
 
 # ── Shell scripts ──
 
@@ -187,13 +201,42 @@ pi-sync-extensions:
     done
     echo "Synced $synced extensions to $dst (reload pi with /reload to pick them up)"
 
-# Test and verify pi-multi-opencode-go npm package
-pi-test-multi-opencode-go:
+# Test every maintained Pi package and verify the publishable package shape.
+test-pi-packages:
     #!/usr/bin/env bash
-    cd "{{dotfiles-dir}}/pi/packages/opencode-go-usage"
-    npm test
-    cd "{{dotfiles-dir}}/pi/packages/pi-multi-opencode-go"
+    set -euo pipefail
+    cd "{{dotfiles-dir}}"
+    npm run typecheck --workspace @juanbenjumea/opencode-go-usage
+    npm test --workspace @juanbenjumea/opencode-go-usage
+    npm test --workspace pi-auto-permissions-local
+    npm test --workspace @juanbenjumea/pi-ghostty-theme-sync
+    npm test --workspace @juanbenjumea/pi-multi-opencode-go
+    cd pi/packages/pi-multi-opencode-go
     npm pack --dry-run 2>&1 | tail -12
+
+# Backward-compatible alias.
+pi-test-multi-opencode-go: test-pi-packages
+
+# Verify workstation backup/restore behavior with isolated fixtures.
+check-recovery:
+    bash scripts/tests/recovery-scripts.test.sh
+
+# Check mounted destination, encryption, keys, capacity, and session size.
+backup-preflight volume="/Volumes/KingstonPhotos":
+    BACKUP_VOLUME="{{volume}}" BACKUP_PREFLIGHT_ONLY=1 bash scripts/backup-to-kingston.sh
+
+# Create a verified workstation backup on an encrypted mounted destination.
+backup-workstation volume="/Volumes/KingstonPhotos":
+    BACKUP_VOLUME="{{volume}}" bash scripts/backup-to-kingston.sh
+
+# Ensure npm workspace installs remain reproducible.
+check-lockfile:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    test -f package-lock.json || { echo "❌ package-lock.json is required"; exit 1; }
+    node -e 'const p=require("./package-lock.json"); if (p.lockfileVersion < 3 || !p.packages?.["pi/packages/opencode-go-usage"]) process.exit(1)'
+    npm ci --dry-run --ignore-scripts >/dev/null
+    echo "  ✅ npm workspace lockfile is complete and synchronized"
 
 # Publish shared usage lib first, then Pi extensions
 pi-publish-opencode-go-usage:

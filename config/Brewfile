@@ -1,7 +1,7 @@
-# Brewfile — desired-state package manifest for macOS
-# Regenerated from current brew state on 2026-07-14.
+# Brewfile — curated desired-state package manifest for macOS.
 # Install: brew bundle --file=~/.config/Brewfile
-# Refresh: brew bundle dump --file=config/Brewfile --force
+# Do not replace this with an unreviewed `brew bundle dump`; that would import
+# incidental packages and duplicate Home Manager-owned CLI tools.
 
 tap "felixkratz/formulae"
 tap "nikitabobko/tap"

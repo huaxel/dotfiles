@@ -1,6 +1,0 @@
-[symlinks]
-"config/htop/htoprc" = "/home/juan/.config/htop/htoprc"
-npmrc = "/home/juan/.npmrc"
-
-[templates]
-"llama-models.ini" = "/home/juan/.config/llama.cpp/models.ini"

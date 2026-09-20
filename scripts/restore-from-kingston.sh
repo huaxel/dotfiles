@@ -11,25 +11,60 @@
 
 set -euo pipefail
 
-VOL="/Volumes/KingstonPhotos"
+VOL="${BACKUP_VOLUME:-/Volumes/KingstonPhotos}"
+DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
+PI_TARGET="${PI_CODING_AGENT_DIR:-$DOTFILES_DIR/pi/agent}"
+FAILURES=0
 
-# Find backup data — supports both old and new layouts
-# New:  /Volumes/KingstonPhotos/projects/backup-<host>-<date>/
-# Old:  /Volumes/KingstonPhotos/projects/agent-state/  + root-level files
-if compgen -G "$VOL/projects/backup-"* >/dev/null 2>&1; then
-    # New timestamped backup dir — use the latest one
-    BACKUP=$(find "$VOL/projects" -maxdepth 1 -type d -name 'backup-*' -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
+info() { echo "  $*"; }
+ok() { echo "  ✅ $*"; }
+warn() { echo "  ⚠️  $*"; }
+fail() { echo "  ❌ $*"; FAILURES=$((FAILURES + 1)); }
+skip() { echo "  ➖ $* (already exists)"; }
+
+# Find backup data — supports both old and new layouts. Compare directory
+# mtimes with platform-native stat flags, avoiding GNU-only `find -printf`.
+path_mtime() {
+    if stat -f '%m' "$1" >/dev/null 2>&1; then
+        stat -f '%m' "$1"
+    else
+        stat -c '%Y' "$1"
+    fi
+}
+
+BACKUP=""
+latest_mtime=0
+for candidate in "$VOL"/projects/backup-*; do
+    [ -d "$candidate" ] || continue
+    candidate_mtime=$(path_mtime "$candidate")
+    if [ "$candidate_mtime" -gt "$latest_mtime" ]; then
+        latest_mtime="$candidate_mtime"
+        BACKUP="$candidate"
+    fi
+done
+
+if [ -n "$BACKUP" ]; then
+    if [ ! -f "$BACKUP/.backup-complete" ] && [ "${ALLOW_INCOMPLETE_BACKUP:-0}" != "1" ]; then
+        echo "  ❌ Refusing backup without completion marker: $BACKUP"
+        echo "     Set ALLOW_INCOMPLETE_BACKUP=1 only after manually verifying it."
+        exit 1
+    fi
     echo "  📂 Using backup: $(basename "$BACKUP")"
     KEYS="$BACKUP/keys"
+    if [ ! -f "$KEYS/keys.txt" ]; then
+        echo "  ❌ Backup is marked complete but its required Age key is missing"
+        exit 1
+    fi
     AGENTS="$BACKUP"
     APP_DATA="$BACKUP"
     PROJECTS_SRC="$BACKUP/projects"
 elif [ -d "$VOL/projects/agent-state" ]; then
-    # Old flat layout
-    echo "  📂 Using old layout (projects/agent-state + root)"
+    # Legacy layout predates completion markers.
+    echo "  📂 Using legacy layout (projects/agent-state + root)"
+    BACKUP="$VOL/projects/agent-state"
     KEYS="$VOL/sops"
-    AGENTS="$VOL/projects/agent-state"
-    APP_DATA="$VOL/projects/agent-state"
+    AGENTS="$BACKUP"
+    APP_DATA="$BACKUP"
     PROJECTS_SRC="$VOL/projects"
 else
     echo "  ❌ No backup found on $VOL"
@@ -37,48 +72,35 @@ else
     exit 1
 fi
 
-info()  { echo "  $*"; }
-ok()    { echo "  ✅ $*"; }
-warn()  { echo "  ⚠️  $*"; }
-skip()  { echo "  ➖ $* (already exists)"; }
-# Restore a directory tree, overwriting existing files (backup is authoritative
-# on a fresh machine). Idempotent re-runs will clobber local changes — intended
-# only as a one-shot restore right after a wipe/new machine.
+# Restore a directory tree, overwriting existing files. Copy failures are
+# accumulated so the script never prints a false-success completion banner.
 restore_dir() {
     [ -d "$1" ] || return 0
-    mkdir -p "$2" 2>/dev/null || true
-    if rsync -a "$1"/ "$2"/ 2>/dev/null; then
-        ok "$3"
-    else
-        warn "Failed: $3"
-    fi
+    if ! mkdir -p "$2" 2>/dev/null; then fail "Cannot create destination for $3"; return 0; fi
+    if rsync -a "$1"/ "$2"/; then ok "$3"; else fail "Failed: $3"; fi
+    return 0
 }
-# Restore a single file, overwriting any existing dest.
+
 restore_file() {
     [ -f "$1" ] || return 0
-    mkdir -p "$(dirname "$2")" 2>/dev/null || true
-    if cp -f "$1" "$2" 2>/dev/null; then
-        ok "$3"
-    else
-        warn "Failed: $3"
-    fi
+    if ! mkdir -p "$(dirname "$2")" 2>/dev/null; then fail "Cannot create destination for $3"; return 0; fi
+    if cp -f "$1" "$2"; then ok "$3"; else fail "Failed: $3"; fi
+    return 0
 }
-# Restore a ~/Library/Preferences/*.plist. macOS caches these in cfprefsd,
-# which will write its in-memory copy back to disk and clobber ours. So: quit
-# the app, force-copy, then flush cfprefsd so the next launch reads from disk.
+
 restore_pref() {
     [ -f "$1" ] || return 0
     local app="$4"
-    mkdir -p "$(dirname "$2")" 2>/dev/null || true
+    mkdir -p "$(dirname "$2")" 2>/dev/null || { fail "Cannot create destination for $3"; return 0; }
     killall "$app" 2>/dev/null || true
-    if cp -f "$1" "$2" 2>/dev/null; then
-        # Prime the cache from disk, then kill the daemon so it re-reads.
+    if cp -f "$1" "$2"; then
         defaults read "$(basename "$2" .plist)" >/dev/null 2>&1 || true
         killall cfprefsd 2>/dev/null || true
         ok "$3"
     else
-        warn "Failed: $3"
+        fail "Failed: $3"
     fi
+    return 0
 }
 
 echo ""
@@ -211,9 +233,12 @@ fi
 echo ""
 echo "━━━ 6/7 — Config extras ━━━"
 
-for src in "$BACKUP/herdr" "$AGENTS/herdr"; do [ -d "$src" ] && restore_dir "$src" ~/.config/herdr "Herdr config" && break; done
-for src in "$BACKUP/mise" "$AGENTS/mise"; do [ -d "$src" ] && restore_dir "$src" ~/.config/mise "Mise config" && break; done
-for src in "$BACKUP/pi" "$AGENTS/pi"; do [ -d "$src" ] && restore_dir "$src" ~/.pi/agent "Pi agent data" && break; done
+for src in "$BACKUP/herdr" "$AGENTS/herdr"; do [ -d "$src" ] && restore_dir "$src" "$HOME/.config/herdr" "Herdr config" && break; done
+for src in "$BACKUP/mise" "$AGENTS/mise"; do [ -d "$src" ] && restore_dir "$src" "$HOME/.config/mise" "Mise config" && break; done
+for src in "$BACKUP/pi" "$AGENTS/pi"; do [ -d "$src" ] && restore_dir "$src" "$HOME/.pi/agent" "Pi fallback state" && break; done
+if [ -d "$BACKUP/pi-dotfiles" ]; then
+    restore_dir "$BACKUP/pi-dotfiles" "$PI_TARGET" "Pi canonical state and sessions"
+fi
 
 # ─────────────────────────────────────────────────────
 # 7. Browser + game data
@@ -249,14 +274,19 @@ fi
 # Done
 # ─────────────────────────────────────────────────────
 echo ""
+if [ "$FAILURES" -gt 0 ]; then
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "  ❌ Restore incomplete: $FAILURES failure(s)"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    exit 1
+fi
+
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "  ✅  Restore complete!"
+echo "  ✅ Restore complete"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 echo "  Next steps:"
-echo "    1. If age key was restored, run ./bootstrap.sh"
-echo "    2. Otherwise restore keys manually first"
-echo "    3. Restart Alfred/Itsycal to pick up prefs"
-echo "    4. Restart Zen browser to load restored profile"
-echo "    5. Launch Minecraft to see restored worlds"
+echo "    1. If the age key was restored, run ./bootstrap.sh"
+echo "    2. Re-authenticate machine-local OAuth providers"
+echo "    3. Restart apps to load restored preferences"
 echo ""

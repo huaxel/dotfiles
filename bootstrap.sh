@@ -27,6 +27,8 @@ OS="$(uname -s)"
 warn()  { echo "  ⚠️  $*"; }
 info()  { echo "  $*"; }
 step()  { echo ""; echo "━━━ $* ━━━"; }
+CRITICAL_FAILURES=0
+critical() { echo "  ❌ $*"; CRITICAL_FAILURES=$((CRITICAL_FAILURES + 1)); }
 
 # ─────────────────────────────────────────────────────────────────
 # Sudo — ask upfront, keep alive for the whole run.
@@ -105,10 +107,14 @@ step "4/9 — Link ~/.agents/skills → dotfiles/skills"
 AGENTS_DIR="$HOME/.agents"
 AGENTS_SKILLS="$AGENTS_DIR/skills"
 
-# If it's a real directory (from a previous rsync-based setup), replace it
+# Preserve a real directory from older or independently-managed setups. A
+# bootstrap must never delete user-authored skills just to install its symlink.
 if [ ! -L "$AGENTS_SKILLS" ] && [ -d "$AGENTS_SKILLS" ]; then
-    info "Replacing ~/.agents/skills with symlink to dotfiles/skills..."
-    rm -rf "$AGENTS_SKILLS"
+    skills_backup="$AGENTS_DIR/skills.backup-$(date +%Y%m%d-%H%M%S)-$$"
+    info "Moving existing ~/.agents/skills to $skills_backup..."
+    if ! mv "$AGENTS_SKILLS" "$skills_backup"; then
+        critical "Could not preserve existing ~/.agents/skills"
+    fi
 fi
 
 # Create the symlink (parents may not exist on a fresh machine)
@@ -237,21 +243,21 @@ else
             Darwin)
                 info "Installing Nix (multi-user daemon)..."
                 sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install) --daemon || \
-                    warn "Nix installation failed — install it manually, then run: just nix-switch juan@macbook"
+                    critical "Nix installation failed — install it manually, then run: just nix-switch juan@macbook"
                 ;;
             Linux)
                 if command -v pacman &>/dev/null; then
                     info "Installing Nix..."
                     sudo pacman -S --needed --noconfirm nix || \
-                        warn "Nix installation failed — install it manually, then run: just nix-switch <profile>"
+                        critical "Nix installation failed — install it manually, then run: just nix-switch <profile>"
                     sudo systemctl enable --now nix-daemon.socket 2>/dev/null || \
-                        warn "Could not start nix-daemon.socket — start it before Home Manager activation"
+                        critical "Could not start nix-daemon.socket — start it before Home Manager activation"
                 else
-                    warn "Nix is not installed and this OS has no supported automatic installer"
+                    critical "Nix is not installed and this OS has no supported automatic installer"
                 fi
                 ;;
             *)
-                warn "Nix is not installed — install it manually before Home Manager activation"
+                critical "Nix is not installed — install it manually before Home Manager activation"
                 ;;
         esac
     fi
@@ -264,9 +270,9 @@ else
     fi
 
     if ! command -v nix &>/dev/null; then
-        warn "Nix unavailable — run Home Manager manually after installation"
+        critical "Nix unavailable — run Home Manager manually after installation"
     elif [ ! -f "$AGE_KEY" ]; then
-        warn "Age key missing — restore $AGE_KEY before Home Manager activation"
+        critical "Age key missing — restore $AGE_KEY before Home Manager activation"
     else
         if [ -n "${NIX_PROFILE:-}" ]; then
             profile="$NIX_PROFILE"
@@ -288,7 +294,7 @@ experimental-features = nix-command flakes" ;;
         esac
         info "Activating Home Manager profile: $profile"
         if ! NIX_CONFIG="$nix_config" just nix-switch "$profile"; then
-            warn "Home Manager activation failed — run manually: just nix-switch $profile"
+            critical "Home Manager activation failed — run manually: just nix-switch $profile"
         fi
         # Home Manager cannot update this shell's parent environment. Put the
         # activated CLI profile first so the remaining bootstrap steps use Nix
@@ -371,10 +377,11 @@ fi
 # Ghostty theme is auto-synced by the @ogulcancelik/pi-ghostty-theme-sync
 # package on every pi start. No manual command needed.
 
-# Install CLI extras (npm/pnpm/uv global packages)
-if [ -x "$SCRIPT_DIR/scripts/install-cli-extras.sh" ]; then
+# Install CLI extras (npm/pnpm/uv global packages). Invoke through Bash so a
+# fresh clone cannot silently skip the step because of an incorrect mode bit.
+if [ -f "$SCRIPT_DIR/scripts/install-cli-extras.sh" ]; then
     info "Installing CLI extras (npm/pnpm/uv)..."
-    "$SCRIPT_DIR/scripts/install-cli-extras.sh" || warn "Some CLI extras failed — run manually: scripts/install-cli-extras.sh"
+    bash "$SCRIPT_DIR/scripts/install-cli-extras.sh" || warn "Some CLI extras failed — run manually: scripts/install-cli-extras.sh"
 fi
 
 # Install the Herdr plugins that config/herdr/config.toml binds keys to.
@@ -390,8 +397,16 @@ fi
 # Done
 # ─────────────────────────────────────────────────────────────────
 echo ""
+if [ "$CRITICAL_FAILURES" -gt 0 ]; then
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "  ❌ Dotfiles deployment incomplete: $CRITICAL_FAILURES critical failure(s)"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "  Resolve the errors above, then re-run ./bootstrap.sh."
+    exit 1
+fi
+
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "  ✅  Dotfiles deployed successfully!"
+echo "  ✅ Dotfiles deployed successfully"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 echo "  Next steps:"
