@@ -107,13 +107,14 @@ set -gx MEMORYFIELD_MODEL_CODE nomic-embed-text-v1.5
 # mapped dir, even gitignored __pycache__). Cache under ~/.cache instead.
 set -x PYTHONPYCACHEPREFIX $HOME/.cache/cpython
 set -x PI_CODING_AGENT_DIR $HOME/dotfiles/pi/agent
+set -x PI_CODING_AGENT_SESSION_DIR $HOME/dotfiles/pi/agent/sessions
 set -x PRIME_AGENT_CODING_AGENT_DIR $HOME/prime-agent/agent
 
 # Let agy select its own Cloud Code endpoint; stale overrides cause 429s.
 set -e CLOUD_CODE_URL
 
 # Run pi as restricted pi-agent user
-alias pi-sudo='sudo -iu pi-agent PI_CODING_AGENT_DIR=$HOME/dotfiles/pi/agent -- pi'
+alias pi-sudo='sudo -iu pi-agent PI_CODING_AGENT_DIR=$HOME/dotfiles/pi/agent PI_CODING_AGENT_SESSION_DIR=$HOME/dotfiles/pi/agent/sessions -- pi'
 
 # FZF defaults
 set -x FZF_DEFAULT_OPTS "--height 40% --layout=reverse --border --preview 'bat --color=always --style=numbers --line-range=:500 {}' --preview-window=right:60%"

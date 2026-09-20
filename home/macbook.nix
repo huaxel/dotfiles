@@ -10,6 +10,7 @@
 
   home.sessionVariables = {
     PI_CODING_AGENT_DIR = "/Users/juanbenjumea/dotfiles/pi/agent";
+    PI_CODING_AGENT_SESSION_DIR = "/Users/juanbenjumea/dotfiles/pi/agent/sessions";
     PRIME_AGENT_CODING_AGENT_DIR = "/Users/juanbenjumea/prime-agent/agent";
   };
 }

@@ -5,6 +5,7 @@
 # Runtime state
 sessions/
 git/
+agy-dirlocks/
 intercom/
 observability/
 tmp/

@@ -372,7 +372,7 @@ def generate_report():
     if categories["observability"]["data"]["history_entries"] < 50:
         recommendations.append("Increase history.jsonl keepLast from 10 to 200+")
     if categories["session_storage"]["data"]["score"] < 70:
-        recommendations.append("Prune orphan worktree sessions and sessions >30 days old")
+        recommendations.append("Review session storage and archive only with explicit approval; no automatic deletion")
     if categories["config_hygiene"]["data"]["drift_count"] > 5 and not using_dotfiles_directly:
         recommendations.append("Sync runtime config from dotfiles (PI_CODING_AGENT_DIR should point to dotfiles)")
 

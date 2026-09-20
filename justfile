@@ -48,7 +48,7 @@ nushell-setup:
 # ──────────── Check recipes ────────────
 
 # Run ALL checks (the full CI pipeline)
-ci: check-sh check-ts check-ts-packages check-secrets check-gitignore check-templates check-brewfile check-nu check-nix
+ci: check-sh check-ts check-ts-packages pi-test-multi-opencode-go check-secrets check-gitignore check-templates check-brewfile check-nu check-nix
     @echo ""
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     @echo "  🟢  All CI checks passed!  🟢"
@@ -699,21 +699,29 @@ pi-stats n="10":
         print(f"Avg dur:    {statistics.mean(mins):.0f}m")
         print(f"Avg cost:   ${statistics.mean(costs):.4f}")' 2>/dev/null || echo "Error parsing history"
 
-# Summary of session file storage.
+# Summary of all session file storage. This is read-only: sessions are retained.
 pi-session-size:
     #!/usr/bin/env bash
-    DIR="${PI_CODING_AGENT_DIR:-$HOME/dotfiles/pi/agent}/sessions"
-    if [ ! -d "$DIR" ]; then echo "No session dir"; exit 0; fi
-    echo "Session storage: $(du -sh "$DIR" | cut -f1) total"
-    echo ""
-    echo "  Sessions by project:"
-    for d in "$DIR"/--*; do
-        [ -d "$d" ] || continue
-        name=$(basename "$d" | sed 's/^--//;s/--$//' | tr - " ")
-        count=$(find "$d" -name "*.jsonl" 2>/dev/null | wc -l | tr -d " ")
-        size=$(du -sh "$d" 2>/dev/null | cut -f1)
-        echo "    $count  $size  $name"
-    done | sort -rn
+    set -euo pipefail
+    primary="${PI_CODING_AGENT_DIR:-$HOME/dotfiles/pi/agent}/sessions"
+    fallback="$HOME/.pi/agent/sessions"
+    seen=""
+    for dir in "$primary" "$fallback"; do
+        [ -d "$dir" ] || continue
+        real=$(cd "$dir" && pwd -P)
+        case ":$seen:" in *":$real:"*) continue ;; esac
+        seen="${seen:+$seen:}$real"
+        echo "Session storage: $(du -sh "$dir" | cut -f1)  $dir"
+        echo "  Sessions by project:"
+        for d in "$dir"/--*; do
+            [ -d "$d" ] || continue
+            name=$(basename "$d" | sed 's/^--//;s/--$//' | tr - " ")
+            count=$(find "$d" -name "*.jsonl" 2>/dev/null | wc -l | tr -d " ")
+            size=$(du -sh "$d" 2>/dev/null | cut -f1)
+            echo "    $count  $size  $name"
+        done | sort -rn
+        echo ""
+    done
 
 # Prune old sessions. Use project=all to target every session directory.
 # Usage:  just pi-prune-sessions 30 dotfiles

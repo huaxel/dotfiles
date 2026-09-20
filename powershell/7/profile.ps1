@@ -192,6 +192,7 @@ $DotfilesRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $env:BAT_THEME = "tokyonight_night"
 $env:EZA_CONFIG_DIR = "$env:USERPROFILE\.config\eza"
 $env:PI_CODING_AGENT_DIR = (Join-Path $DotfilesRoot "pi\agent")
+$env:PI_CODING_AGENT_SESSION_DIR = (Join-Path $DotfilesRoot "pi\agent\sessions")
 
 $SecretsLoader = Join-Path $DotfilesRoot "powershell\Load-Secrets.ps1"
 if (Test-Path -LiteralPath $SecretsLoader) {

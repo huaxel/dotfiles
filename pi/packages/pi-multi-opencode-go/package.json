@@ -5,6 +5,7 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
+    "pretest": "npm run build --prefix ../opencode-go-usage",
     "test": "node --experimental-strip-types --test tests/*.test.ts"
   },
   "author": "Juan Benjumea",
