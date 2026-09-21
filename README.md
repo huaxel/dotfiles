@@ -179,12 +179,17 @@ Bootstrap captures most things, but machine-local state must be copied from the
 old machine. Use the included scripts:
 
 ```bash
-# Old machine: clone latest, verify the encrypted destination, then back up
+# Old machine: connect and unlock the encrypted KingstonPhotos volume first.
+# Confirm it is mounted at /Volumes/KingstonPhotos before proceeding.
+ls -ld /Volumes/KingstonPhotos
+# Then clone latest, verify the encrypted destination, and back up.
 git -C ~/dotfiles pull
 cd ~/dotfiles && just backup-preflight
 just backup-workstation
 
-# New machine: restore keys and state, then bootstrap
+# New machine: connect/unlock the same volume, verify it, restore keys/state,
+# then bootstrap. The restore is destructive to matching local config paths.
+ls -ld /Volumes/KingstonPhotos
 ~/dotfiles/scripts/restore-from-kingston.sh
 exec ./bootstrap.sh
 ```
@@ -193,6 +198,11 @@ A successful backup contains `.backup-complete`; the restore script refuses an
 unmarked timestamped backup by default. This prevents interrupted or partially
 failed copies from looking restorable. For a legacy backup that you have
 manually verified, use `ALLOW_INCOMPLETE_BACKUP=1` for that restore only.
+`just backup-preflight` intentionally exits non-zero when the volume is absent;
+do not bypass that check or run the backup against another path accidentally.
+After the first successful backup, perform a restore drill into a disposable
+user/config environment or fresh machine and verify keys, Pi sessions, projects,
+and shell history before relying on the backup.
 Because the backup contains private age/SSH/GPG keys, macOS backups refuse an
 unencrypted destination by default. `ALLOW_UNENCRYPTED_BACKUP=1` is an explicit
 one-run escape hatch, not a recommended configuration. Machine-local OAuth and

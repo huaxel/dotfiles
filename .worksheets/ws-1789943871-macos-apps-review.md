@@ -31,7 +31,8 @@ Audit macOS bootstrap applications, Brew ownership, defaults, shell startup, Hom
 - **Resolved — fresh bootstrap mixed App Store installs into the initial Brew phase.** It now filters `mas` entries until sign-in is checked and treats Homebrew package failure as an incomplete deployment rather than eventual success.
 - **Healthy — shell and configuration ownership.** Nushell is the login shell, both native and XDG config paths point to the current Home Manager generation, and the Nushell health suite passes.
 - **Healthy — managed App Store apps.** Amphetamine, Connective Plugin, and Flow are installed.
-- **Unresolved — no automatic backup destination.** Time Machine has no configured destination; the encrypted removable-media backup/restore drill remains the recovery path prepared in the earlier audit but still needs mounted media.
+- **Unresolved — no automatic backup destination.** Time Machine has no configured destination; `just backup-preflight` now reaches the mounted SSD but correctly refuses it because the volume is unencrypted. The backup/restore drill remains prepared but unexecuted.
+- **SSD inventory recorded.** KingstonPhotos contains the primary `Photos Library.photoslibrary` (638 GB), `Internal System Library Backup 2026-08-26.photoslibrary` (105 GB), `Internal Photos Recovery.photoslibrary` (78 GB), and `Photos-Reconciliation-Candidates` (21 GB; ~11,987 JPG/JPEG/XMP/media files). These are not safe deletion candidates without reviewing the Photos/reconciliation state.
 - **Resolved — three Office app seals were invalid.** Excel, OneNote, and PowerPoint contained modified proofing-tool binaries. A signed Microsoft Office 16.113.1 package reinstall replaced all Office bundles; strict `codesign` verification and macOS execution assessment now pass for Excel, OneNote, PowerPoint, Word, and Outlook.
 - The application firewall remains disabled by the user's earlier explicit decision; this audit does not reverse that policy.
 
