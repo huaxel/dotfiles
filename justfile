@@ -48,7 +48,7 @@ nushell-setup:
 # ──────────── Check recipes ────────────
 
 # Run ALL checks (the full CI pipeline)
-ci: check-sh check-ts check-ts-packages test-pi-packages check-recovery check-windows check-macos check-lockfile check-secrets check-gitignore check-templates check-brewfile check-nu check-nix
+ci: check-sh check-ts check-ts-packages test-pi-packages check-recovery check-windows check-macos check-home-server check-lockfile check-secrets check-gitignore check-templates check-brewfile check-nu check-nix
     @echo ""
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     @echo "  🟢  All CI checks passed!  🟢"
@@ -224,6 +224,19 @@ check-recovery:
 # Validate macOS provisioning safety on every platform.
 check-macos:
     python3 scripts/tests/macos-config.test.py
+
+# Validate home-server recovery and deployment invariants on every platform.
+check-home-server:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    python3 scripts/tests/home-server-config.test.py
+    bash scripts/tests/home-server-deploy.test.sh
+    if command -v ruby >/dev/null 2>&1; then
+        ruby -e 'require "yaml"; YAML.safe_load(File.read(ARGV[0]), permitted_classes: [], aliases: false)' scripts/home-server-deploy/media-stack.docker-compose.yml
+        echo "home-server YAML checks passed"
+    else
+        echo "  ⚠️  ruby unavailable — static YAML invariants passed; full parse skipped"
+    fi
 
 # Validate Windows/WSL deployment invariants on any platform. When pwsh is
 # installed, also parse every tracked PowerShell source with its native AST.
@@ -606,7 +619,7 @@ register-project server project="":
     #!/usr/bin/env bash
     PROJECT="{{project}}"
     if [ -z "$PROJECT" ]; then PROJECT="$(basename "$(git rev-parse --show-toplevel 2>/dev/null || pwd)")"; fi
-    ssh "{{server}}" "$HOME/deploy-hooks/register-project" "$PROJECT"
+    ssh "{{server}}" bash -s -- "$PROJECT" < "{{dotfiles-dir}}/scripts/home-server-deploy/register-project"
 
 # Push the current project branch to a home server, triggering deploy.
 # Usage: just deploy-server acerpepe [branch]

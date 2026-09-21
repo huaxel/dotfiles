@@ -27,19 +27,30 @@ LOG="/tmp/offsite-backup.log"
 
 echo "=== Offsite backup started: $(date) ===" > "${LOG}"
 
-ssh "${PI_HOST}" 'bash -s' >> "${LOG}" 2>&1 <<'EOS'
+remote_command=(ssh "${PI_HOST}" bash -s)
+if [ "$(hostname -s 2>/dev/null || true)" = "${PI_HOST}" ]; then
+  remote_command=(bash -s)
+fi
+
+"${remote_command[@]}" >> "${LOG}" 2>&1 <<'EOS'
 set -euo pipefail
 RCLONE_REMOTE="${RCLONE_REMOTE:-offsite:}"
 PHOTOS="/mnt/battle_disk/photos"
 TMP_DUMP="/tmp/immich-db-$(date +%Y%m%d).sql"
+trap 'rm -f "${TMP_DUMP}"' EXIT
 
-# 1. Fresh Immich DB dump (metadata; irreplaceable alongside the photos)
+command -v rclone >/dev/null
+rclone listremotes | grep -Fxq "${RCLONE_REMOTE}"
+[ -d "${PHOTOS}" ] && [ -n "$(find "${PHOTOS}" -type f -print -quit)" ]
+
+# 1. Fresh Immich DB dump (metadata; irreplaceable alongside the photos).
 docker exec immich_postgres pg_dumpall -U root > "${TMP_DUMP}" 2>/dev/null
+[ -s "${TMP_DUMP}" ]
 
-# 2. Sync photos (incremental) + dump to the offsite remote
-rclone sync "${PHOTOS}" "${RCLONE_REMOTE}immich/photos" --stats 30s 2>&1 | tail -2
+# 2. Copy incrementally without propagating source deletions. An offsite archive
+# must retain photos accidentally deleted or lost on the primary host.
+rclone copy "${PHOTOS}" "${RCLONE_REMOTE}immich/photos" --stats 30s 2>&1 | tail -2
 rclone copy "${TMP_DUMP}" "${RCLONE_REMOTE}immich/db/" 2>&1 | tail -1
-rm -f "${TMP_DUMP}"
 
 echo "photos synced: $(du -sh "${PHOTOS}" | cut -f1)"
 EOS
