@@ -28,7 +28,9 @@ Review the dotfiles repository and the overall development/agent setup.
 - Concurrent `ssh_config` and Herdr-managed integration changes from the separate SSH worksheet were preserved and excluded from this task's attribution.
 - Added `just backup-preflight` and `just backup-workstation`; macOS now verifies destination encryption before copying private keys and refuses unencrypted media unless explicitly overridden for one run.
 - Extended adversarial recovery coverage for paths containing spaces, forged completion markers missing the Age key, unencrypted destinations, backup copy failures, and restore copy failures. New backup directories/metadata use a private umask.
-- Confirmed the real preflight fails safely because `/Volumes/KingstonPhotos` is not mounted. The user selected preparation only, so no physical backup was attempted.
+- Confirmed the real preflight fails safely because `/Volumes/KingstonPhotos` is not mounted. A later `just backup-preflight` repeats the same safe failure; no physical backup was attempted.
+- Confirmed `tmutil destinationinfo` reports no Time Machine destination and `tmutil latestbackup` cannot mount one. `diskutil list` shows no KingstonPhotos or other external physical disk attached; the blocker is physical media, not an unlock/mount failure. Workstation disaster recovery remains the only uncompleted manual setup item.
+- Clarified `README.md` with explicit volume-unlock/mount checks, the intentional preflight failure behavior, and the required post-backup restore drill.
 - Explained the application-firewall rationale (reduce unsolicited inbound access on untrusted networks); the user explicitly declined enabling it, so the firewall remains unchanged.
 
 ## Findings
@@ -107,7 +109,7 @@ The setup is unusually capable and substantially better structured than a typica
 - [x] Remove stale Dotter state and the dangling `cua-driver` link; localize Pi trust state.
 - [x] Add strict CI, all-package tests, and a committed npm workspace lockfile.
 - [x] Run `mise reshim` and reconcile the Brew bundle unlink mismatch.
-- [ ] Mount the encrypted destination, run `just backup-preflight`, then `just backup-workstation`, and perform one restore drill. The workflow is prepared; KingstonPhotos was not mounted.
+- [ ] Mount the encrypted destination, run `just backup-preflight`, then `just backup-workstation`, and perform one restore drill. The workflow is prepared; KingstonPhotos is still not mounted.
 - [x] Decide on the macOS application firewall: user declined; leave it disabled.
 - [ ] Configure Time Machine after selecting a destination; no destination is currently configured.
 - [x] Investigate mise's PATH advisory: generated Nushell activation runs after base PATH setup, managed Node/Python/Go paths already precede `~/dotfiles/pi/agent/bin`, `mise reshim` cleared the actual missing-shim problem, and `just nu-health` passes. No speculative PATH rewrite applied.

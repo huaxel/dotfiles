@@ -35,7 +35,7 @@ Review the repository's Nix setup for correctness, maintainability, security, an
 - Ordered the primary llama service after `network-online.target` and added the corresponding dependency.
 - Final `just ci` passes.
 - Added a flake assertion that the primary llama service retains network-online ordering.
-- NixOS system-closure dry-run resolves successfully here; a real build still belongs on an x86_64-linux builder.
+- NixOS system-closure dry-run resolves successfully here; a real build was then run on `arch-wsl` (x86_64-linux) and completed successfully, producing `/nix/store/0r4f59j7mnwwdr6xsgag6psr990x18yz-nixos-system-framearch-nixos-26.11.20260919.20b1ddd`.
 - Made `nixos-check` detect non-x86 hosts and report a clear evaluation-only skip instead of failing with platform-mismatch noise; verified on aarch64-darwin.
 - Final `just ci` passes.
 
@@ -53,5 +53,5 @@ Review the repository's Nix setup for correctness, maintainability, security, an
 
 ## Questions / Next steps
 
-- Run `just nixos-check` on the target x86_64-linux machine or a matching builder.
+- [x] Run `just nixos-check` on the target x86_64-linux machine or a matching builder; `arch-wsl` produced the full system closure successfully.
 - Update upstream dependencies when the deprecated `stdenv.is*` accessors are removed.
