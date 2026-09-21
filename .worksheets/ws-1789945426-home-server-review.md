@@ -44,7 +44,7 @@ Audit home-server deployment hooks, service ownership, network exposure, secrets
 - **Healthy — storage and disks.** SMART passes on all acerpepe drives and liedelpi NVMe. Current free space is ~123 GiB on `/data` and ~386 GiB on the secondary disk after repair.
 - **Resolved — stale generated primary snapshot.** The authorized non-latest `/data/backups/pi/2026-09-21T085039` snapshot was removed; `/data` now has ~174 GiB free. The retention guard also protects whichever snapshot `latest` references.
 - **Resolved — retired-but-registered K3s worker.** The authorized root-only recovery archive was created, stale node/pods were removed from liedelpi, and the supported K3s agent uninstall removed acerpepe's agent/runtime state. liedelpi is the only Ready control-plane node.
-- **Unresolved — broad LAN/network exposure.** liedelpi has many historical NodePort UFW allows, NFS exports `/home/juan/media` with `no_root_squash`, and UFW permits routed traffic. Service reachability policy must be decided before safely reducing these rules.
+- **Unresolved — broad LAN/network exposure, intentionally unchanged.** liedelpi currently allows SSH, HTTP/HTTPS, Portainer, BitTorrent, K3s API, DNS, NFS, and numerous historical NodePorts from `Anywhere` in UFW, including IPv6; `/home/juan/media` is exported to `192.168.1.0/24` with `no_root_squash`; K3s etcd is listening on the LAN address. Per authorization, this baseline was measured but not modified.
 - **Resolved — acerpepe reboot required.** After authorization, acerpepe rebooted cleanly into kernel `6.12.107+deb13-amd64`; Docker, unattended-upgrades, Tailscale, and the secondary backup mount are healthy. The K3s agent is absent as intended.
 - **Unresolved — no offsite provider.** rclone has no configured remote; the weekly job intentionally remains disabled. On-site redundancy is restored but photos still rely on iCloud for the third copy.
 - `ingester@quality.service` remains failed on acerpepe due application-level stale-data findings; this belongs to the nursultan-web project rather than dotfiles infrastructure.
@@ -56,7 +56,7 @@ Audit home-server deployment hooks, service ownership, network exposure, secrets
 - Do not enable offsite synchronization until a capacity-appropriate provider and preferably an rclone crypt remote are configured; this remains intentionally unconfigured after authorization.
 
 ## Questions / Next steps
-- [ ] Approve or retain the known bad 455 GiB primary snapshot?
+- [x] Approve removal of the known bad 455 GiB primary snapshot.
 - [x] Reboot acerpepe to activate the current kernel and deferred service updates.
 - [x] Retire acerpepe from K3s and clean its orphaned runtime state.
 - [x] Keep the current NodePort, NFS, SSH, and routed-firewall exposure unchanged for this review.
