@@ -25,14 +25,39 @@ fi
 log "Setting capabilities on /usr/bin/caddy..."
 sudo setcap cap_net_bind_service=+ep /usr/bin/caddy
 
-# --- Install Docker Compose plugin if docker is present ---
+# --- Install Docker plugins if docker is present ---
+install_github_plugin() {
+  local url="$1" checksums_url="$2" asset="$3" destination="$4"
+  local tmp_dir
+  tmp_dir=$(mktemp -d)
+  if ! curl -fsSL "$url" -o "$tmp_dir/$asset" \
+    || ! curl -fsSL "$checksums_url" -o "$tmp_dir/checksums.txt" \
+    || ! (cd "$tmp_dir" && grep -E "^[[:xdigit:]]{64}[[:space:]]+\\*?${asset}$" checksums.txt | sed 's/ \*/  /' | sha256sum -c -) \
+    || ! install -m 0755 "$tmp_dir/$asset" "$destination"; then
+    rm -rf -- "$tmp_dir"
+    fail "Could not securely install $asset"
+  fi
+  rm -rf -- "$tmp_dir"
+}
+
 if command -v docker >/dev/null 2>&1; then
+  case "$(uname -m)" in
+    x86_64) compose_arch="x86_64"; buildx_arch="amd64" ;;
+    aarch64|arm64) compose_arch="aarch64"; buildx_arch="arm64" ;;
+    *) fail "Unsupported Docker plugin architecture: $(uname -m)" ;;
+  esac
+  mkdir -p "$HOME/.docker/cli-plugins"
+
   if ! docker compose version >/dev/null 2>&1; then
     log "Installing Docker Compose plugin..."
-    mkdir -p ~/.docker/cli-plugins
-    curl -fsSL https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-linux-x86_64 \
-      -o ~/.docker/cli-plugins/docker-compose
-    chmod +x ~/.docker/cli-plugins/docker-compose
+    if ! sudo apt-get install -y docker-compose-plugin; then
+      compose_version="2.27.0"
+      compose_asset="docker-compose-linux-${compose_arch}"
+      install_github_plugin \
+        "https://github.com/docker/compose/releases/download/v${compose_version}/${compose_asset}" \
+        "https://github.com/docker/compose/releases/download/v${compose_version}/checksums.txt" \
+        "$compose_asset" "$HOME/.docker/cli-plugins/docker-compose"
+    fi
   else
     log "Docker Compose plugin already installed: $(docker compose version)"
   fi
@@ -40,10 +65,14 @@ if command -v docker >/dev/null 2>&1; then
   BUILDX_VERSION=$(docker buildx version 2>/dev/null | awk '{print $2}' | sed 's/^v//' || echo "0.0.0")
   if [ "$(printf '%s\n' "0.17.0" "$BUILDX_VERSION" | sort -V | head -n1)" != "0.17.0" ]; then
     log "Updating Docker Buildx..."
-    mkdir -p ~/.docker/cli-plugins
-    curl -fsSL https://github.com/docker/buildx/releases/download/v0.21.3/buildx-v0.21.3.linux-amd64 \
-      -o ~/.docker/cli-plugins/docker-buildx
-    chmod +x ~/.docker/cli-plugins/docker-buildx
+    if ! sudo apt-get install -y docker-buildx-plugin; then
+      buildx_version="0.21.3"
+      buildx_asset="buildx-v${buildx_version}.linux-${buildx_arch}"
+      install_github_plugin \
+        "https://github.com/docker/buildx/releases/download/v${buildx_version}/${buildx_asset}" \
+        "https://github.com/docker/buildx/releases/download/v${buildx_version}/checksums.txt" \
+        "$buildx_asset" "$HOME/.docker/cli-plugins/docker-buildx"
+    fi
   else
     log "Buildx already up to date: $(docker buildx version)"
   fi
@@ -63,6 +92,9 @@ log "Creating directories..."
 mkdir -p ~/repos ~/apps ~/deploy-hooks
 
 # --- Tailscale cert ---
+command -v tailscale >/dev/null 2>&1 || fail "Tailscale is required for tailnet-only deployment"
+TAILSCALE_IP=$(tailscale ip -4 2>/dev/null | head -n1)
+case "$TAILSCALE_IP" in 100.*) ;; *) fail "No Tailscale IPv4 address available" ;; esac
 TAILSCALE_HOST="$(hostname -s).bonobo-fort.ts.net"
 CERT_DIR="$HOME/.config/tailscale/certs"
 mkdir -p "$CERT_DIR"
@@ -70,28 +102,22 @@ mkdir -p "$CERT_DIR"
 if ! sudo tailscale set --operator="$(whoami)" 2>/dev/null; then
   log "Could not set Tailscale operator; cert step may require sudo."
 fi
-
-if command -v tailscale >/dev/null 2>&1; then
-  log "Obtaining Tailscale certificate for $TAILSCALE_HOST..."
-  tailscale cert \
-    --cert-file "$CERT_DIR/$TAILSCALE_HOST.crt" \
-    --key-file "$CERT_DIR/$TAILSCALE_HOST.key" \
-    "$TAILSCALE_HOST" || log "Tailscale cert not available (DNS/ACL issue). HTTP fallback will be used."
-else
-  log "Tailscale not installed; skipping HTTPS cert."
-fi
+log "Obtaining Tailscale certificate for $TAILSCALE_HOST..."
+tailscale cert \
+  --cert-file "$CERT_DIR/$TAILSCALE_HOST.crt" \
+  --key-file "$CERT_DIR/$TAILSCALE_HOST.key" \
+  "$TAILSCALE_HOST" || log "Tailscale cert not available (DNS/ACL issue). Tailnet HTTP fallback will be used."
 
 # --- Caddy config ---
-TAILSCALE_IP=$(tailscale ip -4 2>/dev/null || hostname -I | awk '{print $1}')
 log "Tailscale IP: $TAILSCALE_IP"
 
-cat > ~/Caddyfile <<EOF
+cat > "$HOME/Caddyfile" <<EOF
 {
 	admin 127.0.0.1:2019
 	auto_https off
 }
 
-import /home/juan/apps/*/current/Caddyfile
+import $HOME/apps/*/current/Caddyfile
 EOF
 
 # --- Caddy user service ---
@@ -100,12 +126,12 @@ mkdir -p ~/.config/systemd/user
 cat > ~/.config/systemd/user/caddy.service <<EOF
 [Unit]
 Description=Caddy reverse proxy
-After=network.target tailscaled.service
+After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/caddy run --config /home/juan/Caddyfile
-ExecReload=/usr/bin/caddy reload --config /home/juan/Caddyfile
+ExecStart=/usr/bin/caddy run --config %h/Caddyfile
+ExecReload=/usr/bin/caddy reload --config %h/Caddyfile
 Restart=on-failure
 RestartSec=5
 LimitNOFILE=65536
@@ -123,7 +149,7 @@ Description=Renew Tailscale HTTPS certificate
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/tailscale cert --cert-file $CERT_DIR/$TAILSCALE_HOST.crt --key-file $CERT_DIR/$TAILSCALE_HOST.key $TAILSCALE_HOST
-ExecStartPost=/usr/bin/caddy reload --config /home/juan/Caddyfile
+ExecStartPost=/usr/bin/caddy reload --config %h/Caddyfile
 EOF
 
 cat > ~/.config/systemd/user/tailscale-cert-renew.timer <<EOF

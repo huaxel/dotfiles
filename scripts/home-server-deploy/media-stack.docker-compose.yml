@@ -12,12 +12,12 @@ networks:
 
 services:
   jellyfin:
-    image: jellyfin/jellyfin:latest
+    image: jellyfin/jellyfin@sha256:aefb67e6a7ff1debdd154a78a7bbb780fd0c873d8639210a7f6a2016ad2b35db
     container_name: jellyfin
     restart: unless-stopped
     networks:
       media-net:
-        ipv4_address: 172.18.0.4
+        ipv4_address: 172.18.0.14
     ports:
       - "192.168.1.138:8096:8096"
       - "192.168.1.138:1900:1900/udp"
@@ -31,7 +31,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
 
   qbittorrent:
-    image: linuxserver/qbittorrent:latest
+    image: linuxserver/qbittorrent@sha256:212b86dff59e3962b4082b5ef20a577e76c8f8527d2ab505cfa887b4bcecb0b0
     container_name: qbittorrent
     restart: unless-stopped
     networks:
@@ -52,7 +52,7 @@ services:
       - /home/juan/media:/data/media
 
   sonarr:
-    image: linuxserver/sonarr:latest
+    image: linuxserver/sonarr@sha256:373159ba768e23a3a1c497d9f2b936addf8fd5b1fdce7dd6a14080ac928bfda0
     container_name: sonarr
     restart: unless-stopped
     networks:
@@ -71,12 +71,12 @@ services:
       - /home/juan/media:/data/media
 
   radarr:
-    image: linuxserver/radarr:latest
+    image: linuxserver/radarr@sha256:a45b5ab0f850f39edb4cc9c95bbd967b52ddc3d4574a4dfb45561177db6c88f4
     container_name: radarr
     restart: unless-stopped
     networks:
       media-net:
-        ipv4_address: 172.18.0.2
+        ipv4_address: 172.18.0.13
     ports:
       - "192.168.1.138:7878:7878"
     environment:
@@ -90,7 +90,7 @@ services:
       - /home/juan/media:/data/media
 
   prowlarr:
-    image: linuxserver/prowlarr:latest
+    image: linuxserver/prowlarr@sha256:1295cff29d10b486c0d8324d1559a552140a5932bf8b3d87e398654414f63f92
     container_name: prowlarr
     restart: unless-stopped
     networks:
@@ -106,21 +106,21 @@ services:
       - /home/juan/Data/docker/data/arr-stack/prowlarr:/config
 
   jellyseerr:
-    image: fallenbagel/jellyseerr:latest
+    image: fallenbagel/jellyseerr@sha256:4538137bc5af902dece165f2bf73776d9cf4eafb6dd714670724af8f3eb77764
     container_name: jellyseerr
     restart: unless-stopped
     networks:
       media-net:
         ipv4_address: 172.18.0.12
     ports:
-      - "192.168.1.138:5055:5055
+      - "192.168.1.138:5055:5055"
     environment:
       - TZ=Europe/Brussels
     volumes:
       - /home/juan/Data/docker/data/jellyfin/jellyseer/config:/app/config
 
   whisparr:
-    image: ghcr.io/hotio/whisparr:v3
+    image: ghcr.io/hotio/whisparr@sha256:78b6370bd9a2c6ad2a96302f42dbcd457c4848ff85e7bba9e50b235434260da4
     container_name: whisparr
     restart: unless-stopped
     networks: [media-net]
@@ -136,7 +136,7 @@ services:
       - /home/juan/media:/data/media
 
   stash:
-    image: stashapp/stash:latest
+    image: stashapp/stash@sha256:df744af5a0c976e2ec671052ecc1f8a9aa757fa12b8f9930b59910b7295f0da6
     container_name: stash
     restart: unless-stopped
     networks: [media-net]
