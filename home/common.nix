@@ -125,7 +125,10 @@ in
         colorMovedWS = "allow-indentation-change";
       };
       filter."strip-pi-machine-config" = {
-        clean = "node scripts/strip-pi-machine-config.mjs";
+        # cwd-independent path: git resolves relative filter commands against
+        # the invoking directory, not the repo root. Use `git rev-parse` so
+        # the filter works from any cwd on any machine.
+        clean = "node \"$(git rev-parse --show-toplevel)/scripts/strip-pi-machine-config.mjs\"";
         # smudge is required for fresh clones: `required = true` with a missing
         # smudge makes checkout fail before bootstrap runs. The committed blob
         # is already machine-stripped, so `cat` is the correct pass-through.

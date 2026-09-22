@@ -20,7 +20,13 @@ reconnect_vpn() {
     log "🔄 Disconnecting $VPN_NAME..."
     powershell.exe -Command "rasdial '$VPN_NAME' /disconnect" 2>/dev/null || true
     sleep 3
-    
+
+    # Kill any stale rasdial.exe left holding the VPN port — otherwise the
+    # connect fails with RAS error 636 "The specified port is already open".
+    log "🧹 Killing stale rasdial processes..."
+    powershell.exe -Command "Get-Process rasdial -ErrorAction SilentlyContinue | Stop-Process -Force" 2>/dev/null || true
+    sleep 1
+
     log "🔄 Reconnecting $VPN_NAME..."
     if powershell.exe -Command "rasdial '$VPN_NAME'"; then
         log "✅ VPN reconnected successfully"

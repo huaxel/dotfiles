@@ -70,9 +70,9 @@ fi
 git config pull.rebase true
 
 git config filter.strip-pi-machine-config.clean \
-    'node scripts/strip-pi-machine-config.mjs' 2>/dev/null || true
+    'node "$(git rev-parse --show-toplevel)/scripts/strip-pi-machine-config.mjs"' 2>/dev/null || true
 git config filter.strip-pi-machine-config.smudge \
-    'node scripts/strip-pi-machine-config.mjs 2>/dev/null || cat' 2>/dev/null || true
+    'node "$(git rev-parse --show-toplevel)/scripts/strip-pi-machine-config.mjs" 2>/dev/null || cat' 2>/dev/null || true
 
 step "3/9 — Age key (for secret decryption)"
 
