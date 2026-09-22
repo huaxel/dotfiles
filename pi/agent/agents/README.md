@@ -1,6 +1,8 @@
 # Pi subagents (Herdr)
 
-Global agent definitions for `pi-shepherdr`. Discovery:
+Global agent definitions for `pi-shepherdr`. When running inside Herdr,
+master-mode delegation through `herdr_agents` is available without waiting for
+an explicit user request. Discovery:
 `$PI_CODING_AGENT_DIR/agents/` overrides bundled agents in the npm package.
 
 | Agent | Role |
@@ -17,7 +19,15 @@ rules: `../../AGENTS.md`. Herdr procedures live in
 `scout`, `visual-tester` (plus any `.pi/agents/` in the project).
 
 **User slash commands (Pi prompt):** `/subagent worker …`, `/plan …`, `/iterate`
-—not `subagents_list`.
+—not `subagents_list`. For automatic Herdr orchestration, enable `/herdr master`
+and let the parent use `herdr_agents`; this repository persists that setting in
+`.pi/shepherdr.json`. `/subagent` remains the direct local agent shortcut.
+
+**Operational prerequisites:** the parent Pi session must run inside Herdr
+(`HERDR_ENV=1`). This repository enables Shepherdr master mode through
+`.pi/shepherdr.json`; elsewhere use `/herdr master` for the current session.
+For `herdr_agents.start`, choose an explicit placement (`new_workspace`,
+`new_tab`, or an existing `pane`) and provide a stable agent name.
 
 **Smoke test (in Herdr, parent Pi session, project cwd):**
 

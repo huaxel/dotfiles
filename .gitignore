@@ -50,6 +50,9 @@ local/
 
 # Local tool runtime artifacts
 .pi/
+!.pi/
+.pi/*
+!.pi/shepherdr.json
 .pi-subagents/
 .herdr-todo/
 .dotter/
