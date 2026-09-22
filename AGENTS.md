@@ -74,18 +74,21 @@ Select a skill based on the task rather than reading every skill. In particular,
 read `$HOME/.agents/skills/herdr/SKILL.md` before using Herdr and
 `$HOME/.agents/skills/fleet/SKILL.md` before multi-issue fleet orchestration.
 
-When delegation is useful, use `worker` for implementation/exploration and
-`reviewer` for read-only review. When the user explicitly requests Herdr and
-`HERDR_ENV=1`, use the `herdr` skill and delegate via named Herdr agents
-(`herdr_agents` from pi-shepherdr). Run review agents read-only
-(`--tools read,grep,find,ls`), and never nest agents. Use `grill-me` only when
-asked, `jules-orchestration` for Jules, and `teach` for teaching.
+When delegation is useful and `HERDR_ENV=1`, use the repository's Shepherdr
+master mode, then use the `herdr` skill and `herdr_agents`. (`.pi/shepherdr.json`
+enables it here; `/herdr master` enables it for a session elsewhere.) Use
+`worker` for implementation/exploration and `reviewer` for read-only review.
+Run review agents read-only
+(`--tools read,grep,find,ls`), and never nest agents. For new agents, choose an
+explicit Herdr placement and stable name; rely on Shepherdr completion events
+rather than polling pane output. Use `grill-me` only when asked,
+`jules-orchestration` for Jules, and `teach` for teaching.
 
 Use `agy_execute` (pi-agy) for bulk scaffolding, repetitive refactors, and
 exhaustive test generation: default to `mode=plan`, use `accept-edits` only for
 scoped batches, and always review the diff and run the project gate after writes.
 Reuse `conversation_id`/`continue` for multi-step handoffs. Prefer Cursor for
-interactive work and, when explicitly requested, Herdr for multi-agent review;
-use agy for batch work.
+interactive work; use Herdr for multi-agent review and pane-based delegation
+when `HERDR_ENV=1`; use agy for batch work.
 Cloudflare skills are scoped to nursultan-web, and `uv` is scoped to project-atom.
 Coordinate related sessions through pi-intercom when available.
