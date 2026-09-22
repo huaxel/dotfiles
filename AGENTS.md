@@ -75,8 +75,7 @@ read `$HOME/.agents/skills/herdr/SKILL.md` before using Herdr and
 `$HOME/.agents/skills/fleet/SKILL.md` before multi-issue fleet orchestration.
 
 When delegation is useful and `HERDR_ENV=1`, use the repository's Shepherdr
-master mode, then use the `herdr` skill and `herdr_agents`. (`.pi/shepherdr.json`
-enables it here; `/herdr master` enables it for a session elsewhere.) Use
+master mode, then use the `herdr` skill and `agents` tool. Use `/herdr` when orchestration guidance is useful. Use
 `worker` for implementation/exploration and `reviewer` for read-only review.
 Run review agents read-only
 (`--tools read,grep,find,ls`), and never nest agents. For new agents, choose an

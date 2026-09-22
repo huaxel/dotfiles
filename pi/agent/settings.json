@@ -44,7 +44,7 @@
     "../packages/pi-ghostty-theme-sync",
     "npm:@juanbenjumea/pi-ask-herdr",
     "npm:@juanbenjumea/pi-provider-openference",
-    "npm:@howaboua/pi-shepherdr@0.1.2",
+    "npm:@howaboua/pi-shepherdr@0.2.4",
     "npm:@juanbenjumea/pi-agy",
     "npm:pi-context-view",
     "npm:@ogulcancelik/pi-codex-compaction",
