@@ -27,13 +27,13 @@ Keep using the CLI via bash for what the tools do not expose: discovery (`herdr 
 
 Choose the spawning surface by role, not by task size. Work gets a name and a workspace; helpers report back; terminals are not agents.
 
-- **Work** (issue, feature, fix in a worktree, long-running) → named Herdr agent (`herdr agent start`, or the `herdr_agents` tool from pi-shepherdr): own workspace, addressable by name, survives the mother session. The mother polls it with `herdr agent get` or bounded `herdr wait agent-status` waits.
-- **Helpers whose result must return** (review gate, scout) → also named Herdr agents, started read-only where safety requires it (`--tools read,grep,find,ls`), watched via `herdr_agents watch`. Pick the helper model by cost tier (see the fleet skill).
-- **Watchers** → not needed: pi-shepherdr master mode (`herdr_agents watch/start/send`) steers the mother when a watched agent settles (done or blocked), including in unattended runs. If it is unavailable, fall back to polling (`herdr agent get` / bounded `herdr wait agent-status`).
+- **Work** (issue, feature, fix in a worktree, long-running) → profiled agent through the `agents` tool from pi-shepherdr: own workspace, addressable by name, survives the mother session. Use `spawn` or `assign` with a profiled `agent_type`.
+- **Helpers whose result must return** (review gate, scout) → also profiled agents, started read-only where safety requires it (`--tools read,grep,find,ls`), and watched through the `agents` tool. Pick the helper model by cost tier (see the fleet skill).
+- **Watchers** → not needed: Shepherdr's `agents` tool steers the mother when a watched agent settles (done or blocked), including in unattended runs. Explicit `watch` subscriptions persist until `unwatch`.
 - **Terminals and layout** → `herdr_pane` / `herdr_layout` tools. They are not agents; do not treat them as a delegation surface.
 - **CLI** → discovery, worktrees, notifications, sessions, integration.
 
-Completion awareness: pi-shepherdr delivers a steer when the mother session is idle; if the mother is mid-turn the steer is queued until the turn ends. Herdr agents never steer on their own; their completion is observed via `agent get` / `wait agent-status` / `herdr_agents watch`.
+Completion awareness: Shepherdr delivers a steer when the mother session is idle; if the mother is mid-turn the steer is queued until the turn ends. Use blocking `spawn`/`assign` when the result must be available before continuing, or asynchronous calls when the mother can continue.
 
 ## Learn the current CLI
 

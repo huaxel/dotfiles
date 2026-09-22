@@ -1,8 +1,8 @@
 # Pi subagents (Herdr)
 
 Global agent definitions for `pi-shepherdr`. When running inside Herdr,
-master-mode delegation through `herdr_agents` is available without waiting for
-an explicit user request. Discovery:
+the `agents` tool is available for delegation without waiting for an explicit
+user request. Discovery:
 `$PI_CODING_AGENT_DIR/agents/` overrides bundled agents in the npm package.
 
 | Agent | Role |
@@ -19,19 +19,18 @@ rules: `../../AGENTS.md`. Herdr procedures live in
 `scout`, `visual-tester` (plus any `.pi/agents/` in the project).
 
 **User slash commands (Pi prompt):** `/subagent worker …`, `/plan …`, `/iterate`
-—not `subagents_list`. For automatic Herdr orchestration, enable `/herdr master`
-and let the parent use `herdr_agents`; this repository persists that setting in
-`.pi/shepherdr.json`. `/subagent` remains the direct local agent shortcut.
+—not `subagents_list`. Use `/herdr` to toggle orchestration guidance; the
+`agents` tool remains available independently. `/subagent` remains the direct
+local agent shortcut.
 
 **Operational prerequisites:** the parent Pi session must run inside Herdr
-(`HERDR_ENV=1`). This repository enables Shepherdr master mode through
-`.pi/shepherdr.json`; elsewhere use `/herdr master` for the current session.
-For `herdr_agents.start`, choose an explicit placement (`new_workspace`,
-`new_tab`, or an existing `pane`) and provide a stable agent name.
+(`HERDR_ENV=1`) for fleet monitoring. Call `agents` with `action: "help"`
+before first use; use `spawn`/`assign` for work and provide a profiled
+`agent_type`. For local repository work, use a dedicated worktree when needed.
 
 **Smoke test (in Herdr, parent Pi session, project cwd):**
 
-1. Ask: “Call the `herdr_agents` tool and show the result.” (Or read this README / `ls *.md` here.)
+1. Ask: “Call the `agents` tool with `action: help` and show the result.” (Or read this README / `ls *.md` here.)
 2. `/subagent worker Reply exactly: worker-ok`
 3. `/subagent reviewer Read pi/agent/agents/README.md and summarize it in one sentence.`
 
