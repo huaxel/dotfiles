@@ -93,6 +93,12 @@ check_vpn() {
 
 reconnect_vpn() {
     info "Reconnecting Qlik-Env VPN..."
+    # Kill any stale rasdial.exe left holding the VPN port — otherwise the
+    # connect fails with RAS error 636 "The specified port is already open".
+    info "Clearing stale rasdial processes..."
+    "$POWERSHELL" -Command "Get-Process rasdial -ErrorAction SilentlyContinue | Stop-Process -Force" 2>/dev/null || true
+    sleep 1
+
     "$POWERSHELL" -Command "rasdial 'Qlik-Env'" 2>&1 | while IFS= read -r line; do
         info "  $line"
     done

@@ -123,9 +123,9 @@ try {
     }
     git config pull.rebase true
     Assert-NativeSuccess "Configuring Git pull behavior"
-    git config filter.strip-pi-machine-config.clean 'node scripts/strip-pi-machine-config.mjs'
+    git config filter.strip-pi-machine-config.clean 'node "$(git rev-parse --show-toplevel)/scripts/strip-pi-machine-config.mjs"'
     Assert-NativeSuccess "Configuring Pi clean filter"
-    git config filter.strip-pi-machine-config.smudge 'node scripts/strip-pi-machine-config.mjs 2>/dev/null || cat'
+    git config filter.strip-pi-machine-config.smudge 'node "$(git rev-parse --show-toplevel)/scripts/strip-pi-machine-config.mjs" 2>/dev/null || cat'
     Assert-NativeSuccess "Configuring Pi smudge filter"
 
     Write-Host "`nDeploying native Windows configuration..." -ForegroundColor Yellow
