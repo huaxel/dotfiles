@@ -24,6 +24,10 @@ Deleting an active item is allowed, but important rejection or supersession rati
 
 Revisions are recorded to an append-only `events.jsonl` per worksheet with revision id, parent revision, actor (human/agent), changed section keys, operation summary, changed block ids, conversation and turn id. Block identity is reconciled across saves from content+heading similarity so edits, renames, and reordering do not churn ids — idempots live in the sidecar, never in the visible Markdown. This follows Zed's DeltaDB (append-only deltas over a real worktree) and logical-anchor lessons from the worksheet research, without full CRDT text replication.
 
+## 2026-09-23 — Explicit worksheet ownership per session
+
+Parallel Pi processes share `.worksheets/`; selecting the newest file on startup lets one session steer or display another session's work. Sessions now start unselected and in normal chat mode. `/worksheet start`, `/worksheet open <name>`, and `/worksheet attach <path>` explicitly claim the active worksheet for that process; unselected sessions ignore worksheet edits.
+
 ## 2026-08-24 — Stable semantics for comments, questions, todos
 
 Markdown-native contract, no hidden HTML metadata:

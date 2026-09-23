@@ -183,6 +183,9 @@ export function worksheetCounts(content: string): { openTodos: number; openQuest
 export default function (pi: ExtensionAPI) {
   const WORKSHEETS_DIR = ".worksheets";
   const attachedFiles = new Set<string>();
+  // Worksheet selection is process-local. Never infer it from the newest file:
+  // parallel Pi sessions share .worksheets/ but must not steer each other.
+  let activeWorksheet: string | null = null;
 
   // ── loop guard ──────────────────────────────────────────────────────────
 
@@ -683,9 +686,10 @@ export default function (pi: ExtensionAPI) {
     const worksheetsAbs = path.resolve(WORKSHEETS_DIR);
     currentConversation = ctx.sessionManager.getSessionFile() ?? "unknown";
     currentTurn = 0;
-    // Default document-first to on when a worksheet exists; explicit /worksheet
-    // mode overrides for the rest of the process.
-    documentFirst = latestWorksheet() !== null;
+    // Do not auto-select the newest project worksheet. Another Pi session may
+    // own it; selection happens explicitly via start, attach, or open. Preserve
+    // an explicit selection if session_start is emitted again during reload.
+    documentFirst = activeWorksheet !== null;
 
     // A reload can emit session_start more than once. Close the old watcher
     // first so edits are never delivered twice.
@@ -704,12 +708,13 @@ export default function (pi: ExtensionAPI) {
 
     const processChange = (filePath: string): void => {
       if (watcherPaused) return;
+      const normalizedFilePath = path.resolve(filePath);
+      if (normalizedFilePath !== activeWorksheet && !attachedFiles.has(normalizedFilePath)) return;
       const filename = path.relative(process.cwd(), filePath) || path.basename(filePath);
 
       // Guarded: an agent (this process or another) is writing. Skip
       // injection, but refresh the stored hash so a later fs.watch event
       // cannot re-inject the agent's own write.
-      const normalizedFilePath = path.resolve(filePath);
       if (
         worksheetGuard.isActiveFor(normalizedFilePath) ||
         hasExternalWorksheetLock(normalizedFilePath)
@@ -743,9 +748,7 @@ export default function (pi: ExtensionAPI) {
 
     const scheduleAllFiles = (): void => {
       try {
-        for (const entry of fs.readdirSync(worksheetsAbs)) {
-          if (entry.endsWith(".md")) processChange(path.join(worksheetsAbs, entry));
-        }
+        if (activeWorksheet) processChange(activeWorksheet);
         for (const filePath of attachedFiles) processChange(filePath);
       } catch {
         // directory may have been removed during reload
@@ -808,6 +811,7 @@ export default function (pi: ExtensionAPI) {
     rescanWatcher = null;
     currentConversation = "unknown";
     currentTurn = 0;
+    activeWorksheet = null;
   });
 
   // Track actor context: conversation/turn identity for the audit log.
@@ -876,7 +880,7 @@ export default function (pi: ExtensionAPI) {
    */
   function setWorksheetStatus(ctx: { ui?: { setStatus?: (key: string, text: string | undefined) => void } } | undefined): void {
     if (!ctx?.ui?.setStatus) return;
-    const ws = latestWorksheet();
+    const ws = activeWorksheet;
     if (!ws) {
       ctx.ui.setStatus("worksheet", `${watcherPaused ? "⏸" : "📄"} no worksheets${documentFirst ? " · doc" : ""}`);
       return;
@@ -1052,6 +1056,8 @@ ${task}
           // Seed the hash so the agent's own create doesn't trigger injection.
           const content = fs.readFileSync(wsPath, "utf-8");
           rememberFile(wsPath, content);
+          activeWorksheet = wsPath;
+          documentFirst = true;
         } catch (err) {
           ctx.ui.notify(`Failed to create worksheet: ${(err as Error).message}`, "error");
           return;
@@ -1080,6 +1086,8 @@ ${task}
           ctx.ui.notify(`Cannot attach missing file: ${target}`, "warning");
           return;
         }
+        activeWorksheet = filePath;
+        documentFirst = true;
         ctx.ui.notify(`📎 Attached ${path.relative(process.cwd(), filePath)}`, "info");
         setWorksheetStatus(ctx);
         return;
@@ -1131,7 +1139,7 @@ ${task}
       // ── /worksheet open|path [name] ────────────────────────────────────
       if (sub === "open" || sub === "path") {
         const requested = rest.join(" ").trim();
-        const ws = requested ? requestedWorksheet(requested) : latestWorksheet();
+        const ws = requested ? requestedWorksheet(requested) : activeWorksheet;
         if (!ws) {
           ctx.ui.notify("Worksheet not found — try /worksheet list or /worksheet start", "warning");
           return;
@@ -1143,6 +1151,9 @@ ${task}
           return;
         }
 
+        activeWorksheet = ws;
+        documentFirst = true;
+        if (attachWatcher) attachWatcher(ws);
         await openInSplit(ws, ctx);
         return;
       }
@@ -1185,7 +1196,7 @@ ${task}
 
       // ── /worksheet status ──────────────────────────────────────────────
       if (sub === "status") {
-        const latest = latestWorksheet();
+        const latest = activeWorksheet;
         const state = watcherPaused ? "paused" : "watching";
         const attached = attachedFiles.size > 0
           ? ` — attached: ${attachedFiles.size}`
