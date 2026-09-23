@@ -69,8 +69,12 @@ fi
 # spurious merge commits/conflicts when 3 machines drift independently)
 git config pull.rebase true
 
+# Single quotes are deliberate: $(...) must expand when git runs the filter
+# at clean/smudge time, not now while writing the config value.
+# shellcheck disable=SC2016
 git config filter.strip-pi-machine-config.clean \
     'node "$(git rev-parse --show-toplevel)/scripts/strip-pi-machine-config.mjs"' 2>/dev/null || true
+# shellcheck disable=SC2016
 git config filter.strip-pi-machine-config.smudge \
     'node "$(git rev-parse --show-toplevel)/scripts/strip-pi-machine-config.mjs" 2>/dev/null || cat' 2>/dev/null || true
 
