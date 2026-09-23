@@ -84,12 +84,18 @@ if ("/mnt/ai_models" | path exists) {
 # Keep mise quiet; its activation is loaded from config.nu.
 $env.MISE_LOG_LEVEL = "error"
 
-# Keep machine-specific secrets outside this repository. They reach this
-# shell via systemd environment.d (~/.config/environment.d/). On Linux systemd
-# applies that file to user sessions automatically; on hosts without systemd
-# (e.g. macOS) parse it directly here so Nushell still gets the keys. Existing
-# environment variables are never overridden.
+# Keep machine-specific secrets outside this repository. The decrypted
+# environment.d file is authoritative for these provider keys: rebuild the
+# managed set on every shell startup so removed/commented assignments do not
+# survive through exec nu's inherited environment. Do not clear unrelated env.
 let secrets_file = ($env.XDG_CONFIG_HOME | path join "environment.d" "99-environment.conf")
+let managed_secret_prefixes = ["OPENROUTER_", "CEREBRAS_"]
+let managed_secret_names = ($env | columns | where { |name|
+    $managed_secret_prefixes | any { |prefix| $name | str starts-with $prefix }
+})
+if ($managed_secret_names | is-not-empty) {
+    hide-env ...$managed_secret_names
+}
 if ($secrets_file | path exists) {
     let secrets = (open --raw $secrets_file
         | lines
@@ -97,7 +103,7 @@ if ($secrets_file | path exists) {
         | where { |l| ($l | is-not-empty) and not ($l | str starts-with "#") }
         | each { |l| $l | parse --regex '^(?<key>[A-Za-z_][A-Za-z0-9_]*)=(?<value>.*)$' }
         | flatten
-        | where { |r| not ($r.key in ($env | columns)) }
+        | where { |r| $managed_secret_prefixes | any { |prefix| $r.key | str starts-with $prefix } }
         | reduce --fold {} { |r, acc| $acc | insert $r.key $r.value })
     if ($secrets | columns | length) > 0 {
         load-env $secrets
