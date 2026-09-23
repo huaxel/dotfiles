@@ -3,6 +3,9 @@
 # single secret source: ~/.config/environment.d/99-environment.conf (decrypted
 # by sops-nix). On Linux systemd applies it to user sessions; env.nu also parses
 # it directly so Nushell gets the keys on hosts without systemd (e.g. macOS).
+# Keep that file to bare `KEY=value` lines — no quotes, no $VAR expansion —
+# because this parser takes values literally while systemd would strip quotes
+# and expand variables (the fish parser in config.fish has the same constraint).
 
 $env.EDITOR = "nvim"
 $env.VISUAL = "nvim"
@@ -84,28 +87,47 @@ if ("/mnt/ai_models" | path exists) {
 # Keep mise quiet; its activation is loaded from config.nu.
 $env.MISE_LOG_LEVEL = "error"
 
-# Keep machine-specific secrets outside this repository. The decrypted
-# environment.d file is authoritative for these provider keys: rebuild the
-# managed set on every shell startup so removed/commented assignments do not
-# survive through exec nu's inherited environment. Do not clear unrelated env.
+# Keep machine-specific secrets outside this repository. Treat the decrypted
+# environment.d file as authoritative: remember its previously managed key
+# names (never values), remove those inherited variables, then load the current
+# assignments. This lets adding/removing any key in the file take effect on
+# `exec nu` without disturbing unrelated environment variables.
 let secrets_file = ($env.XDG_CONFIG_HOME | path join "environment.d" "99-environment.conf")
-let managed_secret_prefixes = ["OPENROUTER_", "CEREBRAS_"]
-let managed_secret_names = ($env | columns | where { |name|
-    $managed_secret_prefixes | any { |prefix| $name | str starts-with $prefix }
-})
-if ($managed_secret_names | is-not-empty) {
-    hide-env ...$managed_secret_names
+let managed_names_file = ($env.XDG_CACHE_HOME | path join "nushell" "environment.d-managed-keys")
+let previous_secret_names = if ($managed_names_file | path exists) {
+    open --raw $managed_names_file | lines | where { |name| $name | is-not-empty }
+} else { [] }
+# Commented-out `KEY=` lines name keys this file used to assign. Inherited
+# copies of such retired keys (and of keys loaded on a previous start, per the
+# manifest) must not survive a shell start: a parent process launched before
+# an edit keeps the stale value in memory and passes it down to children.
+let retired_secret_names = if ($secrets_file | path exists) {
+    open --raw $secrets_file
+    | lines
+    | each { |line| $line | str trim }
+    | where { |line| $line | str starts-with "#" }
+    | each { |line| $line | parse --regex '^#\s*(?<key>[A-Za-z_][A-Za-z0-9_]*)=' }
+    | flatten
+    | get key
+} else { [] }
+let inherited_secret_names = (($previous_secret_names | append $retired_secret_names | uniq)
+    | where { |name| $name in ($env | columns) })
+if ($inherited_secret_names | is-not-empty) {
+    hide-env ...$inherited_secret_names
 }
-if ($secrets_file | path exists) {
-    let secrets = (open --raw $secrets_file
-        | lines
-        | each { |l| $l | str trim }
-        | where { |l| ($l | is-not-empty) and not ($l | str starts-with "#") }
-        | each { |l| $l | parse --regex '^(?<key>[A-Za-z_][A-Za-z0-9_]*)=(?<value>.*)$' }
-        | flatten
-        | where { |r| $managed_secret_prefixes | any { |prefix| $r.key | str starts-with $prefix } }
-        | reduce --fold {} { |r, acc| $acc | insert $r.key $r.value })
-    if ($secrets | columns | length) > 0 {
-        load-env $secrets
-    }
+let secrets = if ($secrets_file | path exists) {
+    open --raw $secrets_file
+    | lines
+    | each { |line| $line | str trim }
+    | where { |line| ($line | is-not-empty) and not ($line | str starts-with "#") }
+    | each { |line| $line | parse --regex '^(?<key>[A-Za-z_][A-Za-z0-9_]*)=(?<value>.*)$' }
+    | flatten
+    # upsert = last assignment wins, matching systemd and the fish loader;
+    # insert would abort on a duplicated key.
+    | reduce --fold {} { |row, acc| $acc | upsert $row.key $row.value }
+} else { {} }
+if ($secrets | columns | length) > 0 {
+    load-env $secrets
 }
+mkdir ($managed_names_file | path dirname)
+($secrets | columns | str join "\n") | save --force $managed_names_file
