@@ -6,7 +6,8 @@ HOOK="$ROOT/scripts/home-server-deploy/post-receive"
 TMP=$(mktemp -d)
 trap 'rm -rf -- "$TMP"' EXIT
 export HOME="$TMP/home"
-mkdir -p "$HOME/bin" "$HOME/apps" "$HOME/repos"
+export TMPDIR="$TMP/checkouts"
+mkdir -p "$HOME/bin" "$HOME/apps" "$HOME/repos" "$TMPDIR"
 export PATH="$HOME/bin:$PATH"
 
 cat > "$HOME/bin/tailscale" <<'MOCK'
@@ -16,7 +17,11 @@ exit 1
 MOCK
 cat > "$HOME/bin/caddy" <<'MOCK'
 #!/usr/bin/env bash
-if [ "${1:-}" = validate ] && [ "${MOCK_FAIL_CADDY:-0}" = 1 ]; then exit 1; fi
+if [ "${1:-}" = validate ] && [ "${MOCK_FAIL_CADDY:-0}" = 1 ]; then exit 42; fi
+if [ "${1:-}" = validate ] && [ "${MOCK_SIGNAL_HOOK:-0}" = 1 ] && [ ! -e "$HOME/signal-sent" ]; then
+  touch "$HOME/signal-sent"
+  kill -TERM "$MOCK_HOOK_PID"
+fi
 exit 0
 MOCK
 cat > "$HOME/bin/systemctl" <<'MOCK'
@@ -55,7 +60,11 @@ if (
 ); then
   echo "failed initial Caddy validation unexpectedly reported success" >&2
   exit 1
+else
+  status=$?
+  test "$status" -eq 42
 fi
+test -z "$(find "$TMPDIR" -mindepth 1 -print -quit)"
 test ! -e "$HOME/apps/demo/current"
 test "$(find "$HOME/apps/demo/releases" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')" = 0
 
@@ -67,6 +76,7 @@ test "$(find "$HOME/apps/demo/releases" -mindepth 1 -maxdepth 1 -type d | wc -l 
 first_release=$(readlink -f "$HOME/apps/demo/current")
 test -f "$first_release/index.html"
 grep -qx first "$first_release/index.html"
+test -z "$(find "$TMPDIR" -mindepth 1 -print -quit)"
 
 # Force failure after symlink swap. The old release must be restored and the
 # failed release removed rather than becoming current.
@@ -81,9 +91,30 @@ if (
 ); then
   echo "failed Caddy validation unexpectedly reported success" >&2
   exit 1
+else
+  status=$?
+  test "$status" -eq 42
 fi
+test -z "$(find "$TMPDIR" -mindepth 1 -print -quit)"
 test "$(readlink -f "$HOME/apps/demo/current")" = "$first_release"
 grep -qx first "$HOME/apps/demo/current/index.html"
+test "$(find "$HOME/apps/demo/releases" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')" = 1
+
+# Signal the original hook PID after the swap, not an internal worker PID.
+# Cleanup must roll back the release and preserve the signal exit status.
+if (
+  cd "$repo"
+  printf '%s %s refs/heads/main\n' "$first" "$second" |
+    MOCK_SIGNAL_HOOK=1 bash -c 'export MOCK_HOOK_PID=$$; exec bash "$1"' _ "$HOOK"
+); then
+  echo "terminated hook unexpectedly reported success" >&2
+  exit 1
+else
+  status=$?
+  test "$status" -eq 143
+fi
+test -z "$(find "$TMPDIR" -mindepth 1 -print -quit)"
+test "$(readlink -f "$HOME/apps/demo/current")" = "$first_release"
 test "$(find "$HOME/apps/demo/releases" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')" = 1
 
 # Branch deletion is intentionally ignored.

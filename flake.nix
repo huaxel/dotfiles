@@ -36,6 +36,14 @@
 
   outputs = { nixpkgs, home-manager, herdr, sops-nix, cachy-llama, nixgl, ... }:
     let
+      # Bypass the upstream flake's deprecated platform checks. The local
+      # package expression preserves the pinned source and build settings.
+      cachyLlamaVulkan = nixpkgs.legacyPackages.x86_64-linux.callPackage
+        ./nixos/cachy-llama-package.nix {
+          cachySource = cachy-llama.outPath;
+          useVulkan = true;
+        };
+
       mkHome = { system, hostModule }:
         home-manager.lib.homeManagerConfiguration {
           pkgs = import nixpkgs {
@@ -57,7 +65,7 @@
       framearchNixos = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         specialArgs = {
-          cachyLlamaPackage = cachy-llama.packages.x86_64-linux.vulkan;
+          cachyLlamaPackage = cachyLlamaVulkan;
         };
         modules = [ ./nixos/framearch.nix ];
       };
@@ -65,7 +73,7 @@
       # Kept under legacyPackages so `nix flake check` validates the module
       # without compiling the large Vulkan/WebUI derivation on every change.
       legacyPackages.x86_64-linux.cachyLlamaVulkan =
-        cachy-llama.packages.x86_64-linux.vulkan;
+        cachyLlamaVulkan;
       legacyPackages.x86_64-linux.nixVulkanIntel =
         nixgl.packages.x86_64-linux.nixVulkanIntel;
 
@@ -96,7 +104,7 @@
         assert evaluated.config.hardware.graphics.enable;
         assert evaluated.config.fileSystems."/mnt/ai_models".device == "/dev/disk/by-uuid/fcef66f9-3a98-42ff-83f6-890cb249a22e";
         assert evaluated.config.systemd.services."llama.cpp".serviceConfig.User == "juan";
-        assert evaluated.config.systemd.services."llama.cpp".serviceConfig.ExecStart == "${cachy-llama.packages.x86_64-linux.vulkan}/bin/llama-server";
+        assert evaluated.config.systemd.services."llama.cpp".serviceConfig.ExecStart == "${cachyLlamaVulkan}/bin/llama-server";
         assert embeddingService.User == "juan";
         assert embeddingService.Group == "users";
         assert builtins.elem "tailscaled.service" embedding.after;

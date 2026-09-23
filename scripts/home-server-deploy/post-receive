@@ -540,7 +540,10 @@ main() {
       ;;
   esac
 
-  local repo_dir project service_name timestamp
+  # State used by EXIT cleanup must be script-scoped: errexit can unwind
+  # main's local variables before that trap runs. Keep main in this shell
+  # so signals sent to the hook PID still reach the deployment traps.
+  local repo_dir timestamp
   repo_dir=$(pwd)
   project=$(basename "$repo_dir" .git)
   case "$project" in
@@ -557,10 +560,11 @@ main() {
   exec 9>"$APPS_DIR/.deploy.lock"
   flock -x 9
 
-  local release_dir="$APPS_DIR/$project/releases/$timestamp"
-  local current_link="$APPS_DIR/$project/current"
-  local tmp_worktree previous_current="" project_type="" external_port="" internal_port=""
-  local swapped=0 completed=0
+  release_dir="$APPS_DIR/$project/releases/$timestamp"
+  current_link="$APPS_DIR/$project/current"
+  previous_current="" project_type="" external_port=""
+  swapped=0 completed=0
+  local internal_port=""
   tmp_worktree=$(mktemp -d)
   if [ -L "$current_link" ]; then previous_current=$(readlink -f "$current_link"); fi
 
