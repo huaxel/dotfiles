@@ -13,18 +13,23 @@ and follows the naming convention `ws-<epoch>-<slug>.md`.
 
 ## How it works — first turn
 
-1. If no worksheet exists yet for this session, create one.  The easiest way is
-   the **`/worksheet start`** command (Tab-completes its subcommands):
+1. Each Pi session must explicitly select its worksheet. Do not assume the
+   newest file is yours: parallel sessions share `.worksheets/` and implicit
+   selection causes cross-session pollution. Use **`/worksheet start`**,
+   **`/worksheet open <name>`**, or **`/worksheet attach <path>`**:
 
-   - `/worksheet start fix-auth` — creates `.worksheets/ws-<epoch>-fix-auth.md`
-     from the standard template and opens it in a herdr split.
+   - `/worksheet start fix-auth` — creates `.worksheets/ws-<epoch>-fix-auth.md`,
+     selects it for this session, and opens it in a herdr split.
    - `/worksheet start` with no slug — prompts you for a kebab-case slug.
-   - `/worksheet attach path/to/document.md` — watches an existing project
-     Markdown file and makes it part of the shared loop.
+   - `/worksheet attach path/to/document.md` — selects and watches an existing
+     Markdown file for this session.
    - `/worksheet list` — lists project worksheets; `/worksheet search <text>`
      searches their saved Markdown content.
-   - Other subcommands: `open [name]` (open latest or a named worksheet in a
+   - Other subcommands: `open [name]` (select and open a named worksheet in a
      split), `path [name]` (print its path), `status`, `pause`, `resume`.
+
+   A session with no explicit selection stays in normal chat mode and ignores
+   worksheet edits. This is intentional isolation behavior.
 
    Or create one manually:
    - Grab the current epoch: `date +%s`
@@ -57,8 +62,8 @@ and follows the naming convention `ws-<epoch>-<slug>.md`.
      <anything you want to ask or do next>
      ```
 
-2. Work on the task.  After each significant milestone **update the file** — add
-   completed items under `## Progress`, refine next steps, note questions.
+2. Work on the task.  After each significant milestone **update the selected
+   file** — add completed items under `## Progress`, refine next steps, note questions.
 
 3. When the human edits a worksheet and saves, you'll receive a
    `[Worksheet update — filename]` message containing the changed Markdown
