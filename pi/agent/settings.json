@@ -29,7 +29,7 @@
   "packages": [
     "npm:pi-web-access",
     {
-      "source": "npm:@ff-labs/pi-fff@0.10.5",
+      "source": "npm:@ff-labs/pi-fff",
       "extensions": []
     },
     "npm:@mobrienv/pi-tidy-tools",
@@ -42,7 +42,7 @@
     "../packages/pi-ghostty-theme-sync",
     "npm:@juanbenjumea/pi-ask-herdr",
     "npm:@juanbenjumea/pi-provider-openference",
-    "npm:@howaboua/pi-shepherdr@0.2.4",
+    "npm:@howaboua/pi-shepherdr",
     "npm:@juanbenjumea/pi-agy",
     "npm:pi-context-view",
     "npm:@ogulcancelik/pi-codex-compaction",
