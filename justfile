@@ -101,7 +101,7 @@ check-sh:
             echo "  ❌ $f has issues"
             errors=$((errors + 1))
         fi
-    done < <(find . \( -path ./node_modules -o -path ./pi/agent/npm/node_modules -o -path ./pi/agent/git -o -path ./pi/agent/herdr-plugins -o -path ./pi_npm/node_modules -o -path ./.git \) -prune -o -type f \( -name '*.sh' -o -name '*.bash' \) -print 2>/dev/null | sort || true)
+    done < <(find . \( -path ./node_modules -o -path ./pi/agent/npm/node_modules -o -path ./pi/agent/git -o -path ./pi/agent/herdr-plugins -o -path ./pi_npm/node_modules -o -path ./.git -o -path './~' \) -prune -o -type f \( -name '*.sh' -o -name '*.bash' \) -print 2>/dev/null | sort || true)
     echo "  Checked $count shell scripts"
     if [ "$errors" -gt 0 ]; then echo "  ❌ $errors files have issues"; exit 1; fi
     echo "  ✅ All shell scripts pass ShellCheck"

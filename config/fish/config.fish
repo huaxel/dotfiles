@@ -244,6 +244,24 @@ fish_add_path $HOME/.npm-global/bin
 # On Linux systemd loads environment.d for user sessions automatically, but
 # Fish is kept as a fallback and may run where that doesn't apply (e.g. macOS),
 # so parse the file here too.
+# Mirror Nushell's env.nu: treat the file as authoritative. Erase inherited
+# copies of retired keys — names assigned on a previous start (manifest below)
+# or commented out in the file — which otherwise linger from parent processes
+# started before the edit. Only key NAMES are cached, never values.
+set -l secret_names_manifest ~/.cache/fish/environment.d-managed-keys
+set -l retired_secret_names
+if test -f $secret_names_manifest
+    set retired_secret_names $retired_secret_names (cat $secret_names_manifest)
+end
+if test -f ~/.config/environment.d/99-environment.conf
+    set retired_secret_names $retired_secret_names (sed -nE 's/^#[[:space:]]*([A-Za-z_][A-Za-z0-9_]*)=.*/\1/p' ~/.config/environment.d/99-environment.conf)
+end
+for secret_name in $retired_secret_names
+    if set -q $secret_name
+        set -e $secret_name
+    end
+end
+set -l loaded_secret_names
 if test -f ~/.config/environment.d/99-environment.conf
     while read -l line
         set -l trimmed (string trim -- $line)
@@ -253,9 +271,12 @@ if test -f ~/.config/environment.d/99-environment.conf
         set -l kv (string match -r '^([A-Za-z_][A-Za-z0-9_]*)=(.*)$' -- $trimmed)
         if test (count $kv) -ge 3
             set -gx $kv[2] $kv[3]
+            set -a loaded_secret_names $kv[2]
         end
     end < ~/.config/environment.d/99-environment.conf
 end
+mkdir -p ~/.cache/fish
+printf '%s\n' $loaded_secret_names > $secret_names_manifest
 
 # Added by Antigravity CLI installer
 set -gx PATH "$HOME/.local/bin" $PATH
