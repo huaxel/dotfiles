@@ -115,8 +115,12 @@ export default function (pi: ExtensionAPI) {
       idleNudgeTimer = setTimeout(() => {
         if (!idleNudgePending) return;
         clearIdleNudgePending();
-        if (requiresMode && mode) {
+        // A nudge that never started the agent leaves auto mode armed-but-dead
+        // (no further settles will arrive), so always disarm instead of going quiet.
+        if (mode) {
           disarm(ctx, "nudge did not start");
+        } else if (!requiresMode) {
+          notify(ctx, "Go-on did not start — press again", "warning");
         }
       }, NUDGE_START_TIMEOUT_MS);
 
@@ -175,19 +179,16 @@ export default function (pi: ExtensionAPI) {
     return true;
   }
 
-  async function arm(
-    ctx: GoOnContext,
-    { immediateNudge = true }: { immediateNudge?: boolean } = {},
-  ) {
+  // Arming records mode + resets counters; the caller sends the first nudge
+  // explicitly via autoNudge (both the burst chord and /go-on-mode start
+  // immediately, then keep nudging at each settled run).
+  function arm(ctx: GoOnContext) {
     mode = true;
     nudges = 0;
     toolsSinceSettle = false;
     verbalStreak = 0;
     setStatus(ctx, "go-on: armed");
     notify(ctx, "Go-on mode ON — sending 'go on' until the agent has nothing left to do");
-    // The combined shortcut starts immediately; plain toggles deliberately
-    // arm without an initial nudge and wait for the next settled run.
-    if (immediateNudge && ctx.isIdle()) await autoNudge(ctx);
   }
 
   function disarm(ctx: GoOnContext, reason: string) {
@@ -235,9 +236,10 @@ export default function (pi: ExtensionAPI) {
     clearIdleNudgePending();
   });
 
-  pi.on("session_shutdown", () => {
+  pi.on("session_shutdown", (_event, ctx) => {
     mode = false;
     clearIdleNudgePending();
+    setStatus(ctx, undefined);
   });
 
   pi.on("tool_execution_end", () => {
@@ -293,8 +295,10 @@ export default function (pi: ExtensionAPI) {
 
     const want = value === "on" ? true : value === "off" ? false : !mode;
     if (want === mode) return;
-    if (want) await arm(ctx, { immediateNudge: false });
-    else disarm(ctx, "toggled off");
+    if (want) {
+      arm(ctx);
+      await autoNudge(ctx);
+    } else disarm(ctx, "toggled off");
   }
 
   // --- Single nudge ---
@@ -324,7 +328,7 @@ export default function (pi: ExtensionAPI) {
   // One press = send "go on" (immediate when idle, steer-queued while
   // streaming) + arm the burst; press again to stop it.
   const activateBurst = async (ctx: GoOnContext) => {
-    if (!mode) await arm(ctx, { immediateNudge: false });
+    if (!mode) await arm(ctx);
     await autoNudge(ctx);
   };
 

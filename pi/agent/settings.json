@@ -52,7 +52,8 @@
   ],
   "extensions": [
     "./extensions/continue-after-compaction.ts",
-    "./extensions/git-interceptor.ts"
+    "./extensions/git-interceptor.ts",
+    "./extensions/go-on.ts"
   ],
   "doubleEscapeAction": "tree",
   "treeFilterMode": "default",
