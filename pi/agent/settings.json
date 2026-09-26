@@ -1,18 +1,15 @@
 {
   "enabledModels": [
-    "openference/GLM-5.3",
-    "openference/GLM-5.3-Flash",
-    "openference/DeepSeek-V4-Flash-0731",
-    "openference/MiniMax M3",
-    "openference/DeepSeek-V4-Pro-0813",
-    "opencode-go/deepseek-v4-flash",
-    "opencode-go/muse-spark-1.3-contributor",
     "openai-codex/gpt-6-luna",
     "openai-codex/gpt-6-sol",
     "opencode-go/deepseek-v4.1-flash",
     "openai-codex/gpt-6-astra",
     "openference/MiMo-V2.6-Flash",
-    "openference/MiMo-V2.6-Pro"
+    "openference/MiMo-V2.6-Pro",
+    "openference/GLM-5.3",
+    "openference/Qwen3.8 27b",
+    "openference/DeepSeek-V4.1-Flash",
+    "opencode-go/muse-spark-1.3-contributor"
   ],
   "lastChangelogVersion": "0.0.0",
   "theme": "ghostty-sync-b59692fc",
