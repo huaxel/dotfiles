@@ -51,9 +51,18 @@ const effectiveConfig = {};
 for (const [id, def] of Object.entries(resolved)) effectiveConfig[id] = def.defaultKeys ?? [];
 
 const builtin = buildBuiltinKeybindings(effectiveConfig);
+const failures = [];
+const check = (condition, message) => {
+  console.log(`  ${condition ? "OK  " : "FAIL"} ${message}`);
+  if (!condition) failures.push(message);
+};
+
 console.log("=== built-in claims on go-on keys ===");
-for (const key of ["ctrl+alt+n", "ctrl+alt+g"]) {
-  console.log(`  ${key.padEnd(16)} ->`, builtin[key] ? JSON.stringify(builtin[key]) : "(free)");
+for (const key of ["ctrl+alt+n", "ctrl+alt+g", "alt+n", "alt+g"]) {
+  const claim = builtin[key.toLowerCase()];
+  console.log(`  ${key.padEnd(16)} ->`, claim ? JSON.stringify(claim) : "(free)");
+  // A restrictOverride built-in would silently swallow the extension shortcut.
+  check(claim?.restrictOverride !== true, `${key} is free of reserved built-ins`);
 }
 
 console.log("\n=== extension shortcut registration outcome ===");
@@ -71,15 +80,25 @@ for (const [label, keys] of Object.entries(GO_ON_KEYS)) {
 console.log("\n=== legacy terminal (no kitty) sequence matching ===");
 setKittyProtocolActive(false);
 const cases = [
-  ["\\x1b\\x07 (Ctrl+Alt+G legacy)", "\x1b\x07", ["ctrl+alt+g"]],
-  ["\\x1b\\x0e (Ctrl+Alt+N legacy)", "\x1b\x0e", ["ctrl+alt+n"]],
-  ["\\x1b\\r (Alt+Enter legacy)", "\x1b\r", ["ctrl+alt+g", "ctrl+alt+n"]],
-  ["\\x1bg (Alt+G legacy)", "\x1bg", ["ctrl+alt+g", "ctrl+alt+n"]],
+  // [label, bytes, key, expected] — the no-double-fire property: each byte
+  // sequence matches exactly one of the primary/fallback pair.
+  ["\\x1b\\x07 (Ctrl+Alt+G legacy)", "\x1b\x07", "ctrl+alt+g", true],
+  ["\\x1b\\x07 (Ctrl+Alt+G legacy)", "\x1b\x07", "alt+g", false],
+  ["\\x1b\\x0e (Ctrl+Alt+N legacy)", "\x1b\x0e", "ctrl+alt+n", true],
+  ["\\x1b\\x0e (Ctrl+Alt+N legacy)", "\x1b\x0e", "alt+n", false],
+  ["\\x1bg (Alt+G legacy / Termius)", "\x1bg", "alt+g", true],
+  ["\\x1bg (Alt+G legacy / Termius)", "\x1bg", "ctrl+alt+g", false],
+  ["\\x1bn (Alt+N legacy / Termius)", "\x1bn", "alt+n", true],
+  ["\\x1bn (Alt+N legacy / Termius)", "\x1bn", "ctrl+alt+n", false],
+  ["\\x1b\\r (Alt+Enter legacy)", "\x1b\r", "ctrl+alt+g", false],
+  ["\\x1b\\r (Alt+Enter legacy)", "\x1b\r", "ctrl+alt+n", false],
 ];
-for (const [label, data, keys] of cases) {
-  for (const key of keys) {
-    console.log(`  ${label} vs ${key.padEnd(15)} -> ${matchesKey(data, key)}`);
-  }
+for (const [label, data, key, expected] of cases) {
+  check(matchesKey(data, key) === expected, `${label} vs ${key} -> ${expected}`);
 }
 
+if (failures.length > 0) {
+  console.error(`\n${failures.length} GO-ON KEY CHECK(S) FAILED`);
+  process.exit(1);
+}
 console.log("\nALL GO-ON KEY TESTS PASSED");

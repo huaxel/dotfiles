@@ -59,15 +59,25 @@ const assert = (condition, message) => { if (!condition) throw new Error(message
   assert(hNudge.sent.length === 1, "alt+n fallback did not send its nudge");
 }
 
-// Plain toggle (command) arms without sending an initial message; the burst
-// key pressed while armed is the toggle-off.
+// Plain toggle (command) arms AND sends an initial nudge, like the burst key;
+// the burst key pressed while armed is the toggle-off.
 {
   const h = makeHarness();
   await h.commands.get("go-on-mode")("on", h.ctx);
-  assert(h.sent.length === 0, "toggle unexpectedly sent an initial nudge");
-  assert(h.statuses.at(-1)?.[1] === "go-on: armed", "toggle did not arm");
+  assert(h.sent.length === 1 && h.sent[0][0] === "go on", "toggle did not send its initial nudge");
+  assert(h.statuses.at(-1)?.[1] === "go-on: armed (1)", "toggle did not arm");
   await h.shortcuts.get(BURST)(h.ctx);
   assert(h.statuses.at(-1)?.[1] === undefined, "burst key did not disarm when armed");
+}
+
+// Bare toggle with no argument turns mode on with a nudge, and again to turn off.
+{
+  const h = makeHarness();
+  await h.commands.get("go-on-mode")("", h.ctx);
+  assert(h.sent.length === 1, "bare toggle did not send its initial nudge");
+  await h.commands.get("go-on-mode")("", h.ctx);
+  assert(h.statuses.at(-1)?.[1] === undefined, "second bare toggle did not disarm");
+  assert(h.sent.length === 1, "toggle-off sent a nudge");
 }
 
 // /go-on mode: nudge + arm, without registering a bare /go-on command.
@@ -190,17 +200,89 @@ assert(positive.sent.length === 1, "subject-based completion was missed");
   assert(h.statuses.at(-1)?.[1] === undefined, "missing model left mode armed");
 }
 
-// Keys that must never be claimed: alt+enter (reserved for app.message.followUp),
-// alt+g / alt+shift+enter (superseded by the universal ctrl+alt pair), and any
-// Keys that must stay unregistered: alt+enter is reserved by pi, alt+shift
-// chords cannot be encoded on legacy terminals, ctrl+alt+o is unused, and
-// alt+g / alt+n are now deliberate Termius fallbacks (SSH clients drop the
-// Ctrl bit on Ctrl+Alt chords), so they are NOT banned anymore.
+// Keys that must stay unregistered: alt+enter is reserved by pi,
+// alt+shift chords cannot be encoded on legacy terminals, ctrl+alt+o is
+// unused, and alt+g / alt+n are deliberate Termius fallbacks (SSH clients
+// drop the Ctrl bit on Ctrl+Alt chords), so they are NOT banned.
 {
   const h = makeHarness();
   for (const banned of ["alt+enter", "alt+shift+enter", "alt+shift+g", "ctrl+alt+o"]) {
     assert(!h.shortcuts.has(banned), `go-on still registers banned key ${banned}`);
   }
+}
+
+// User abort and model errors disarm immediately — never undo an Esc or burn calls.
+for (const reason of ["aborted", "error"]) {
+  const h = makeHarness();
+  await h.shortcuts.get(BURST)(h.ctx);
+  h.events.get("tool_execution_end")({}, h.ctx);
+  h.setBranch([assistant("Working on it.", reason)]);
+  await h.events.get("agent_settled")({}, h.ctx);
+  assert(h.sent.length === 1, `${reason} did not disarm the burst`);
+  assert(h.statuses.at(-1)?.[1] === undefined, `${reason} left mode armed`);
+}
+
+// Runs that stopped mid-tool-use or were truncated get nudged even without a
+// tool_execution_end in the window.
+for (const reason of ["toolUse", "length"]) {
+  const h = makeHarness();
+  await h.shortcuts.get(BURST)(h.ctx);
+  h.events.get("agent_start")({}, h.ctx);
+  h.setBranch([assistant("Continuing.", reason)]);
+  await h.events.get("agent_settled")({}, h.ctx);
+  assert(h.sent.length === 2, `${reason} was not nudged`);
+}
+
+// Two consecutive purely verbal answers end the burst: the first is treated
+// as a pause, the second as done.
+{
+  const h = makeHarness();
+  await h.shortcuts.get(BURST)(h.ctx);
+  h.events.get("agent_start")({}, h.ctx);
+  h.setBranch([assistant("Done with step 1.")]);
+  await h.events.get("agent_settled")({}, h.ctx);
+  assert(h.sent.length === 2, "first verbal pause was not nudged");
+  h.events.get("agent_start")({}, h.ctx);
+  h.setBranch([assistant("Still just talking.")]);
+  await h.events.get("agent_settled")({}, h.ctx);
+  assert(h.sent.length === 2, "second verbal answer did not end the burst");
+  assert(h.statuses.at(-1)?.[1] === undefined, "verbal streak left mode armed");
+}
+
+// The nudge cap disarms runaway bursts.
+{
+  const h = makeHarness();
+  await h.shortcuts.get(BURST)(h.ctx);
+  for (let i = 0; i < 20; i++) {
+    h.events.get("agent_start")({}, h.ctx);
+    h.events.get("tool_execution_end")({}, h.ctx);
+    h.setBranch([assistant(`Still working ${i}.`)]);
+    await h.events.get("agent_settled")({}, h.ctx);
+  }
+  assert(h.sent.length === 15, `cap did not hold at 15 nudges total (sent ${h.sent.length})`);
+  assert(h.statuses.at(-1)?.[1] === undefined, "cap left mode armed");
+  assert(h.notifications.some(([m]) => m.includes("nudge cap reached")), "cap gave no notice");
+}
+
+// Auth failure during an armed burst disarms instead of wedging mode on.
+{
+  const h = makeHarness({ auth: { ok: false } });
+  await h.shortcuts.get(BURST)(h.ctx);
+  assert(h.sent.length === 0, "failed auth sent a nudge");
+  assert(h.statuses.at(-1)?.[1] === undefined, "failed auth left mode armed");
+  assert(h.notifications.some(([m]) => m.includes("authentication unavailable")), "failed auth gave no notice");
+}
+
+// Shutdown clears the status pill so it cannot linger into the next session.
+{
+  const h = makeHarness();
+  await h.commands.get("go-on-mode")("on", h.ctx);
+  assert(h.statuses.at(-1)?.[1] === "go-on: armed (1)", "toggle did not arm");
+  await h.events.get("session_shutdown")({}, h.ctx);
+  assert(h.statuses.at(-1)?.[1] === undefined, "shutdown left a stale status");
+  h.setBranch([assistant("Hello.")]);
+  await h.events.get("agent_settled")({}, h.ctx);
+  assert(h.sent.length === 1, "shutdown left mode armed");
 }
 
 console.log("go-on behavioral checks passed");
