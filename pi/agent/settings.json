@@ -48,7 +48,8 @@
     "npm:pi-context-view",
     "npm:@ogulcancelik/pi-codex-compaction",
     "npm:pi-memory",
-    "npm:@sting8k/pi-vcc"
+    "npm:@sting8k/pi-vcc",
+    "npm:pi-forkme"
   ],
   "extensions": [
     "./extensions/continue-after-compaction.ts",
