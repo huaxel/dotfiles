@@ -10,13 +10,13 @@
       "locked": {
         "lastModified": 1786569048,
         "narHash": "sha256-X9VnVPM4oD0eNIX5u+QDWs03YuQWGnHaFFJwSM8Sf+g=",
-        "owner": "fewtarius",
+        "owner": "huaxel",
         "repo": "CachyLLama",
         "rev": "c1627fa4b8526fe146bccb3ca228f3dd0838517c",
         "type": "github"
       },
       "original": {
-        "owner": "fewtarius",
+        "owner": "huaxel",
         "repo": "CachyLLama",
         "rev": "c1627fa4b8526fe146bccb3ca228f3dd0838517c",
         "type": "github"

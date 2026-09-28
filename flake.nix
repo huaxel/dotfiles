@@ -19,10 +19,9 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # The physical host currently runs this fork, not nixpkgs' llama.cpp.
-    # Keep the exact build source pinned while packaging is validated.
+    # This is Juan's fork, which retains the pinned upstream-compatible commit.
     cachy-llama = {
-      url = "github:fewtarius/CachyLLama/c1627fa4b8526fe146bccb3ca228f3dd0838517c";
+      url = "github:huaxel/CachyLLama/c1627fa4b8526fe146bccb3ca228f3dd0838517c";
       inputs.nixpkgs.follows = "nixpkgs";
       flake = true;
     };
@@ -36,8 +35,6 @@
 
   outputs = { nixpkgs, home-manager, herdr, sops-nix, cachy-llama, nixgl, ... }:
     let
-      # Bypass the upstream flake's deprecated platform checks. The local
-      # package expression preserves the pinned source and build settings.
       cachyLlamaVulkan = nixpkgs.legacyPackages.x86_64-linux.callPackage
         ./nixos/cachy-llama-package.nix {
           cachySource = cachy-llama.outPath;
@@ -64,16 +61,13 @@
       # current Arch installation until hardware and rollback are validated.
       framearchNixos = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
-        specialArgs = {
-          cachyLlamaPackage = cachyLlamaVulkan;
-        };
+        specialArgs.cachyLlamaPackage = cachyLlamaVulkan;
         modules = [ ./nixos/framearch.nix ];
       };
     in {
       # Kept under legacyPackages so `nix flake check` validates the module
       # without compiling the large Vulkan/WebUI derivation on every change.
-      legacyPackages.x86_64-linux.cachyLlamaVulkan =
-        cachyLlamaVulkan;
+      legacyPackages.x86_64-linux.cachyLlamaVulkan = cachyLlamaVulkan;
       legacyPackages.x86_64-linux.nixVulkanIntel =
         nixgl.packages.x86_64-linux.nixVulkanIntel;
 

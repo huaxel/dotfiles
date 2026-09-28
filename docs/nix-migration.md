@@ -119,56 +119,24 @@ and `/etc` configuration require a later NixOS decision, not Home Manager alone.
 
 ## NixOS readiness audit
 
-The live router uses a custom binary at `/opt/cachy-llama/bin/llama-server`,
-revision `c1627fa4b+26358`, rather than the installed `llama.cpp-vulkan`
-package. A related source checkout exists at
-`~/projects/ai-inference-bench/CachyLLama` and already contains a `.devops/nix`
-package definition with Vulkan support. The flake now pins the matching
-`fewtarius/CachyLLama` commit and exposes its derivation as
+The live router uses `/opt/cachy-llama/bin/llama-server`, revision
+`c1627fa4b+26358`. The source is Juan's fork at
+`github:huaxel/CachyLLama`; the flake pins the matching `c1627fa4b8526fe146bccb3ca228f3dd0838517c` commit and exposes its Vulkan package as
 `legacyPackages.x86_64-linux.cachyLlamaVulkan`.
 
-Build it deliberately, not as part of normal Home Manager activation:
+Build and smoke-test it deliberately, not as part of normal Home Manager
+activation:
 
 ```bash
 nix build '.#legacyPackages.x86_64-linux.cachyLlamaVulkan'
-```
-
-The package builds and its CPU-side SSD-cache/model-resolution tests pass.
-The plain Nix binary cannot see the host RADV device, but a diagnostic
-`nixGL` bridge does:
-
-```bash
 just nix-test-cachy-vulkan qwen-0.8b
-just nix-test-cachy-vulkan qwen-2b 18124
-just nix-test-cachy-vulkan qwen-4b 18125
-just nix-test-cachy-vulkan lfm-1.2b 18126
-just nix-test-cachy-vulkan router-preset 18132 Qwen3.5-0.8B
-just nix-test-cachy-vulkan router-preset 18134 Qwen3.5-4B
-just nix-test-cachy-vulkan router-preset 18135 LFM2.5-1.2B
 ```
 
-The smoke test covers the Qwen 0.8B/2B/4B and LFM 1.2B model families
-currently used by the router, plus the generated `models.ini` routing path. All
-isolated GPU completion tests pass using
-environment-based arguments, matching the planned NixOS service contract. It
-reports the AMD Vulkan device and performs a real completion without touching
-the live service. The nixGL revision is pinned in
-`flake.lock` for repeatable diagnostics. It is a
-useful Arch pilot, but the wrapper is intentionally not wired into systemd yet;
-NixOS graphics packages remain the cleaner long-term solution.
-
-The embedding service can be checked independently:
-
-```bash
-just nix-test-cachy-embed
-```
-
-The isolated candidate and the current production endpoint both return
-768-dimensional embeddings for the same model. The deployed artifact still
-needs a binary comparison and inference regression
-check before it replaces `/opt/cachy-llama`. The service also depends on
-Vulkan/RADV, render-group permissions, a separate `/mnt/ai_models` filesystem,
-and model-specific cache paths.
+The smoke test uses a nixGL bridge to expose the host RADV device and does not
+touch the live service. The embedding smoke test can be run independently
+with `just nix-test-cachy-embed`. NixOS still depends on Vulkan/RADV,
+render-group permissions, a separate `/mnt/ai_models` filesystem, and
+model-specific cache paths.
 
 Before an actual NixOS switch, capture the custom build as a pinned Nix
 package (or deliberately retain it as an external artifact), then translate
