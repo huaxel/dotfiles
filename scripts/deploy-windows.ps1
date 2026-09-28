@@ -4,8 +4,8 @@
 .SYNOPSIS
 Deploy repository-managed configuration to native Windows paths.
 
-Scoop installs the programs; this script installs their configuration links.
-Windows Developer Mode (or an elevated PowerShell) is required for links.
+Scoop installs the programs; this script deploys their configuration.
+Symlinks are preferred; junctions and refreshed file copies are used when Windows denies symlink creation.
 #>
 
 $ErrorActionPreference = "Stop"
@@ -14,6 +14,19 @@ $RepoRoot = Split-Path -Parent $PSScriptRoot
 function Get-ExistingItem {
     param([string]$Path)
     return Get-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
+}
+
+function Get-FileDigest {
+    param([string]$Path)
+
+    $sha256 = [System.Security.Cryptography.SHA256]::Create()
+    $stream = [System.IO.File]::OpenRead($Path)
+    try {
+        return [System.BitConverter]::ToString($sha256.ComputeHash($stream))
+    } finally {
+        $stream.Dispose()
+        $sha256.Dispose()
+    }
 }
 
 function Remove-Or-Backup {
@@ -58,9 +71,48 @@ function Link-Config {
         }
     }
 
+    if ($existing -and -not $existing.LinkType -and -not $existing.PSIsContainer -and
+        -not (Get-Item -LiteralPath $source).PSIsContainer) {
+        $sourceHash = Get-FileDigest $source
+        $targetHash = Get-FileDigest $Target
+        if ($sourceHash -eq $targetHash) {
+            Write-Host "  [OK] $Target (copy is current)"
+            return
+        }
+    }
+
     Remove-Or-Backup $Target
-    New-Item -ItemType SymbolicLink -Path $Target -Target $source | Out-Null
-    Write-Host "  [LINK] $Target -> $RelativeSource"
+    try {
+        New-Item -ItemType SymbolicLink -Path $Target -Target $source -ErrorAction Stop | Out-Null
+        Write-Host "  [LINK] $Target -> $RelativeSource"
+        return
+    } catch {
+        # Without Developer Mode or SeCreateSymbolicLinkPrivilege, Windows
+        # cannot create symlinks. Junctions work for directories without admin;
+        # individual files are copied and refreshed on each deployment.
+        if ((Get-Item -LiteralPath $source).PSIsContainer) {
+            $command = 'mklink /J "' + $Target + '" "' + $source + '"'
+            & cmd.exe /d /c $command | Out-Null
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "  [JUNCTION] $Target -> $RelativeSource"
+                return
+            }
+            throw "Could not create a directory junction for $Target"
+        }
+
+        $existing = Get-ExistingItem $Target
+        if ($existing -and -not $existing.PSIsContainer) {
+            $sourceHash = Get-FileDigest $source
+            $targetHash = Get-FileDigest $Target
+            if ($sourceHash -eq $targetHash) {
+                Write-Host "  [OK] $Target (copy is current)"
+                return
+            }
+            Remove-Or-Backup $Target
+        }
+        Copy-Item -LiteralPath $source -Destination $Target -Force
+        Write-Host "  [COPY] $Target <- $RelativeSource (refresh with just windows-deploy)"
+    }
 }
 
 function Write-Generated {
@@ -85,6 +137,71 @@ function Write-Generated {
     $encoding = New-Object System.Text.UTF8Encoding($false)
     [System.IO.File]::WriteAllText($Target, $Content, $encoding)
     Write-Host "  [WRITE] $Target"
+}
+
+function Render-WindowsGitConfig {
+    $source = Join-Path $RepoRoot "gitconfig"
+    $lines = [System.IO.File]::ReadAllLines($source)
+    $rendered = New-Object System.Collections.Generic.List[string]
+    $frames = New-Object System.Collections.Generic.Stack[object]
+    $active = $true
+
+    foreach ($line in $lines) {
+        if ($line -match '^\s*{{#if \(eq os "(linux|macos|windows)"\)}}\s*$') {
+            $condition = $Matches[1] -eq "windows"
+            $frames.Push(@{ Parent = $active; Taken = $condition })
+            $active = $active -and $condition
+            continue
+        }
+        if ($line -match '^\s*{{else if \(eq os "(linux|macos|windows)"\)}}\s*$') {
+            if ($frames.Count -eq 0) { throw "Unexpected Git config template branch: $line" }
+            $frame = $frames.Peek()
+            $condition = -not $frame.Taken -and $Matches[1] -eq "windows"
+            $frame.Taken = $frame.Taken -or $condition
+            $active = $frame.Parent -and $condition
+            continue
+        }
+        if ($line -match '^\s*{{else}}\s*$') {
+            if ($frames.Count -eq 0) { throw "Unexpected Git config template else" }
+            $frame = $frames.Peek()
+            $active = $frame.Parent -and -not $frame.Taken
+            $frame.Taken = $true
+            continue
+        }
+        if ($line -match '^\s*{{/if}}\s*$') {
+            if ($frames.Count -eq 0) { throw "Unexpected Git config template end" }
+            $active = $frames.Pop().Parent
+            continue
+        }
+        if ($active) { $rendered.Add($line) }
+    }
+    if ($frames.Count -ne 0) { throw "Unclosed Git config template block" }
+
+    # Dotter used to fill these. Recover the existing identity from the most
+    # recent preserved config, if present; otherwise leave identity unset.
+    $identityBackup = Get-ChildItem -LiteralPath $HOME -Filter ".gitconfig.dotfiles-backup-*" -File -ErrorAction SilentlyContinue |
+        Sort-Object LastWriteTime -Descending | Select-Object -First 1
+    $userName = $null
+    $userEmail = $null
+    if ($identityBackup) {
+        $savedConfig = [System.IO.File]::ReadAllText($identityBackup.FullName)
+        $userSection = [regex]::Match($savedConfig, '(?ims)^\[user\]\s*\r?\n(?<body>(?:[ \t].*\r?\n)*)')
+        if ($userSection.Success) {
+            $nameMatch = [regex]::Match($userSection.Groups['body'].Value, '(?im)^\s*name\s*=\s*(.+?)\s*$')
+            $emailMatch = [regex]::Match($userSection.Groups['body'].Value, '(?im)^\s*email\s*=\s*(.+?)\s*$')
+            if ($nameMatch.Success) { $userName = $nameMatch.Groups[1].Value }
+            if ($emailMatch.Success) { $userEmail = $emailMatch.Groups[1].Value }
+        }
+    }
+
+    $content = $rendered -join [Environment]::NewLine
+    if ($userName -and $userEmail) {
+        $content = $content.Replace("{{name}}", [string]$userName).Replace("{{email}}", [string]$userEmail)
+    } else {
+        $content = [regex]::Replace($content, '(?ms)^\[user\]\r?\n(?:[ \t].*\r?\n)*', '')
+    }
+    $content += [Environment]::NewLine
+    Write-Generated (Join-Path $HOME ".gitconfig") $content
 }
 
 function Render-Starship {
@@ -129,6 +246,14 @@ function Render-LlamaModels {
 
 Write-Host "Deploying native Windows configuration..." -ForegroundColor Cyan
 
+# Store and unpackaged Windows Terminal builds use different settings paths.
+$terminalPackagePath = Join-Path $env:LOCALAPPDATA "Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json"
+$terminalSettingsPath = Join-Path $env:LOCALAPPDATA "Microsoft\Windows Terminal\settings.json"
+$terminalPackage = Get-AppxPackage -Name Microsoft.WindowsTerminal -ErrorAction SilentlyContinue
+if ($terminalPackage -or (Test-Path -LiteralPath (Split-Path -Parent $terminalPackagePath))) {
+    $terminalSettingsPath = $terminalPackagePath
+}
+
 # Preserve an existing local npm configuration before creating the repository source.
 $npmrcSource = Join-Path $RepoRoot "npmrc"
 $npmrcTarget = Join-Path $HOME ".npmrc"
@@ -144,14 +269,13 @@ Link-Config "npmrc" $npmrcTarget
 
 $links = @(
     @{ Source = "ssh_config"; Target = (Join-Path $HOME ".ssh\config") },
-    @{ Source = "gitconfig"; Target = (Join-Path $HOME ".gitconfig") },
     @{ Source = "gitignore_global"; Target = (Join-Path $HOME ".gitignore_global") },
     @{ Source = "config\mise"; Target = (Join-Path $HOME ".config\mise") },
     @{ Source = "config\herdr"; Target = (Join-Path $HOME ".config\herdr") },
     @{ Source = "config\zed\keymap.json"; Target = (Join-Path $env:LOCALAPPDATA "Zed\keymap.json") },
     @{ Source = "powershell\7\profile.ps1"; Target = (Join-Path $HOME "Documents\PowerShell\Microsoft.PowerShell_profile.ps1") },
     @{ Source = "powershell\5.1\profile.ps1"; Target = (Join-Path $HOME "Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1") },
-    @{ Source = "windows-terminal\settings.json"; Target = (Join-Path $env:LOCALAPPDATA "Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json") },
+    @{ Source = "windows-terminal\settings.json"; Target = $terminalSettingsPath },
     @{ Source = "autohotkey\mac-layout.ahk"; Target = (Join-Path $HOME ".config\autohotkey\mac-layout.ahk") },
     @{ Source = "flow-launcher\README.md"; Target = (Join-Path $HOME ".config\flow-launcher\README.md") },
     @{ Source = "glazewm\config.yaml"; Target = (Join-Path $HOME ".glzr\glazewm\config.yaml") },
@@ -171,6 +295,7 @@ foreach ($link in $links) {
     Link-Config $link.Source $link.Target
 }
 
+Render-WindowsGitConfig
 Render-Starship
 Render-LlamaModels
 

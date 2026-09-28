@@ -31,11 +31,23 @@ require("C:\\\\Users\\\\" not in terminal, "Windows Terminal contains a hard-cod
 require("%USERPROFILE%\\\\scoop\\\\apps\\\\pwsh" in terminal, "pwsh profile is not user-portable")
 
 deploy = read("scripts/deploy-windows.ps1")
+require("Microsoft\\Windows Terminal\\settings.json" in deploy, "Unpackaged Windows Terminal settings path is missing")
+require("Microsoft.WindowsTerminal_8wekyb3d8bbwe" in deploy, "Store Windows Terminal settings path is missing")
+require("Get-AppxPackage -Name Microsoft.WindowsTerminal" in deploy, "Windows Terminal install type is not detected")
+require("mklink /J" in deploy, "Directory deployment has no non-admin junction fallback")
+require('Write-Host "  [COPY]' in deploy, "File deployment has no non-admin copy fallback")
+require("function Render-WindowsGitConfig" in deploy, "Windows Git config is not rendered")
+require("Render-WindowsGitConfig" in deploy and 'Source = "gitconfig"' not in deploy, "Windows deploy may install the raw Git template")
+require("{{#if (eq os" in read("gitconfig"), "Git config platform template markers are missing from regression coverage")
 require('Source = "zebar\\bar"' in deploy, "Zebar startup pack is not deployed")
 link_removal = deploy.split("if ($existing.LinkType)", 1)[1].split("return", 1)[0]
 require("-Recurse" not in link_removal, "Windows deployment can recurse through a configuration link")
 
 bootstrap = read("bootstrap.ps1")
+require("Age key not found" in bootstrap, "Bootstrap does not preflight the local Age key")
+require(bootstrap.index("Age key not found") < bootstrap.index("Installing Scoop..."), "Age key preflight runs after package installation")
+for secret in ("environment.d.enc", "llama-webui-config.json.enc", "pi-quota-sessions.json.enc"):
+    require(secret in bootstrap, f"Bootstrap does not preflight {secret}")
 require('"nerd-fonts"' in bootstrap, "Nerd Fonts bucket is missing")
 require('"JetBrainsMono-NF", "FiraCode-NF"' in bootstrap, "Configured terminal fonts are not installed")
 require("Assert-NativeSuccess" in bootstrap, "Native Scoop/Git failures are not checked")

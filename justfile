@@ -655,7 +655,7 @@ list:
 
 # Deploy native Windows configuration (Scoop handles packages).
 windows-deploy:
-    powershell.exe -ExecutionPolicy Bypass -File scripts\\deploy-windows.ps1
+    powershell.exe -ExecutionPolicy Bypass -File ./scripts/deploy-windows.ps1
 
 # Validate the Nix flake and build one Home Manager profile without activation.
 # Usage: just nix-check juan@framearch
