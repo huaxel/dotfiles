@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run a small isolated inference request through the pinned Nix CachyLLama build.
+# Run a small isolated inference request through the pinned CachyLLama fork.
 # This never stops or replaces the live llama.cpp service.
 set -euo pipefail
 
