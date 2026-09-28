@@ -9,6 +9,18 @@
  */
 import { readFileSync } from 'node:fs';
 
+// Git or a prompt helper may stop reading as soon as it has enough output.
+// Treat that expected filter-pipeline shutdown as a successful exit rather
+// than letting Node report an unhandled EPIPE error.
+process.stdout.on('error', (error) => {
+  if (error.code === 'EPIPE') {
+    process.exit(0);
+  }
+
+  console.error(`strip-pi-machine-config: stdout error: ${error.message}`);
+  process.exit(1);
+});
+
 const input = readFileSync(0, 'utf8');
 
 let settings;
