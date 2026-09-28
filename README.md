@@ -36,8 +36,10 @@ cd $HOME\dotfiles
 
 `bootstrap.ps1` installs Scoop and configured fonts → enables git hooks →
 deploys native Windows configuration with `scripts\deploy-windows.ps1` →
-decrypts secrets. Enable Windows Developer Mode (or use an elevated shell) so
-configuration symlinks can be created. Restore the existing age key to
+decrypts secrets. No administrator shell is required: deployment uses
+symlinks when permitted, directory junctions where possible, and managed file
+copies otherwise (rerun `just windows-deploy` to refresh copied files). Restore
+the existing age key to
 `~/.config/sops/age/keys.txt` before bootstrap; missing tools, keys, packages, or
 secret decryption now fail the deployment instead of printing false success.
 
@@ -104,7 +106,7 @@ just pi-healthcheck     # pi setup health report (also --json)
 just check-windows      # static Windows/WSL deployment checks
 ```
 
-On Windows, run `powershell -ExecutionPolicy Bypass -File scripts\deploy-windows.ps1`.
+On Windows, run `just windows-deploy` or `powershell.exe -ExecutionPolicy Bypass -File ./scripts/deploy-windows.ps1`.
 
 ### Shell
 

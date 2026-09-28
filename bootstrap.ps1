@@ -17,6 +17,24 @@ function Assert-NativeSuccess {
 
 Write-Host "`n🚀 Setting up Windows dotfiles...`n" -ForegroundColor Cyan
 
+# Fail before installing packages or changing configuration when required local
+# secrets are unavailable. The deployment step validates decryption later.
+$ageKeyPath = Join-Path $HOME ".config\sops\age\keys.txt"
+if (-not (Test-Path -LiteralPath $ageKeyPath -PathType Leaf)) {
+    throw "Age key not found at $ageKeyPath. Restore the existing key before running bootstrap."
+}
+$requiredSecrets = @(
+    "environment.d.enc",
+    "llama-webui-config.json.enc",
+    "pi-quota-sessions.json.enc"
+)
+foreach ($secret in $requiredSecrets) {
+    $secretPath = Join-Path $PSScriptRoot (Join-Path "secrets" $secret)
+    if (-not (Test-Path -LiteralPath $secretPath -PathType Leaf)) {
+        throw "Required encrypted secret is missing: $secretPath"
+    }
+}
+
 # --- Scoop ---
 if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
     Write-Host "Installing Scoop..." -ForegroundColor Yellow
