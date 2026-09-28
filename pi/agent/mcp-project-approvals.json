@@ -24,6 +24,12 @@
       "serverName": "context7",
       "definitionHash": "0f6fd2a404b9e35da9d656f8c970450d65612440e7aa023543f4f7250e503796",
       "approvedAt": "2026-09-28T20:28:59.720Z"
+    },
+    {
+      "projectRoot": "/Users/juanbenjumea/dotfiles",
+      "serverName": "chrome-devtools",
+      "definitionHash": "cf8415ca9d2ec1bbc0acbad50e54ad6b83d29541f53a551aab6decb8835ca955",
+      "approvedAt": "2026-09-28T21:34:25.384Z"
     }
   ]
 }
