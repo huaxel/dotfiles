@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "approvals": [
+    {
+      "projectRoot": "/home/juan/dotfiles",
+      "serverName": "chrome-devtools",
+      "definitionHash": "cf8415ca9d2ec1bbc0acbad50e54ad6b83d29541f53a551aab6decb8835ca955",
+      "approvedAt": "2026-09-28T20:27:29.414Z"
+    },
+    {
+      "projectRoot": "/home/juan/projects/nursultan-web",
+      "serverName": "chrome-devtools",
+      "definitionHash": "cf8415ca9d2ec1bbc0acbad50e54ad6b83d29541f53a551aab6decb8835ca955",
+      "approvedAt": "2026-09-28T20:28:57.994Z"
+    },
+    {
+      "projectRoot": "/home/juan/projects/nursultan-web",
+      "serverName": "deepwiki",
+      "definitionHash": "739ad5281edffba6279d439ca22110bf1d0d1dba6152a05c6be7be04f9c9deda",
+      "approvedAt": "2026-09-28T20:28:59.103Z"
+    },
+    {
+      "projectRoot": "/home/juan/projects/nursultan-web",
+      "serverName": "context7",
+      "definitionHash": "0f6fd2a404b9e35da9d656f8c970450d65612440e7aa023543f4f7250e503796",
+      "approvedAt": "2026-09-28T20:28:59.720Z"
+    }
+  ]
+}
