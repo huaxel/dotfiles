@@ -39,9 +39,14 @@ Ask the user to add this to their MCP config:
 
 ## Quick Reference
 
+> Server ≥1.10 requires a numeric `pageId` on page-scoped tools (`navigate_page`,
+> `performance_start_trace`, `take_snapshot`, …). Open the page with `new_page(url)`
+> (returns the page list with IDs) or call `list_pages` first, then pass `pageId`.
+> On older servers the bare calls below still work.
+
 | Task | Tool Call |
 |------|-----------|
-| Load page | `navigate_page(url: "...")` |
+| Load page | `new_page(url: "...")` (≥1.10) or `navigate_page(url: "...")` |
 | Start trace | `performance_start_trace(autoStop: true, reload: true)` |
 | Analyze insight | `performance_analyze_insight(insightSetId: "...", insightName: "...")` |
 | List requests | `list_network_requests(resourceTypes: ["Script", "Stylesheet", ...])` |
