@@ -73,9 +73,13 @@ if $nu.os-info.name == "macos" {
     }
 }
 
-# ATOM_DATA_ROOT — per-machine data root for Project Atom.
-if (hostname) == "arch-wsl" {
+# ATOM_DATA_ROOT mirrors each machine's Home Manager module. Keep host-specific
+# paths here because Nushell does not source hm-session-vars.sh on its own.
+let hostname_short = (hostname -s | str trim)
+if $hostname_short == "arch-wsl" {
     $env.ATOM_DATA_ROOT = "/mnt/c/Users/jbenjumeamoreno/atom-data"
+} else if $hostname_short == "mac-juan" {
+    $env.ATOM_DATA_ROOT = "/Volumes/arch-wsl/mnt/c/Users/jbenjumeamoreno/atom-data"
 }
 
 # HuggingFace cache — use fast storage when available.
