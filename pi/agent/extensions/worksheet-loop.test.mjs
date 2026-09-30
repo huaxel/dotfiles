@@ -1,11 +1,14 @@
 // Behavioral tests for worksheet-loop.ts pure block-identity helpers.
 // Run: node pi/agent/extensions/worksheet-loop.test.mjs
 import { registerHooks } from "node:module";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { resolve } from "./pi-resolve-hook.mjs";
 
 registerHooks({ resolve });
 
-const { reconcileBlockIds, contentSimilarity, todoItems, todoTransitions, worksheetCounts, worksheetHistoryId, isWorksheetPath } = await import(new URL("./worksheet-loop.ts", import.meta.url));
+const { reconcileBlockIds, contentSimilarity, todoItems, todoTransitions, worksheetCounts, worksheetHistoryId, legacyWorksheetHistoryId, migrateWorksheetHistoryDirectory, isWorksheetPath } = await import(new URL("./worksheet-loop.ts", import.meta.url));
 
 const assert = (condition, message) => {
   if (!condition) throw new Error(message);
@@ -104,6 +107,22 @@ assert(contentSimilarity("a b c", "a b") > contentSimilarity("a b c", "x y z"), 
   assert(!isWorksheetPath("/repo/.worksheets-other/ws-a.md", root), "similarly named sibling directory is rejected");
   assert(isWorksheetPath("/tmp/notes.md", root, new Set(["/tmp/notes.md"])), "explicitly attached markdown is accepted");
   assert(worksheetHistoryId("/repo/a-b/c.md") !== worksheetHistoryId("/repo/a/b-c.md"), "different paths with colliding slugs get distinct history IDs");
+}
+
+{
+  const root = mkdtempSync(path.join(tmpdir(), "worksheet-history-migration-"));
+  try {
+    const oldId = legacyWorksheetHistoryId("/repo/.worksheets/ws-test.md", "/repo");
+    const newId = worksheetHistoryId("/repo/.worksheets/ws-test.md", "/repo");
+    const oldDir = path.join(root, oldId);
+    mkdirSync(oldDir);
+    writeFileSync(path.join(oldDir, "block-ids.json"), '{"blocks":[]}');
+    migrateWorksheetHistoryDirectory(root, oldId, newId);
+    assert(!existsSync(oldDir), "legacy history directory is moved");
+    assert(readFileSync(path.join(root, newId, "block-ids.json"), "utf8") === '{"blocks":[]}', "legacy sidecar contents survive migration");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 }
 
 // ── todo-transition semantics ──────────────────────────────────────────────
