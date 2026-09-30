@@ -50,11 +50,13 @@ assert(
   "non-text completion is rejected",
 );
 
-function makeHarness({ completion, selectChoice, editorText = "", contextPercent = 85, nativeCheckpoint = false, confirmChoice = true } = {}) {
+function makeHarness({ completion, selectChoice, editorText = "", contextPercent = 85, nativeCheckpoint = false, confirmChoice = true, modelAfterIdle } = {}) {
   const harness = makePiHarness();
   const notifications = [];
   const completeOptions = [];
   const completeContexts = [];
+  const completeModels = [];
+  const confirmMessages = [];
   const sent = [];
   const statuses = [];
   let selectCount = 0;
@@ -99,7 +101,8 @@ function makeHarness({ completion, selectChoice, editorText = "", contextPercent
   const ctx = {
     mode: "tui",
     model: { provider: "test", id: "model" },
-    isIdle: () => true,
+    isIdle: () => !modelAfterIdle,
+    waitForIdle: async () => { if (modelAfterIdle) ctx.model = modelAfterIdle; },
     getContextUsage: () => ({ percent: contextPercent }),
     sessionManager: {
       getBranch: () => branch,
@@ -108,7 +111,8 @@ function makeHarness({ completion, selectChoice, editorText = "", contextPercent
       getSessionId: () => "restart-test",
     },
     modelRegistry: {
-      complete: (_model, context, options) => {
+      complete: (model, context, options) => {
+        completeModels.push(model);
         completeContexts.push(context);
         completeOptions.push(options);
         if (completion) return completion();
@@ -117,9 +121,11 @@ function makeHarness({ completion, selectChoice, editorText = "", contextPercent
     },
     ui: {
       notify: (message, type) => notifications.push({ message, type }),
-      confirm: async () => {
+      confirm: async (_title, message) => {
+        confirmMessages.push(message);
+        const choice = Array.isArray(confirmChoice) ? confirmChoice[confirmCount] : confirmChoice;
         confirmCount += 1;
-        return confirmChoice;
+        return choice;
       },
       getEditorText: () => editor,
       setEditorText: (text) => { editor = text; },
@@ -155,6 +161,8 @@ function makeHarness({ completion, selectChoice, editorText = "", contextPercent
     notifications,
     completeOptions,
     completeContexts,
+    completeModels,
+    confirmMessages,
     sent,
     statuses,
     getEditor: () => editor,
@@ -164,12 +172,15 @@ function makeHarness({ completion, selectChoice, editorText = "", contextPercent
 }
 
 {
-  const h = makeHarness();
+  const nextModel = { provider: "new-provider", id: "new-model" };
+  const h = makeHarness({ modelAfterIdle: nextModel });
   await h.commands.get("restart")("keep going", h.ctx);
   assert(h.sent[0] === "## Task\nContinue", "generated handoff is sent to the replacement session");
   assert(h.completeOptions[0].signal instanceof AbortSignal, "completion receives cancellation signal");
   assert(!("apiKey" in h.completeOptions[0]), "completion uses registry-managed authentication");
   assert(h.completeOptions[0].maxTokens === 2048, "handoff completion has a bounded output budget");
+  assert(h.completeModels[0] === nextModel, "handoff uses the model selected after the run settles");
+  assert(h.confirmMessages[0].includes("new-provider"), "consent names the model provider used for generation");
   const handoffInput = h.completeContexts[0].messages[0].content[0].text;
   assert(handoffInput.includes("<conversation-history>"), "handoff history has an explicit boundary");
   assert(handoffInput.includes("<goal>\nkeep going\n</goal>"), "handoff goal has an explicit boundary");
@@ -189,6 +200,13 @@ function makeHarness({ completion, selectChoice, editorText = "", contextPercent
   await h.commands.get("restart")("", h.ctx);
   assert(h.getConfirmCount() === 1, "declined history sharing stops before native checkpoint confirmation");
   assert(h.completeContexts.length === 0, "cancelled native restart does not generate a lossy handoff");
+}
+
+{
+  const h = makeHarness({ nativeCheckpoint: true, confirmChoice: [true, false] });
+  await h.commands.get("restart")("", h.ctx);
+  assert(h.getConfirmCount() === 2, "history consent is accepted before native checkpoint can be declined");
+  assert(h.completeContexts.length === 0, "declining lossy native handoff never sends history to the provider");
 }
 
 {

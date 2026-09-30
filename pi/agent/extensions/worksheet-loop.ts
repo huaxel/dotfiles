@@ -66,15 +66,45 @@ export function buildSteeringMessage(
 export type BlockRecord = { id: string; heading: string; body: string };
 export type BlockSection = { heading: string; body: string };
 
-export function worksheetHistoryId(filePath: string, cwd = process.cwd()): string {
-  const rel = path.relative(cwd, path.resolve(filePath)).replace(/\.md$/i, "");
-  const slug = rel
+function worksheetHistoryRelativePath(filePath: string, cwd: string): string {
+  return path.relative(cwd, path.resolve(filePath)).replace(/\.md$/i, "");
+}
+
+function worksheetHistorySlug(relativePath: string): string {
+  return relativePath
+    .replace(/[\\/]+/g, "-")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 40) || "worksheet";
+}
+
+/** Previous sidecar directory name, retained for one-time history migration. */
+export function legacyWorksheetHistoryId(filePath: string, cwd = process.cwd()): string {
+  return worksheetHistorySlug(worksheetHistoryRelativePath(filePath, cwd));
+}
+
+export function worksheetHistoryId(filePath: string, cwd = process.cwd()): string {
+  const rel = worksheetHistoryRelativePath(filePath, cwd);
   const digest = crypto.createHash("sha256").update(rel).digest("hex").slice(0, 12);
-  return `${slug}-${digest}`;
+  return `${worksheetHistorySlug(rel)}-${digest}`;
+}
+
+/** Move an existing unhashed sidecar into its collision-resistant directory. */
+export function migrateWorksheetHistoryDirectory(
+  historyRoot: string,
+  legacyId: string,
+  currentId: string,
+): void {
+  if (legacyId === currentId) return;
+  const legacyPath = path.join(historyRoot, legacyId);
+  const currentPath = path.join(historyRoot, currentId);
+  if (!fs.existsSync(legacyPath) || fs.existsSync(currentPath)) return;
+  try {
+    fs.renameSync(legacyPath, currentPath);
+  } catch {
+    // Another process may have migrated it already; history writes are best-effort.
+  }
 }
 
 export function isWorksheetPath(
@@ -403,7 +433,9 @@ export default function (pi: ExtensionAPI) {
     return worksheetHistoryId(filePath);
   }
   function historyDirFor(filePath: string): string {
-    return path.join(HISTORY_ROOT, historyIdFor(filePath));
+    const currentId = historyIdFor(filePath);
+    migrateWorksheetHistoryDirectory(HISTORY_ROOT, legacyWorksheetHistoryId(filePath), currentId);
+    return path.join(HISTORY_ROOT, currentId);
   }
   function eventsPathFor(filePath: string): string {
     return path.join(historyDirFor(filePath), "events.jsonl");

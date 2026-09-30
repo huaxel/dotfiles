@@ -190,16 +190,16 @@ export default function (pi: ExtensionAPI) {
         ctx.ui.notify("/restart requires interactive mode", "error");
         return;
       }
-      const model = ctx.model;
-      if (!model) {
-        ctx.ui.notify("No model selected", "error");
-        return;
-      }
       // Extension commands execute immediately, even during streaming. Do NOT
       // abort here: killing the in-flight turn loses its (uncommitted) content
       // from the handoff. Wait for the current run to settle instead.
       if (!ctx.isIdle()) await ctx.waitForIdle();
 
+      const model = ctx.model;
+      if (!model) {
+        ctx.ui.notify("No model selected", "error");
+        return;
+      }
       const providerName = model.provider ?? "the selected provider";
       const sendHistory = await ctx.ui.confirm(
         "Send conversation history for handoff?",
