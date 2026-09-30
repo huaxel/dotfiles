@@ -66,6 +66,29 @@ export function buildSteeringMessage(
 export type BlockRecord = { id: string; heading: string; body: string };
 export type BlockSection = { heading: string; body: string };
 
+export function worksheetHistoryId(filePath: string, cwd = process.cwd()): string {
+  const rel = path.relative(cwd, path.resolve(filePath)).replace(/\.md$/i, "");
+  const slug = rel
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40) || "worksheet";
+  const digest = crypto.createHash("sha256").update(rel).digest("hex").slice(0, 12);
+  return `${slug}-${digest}`;
+}
+
+export function isWorksheetPath(
+  absPath: string,
+  worksheetsRoot: string,
+  attachedFiles: ReadonlySet<string> = new Set(),
+): boolean {
+  const normalizedPath = path.resolve(absPath);
+  if (!normalizedPath.toLowerCase().endsWith(".md")) return false;
+  if (attachedFiles.has(normalizedPath)) return true;
+  const relative = path.relative(path.resolve(worksheetsRoot), normalizedPath);
+  return relative !== "" && relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative);
+}
+
 export function normalizeBlockHeading(heading: string): string {
   return heading.toLowerCase().replace(/\s+/g, " ").trim();
 }
@@ -377,8 +400,7 @@ export default function (pi: ExtensionAPI) {
   }
 
   function historyIdFor(filePath: string): string {
-    const rel = path.relative(process.cwd(), filePath).replace(/\.md$/i, "");
-    return slugify(rel.replace(/[\\/]+/g, "-")) || "worksheet";
+    return worksheetHistoryId(filePath);
   }
   function historyDirFor(filePath: string): string {
     return path.join(HISTORY_ROOT, historyIdFor(filePath));
@@ -504,12 +526,8 @@ export default function (pi: ExtensionAPI) {
     }
   }
 
-  function isWorksheetPath(absPath: string): boolean {
-    const normalizedPath = path.resolve(absPath);
-    const parts = normalizedPath.replace(/\/$/, "").split(path.sep);
-    return normalizedPath.endsWith(".md") && (
-      parts.includes(WORKSHEETS_DIR) || attachedFiles.has(normalizedPath)
-    );
+  function isWorksheetPathForSession(absPath: string): boolean {
+    return isWorksheetPath(absPath, path.resolve(WORKSHEETS_DIR), attachedFiles);
   }
 
   // ── detect agent writes to .worksheets/ files ───────────────────────────
@@ -582,7 +600,7 @@ export default function (pi: ExtensionAPI) {
     },
     arm(targetPath: string) {
       const normalizedPath = path.resolve(targetPath);
-      if (!targetPath || !isWorksheetPath(normalizedPath)) return;
+      if (!targetPath || !isWorksheetPathForSession(normalizedPath)) return;
 
       this.paths.add(normalizedPath);
       const previousTimer = this.timers.get(normalizedPath);
@@ -619,7 +637,7 @@ export default function (pi: ExtensionAPI) {
     if (!event.toolName || !["write", "edit"].includes(event.toolName)) return;
     const args = (event.input ?? {}) as Record<string, unknown>;
     const targetPath = (args.path ?? args.file ?? "") as string;
-    if (targetPath && isWorksheetPath(path.resolve(targetPath))) {
+    if (targetPath && isWorksheetPathForSession(path.resolve(targetPath))) {
       armedPaths.set(event.toolCallId, path.resolve(targetPath));
       worksheetGuard.arm(targetPath);
     }
@@ -856,11 +874,6 @@ export default function (pi: ExtensionAPI) {
     } catch {
       return [];
     }
-  }
-
-  /** Return the path to the most recently modified .worksheets/*.md file, or null. */
-  function latestWorksheet(): string | null {
-    return worksheetFiles()[0]?.filePath ?? null;
   }
 
   function readWorksheetCounts(filePath: string): { openTodos: number; openQuestions: number } {

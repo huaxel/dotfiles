@@ -200,6 +200,16 @@ export default function (pi: ExtensionAPI) {
       // from the handoff. Wait for the current run to settle instead.
       if (!ctx.isIdle()) await ctx.waitForIdle();
 
+      const providerName = model.provider ?? "the selected provider";
+      const sendHistory = await ctx.ui.confirm(
+        "Send conversation history for handoff?",
+        `The retained conversation (excluding assistant reasoning) will be sent to ${providerName} to generate a handoff prompt. It may contain sensitive information. Continue?`,
+      );
+      if (!sendHistory) {
+        ctx.ui.notify("Restart cancelled; conversation history was not sent.", "info");
+        return;
+      }
+
       const branch = ctx.sessionManager.getBranch();
       if (hasNativeCodexCheckpoint(branch)) {
         const proceed = await ctx.ui.confirm(
