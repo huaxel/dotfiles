@@ -107,6 +107,16 @@ assert(contentSimilarity("a b c", "a b") > contentSimilarity("a b c", "x y z"), 
   assert(!isWorksheetPath("/repo/.worksheets-other/ws-a.md", root), "similarly named sibling directory is rejected");
   assert(isWorksheetPath("/tmp/notes.md", root, new Set(["/tmp/notes.md"])), "explicitly attached markdown is accepted");
   assert(worksheetHistoryId("/repo/a-b/c.md") !== worksheetHistoryId("/repo/a/b-c.md"), "different paths with colliding slugs get distinct history IDs");
+  for (const filePath of ["/repo/a/b-c.md", "/repo/a//b...c.md", "/repo/ümlaut/name.md"]) {
+    const relative = path.relative("/repo", path.resolve(filePath)).replace(/\.md$/i, "");
+    const expectedLegacyId = relative
+      .replace(/[\\/]+/g, "-")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40) || "worksheet";
+    assert(legacyWorksheetHistoryId(filePath, "/repo") === expectedLegacyId, "legacy ID exactly matches the old slug algorithm");
+  }
 }
 
 {
