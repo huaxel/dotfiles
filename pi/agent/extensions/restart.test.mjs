@@ -178,16 +178,23 @@ function makeHarness({ completion, selectChoice, editorText = "", contextPercent
 }
 
 {
+  const h = makeHarness({ confirmChoice: false });
+  await h.commands.get("restart")("", h.ctx);
+  assert(h.getConfirmCount() === 1, "history sharing requires explicit confirmation");
+  assert(h.completeContexts.length === 0 && h.sent.length === 0, "declining history sharing sends nothing to the provider or new session");
+}
+
+{
   const h = makeHarness({ nativeCheckpoint: true, confirmChoice: false });
   await h.commands.get("restart")("", h.ctx);
-  assert(h.getConfirmCount() === 1, "native checkpoint requires explicit restart confirmation");
+  assert(h.getConfirmCount() === 1, "declined history sharing stops before native checkpoint confirmation");
   assert(h.completeContexts.length === 0, "cancelled native restart does not generate a lossy handoff");
 }
 
 {
   const h = makeHarness({ nativeCheckpoint: true, confirmChoice: true, completion: async () => ({ stopReason: "stop", content: [{ type: "text", text: "## Task\nContinue" }] }) });
   await h.commands.get("restart")("", h.ctx);
-  assert(h.getConfirmCount() === 1, "native checkpoint confirmation precedes handoff");
+  assert(h.getConfirmCount() === 2, "history and native checkpoint confirmations precede handoff");
   assert(h.notifications.some((notification) => notification.message.includes("lossy textual handoff")), "lossy native restart is disclosed");
 }
 

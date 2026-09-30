@@ -790,16 +790,17 @@ async function garbageCollectTodos(
 	todosDir: string,
 	settings: TodoSettings,
 	ctx: ExtensionContext,
-): Promise<void> {
-	if (!settings.gc) return;
+): Promise<number> {
+	if (!settings.gc) return 0;
 
 	let entries: string[] = [];
 	try {
 		entries = await fs.readdir(todosDir);
 	} catch {
-		return;
+		return 0;
 	}
 
+	let moveFailures = 0;
 	const cutoff = Date.now() - settings.gcDays * 24 * 60 * 60 * 1000;
 	await Promise.all(
 		entries
@@ -821,8 +822,12 @@ async function garbageCollectTodos(
 					if (createdAt < cutoff) {
 						// Move to .trash instead of deleting: GC must never destroy data.
 						const trashDir = path.join(todosDir, ".trash");
-						await fs.mkdir(trashDir, { recursive: true });
-						await fs.rename(filePath, path.join(trashDir, entry)).catch(() => undefined);
+						try {
+							await fs.mkdir(trashDir, { recursive: true });
+							await fs.rename(filePath, path.join(trashDir, entry));
+						} catch {
+							moveFailures += 1;
+						}
 					}
 				} catch {
 					// ignore unreadable or concurrently removed todo
@@ -831,6 +836,7 @@ async function garbageCollectTodos(
 				}
 			}),
 	);
+	return moveFailures;
 }
 
 function getTodoPath(todosDir: string, id: string): string {
@@ -1578,7 +1584,10 @@ export default function todosExtension(pi: ExtensionAPI) {
 		const todosDir = getTodosDir(ctx.cwd);
 		await ensureTodosDir(todosDir);
 		const settings = await readTodoSettings(todosDir);
-		await garbageCollectTodos(todosDir, settings, ctx);
+		const gcMoveFailures = await garbageCollectTodos(todosDir, settings, ctx);
+		if (gcMoveFailures > 0 && ctx.hasUI) {
+			ctx.ui.notify(`Todo cleanup could not move ${gcMoveFailures} closed item(s) to .trash.`, "warning");
+		}
 	});
 
 	// Tell the agent the project has a shared backlog (only when it does), so

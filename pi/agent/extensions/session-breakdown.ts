@@ -59,7 +59,7 @@ function todBucketLabel(key: TodKey): string {
 	return TOD_BUCKETS.find((b) => b.key === key)?.label ?? key;
 }
 
-interface ParsedSession {
+export interface ParsedSession {
 	filePath: string;
 	startedAt: Date;
 	dayKeyLocal: string; // YYYY-MM-DD (local)
@@ -516,7 +516,7 @@ async function walkSessionFiles(
 	return out;
 }
 
-async function parseSessionFile(filePath: string, signal?: AbortSignal): Promise<ParsedSession | null> {
+export async function parseSessionFile(filePath: string, signal?: AbortSignal): Promise<ParsedSession | null> {
 	const fileName = path.basename(filePath);
 	let startedAt = parseSessionStartFromFilename(fileName);
 	let currentModel: ModelKey | null = null;

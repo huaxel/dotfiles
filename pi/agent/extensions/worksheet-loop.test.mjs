@@ -5,7 +5,7 @@ import { resolve } from "./pi-resolve-hook.mjs";
 
 registerHooks({ resolve });
 
-const { reconcileBlockIds, contentSimilarity, todoItems, todoTransitions, worksheetCounts } = await import(new URL("./worksheet-loop.ts", import.meta.url));
+const { reconcileBlockIds, contentSimilarity, todoItems, todoTransitions, worksheetCounts, worksheetHistoryId, isWorksheetPath } = await import(new URL("./worksheet-loop.ts", import.meta.url));
 
 const assert = (condition, message) => {
   if (!condition) throw new Error(message);
@@ -95,6 +95,16 @@ const ids = (records) => records.map((r) => r.id);
 // contentSimilarity is symmetric and exact-match is 1.
 assert(contentSimilarity("a b c", "a b c") === 1, "identical content scores 1");
 assert(contentSimilarity("a b c", "a b") > contentSimilarity("a b c", "x y z"), "related content outranks unrelated");
+
+// Worksheet paths stay inside the configured root unless explicitly attached.
+{
+  const root = "/repo/.worksheets";
+  assert(isWorksheetPath("/repo/.worksheets/ws-a.md", root), "worksheet under configured root is accepted");
+  assert(!isWorksheetPath("/tmp/.worksheets/ws-a.md", root), "unrelated .worksheets directory is rejected");
+  assert(!isWorksheetPath("/repo/.worksheets-other/ws-a.md", root), "similarly named sibling directory is rejected");
+  assert(isWorksheetPath("/tmp/notes.md", root, new Set(["/tmp/notes.md"])), "explicitly attached markdown is accepted");
+  assert(worksheetHistoryId("/repo/a-b/c.md") !== worksheetHistoryId("/repo/a/b-c.md"), "different paths with colliding slugs get distinct history IDs");
+}
 
 // ── todo-transition semantics ──────────────────────────────────────────────
 
