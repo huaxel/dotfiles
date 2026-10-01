@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "cloudflare-builds": {
+      "url": "https://builds.mcp.cloudflare.com/mcp",
+      "exposure": "direct"
+    }
+  }
+}
