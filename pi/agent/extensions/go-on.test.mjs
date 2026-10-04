@@ -2,7 +2,14 @@
 // (from the repo root). Mocks the pi extension API; no pi install needed.
 import goOn from "./go-on.ts";
 
-function makeHarness({ model = {}, auth = { ok: true } } = {}) {
+const harnesses = [];
+// Ensure watchdog timers are cleared even when the suite fails: harness
+// shutdown handlers are synchronous, so they still run on process exit.
+process.on("exit", () => {
+  for (const h of harnesses) h.events.get("session_shutdown")({}, h.ctx);
+});
+
+function makeHarness({ model = {}, auth = { ok: true }, getAuth = async () => auth } = {}) {
   const events = new Map();
   const shortcuts = new Map();
   const commands = new Map();
@@ -20,7 +27,7 @@ function makeHarness({ model = {}, auth = { ok: true } } = {}) {
   const ctx = {
     isIdle: () => idle,
     model,
-    modelRegistry: { getApiKeyAndHeaders: async () => auth },
+    modelRegistry: { getApiKeyAndHeaders: getAuth },
     sessionManager: { getBranch: () => branch },
     ui: {
       setStatus: (key, value) => statuses.push([key, value]),
@@ -28,7 +35,9 @@ function makeHarness({ model = {}, auth = { ok: true } } = {}) {
     },
   };
   goOn(pi);
-  return { events, shortcuts, commands, sent, statuses, notifications, ctx, setBranch: (value) => { branch = value; }, setIdle: (value) => { idle = value; } };
+  const harness = { events, shortcuts, commands, sent, statuses, notifications, ctx, setBranch: (value) => { branch = value; }, setIdle: (value) => { idle = value; } };
+  harnesses.push(harness);
+  return harness;
 }
 
 const BURST = "ctrl+alt+g"; // the one burst key on every platform
@@ -283,6 +292,109 @@ for (const reason of ["toolUse", "length"]) {
   h.setBranch([assistant("Hello.")]);
   await h.events.get("agent_settled")({}, h.ctx);
   assert(h.sent.length === 1, "shutdown left mode armed");
+}
+
+// Off/on invalidates the old auth request, regardless of resolution order or
+// auth outcome. A stale request must not send, disarm, or clear the new guard.
+for (const oldFirst of [true, false]) {
+  for (const oldOk of [true, false]) {
+    const resolvers = [];
+    const h = makeHarness({ getAuth: () => new Promise((resolve) => resolvers.push(resolve)) });
+    try {
+      const first = h.commands.get("go-on-mode")("on", h.ctx);
+      await h.commands.get("go-on-mode")("off", h.ctx);
+      const second = h.commands.get("go-on-mode")("on", h.ctx);
+      if (oldFirst) {
+        resolvers[0]({ ok: oldOk });
+        await first;
+        assert(h.sent.length === 0, "cancelled request sent before the new auth resolved");
+        assert(h.statuses.at(-1)?.[1] === "go-on: armed", "stale auth disarmed the new burst");
+        const duplicate = h.shortcuts.get(NUDGE)(h.ctx);
+        assert(resolvers.length === 2, "stale auth cleared the new pending guard");
+        await duplicate;
+        resolvers[1]({ ok: true });
+        await second;
+      } else {
+        resolvers[1]({ ok: true });
+        await second;
+        resolvers[0]({ ok: oldOk });
+        await first;
+      }
+      assert(h.sent.length === 1, "off/on during auth sent more than one surviving nudge");
+      assert(h.statuses.at(-1)?.[1] === "go-on: armed (1)", "stale auth changed the new burst state");
+    } finally {
+      await h.events.get("session_shutdown")({}, h.ctx);
+    }
+  }
+}
+
+// Cancellation without rearming also prevents a pending request from sending.
+for (const cancel of ["off", "shutdown"]) {
+  let resolveAuth;
+  const h = makeHarness({ getAuth: () => new Promise((resolve) => { resolveAuth = resolve; }) });
+  const pending = h.commands.get("go-on-mode")("on", h.ctx);
+  if (cancel === "off") await h.commands.get("go-on-mode")("off", h.ctx);
+  else await h.events.get("session_shutdown")({}, h.ctx);
+  resolveAuth({ ok: true });
+  await pending;
+  assert(h.sent.length === 0, `${cancel} did not cancel pending auth`);
+  assert(h.statuses.at(-1)?.[1] === undefined, `${cancel} restored a stale status`);
+}
+
+// Negation applies to the entire completion phrase, including its qualifiers.
+for (const text of ["I'm not done with everything.", "I'm not done here.", "I am not yet done here.", "We aren't done here.", "They weren't done with everything."]) {
+  const h = makeHarness();
+  try {
+    await h.shortcuts.get(BURST)(h.ctx);
+    h.setBranch([assistant(text)]);
+    await h.events.get("agent_settled")({}, h.ctx);
+    assert(h.sent.length === 2, `${text} incorrectly disarmed unfinished work`);
+  } finally {
+    await h.events.get("session_shutdown")({}, h.ctx);
+  }
+}
+
+// Qualified completion still stops; a preceding negative sentence does not
+// negate the final declaration.
+for (const text of ["I'm done here.", "I'm done with everything.", "It wasn't easy. I'm done here.", "It wasn't easy, but I'm done here."]) {
+  const h = makeHarness();
+  try {
+    await h.shortcuts.get(BURST)(h.ctx);
+    h.setBranch([assistant(text)]);
+    await h.events.get("agent_settled")({}, h.ctx);
+    assert(h.sent.length === 1, `${text} did not stop completed work`);
+  } finally {
+    await h.events.get("session_shutdown")({}, h.ctx);
+  }
+}
+
+// Pi shuts down session resources; do the same for every mock so pending
+// start-watchdog timers do not keep the test process alive for 60 seconds.
+for (const h of harnesses) await h.events.get("session_shutdown")({}, h.ctx);
+
+// A foreign agent_start while an auto nudge is still awaiting auth clears
+// the pending guard; the stale request no-ops, and the burst resumes at that
+// run's settle instead of wedging in the armed state.
+{
+  const resolvers = [];
+  const h = makeHarness({ getAuth: () => new Promise((resolve) => resolvers.push(resolve)) });
+  try {
+    const pending = h.shortcuts.get(BURST)(h.ctx);
+    while (resolvers.length === 0) await Promise.resolve(); // let the async chain reach auth
+    h.events.get("agent_start")({}, h.ctx);
+    resolvers[0]({ ok: true });
+    await pending;
+    assert(h.sent.length === 0, "superseded request sent its nudge");
+    h.events.get("tool_execution_end")({}, h.ctx);
+    h.setBranch([assistant("Still working.")]);
+    const settled = h.events.get("agent_settled")({}, h.ctx);
+    resolvers[1]({ ok: true });
+    await settled;
+    assert(h.sent.length === 1, "burst did not resume after the foreign run settled");
+    assert(h.statuses.at(-1)?.[1] === "go-on: armed (1)", "burst state wrong after resume");
+  } finally {
+    await h.events.get("session_shutdown")({}, h.ctx);
+  }
 }
 
 console.log("go-on behavioral checks passed");

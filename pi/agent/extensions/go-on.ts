@@ -71,14 +71,18 @@ export default function (pi: ExtensionAPI) {
   const SUBJECT_DONE_PHRASE =
     /^(?:(?:the|all) )?(?:task|tasks|work|changes|implementation|request|refactor|job|project|goal|deliverable|assignment|everything) (?:is|are|was|were|has been|have been) (?:done|complete|completed|finished|all set|wrapped up)[.!?]*$/i;
   const STANDALONE_DONE_PHRASE = /^(?:done|finished|completed|complete|all set|wrapped up)[.!?]*$/i;
+  // Keep qualifiers inside the negated phrase: "not done here" and "not
+  // done with everything" are unfinished work, not completion declarations.
+  // The span stops at commas/semicolons too, so a concessive clause does not
+  // negate a later declaration ("It wasn't easy, but I'm done here.")
   const NEGATED_DONE_PHRASE =
-    /\b(?:not|never|isn['’]?t|is not|wasn['’]?t|was not|haven['’]?t|have not|hasn['’]?t|has not|don['’]?t|do not)\b[^.!?\n]*\b(?:done|complete|completed|finished|all set)\b[.!?]*$/i;
+    /\b(?:not|never|isn['’]?t|is not|wasn['’]?t|was not|aren['’]?t|are not|weren['’]?t|were not|haven['’]?t|have not|hasn['’]?t|has not|don['’]?t|do not)\b[^.,;!?\n]*\b(?:done(?: here| with everything)?|complete|completed|finished|all set|wrapped up)\b[.!?]*$/i;
 
   let mode = false;
   let nudges = 0;
   let toolsSinceSettle = false; // did the settled run execute any tools?
   let verbalStreak = 0; // consecutive settles without tool work
-  let idleNudgePending = false; // an idle nudge is in preflight/startup
+  let idleNudgePending: symbol | undefined; // identity of the idle preflight/startup
   let idleNudgeTimer: ReturnType<typeof setTimeout> | undefined;
 
   const setStatus = (ctx: GoOnContext, text: string | undefined) =>
@@ -91,7 +95,7 @@ export default function (pi: ExtensionAPI) {
   ) => ctx.ui.notify(msg, type);
 
   function clearIdleNudgePending() {
-    idleNudgePending = false;
+    idleNudgePending = undefined;
     if (idleNudgeTimer !== undefined) {
       clearTimeout(idleNudgeTimer);
       idleNudgeTimer = undefined;
@@ -111,9 +115,10 @@ export default function (pi: ExtensionAPI) {
       // preflight can leave isIdle() true long enough for a second prompt to
       // start, so serialize idle nudges locally.
       if (idleNudgePending) return false;
-      idleNudgePending = true;
+      const request = Symbol("idle-nudge");
+      idleNudgePending = request;
       idleNudgeTimer = setTimeout(() => {
-        if (!idleNudgePending) return;
+        if (idleNudgePending !== request) return;
         clearIdleNudgePending();
         // A nudge that never started the agent leaves auto mode armed-but-dead
         // (no further settles will arrive), so always disarm instead of going quiet.
@@ -132,11 +137,13 @@ export default function (pi: ExtensionAPI) {
       }
 
       const auth = await ctx.modelRegistry.getApiKeyAndHeaders(ctx.model);
+      // Cancellation may have been followed by a new request while awaiting
+      // auth. Stale completions must neither send nor clear the new guard.
+      if (idleNudgePending !== request) return false;
       if (requiresMode && !mode) {
         clearIdleNudgePending();
         return false;
       }
-      if (!idleNudgePending) return false;
       if (!auth.ok) {
         clearIdleNudgePending();
         if (mode) disarm(ctx, "authentication unavailable");
@@ -231,7 +238,10 @@ export default function (pi: ExtensionAPI) {
 
   // agent_start confirms that an idle nudge passed Pi's asynchronous
   // preflight. agent_settled clears the same guard before considering the
-  // next automatic nudge.
+  // next automatic nudge. Both can also drop a still-pending request's guard
+  // when a foreign run starts or settles first; that request then no-ops and
+  // the burst resumes at the foreign run's settle — every agent_start is
+  // followed by an agent_settled, so auto mode cannot wedge.
   pi.on("agent_start", () => {
     clearIdleNudgePending();
   });
