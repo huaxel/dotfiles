@@ -12,8 +12,7 @@
     "openference/MiMo-V2.6-Flash",
     "openference/MiMo-V2.6-Pro",
     "openference/Qwen3.8 27b",
-    "openference/DeepSeek-V4-Flash-0731",
-    "openference/Step-5 Preview"
+    "openference/DeepSeek-V4-Flash-0731"
   ],
   "lastChangelogVersion": "0.0.0",
   "theme": "dark",
