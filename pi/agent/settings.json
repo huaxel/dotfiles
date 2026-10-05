@@ -46,7 +46,7 @@
     "npm:pi-memory",
     "npm:@sting8k/pi-vcc",
     "npm:pi-forkme",
-    "git:github.com/aliceisjustplaying/pi-you-should-know"
+    "npm:@mobrienv/pi-tidy-tools"
   ],
   "extensions": [
     "./extensions/continue-after-compaction.ts",
