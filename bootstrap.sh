@@ -309,6 +309,11 @@ experimental-features = nix-command flakes" ;;
             PATH="$HOME/.nix-profile/bin:$PATH"
             export PATH
         fi
+        # Home Manager owns the Nushell handoff in ~/.bashrc via programs.bash.
+        # It must stay TTY-gated so non-interactive SSH keeps a working Bash.
+        if [ -f "$HOME/.bashrc" ] && ! grep -qF '== *i* && -t 0' "$HOME/.bashrc" 2>/dev/null; then
+            warn "No TTY guard in ~/.bashrc — non-interactive SSH may launch Nushell. Re-run: just nix-switch $profile"
+        fi
     fi
 fi
 

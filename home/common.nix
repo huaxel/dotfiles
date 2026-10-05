@@ -164,6 +164,21 @@ in
 
   programs.home-manager.enable = true;
 
+  # Bash is the login shell on hosts where `chsh -s nu` never stuck (and the
+  # shell sshd runs for remote commands). Hand off to Nushell only for
+  # interactive shells with a terminal so non-TTY SSH (Codex, automation)
+  # keeps a working Bash instead of hitting Nushell's REPL error.
+  # Machine-local secrets and host-only overrides stay in ~/.bashrc.local.
+  programs.bash = {
+    enable = true;
+    bashrcExtra = ''
+      if [[ $- == *i* && -t 0 ]] && command -v nu >/dev/null 2>&1; then
+        exec nu
+      fi
+      [[ -f ~/.bashrc.local ]] && source ~/.bashrc.local
+    '';
+  };
+
   # Keep Herdr on its upstream flake input so it can be updated independently
   # from the rest of nixpkgs. The native module also reloads its settings.
   programs.herdr = {
