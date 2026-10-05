@@ -41,11 +41,9 @@
     "npm:@juanbenjumea/pi-provider-openference",
     "npm:@howaboua/pi-shepherdr",
     "npm:@juanbenjumea/pi-agy",
-    "npm:pi-context-view",
     "npm:@ogulcancelik/pi-codex-compaction",
     "npm:pi-memory",
     "npm:@sting8k/pi-vcc",
-    "npm:pi-forkme",
     "npm:@mobrienv/pi-tidy-tools"
   ],
   "extensions": [
