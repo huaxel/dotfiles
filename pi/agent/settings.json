@@ -32,7 +32,6 @@
       "source": "npm:@ff-labs/pi-fff",
       "extensions": []
     },
-    "npm:@mobrienv/pi-tidy-tools",
     {
       "source": "npm:@ogulcancelik/pi-herdr",
       "skills": []

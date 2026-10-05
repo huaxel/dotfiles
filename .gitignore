@@ -66,6 +66,8 @@ pi/agent/mcp-auth.json
 pi/agent/pi-goal.json
 pi/agent/agy-sessions.json
 pi/agent/fff/
+pi/agent/pi-shepherdr.json
+pi/agent/you-should-know/
 
 # Pi npm extension manifest + lockfile — pi-managed, per-machine, regenerated
 # by `pi update --extensions` / `pi install` (source of truth: settings.json)
