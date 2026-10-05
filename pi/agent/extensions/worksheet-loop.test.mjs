@@ -1,14 +1,11 @@
-// Behavioral tests for worksheet-loop.ts pure block-identity helpers.
+// Behavioral tests for worksheet-loop.ts.disabled pure block-identity helpers.
 // Run: node pi/agent/extensions/worksheet-loop.test.mjs
-import { registerHooks } from "node:module";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { resolve } from "./pi-resolve-hook.mjs";
+import { worksheet } from "./worksheet-test-source.mjs";
 
-registerHooks({ resolve });
-
-const { reconcileBlockIds, contentSimilarity, todoItems, todoTransitions, worksheetCounts, worksheetHistoryId, legacyWorksheetHistoryId, migrateWorksheetHistoryDirectory, isWorksheetPath } = await import(new URL("./worksheet-loop.ts", import.meta.url));
+const { reconcileBlockIds, contentSimilarity, todoItems, todoTransitions, worksheetCounts, worksheetHistoryId, legacyWorksheetHistoryId, migrateWorksheetHistoryDirectory, isWorksheetPath } = worksheet;
 
 const assert = (condition, message) => {
   if (!condition) throw new Error(message);
