@@ -206,6 +206,7 @@ test-pi-packages:
     #!/usr/bin/env bash
     set -euo pipefail
     cd "{{dotfiles-dir}}"
+    node pi/agent/extensions/capacity.test.mjs
     npm run typecheck --workspace @juanbenjumea/opencode-go-usage
     npm test --workspace @juanbenjumea/opencode-go-usage
     npm test --workspace pi-auto-permissions-local
