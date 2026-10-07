@@ -172,8 +172,16 @@ in
   programs.bash = {
     enable = true;
     bashrcExtra = ''
-      if [[ $- == *i* && -t 0 ]] && command -v nu >/dev/null 2>&1; then
-        exec nu
+      # GUI terminals can start non-login Bash with no Nix profile in PATH.
+      # Initialize it here rather than relying on ~/.profile having run.
+      if [[ $- == *i* ]]; then
+        case ":$PATH:" in
+          *":$HOME/.nix-profile/bin:"*) ;;
+          *) export PATH="$HOME/.nix-profile/bin:$PATH" ;;
+        esac
+        if [[ -t 0 ]] && command -v nu >/dev/null 2>&1; then
+          exec nu
+        fi
       fi
       [[ -f ~/.bashrc.local ]] && source ~/.bashrc.local
     '';
