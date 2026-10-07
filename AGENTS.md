@@ -79,20 +79,30 @@ Select a skill based on the task rather than reading every skill. In particular,
 read `$HOME/.agents/skills/herdr/SKILL.md` before using Herdr and
 `$HOME/.agents/skills/fleet/SKILL.md` before multi-issue fleet orchestration.
 
-When delegation is useful and `HERDR_ENV=1`, use the repository's Shepherdr
-master mode, then use the `herdr` skill and `agents` tool. Use `/herdr` when
-orchestration guidance is useful. Use `worker` for implementation/exploration
-and `reviewer` for read-only review. Run review agents read-only
-(`--tools read,grep,find,ls`), and never nest agents. For new agents, choose an
-explicit Herdr placement and stable name; rely on Shepherdr completion events
-rather than polling pane output. Use `grill-me` only when asked,
+Work normally. Delegate only when useful or requested; task size alone does
+not require delegation. Inside Herdr (`HERDR_ENV=1`), use Shepherdr's `agents`
+tool for Pi helpers: call `help` first, then use `general` for implementation,
+`explorer` for discovery, and `reviewer` for independent review. `/herdr` is an
+optional control panel, not a prerequisite. Give writing helpers dedicated
+worktrees; choose explicit placement and stable names, preserve focus, and rely
+on completion events rather than polling terminal output. Never nest agents.
+Read-only profiles must restrict tools (`--tools read,grep,find,ls --no-mcp`);
+this is not an OS sandbox. Use `grill-me` only when asked,
 `jules-orchestration` for Jules, and `teach` for teaching.
 
-Use `agy_execute` (pi-agy) for bulk scaffolding, repetitive refactors, and
-exhaustive test generation: default to `mode=plan`, use `accept-edits` only for
-scoped batches, and always review the diff and run the project gate after writes.
-Reuse `conversation_id`/`continue` for multi-step handoffs. Prefer Cursor for
-interactive work; use Herdr for multi-agent review and pane-based delegation
-when `HERDR_ENV=1`; use agy for batch work.
+Execution capacity: see `docs/patterns/subscription-routing.md`. Agentq's
+`node ~/projects/agentq/bin/capacity.js` exposes observations and uncertainty,
+not a mandatory model ladder. Pi reasons about execution paths (machine,
+account/subscription, harness, model). Shepherdr adds Pi-specific coordination;
+use Herdr agent primitives for native harnesses and explicit-model Pi workers
+when its fixed profiles do not fit. Do not rewrite profiles as a routing step.
+Independent review does not require two AGY model families. On quota exhaustion,
+inspect partial work before choosing another valid path for remaining work;
+never blindly replay implementation or silently enable paid overages.
+
+pi-agy is an optional specialist backend, disabled in normal Pi sessions. Enable
+it explicitly only when its native execution is useful. For AGY writes, review
+the diff and run the project gate; keep tasks bounded and reuse conversation IDs
+when continuing the same investigation.
 Cloudflare skills are scoped to nursultan-web, and `uv` is scoped to project-atom.
 Coordinate related sessions through pi-intercom when available.

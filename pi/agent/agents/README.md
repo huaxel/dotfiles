@@ -1,41 +1,35 @@
-# Pi subagents (Herdr)
+# Pi helpers through Shepherdr / Herdr
 
-Global agent definitions for `pi-shepherdr`. When running inside Herdr,
-the `agents` tool is available for delegation without waiting for an explicit
-user request. Discovery:
-`$PI_CODING_AGENT_DIR/agents/` overrides bundled agents in the npm package.
+Active Shepherdr definitions are `../shepherdr/profiles/*/profile.json`.
+The Markdown roles here are legacy definitions for other consumers; installed
+Shepherdr 0.2.14 does not use them or `subagents.agentOverrides`.
 
-| Agent | Role |
-|-------|------|
-| `worker` | General implementation and exploratory work |
-| `reviewer` | Read-only code review (`openai-codex/gpt-5.6-luna`, high thinking) |
+Shepherdr adds Pi-session reply collection, asynchronous reports, attributed
+peer messages, question handling and optional shared context on top of Herdr.
+It coordinates **Pi workers**, not every native harness. Herdr's
+`herdr_layout` / `herdr_agent` tools control native Claude, AGY, Copilot, Codex,
+etc., and Pi workers with explicit model arguments.
 
-Bundled-only (package): `planner`, `scout`, `visual-tester`. Parent delegation
-rules: `../../AGENTS.md`. Herdr procedures live in
-`$HOME/.agents/skills/herdr/SKILL.md`; fleet orchestration uses
-`$HOME/.agents/skills/fleet/SKILL.md`.
+| Profile | Purpose |
+|---|---|
+| `general` | Stable implementation convenience; dedicated task worktree |
+| `explorer` | Read-only discovery; file tools only, MCP disabled |
+| `reviewer` | Independent read-only review; file tools only, MCP disabled |
 
-**All names you can pass to `/subagent`:** `worker`, `reviewer`, `planner`,
-`scout`, `visual-tester` (plus any `.pi/agents/` in the project).
+Profiles are not the subscription routing policy. Call `agents help` before
+use, and inspect the profile's current model when deciding whether it fits.
+Use explicit Herdr placement, preserve focus, and prefer completion events over
+polling. `/herdr` is the optional control panel; `/subagent`, `/plan` and
+`/iterate` are not commands supplied by this installed Shepherdr.
 
-**User slash commands (Pi prompt):** `/subagent worker …`, `/plan …`, `/iterate`
-—not `subagents_list`. Use `/herdr` to toggle orchestration guidance; the
-`agents` tool remains available independently. `/subagent` remains the direct
-local agent shortcut.
+Before selecting capacity, inspect `node ~/projects/agentq/bin/capacity.js`.
+Pi chooses a valid machine/harness/subscription/model path using observed facts
+and uncertainty. Do not rewrite profiles to emulate per-call routing. Native
+harness catalogs and auth are not inferred from Pi's catalog.
 
-**Operational prerequisites:** the parent Pi session must run inside Herdr
-(`HERDR_ENV=1`) for fleet monitoring. Call `agents` with `action: "help"`
-before first use; use `spawn`/`assign` for work and provide a profiled
-`agent_type`. For local repository work, use a dedicated worktree when needed.
+Reviewers need requirements, changed paths, checks already run and a readable
+patch for diff review: file-only reviewers cannot run Git. On exhaustion,
+inspect partial work and stop the former writer before handing remaining work
+to another valid path. Read-only tools are not an OS sandbox.
 
-**Smoke test (in Herdr, parent Pi session, project cwd):**
-
-1. Ask: “Call the `agents` tool with `action: help` and show the result.” (Or read this README / `ls *.md` here.)
-2. `/subagent worker Reply exactly: worker-ok`
-3. `/subagent reviewer Read pi/agent/agents/README.md and summarize it in one sentence.`
-
-The reviewer test supplies a file it can read; it does not require shell or Git
-access.
-
-Requires `PI_CODING_AGENT_DIR=~/dotfiles/pi/agent` and
-`npm:@howaboua/pi-shepherdr` in Pi settings.
+Full architecture: `../../../docs/patterns/subscription-routing.md`.
