@@ -1,5 +1,13 @@
 # Read `man 5 sway` for a complete reference.
 
+# Import display/session env into the user systemd manager BEFORE config.d units
+# start — config.d/07-autostart.conf starts elephant.service, which launches
+# apps via `systemd-run --user --scope` (inheriting the MANAGER's env). If this
+# import runs after elephant starts, spawned apps get no WAYLAND_DISPLAY and
+# crash silently (e.g. dolphin aborts on launch).
+exec systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP DISPLAY XDG_SESSION_TYPE
+exec dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP DISPLAY XDG_SESSION_TYPE
+
 # Include all module configurations
 include ~/.config/sway/config.d/*
 
@@ -8,8 +16,6 @@ include ~/.config/sway/config.d/*
 bindsym $mod+b exec ~/.config/sway/scripts/wofi-bluetooth.sh
 
 # Status Bar — waybar is launched from 07-autostart.conf (not here, to avoid duplicates)
-exec systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP DISPLAY XDG_SESSION_TYPE
-exec dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP DISPLAY XDG_SESSION_TYPE
 
 # Toggle keyboard layout using external script (using the working $mod+k binding from keybindings.conf)
 # To toggle keyboard layout, press Mod+K instead of Mod+Shift+L
