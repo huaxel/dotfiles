@@ -1,3 +1,4 @@
 {
-  "quotaBalancing": true
+  "quotaBalancing": false,
+  "defaultModel": "flash-medium"
 }
