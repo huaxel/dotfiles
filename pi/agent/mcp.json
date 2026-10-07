@@ -3,6 +3,13 @@
     "cloudflare-builds": {
       "url": "https://builds.mcp.cloudflare.com/mcp",
       "exposure": "direct"
+    },
+    "cua-driver": {
+      "command": "/Users/juanbenjumea/.local/bin/cua-driver",
+      "args": [
+        "mcp"
+      ],
+      "description": "Background computer-use driver: window snapshots plus click/type/scroll input that doesn't steal the cursor"
     }
   }
 }
