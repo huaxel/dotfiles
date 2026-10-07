@@ -5,7 +5,7 @@
       "exposure": "direct"
     },
     "cua-driver": {
-      "command": "/Users/juanbenjumea/.local/bin/cua-driver",
+      "command": "~/.local/bin/cua-driver",
       "args": [
         "mcp"
       ],
