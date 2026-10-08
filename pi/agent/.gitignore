@@ -4,6 +4,8 @@
 
 # Runtime state
 sessions/
+subagents-herdr/
+subagent-parents/
 git/
 agy-dirlocks/
 intercom/

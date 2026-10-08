@@ -39,7 +39,13 @@
     "npm:@juanbenjumea/pi-dynamic-footer",
     "npm:@juanbenjumea/pi-ask-herdr",
     "npm:@juanbenjumea/pi-provider-openference",
-    "npm:@howaboua/pi-shepherdr",
+    {
+      "source": "npm:@howaboua/pi-shepherdr",
+      "extensions": [],
+      "skills": [],
+      "prompts": [],
+      "themes": []
+    },
     {
       "source": "npm:@juanbenjumea/pi-agy",
       "extensions": [],
@@ -48,7 +54,8 @@
     "npm:@ogulcancelik/pi-codex-compaction",
     "npm:pi-memory",
     "npm:@sting8k/pi-vcc",
-    "npm:@mobrienv/pi-tidy-tools"
+    "npm:@mobrienv/pi-tidy-tools",
+    "/home/juan/projects/pi-extensions/pi-subagent"
   ],
   "extensions": [
     "./extensions/continue-after-compaction.ts",
