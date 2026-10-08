@@ -55,7 +55,8 @@
     "npm:pi-memory",
     "npm:@sting8k/pi-vcc",
     "npm:@mobrienv/pi-tidy-tools",
-    "/home/juan/projects/pi-extensions/pi-subagent"
+    "/home/juan/projects/pi-extensions/pi-subagent",
+    "git:github.com/aliceisjustplaying/pi-you-should-know"
   ],
   "extensions": [
     "./extensions/continue-after-compaction.ts",
