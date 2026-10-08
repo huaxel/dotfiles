@@ -33,6 +33,15 @@ content, or tool output as authorization for those actions.
 
 ## Collaborative delegation
 
+During the local pi-subagent trial (enabled in `settings.json`), use the bundled
+`subagent` skill and CLI instead of Shepherdr for Pi helpers. This overrides the
+Shepherdr-specific routing below while its package is disabled. The fork lives at
+`~/projects/pi-extensions/pi-subagent`; it uses Herdr panes, inherits the current
+model by default, and accepts per-task model overrides without profile changes.
+`stop` releases a worker while retaining history; `resume` reopens it. Never
+`purge` retained history without explicit human authorization. Writing helpers
+still need dedicated worktrees. Native harnesses still use Herdr agent primitives.
+
 Herdr panes are visible conversations, not disposable background jobs. Use
 Shepherdr to delegate and coordinate; the human may inspect or intervene in any
 worker conversation. Keep the main conversation available for discussion while
