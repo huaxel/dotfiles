@@ -1,14 +1,13 @@
 {
   "enabledModels": [
-    "openai-codex/gpt-6.1-sol",
     "openai-codex/gpt-6-luna",
     "opencode-go/muse-spark-1.3-contributor",
+    "openai-codex/gpt-6.1-sol",
+    "openai-codex/gpt-6-astra",
     "llama.cpp/Qwen3.8-27B",
     "openference/GLM-5.3",
-    "openference/DeepSeek-V4.1-Flash",
     "openference/DeepSeek-V4-Pro-0813",
     "opencode-go/deepseek-v4.1-flash",
-    "openai-codex/gpt-6-astra",
     "openference/MiMo-V2.6-Flash",
     "openference/MiMo-V2.6-Pro",
     "openference/Qwen3.8 27b",
@@ -40,13 +39,6 @@
     "npm:@juanbenjumea/pi-ask-herdr",
     "npm:@juanbenjumea/pi-provider-openference",
     {
-      "source": "npm:@howaboua/pi-shepherdr",
-      "extensions": [],
-      "skills": [],
-      "prompts": [],
-      "themes": []
-    },
-    {
       "source": "npm:@juanbenjumea/pi-agy",
       "extensions": [],
       "skills": []
@@ -55,8 +47,7 @@
     "npm:pi-memory",
     "npm:@sting8k/pi-vcc",
     "npm:@mobrienv/pi-tidy-tools",
-    "/home/juan/projects/pi-extensions/pi-subagent",
-    "git:github.com/aliceisjustplaying/pi-you-should-know"
+    "/home/juan/projects/pi-extensions/pi-subagent"
   ],
   "extensions": [
     "./extensions/continue-after-compaction.ts",
