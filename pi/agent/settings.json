@@ -2,16 +2,16 @@
   "enabledModels": [
     "openai-codex/gpt-6-luna",
     "opencode-go/muse-spark-1.3-contributor",
-    "openai-codex/gpt-6.1-sol",
-    "openai-codex/gpt-6-astra",
     "llama.cpp/Qwen3.8-27B",
     "openference/GLM-5.3",
     "openference/DeepSeek-V4-Pro-0813",
     "opencode-go/deepseek-v4.1-flash",
+    "openai-codex/gpt-6-astra",
     "openference/MiMo-V2.6-Flash",
     "openference/MiMo-V2.6-Pro",
     "openference/Qwen3.8 27b",
-    "openference/DeepSeek-V4-Flash-0731"
+    "openference/DeepSeek-V4-Flash-0731",
+    "openai-codex/gpt-6.1-sol"
   ],
   "lastChangelogVersion": "0.0.0",
   "theme": "dark",
@@ -38,11 +38,7 @@
     "npm:@juanbenjumea/pi-dynamic-footer",
     "npm:@juanbenjumea/pi-ask-herdr",
     "npm:@juanbenjumea/pi-provider-openference",
-    {
-      "source": "npm:@juanbenjumea/pi-agy",
-      "extensions": [],
-      "skills": []
-    },
+    "npm:@juanbenjumea/pi-agy",
     "npm:@ogulcancelik/pi-codex-compaction",
     "npm:pi-memory",
     "npm:@sting8k/pi-vcc",
