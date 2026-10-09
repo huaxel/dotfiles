@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "pi-agy-tools": {
+      "serverUrl": "http://127.0.0.1:47359/mcp",
+      "headers": {
+        "x-pi-agy-token": "e8afed1a0032b2230c049f74cf62ce26ea547cd0da4c3e7b314a6d55ef24005b"
+      }
+    }
+  }
+}
