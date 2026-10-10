@@ -53,7 +53,7 @@ and `zebar` for the status bar. For llama.cpp inference:
 git clone <your-repo> ~/dotfiles && cd ~/dotfiles
 ./bootstrap.sh
 # or activate an existing profile:
-just nix-switch juan@framearch   # or juan@arch-wsl / juan@macbook
+just nix-switch juan@framearch   # or juan@arch-wsl / juan@macbook / juan@liedelpi
 ```
 
 The generic bootstrap leaves host-specific `/etc` configuration untouched. On
@@ -126,7 +126,7 @@ deployment).
 Add or update a model in `llama-models.ini`, then activate the matching profile:
 
 ```bash
-just nix-switch juan@framearch   # or juan@arch-wsl / juan@macbook
+just nix-switch juan@framearch   # or juan@arch-wsl / juan@macbook / juan@liedelpi
 sudo systemctl restart llama.cpp
 ```
 

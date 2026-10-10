@@ -41,6 +41,24 @@
           useVulkan = true;
         };
 
+      # Upstream static release binary for aarch64-linux. Building herdr
+      # from source fails there: the zig-built compiler_rt objects from
+      # ghostty-vt are rejected by binutils ld.bfd ("overlapping FDEs" /
+      # undefined symbols). Same approach as the pinned atuin release in
+      # home/common.nix. The binary is the v0.9.3 tag; other systems keep
+      # building the flake input (master, same Cargo version).
+      herdrAarch64 = nixpkgs.legacyPackages.aarch64-linux.stdenv.mkDerivation {
+        pname = "herdr";
+        version = "0.9.3";
+        src = nixpkgs.legacyPackages.aarch64-linux.fetchurl {
+          url = "https://github.com/herdrdev/herdr/releases/download/v0.9.3/herdr-linux-aarch64";
+          hash = "sha256-TeeqPiVniBLpKWDeZPfCqqG8ofD4CjxeVZg34jHh9cA=";
+        };
+        dontUnpack = true;
+        installPhase = ''install -Dm755 $src $out/bin/herdr'';
+        meta.mainProgram = "herdr";
+      };
+
       mkHome = { system, hostModule }:
         home-manager.lib.homeManagerConfiguration {
           pkgs = import nixpkgs {
@@ -48,7 +66,8 @@
             config.allowUnfree = true;
           };
           extraSpecialArgs = {
-            herdrPackage = herdr.packages.${system}.default;
+            herdrPackage = if system == "aarch64-linux" then herdrAarch64
+                          else herdr.packages.${system}.default;
           };
           modules = [
             sops-nix.homeManagerModules.sops
@@ -84,6 +103,11 @@
       apps.aarch64-darwin.home-manager = {
         type = "app";
         program = "${home-manager.packages.aarch64-darwin.default}/bin/home-manager";
+        meta.description = "Locked Home Manager activation tool";
+      };
+      apps.aarch64-linux.home-manager = {
+        type = "app";
+        program = "${home-manager.packages.aarch64-linux.default}/bin/home-manager";
         meta.description = "Locked Home Manager activation tool";
       };
 
@@ -133,6 +157,11 @@
         "juan@macbook" = mkHome {
           system = "aarch64-darwin";
           hostModule = ./home/macbook.nix;
+        };
+
+        "juan@liedelpi" = mkHome {
+          system = "aarch64-linux";
+          hostModule = ./home/liedelpi.nix;
         };
       };
     };

@@ -681,12 +681,9 @@ nix-check profile="juan@framearch":
 nix-switch profile="juan@framearch":
     #!/usr/bin/env bash
     set -euo pipefail
-    # Use a temporary index for untracked Nix modules; preserve the real index.
-    index_path="${GIT_INDEX_FILE:-$(git rev-parse --git-path index)}"
-    temp_index=$(mktemp)
-    cp "$index_path" "$temp_index"
-    export GIT_INDEX_FILE="$temp_index"
-    trap 'rm -f "$temp_index"' EXIT
+    # Expose untracked Nix modules to the flake with intent-to-add entries.
+    # (Nix >= 2.35 ignores GIT_INDEX_FILE, so a temporary index no longer
+    # works; `git add -N` is what Nix itself recommends and is idempotent.)
     git ls-files --others --exclude-standard -z -- home nixos | xargs -0 -r git add -N
     nix flake check --all-systems
     # Back up pre-existing paths during the Home Manager handoff.
