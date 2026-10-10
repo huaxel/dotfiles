@@ -5,12 +5,13 @@ repository. Native Windows configuration is handled by platform scripts.
 
 ## Current pilot
 
-`flake.nix` exposes three Home Manager profiles:
+`flake.nix` exposes four Home Manager profiles:
 
 ```text
 juan@framearch   x86_64-linux
 juan@arch-wsl    x86_64-linux
 juan@macbook     aarch64-darwin
+juan@liedelpi    aarch64-linux
 ```
 
 The pilot manages a shared package baseline, the Brewfile, session variables,
@@ -46,9 +47,10 @@ Switch only after reviewing the activation diff:
 just nix-switch juan@framearch
 ```
 
-The same command works with `juan@arch-wsl` or `juan@macbook` on the matching
-machine. The recipe invokes the Home Manager app from the flake, so activation
-uses the locked input rather than fetching an unpinned GitHub command.
+The same command works with `juan@arch-wsl`, `juan@macbook`, or `juan@liedelpi`
+on the matching machine. The recipe invokes the Home Manager app from the flake,
+so activation uses the locked input rather than fetching an unpinned GitHub
+command.
 
 ## New-machine bootstrap
 
@@ -58,6 +60,12 @@ or Arch-WSL, the current host uses the distro package:
 ```bash
 sudo pacman -S --needed nix
 sudo systemctl enable --now nix-daemon.socket
+```
+
+On Debian (liedelpi), the official multi-user installer is used instead:
+
+```bash
+sh <(curl -L https://nixos.org/nix/install) --daemon
 ```
 
 Before the first flake command, enable flakes and copy the age private key from
@@ -71,7 +79,8 @@ install -m 600 /secure/backup/age-keys.txt ~/.config/sops/age/keys.txt
 ```
 
 Then run the profile matching the machine: `juan@framearch`,
-`juan@arch-wsl`, or `juan@macbook` (Apple Silicon). The secret files are
+`juan@arch-wsl`, `juan@macbook` (Apple Silicon), or `juan@liedelpi`
+(aarch64 Linux). The secret files are
 materialized by sops-nix during activation. On a fresh clone, `bootstrap.sh`
 installs Nix and activates the matching profile automatically:
 
@@ -90,7 +99,7 @@ activate the matching profile; Home Manager backs up conflicting paths when
 requested:
 
 ```bash
-just nix-switch juan@arch-wsl   # or juan@macbook / juan@framearch
+just nix-switch juan@arch-wsl   # or juan@macbook / juan@framearch / juan@liedelpi
 ```
 
 On Windows, run `powershell -ExecutionPolicy Bypass -File
