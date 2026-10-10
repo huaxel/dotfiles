@@ -49,7 +49,10 @@ Keep deployment paths stable; organize new material under the matching area belo
   local fields (`lastChangelogVersion`, `defaultProvider`, `defaultModel`) are
   stripped on commit by the `strip-pi-machine-config` git clean filter
   (`.gitattributes`), so pi writing them back through the symlink does not
-  create git noise. The same compat-symlink pattern is used for `auth.json`
+  create git noise. **Caution:** an autostash/rebase pull with local changes to
+  this file can run those changes through the clean filter; the working copy
+  may then contain stripped defaults (and pi may ask you to choose them again).
+  The same compat-symlink pattern is used for `auth.json`
   (ad-hoc after `/login`, since auth is gitignored per-machine).
 - `pi/packages/` — TypeScript packages managed by the root npm workspace.
 - `skills/` — reusable skills shared by agents and projects.
