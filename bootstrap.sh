@@ -286,6 +286,8 @@ else
             profile="juan@macbook"
         elif [ "$(hostname -s 2>/dev/null || hostname)" = "arch-wsl" ]; then
             profile="juan@arch-wsl"
+        elif [ "$(hostname -s 2>/dev/null || hostname)" = "liedelpi" ]; then
+            profile="juan@liedelpi"
         else
             profile="juan@framearch"
         fi
