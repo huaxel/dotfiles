@@ -38,3 +38,11 @@ Host campagne-rbnb
     User jbenjumeamoreno
     IdentityFile ~/.ssh/id_ed25519
     StrictHostKeyChecking accept-new
+
+# Temporary ngrok TCP tunnel; host/port can change when ngrok restarts.
+Host campagne-rbnb-ngrok
+    HostName 7.tcp.eu.ngrok.io
+    Port 22654
+    User jbenjumeamoreno
+    IdentityFile ~/.ssh/id_ed25519
+    StrictHostKeyChecking accept-new
