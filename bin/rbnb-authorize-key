@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Authorize an SSH public key on the RBNB Windows VM (Campagne-RBNB).
+#
+# Run this from any machine that already has working access to the VM.
+# It merges the given public key into the VM's MSYS2 ~/.ssh/authorized_keys
+# (deduplicated), so the new machine can log in with its matching private key.
+#
+# Usage:
+#   rbnb-authorize-key                      # authorize THIS machine's ~/.ssh/id_ed25519.pub
+#   rbnb-authorize-key ~/other_machine.pub  # authorize an arbitrary pubkey file
+#
+# On the new machine, first:  ssh-keygen -t ed25519   (defaults are fine)
+
+set -euo pipefail
+
+HOST="${RBNB_HOST:-campagne-rbnb}"
+KEY="${1:-$HOME/.ssh/id_ed25519.pub}"
+
+if [ ! -f "$KEY" ]; then
+  echo "error: no public key at $KEY" >&2
+  echo "       run: ssh-keygen -t ed25519" >&2
+  exit 1
+fi
+
+first_line=$(grep -m1 '^ssh-' "$KEY" || true)
+case "$first_line" in
+  ssh-*) : ;;
+  *) echo "error: $KEY does not look like an SSH public key" >&2; exit 1 ;;
+esac
+
+echo "authorizing $(echo "$first_line" | awk '{print $1, $2}' | cut -c1-50)... on $HOST"
+
+# Read current keys, merge in the new one, dedupe, write back. Doing the merge
+# locally avoids quoting issues and keeps authorized_keys sorted/unique.
+tmp=$(mktemp)
+trap 'rm -f "$tmp"' EXIT
+
+ssh "$HOST" 'cat ~/.ssh/authorized_keys 2>/dev/null || true' > "$tmp"
+cat "$KEY" >> "$tmp"
+sort -u "$tmp" | ssh "$HOST" 'mkdir -p ~/.ssh && chmod 700 ~/.ssh; cat > ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys'
+
+echo "done — $(sort -u "$tmp" | grep -c '^ssh-') key(s) now authorized on the VM"

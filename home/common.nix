@@ -228,6 +228,7 @@ in
       "${config.home.homeDirectory}/dotfiles/npmrc";
   home.file.".gitignore_global".source = ../gitignore_global;
   home.file.".local/bin/web-search".source = ../bin/web-search;
+  home.file.".local/bin/rbnb-authorize-key".source = ../bin/rbnb-authorize-key;
   home.file.".ssh/config".source = ../ssh_config;
   home.file.".config/nvim".source = ../config/nvim;
   home.file.".config/htop".source = ../config/htop;

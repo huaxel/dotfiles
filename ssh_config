@@ -29,3 +29,12 @@ Host github.com
     HostName ssh.github.com
     Port 443
     User git
+
+# Windows VM (MSYS2 user-mode sshd on 2222). Reachable on the FISCBRUS
+# network/VPN at this IP; from outside, use the ngrok tcp address instead.
+Host campagne-rbnb
+    HostName 10.136.16.166
+    Port 2222
+    User jbenjumeamoreno
+    IdentityFile ~/.ssh/id_ed25519
+    StrictHostKeyChecking accept-new
