@@ -19,9 +19,8 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # This is Juan's fork, which retains the pinned upstream-compatible commit.
     cachy-llama = {
-      url = "github:huaxel/CachyLLama/c1627fa4b8526fe146bccb3ca228f3dd0838517c";
+      url = "github:huaxel/UmaLLama/c1627fa4b8526fe146bccb3ca228f3dd0838517c";
       inputs.nixpkgs.follows = "nixpkgs";
       flake = true;
     };
