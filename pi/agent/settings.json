@@ -41,7 +41,8 @@
     "npm:pi-memory",
     "npm:@sting8k/pi-vcc",
     "npm:@mobrienv/pi-tidy-tools",
-    "/home/juan/projects/pi-extensions/pi-subagent"
+    "/home/juan/projects/pi-extensions/pi-subagent",
+    "npm:pi-vim-editor"
   ],
   "extensions": [
     "./extensions/continue-after-compaction.ts",
@@ -59,6 +60,5 @@
   "showHardwareCursor": true,
   "images": {
     "autoResize": false
-  },
-  "deviceId": "c7936362-0cb9-44b8-9000-864aa4fc3d0a"
+  }
 }
