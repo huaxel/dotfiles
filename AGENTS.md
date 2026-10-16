@@ -50,6 +50,17 @@ applies to work below its directory.
   workflow clearly authorizes it, and never include unrelated changes. Record
   feedback only when the project workflow requires it.
 
+## Engineering leverage
+
+When improving code, make the safe and correct path the easiest path. Prioritize
+this inverse pyramid: (1) architecture, types, and invariants that eliminate
+failure classes; (2) deterministic static analysis and automated verification;
+(3) concise prose only for judgment that cannot be encoded; (4) human review
+focused on residual, high-leverage risk. Do not default to adding instructions
+or relying on exhaustive manual review when code or checks can enforce the
+behavior. Use `/create-verification-skill` when available for recurring
+verification that still requires agent judgment.
+
 ## Completion discipline
 
 Treat every prompt as a complete, scoped work order. Do not stop at a natural
