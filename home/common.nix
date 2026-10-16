@@ -156,6 +156,7 @@ in
   home.sessionPath = [ "${config.home.homeDirectory}/.nix-profile/bin" ];
 
   home.sessionVariables = {
+    LANG = "en_US.UTF-8";
     EDITOR = "nvim";
     VISUAL = "nvim";
     PAGER = "less";
@@ -266,8 +267,22 @@ in
   home.file.".config/llama.cpp/tests/test_download_models_structure.py".source = ../config/llama.cpp/tests/test_download_models_structure.py;
   home.file.".config/llama.cpp/uv.lock".source = ../config/llama.cpp/uv.lock;
   home.file.".config/zed/keymap.json".source = ../config/zed/keymap.json;
+  # btop rewrites its config and stores logs beside it. Keep the tracked
+  # defaults as a seed, but materialize them into writable user state instead
+  # of linking ~/.config/btop into the immutable Nix store.
+  home.activation.mutableBtopConfig = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    btop_dir="${config.home.homeDirectory}/.config/btop"
+    if [ -L "$btop_dir" ]; then
+      rm "$btop_dir"
+    fi
+    mkdir -p "$btop_dir"
+    if [ ! -e "$btop_dir/btop.conf" ]; then
+      cp ${../config/btop/btop.conf} "$btop_dir/btop.conf"
+      chmod u+w "$btop_dir/btop.conf"
+    fi
+  '';
+
   home.file.".config/bat".source = ../config/bat;
-  home.file.".config/btop".source = ../config/btop;
   home.file.".config/eza".source = ../config/eza;
   home.file.".config/fastfetch".source = ../config/fastfetch;
   home.file.".config/icons.sh".source = ../config/icons.sh;

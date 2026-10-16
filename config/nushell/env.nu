@@ -7,6 +7,8 @@
 # because this parser takes values literally while systemd would strip quotes
 # and expand variables (the fish parser in config.fish has the same constraint).
 
+# Nushell does not source Home Manager's POSIX session-variable script.
+$env.LANG = "en_US.UTF-8"
 $env.EDITOR = "nvim"
 $env.VISUAL = "nvim"
 $env.PAGER = "less"
