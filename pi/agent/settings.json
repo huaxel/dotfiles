@@ -42,8 +42,7 @@
     "npm:pi-memory",
     "npm:@sting8k/pi-vcc",
     "npm:@mobrienv/pi-tidy-tools",
-    "/home/juan/projects/pi-extensions/pi-subagent",
-    "npm:pi-vim-editor"
+    "/home/juan/projects/pi-extensions/pi-subagent"
   ],
   "extensions": [
     "./extensions/continue-after-compaction.ts",
