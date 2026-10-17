@@ -28,10 +28,8 @@ Scan for the issues in `$HOME/dotfiles/docs/patterns/commit-sweep.md`.
 Write findings to `worksheets/sweep-YYYY-MM-DD.md`.
 
 ### 4. Agent review
-Request a code review for the last batch of changes via
-`~/.agents/skills/requesting-code-review/SKILL.md`.
-
-Fix Critical and Important issues. Note Minor issues.
+Request a code review for the last batch of changes. Fix Critical and Important
+issues. Note Minor issues.
 
 ### 5. Worksheet written
 ```bash

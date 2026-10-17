@@ -44,8 +44,31 @@ const BURST = "ctrl+alt+g"; // the one burst key on every platform
 const NUDGE = "ctrl+alt+n"; // the one nudge key on every platform
 const BURST_ALT = "alt+g"; // fallback for SSH clients that drop the Ctrl bit
 const NUDGE_ALT = "alt+n";
+const CONTINUATION_PROMPT = "Continue autonomously toward the outcome I originally asked for.";
 const assistant = (text, stopReason = "stop") => ({ type: "message", message: { role: "assistant", content: [{ type: "text", text }], stopReason } });
 const assert = (condition, message) => { if (!condition) throw new Error(message); };
+const assertContinuationPrompt = (prompt, message) => {
+  assert(prompt.startsWith(CONTINUATION_PROMPT), `${message}: missing goal anchor`);
+  for (const requirement of [
+    "do not repeat completed work",
+    "carry it through verification",
+    "Treat the outcome and explicit deliverables as requirements",
+    "choose a better route within scope",
+    "Preserve creative intent",
+    "Deepen, don't enlarge",
+    "challenge consequential assumptions against primary evidence",
+    "use concrete domain-appropriate methods",
+    "seek an independent or reproducible check where useful",
+    "Borrow another field's technique only when it addresses a specific weakness",
+    "don't role-play experts",
+    "do not broaden the task",
+    "materially change scope, cost, risk, or commitments without approval",
+    "without explicit authorization",
+    "If blocked or a decision/approval is genuinely needed, stop",
+  ]) {
+    assert(prompt.includes(requirement), `${message}: missing ${requirement}`);
+  }
+};
 
 // Four keys are registered: nudge + burst, each with a plain-alt fallback.
 {
@@ -73,7 +96,8 @@ const assert = (condition, message) => { if (!condition) throw new Error(message
 {
   const h = makeHarness();
   await h.commands.get("go-on-mode")("on", h.ctx);
-  assert(h.sent.length === 1 && h.sent[0][0] === "go on", "toggle did not send its initial nudge");
+  assert(h.sent.length === 1, "toggle did not send its continuation prompt");
+  assertContinuationPrompt(h.sent[0][0], "toggle prompt");
   assert(h.statuses.at(-1)?.[1] === "go-on: armed (1)", "toggle did not arm");
   await h.shortcuts.get(BURST)(h.ctx);
   assert(h.statuses.at(-1)?.[1] === undefined, "burst key did not disarm when armed");
@@ -96,7 +120,8 @@ const assert = (condition, message) => { if (!condition) throw new Error(message
   const input = h.events.get("input");
   const result = await input({ text: "/go-on mode" }, h.ctx);
   assert(result?.action === "handled", "/go-on mode input was not handled");
-  assert(h.sent.length === 1 && h.sent[0][0] === "go on", "/go-on mode did not send its nudge");
+  assert(h.sent.length === 1, "/go-on mode did not send its continuation prompt");
+  assertContinuationPrompt(h.sent[0][0], "/go-on mode prompt");
   assert(h.statuses.at(-1)?.[1] === "go-on: armed (1)", "/go-on mode did not arm");
   h.events.get("agent_start")({}, h.ctx);
   await input({ text: "/go-on mode" }, h.ctx);
@@ -185,7 +210,8 @@ assert(positive.sent.length === 1, "subject-based completion was missed");
 {
   const h = makeHarness();
   await h.shortcuts.get(NUDGE)(h.ctx);
-  assert(h.sent.length === 1 && h.sent[0][0] === "go on", "nudge did not send a single 'go on'");
+  assert(h.sent.length === 1, "nudge did not send its continuation prompt");
+  assertContinuationPrompt(h.sent[0][0], "single nudge prompt");
   // The real pi fires agent_start when the prompt starts, clearing the
   // idle-pending guard; simulate it so the second press can nudge again.
   h.events.get("agent_start")({}, h.ctx);

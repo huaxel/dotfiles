@@ -2,9 +2,9 @@
  * go-on — one-key continuation + "auto" mode for simple conversations.
  *
  * Universal keys (same on every terminal):
- *   - ctrl+alt+n — single nudge: sends "go on" as a user message.
- *   - ctrl+alt+g — burst: sends "go on" AND arms auto mode in one press
- *     (press again to stop): pi then keeps sending "go on" after every
+ *   - ctrl+alt+n — single nudge: asks for the next useful step.
+ *   - ctrl+alt+g — burst: sends that prompt AND arms auto mode in one press
+ *     (press again to stop): pi then keeps sending it after every
  *     agent settle until the agent has nothing left to do, and disarms
  *     itself. The second press is the whole toggle (/go-on-mode on|off is
  *     the command fallback). A lighter-weight alternative to /goal when
@@ -51,8 +51,11 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 
 export default function (pi: ExtensionAPI) {
-  const GO_ON = "go on";
-  /** Maximum number of automatic "go on" messages per burst. */
+  // Treat each nudge as a bounded autonomy handoff, not an invitation to
+  // invent adjacent work. Repeating this prompt should keep the agent anchored
+  // to the user's original outcome across long multi-step runs.
+  const GO_ON = `Continue autonomously toward the outcome I originally asked for. First check what is already complete and what remains; do not repeat completed work. Choose the single highest-value next step that advances that outcome, and carry it through verification. Treat the outcome and explicit deliverables as requirements, but don't assume the proposed means are; if they seem ineffective, choose a better route within scope. Preserve creative intent. Deepen, don't enlarge: challenge consequential assumptions against primary evidence, use concrete domain-appropriate methods, and seek an independent or reproducible check where useful. Borrow another field's technique only when it addresses a specific weakness; don't role-play experts or add deliverables for their own sake. Keep the original scope and constraints: do not broaden the task, manufacture work, or materially change scope, cost, risk, or commitments without approval. Do not take irreversible/high-impact actions (such as deleting data, publishing, deploying, committing, or pushing) without explicit authorization. If blocked or a decision/approval is genuinely needed, stop and state the specific blocker. Otherwise keep going until the outcome is complete or no useful in-scope step remains, then summarize what you did and what remains.`;
+  /** Maximum number of automatic continuation prompts per burst. */
   const MAX_NUDGES = 15;
   /** Avoid wedging auto mode if Pi rejects a nudge before agent_start. */
   const NUDGE_START_TIMEOUT_MS = 60_000;
@@ -195,7 +198,7 @@ export default function (pi: ExtensionAPI) {
     toolsSinceSettle = false;
     verbalStreak = 0;
     setStatus(ctx, "go-on: armed");
-    notify(ctx, "Go-on mode ON — sending 'go on' until the agent has nothing left to do");
+    notify(ctx, "Go-on mode ON — continuing toward the original outcome until done or blocked");
   }
 
   function disarm(ctx: GoOnContext, reason: string) {

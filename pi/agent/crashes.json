@@ -8,5 +8,35 @@
     "sessionFile": "/home/juan/dotfiles/pi/agent/sessions/2026-10-16T19-53-10-023Z_01a14646-8885-733b-aead-2a8eab5ccdfd.jsonl",
     "cwd": "/home/juan/dotfiles",
     "notified": true
+  },
+  {
+    "timestamp": "2026-10-17T19:38:24.889Z",
+    "version": "1.3.0",
+    "kind": "uncaught_exception",
+    "message": "ENOSPC: no space left on device, write",
+    "stack": "Error: ENOSPC: no space left on device, write",
+    "sessionFile": "/home/juan/dotfiles/pi/agent/sessions/2026-10-17T19-16-03-218Z_01a14b4a-ea12-75db-b81a-b6523ff9af38.jsonl",
+    "cwd": "/home/juan/projects/nursultan-web",
+    "notified": true
+  },
+  {
+    "timestamp": "2026-10-17T19:38:31.561Z",
+    "version": "1.3.0",
+    "kind": "uncaught_exception",
+    "message": "ENOSPC: no space left on device, write",
+    "stack": "Error: ENOSPC: no space left on device, write",
+    "sessionFile": "/home/juan/dotfiles/pi/agent/sessions/2026-10-17T13-04-09-998Z_01a149f6-710d-7340-9b11-b60dea91536c.jsonl",
+    "cwd": "/home/juan/projects/ehb/three-ages",
+    "notified": true
+  },
+  {
+    "timestamp": "2026-10-17T19:44:56.645Z",
+    "version": "1.3.0",
+    "kind": "uncaught_exception",
+    "message": "ENOSPC: no space left on device, write",
+    "stack": "Error: ENOSPC: no space left on device, write",
+    "sessionFile": "/home/juan/dotfiles/pi/agent/sessions/2026-10-17T19-17-48-821Z_01a14b4c-8694-747a-bb9e-e782dc9d7e62.jsonl",
+    "cwd": "/home/juan/projects/spanish-housing-data-analysis",
+    "notified": true
   }
 ]
