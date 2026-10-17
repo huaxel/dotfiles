@@ -81,6 +81,36 @@ await runTests({
     assert(page.paths[0].models[0].id === 'GLM', 'model listing narrowed');
     assert(page.paths[1].models === null, 'unknown remains unknown');
   },
+  'native service harness filtering happens before limiting': () => {
+    const input = view();
+    input.nativeServices = [{ harness: 'codex', models: [] }, { harness: 'agy', models: [] }, { harness: 'agy', models: [] }];
+    const page = capacityPage(input, { harness: 'agy' });
+    assert(page.nativeServices.length === 2, 'all matching services are retained');
+    assert(page.nativeServices[0].harness === 'agy', 'later matching service is retained');
+    assert(page.nativeServicesOmitted === 0, 'no matching service omitted');
+    input.nativeServices = Array.from({ length: 10 }, () => ({ harness: 'agy', models: [] }));
+    const bounded = capacityPage(input, { harness: 'agy' });
+    assert(bounded.nativeServices.length === 8 && bounded.nativeServicesOmitted === 2, 'bounded omission is explicit');
+  },
+  'invalid pagination bounds and malformed path entries are rejected': () => {
+    for (const params of [{ offset: -1 }, { offset: 0.5 }, { limit: 9 }, { limit: 0 }, { modelsPerPath: 11 }]) {
+      let failed = false;
+      try { capacityPage(view(), params); } catch { failed = true; }
+      assert(failed, `rejects ${JSON.stringify(params)}`);
+    }
+    for (const badPath of [null, 3, 'path', []]) {
+      const input = view(); input.paths[0] = badPath;
+      let failed = false;
+      try { capacityPage(input); } catch { failed = true; }
+      assert(failed, 'rejects malformed path');
+    }
+  },
+  'model queries ignore malformed model IDs safely': () => {
+    const input = view();
+    input.paths[0].models = [null, { id: { value: 'GLM' } }, { id: 'GLM' }];
+    const page = capacityPage(input, { modelQuery: 'glm' });
+    assert(page.paths[0].models.length === 1 && page.paths[0].models[0].id === 'GLM', 'only string IDs match');
+  },
   'large pages are bounded without malformed JSON': () => {
     const input = view(8);
     for (const path of input.paths) path.constraints = Array.from({ length: 20 }, () => 'x'.repeat(500));
