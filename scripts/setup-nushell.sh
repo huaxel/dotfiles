@@ -83,6 +83,9 @@ if command -v fzf >/dev/null 2>&1; then
     # record API while preserving the token list passed to both completers.
     if grep -q 'let fzf_wrapper_completer = {|spans|' "$CACHE_DIR/fzf.nu"; then
         tmp=$(mktemp "$CACHE_DIR/fzf.nu.tmp.XXXXXX")
+        # Single quotes are deliberate: the Nushell variable names must reach
+        # fzf.nu literally instead of expanding here.
+        # shellcheck disable=SC2016
         sed \
             -e 's/let fzf_wrapper_completer = {|spans|/let fzf_wrapper_completer = {|...completer_input|\n    let place = ($completer_input | first | get place)\n    let spans = $place.command/' \
             "$CACHE_DIR/fzf.nu" > "$tmp" && mv "$tmp" "$CACHE_DIR/fzf.nu"

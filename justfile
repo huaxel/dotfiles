@@ -208,6 +208,12 @@ test-pi-packages:
     cd "{{dotfiles-dir}}"
     node pi/agent/extensions/capacity.test.mjs
     node pi/agent/extensions/continue-after-compaction.test.mjs
+    node pi/agent/extensions/git-interceptor.test.mjs
+    node pi/agent/extensions/harness.test.mjs
+    node pi/agent/extensions/restart.test.mjs
+    node pi/agent/extensions/todos.test.mjs
+    node pi/agent/extensions/worksheet-loop.test.mjs
+    node pi/agent/extensions/worksheet-mode.test.mjs
     npm run typecheck --workspace @juanbenjumea/opencode-go-usage
     npm test --workspace @juanbenjumea/opencode-go-usage
     npm test --workspace pi-auto-permissions-local

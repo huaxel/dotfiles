@@ -1,9 +1,29 @@
 import { mkdtempSync, readdirSync, readFileSync, writeFileSync, utimesSync } from "node:fs";
+import { registerHooks } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { discoverAndLoadExtensions } from "/home/juan/.npm-global/lib/node_modules/@earendil-works/pi-coding-agent/dist/core/extensions/index.js";
+import { fileURLToPath } from "node:url";
+import { resolve } from "./pi-resolve-hook.mjs";
 
-const result = await discoverAndLoadExtensions([], "/home/juan/dotfiles", "/home/juan/.pi/agent");
+// Resolve the pi runtime the same portable way every other extension test in
+// this directory does. A hardcoded global install path silently stopped
+// resolving, which left this file failing instead of testing the todo tool.
+registerHooks({ resolve });
+
+let discoverAndLoadExtensions;
+try {
+  ({ discoverAndLoadExtensions } = await import("@earendil-works/pi-coding-agent"));
+} catch (error) {
+  console.log(`SKIP: pi runtime not resolvable here (${error.code ?? error.message})`);
+  process.exit(0);
+}
+
+// Derive locations from this file rather than hardcoding one machine's layout.
+const extensionsDir = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(extensionsDir, "..", "..", "..");
+const agentDir = process.env.PI_CODING_AGENT_DIR ?? path.join(repoRoot, "pi", "agent");
+
+const result = await discoverAndLoadExtensions([], repoRoot, agentDir);
 if (result.errors.length) { console.log("LOAD ERRORS:", result.errors.map(e => e.path + ": " + e.error).join("\n")); process.exit(1); }
 const ext = result.extensions.find((e) => e.path.includes("todos.ts"));
 const tool = ext.tools.get("todo");
