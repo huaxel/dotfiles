@@ -67,6 +67,4 @@ sequence, records failures/skips, and exits non-zero on failure.
 - Kent Beck — *Test-Driven Development*; Robert C. Martin — *Clean Code*;
   [The Three Laws of TDD](https://www.youtube.com/watch?v=qkblc5WRn-U)
 - [Stryker Mutator](https://stryker-mutator.io/), [Cucumber / Gherkin](https://cucumber.io/docs/gherkin/reference/)
-- Verification pattern: `docs/patterns/verification-before-completion.md`
-- Code review pattern: `docs/patterns/requesting-code-review.md`
 - Test audit pattern: `docs/patterns/test-audit.md`

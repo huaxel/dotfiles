@@ -98,8 +98,8 @@ optional control panel, not a prerequisite. Give writing helpers dedicated
 worktrees; choose explicit placement and stable names, preserve focus, and rely
 on completion events rather than polling terminal output. Never nest agents.
 Read-only profiles must restrict tools (`--tools read,grep,find,ls --no-mcp`);
-this is not an OS sandbox. Use `grill-me` only when asked,
-`jules-orchestration` for Jules, and `teach` for teaching.
+this is not an OS sandbox. Use `jules-orchestration` for Jules and `teach` for
+teaching.
 
 Execution capacity: see `docs/patterns/subscription-routing.md`. Agentq's
 `node ~/projects/agentq/bin/capacity.js` exposes observations and uncertainty,
