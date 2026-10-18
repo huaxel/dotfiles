@@ -1,0 +1,11 @@
+# Pilot for the acerpepe JIT dispatcher (x86_64). Manual trigger only —
+# run it from the Actions tab once to prove end-to-end minting, then
+# delete this file or keep it as a health probe.
+name: jit-pilot-acerpepe
+on:
+  workflow_dispatch: {}
+jobs:
+  pilot:
+    runs-on: [self-hosted, linux, x64, jit]
+    steps:
+      - run: echo "x64 JIT pilot green on $(uname -m)"

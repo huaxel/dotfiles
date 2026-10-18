@@ -18,10 +18,14 @@ machine with the admin key (see audit 2026-10-18: RSA `gmail` key).
 
 - Arch: x86_64, 4 cores, 4 GB RAM (~1 free), 369 GB disk + 796 GB /data free.
   Load ~0.1 (idle).
-- Toolchain: docker, node, python3. **Missing: gh, uv, rustc, go.**
-- Current roles: infra watchdog. No CI listener yet.
-- Good for: light services, watchdog jobs, x86 CI *after* toolchain gap is
-  closed (see below). 4 GB RAM rules out heavy gates — keep jobs small.
+- Toolchain: docker, node, python3 + gh 2.102 + uv 0.13 (nix, added
+  2026-10-18; flakes enabled in /etc/nix/nix.conf). Still missing:
+  rustc, go (install only if a job needs them).
+- Current roles: infra watchdog. CI dispatcher **deployed and dry-run
+  proven** 2026-10-18 (full 20-poll cycle against live API, clean;
+  service currently parked: `systemctl stop`, not enabled).
+- Good for: light services, watchdog jobs, x86 CI once flipped live.
+  4 GB RAM rules out heavy gates — keep jobs small (max_concurrent=1).
 
 ## How agents use the pool
 
@@ -35,7 +39,8 @@ machine with the admin key (see audit 2026-10-18: RSA `gmail` key).
 
 ## Next (approval-gated, NOT done)
 
-1. Close acerpepe toolchain gap (gh + uv via nix, matching the fleet),
-   then extend the JIT dispatcher to acerpepe for x86 jobs.
+1. ~~Close acerpepe toolchain gap~~ done 2026-10-18 (nix + gh + uv).
+   Flip live: `dry_run=false` in config.acerpepe.json, enable + start.
+   End-to-end proof needs a pushed no-op pilot workflow (publishing).
 2. Decide RAM policy for acerpepe CI (light jobs only vs upgrade).
 3. belpolsim pet runners on liedelpi become removable once JIT promotes.
