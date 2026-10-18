@@ -22,6 +22,14 @@ const args = process.argv.slice(2);
 const outIndex = args.indexOf("--out");
 const outDir = outIndex === -1 ? path.join(HERE, "out") : path.resolve(args[outIndex + 1]);
 
+// Machines the caller expects to hear from. An unreachable host produces an empty
+// stream and no error of its own, so without this the run would silently report
+// success while the report kept using that machine's stale records.
+const expected = [];
+for (let i = 0; i < args.length; i += 1) {
+  if (args[i] === "--expect-machine" && args[i + 1]) expected.push(args[i + 1]);
+}
+
 const recordsDir = path.join(outDir, "records");
 await fsp.mkdir(recordsDir, { recursive: true });
 
@@ -30,6 +38,7 @@ const safeMachine = (name) => String(name ?? "remote").replace(/[^A-Za-z0-9._-]/
 let written = 0;
 let records = 0;
 const reasons = new Map();
+const machines = new Set();
 
 const lines = readline.createInterface({ input: process.stdin, crlfDelay: Infinity });
 for await (const line of lines) {
@@ -45,6 +54,7 @@ for await (const line of lines) {
     continue;
   }
   records += 1;
+  if (parsed.machine) machines.add(parsed.machine);
   const name = `${safeMachine(parsed.machine)}__${recordName(parsed.file)}`;
   await fsp.writeFile(path.join(recordsDir, name), `${JSON.stringify(parsed)}\n`);
   written += 1;
@@ -62,4 +72,21 @@ if (reasons.size > 0) {
   await fsp.writeFile(textPath, `${JSON.stringify(known, null, 1)}\n`);
 }
 
-console.error(`ingested ${written} of ${records} records into ${recordsDir}`);
+console.error(
+  `ingested ${written} of ${records} records into ${recordsDir}` +
+    (machines.size > 0 ? ` (machines: ${[...machines].sort().join(", ")})` : ""),
+);
+
+const missing = expected.filter((machine) => !machines.has(machine));
+if (missing.length > 0) {
+  console.error(
+    `ERROR: expected ${missing.join(", ")} but received no records.\n` +
+      "The host is unreachable or produced nothing; the report would keep using its existing " +
+      "records and look complete. Failing instead.",
+  );
+  process.exit(2);
+}
+if (records === 0 && expected.length === 0) {
+  console.error("ERROR: no records received. Pass --expect-machine <name>, or check the remote command.");
+  process.exit(2);
+}

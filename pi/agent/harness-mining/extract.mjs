@@ -125,6 +125,8 @@ async function extractSession(file, relativePath, machine, errorTexts) {
     toolErrorCount: 0,
     toolCallMs: 0,
     slowCalls: 0,
+    durationByTool: {},
+    slowByTool: {},
     failing: [],
     compactions: 0,
     modelChanges: 0,
@@ -139,6 +141,10 @@ async function extractSession(file, relativePath, machine, errorTexts) {
     stopReasons: counter(),
     firstUserHash: null,
     firstUserLength: null,
+    // Prompt-surface cost, measured from what was actually sent.
+    schemaChars: null,
+    schemaTools: null,
+    firstPromptTokens: null,
     parseErrors: 0,
   };
 
@@ -204,6 +210,10 @@ async function extractSession(file, relativePath, machine, errorTexts) {
     bump(record.counts, role ?? "unknown");
 
     if (role === "system") {
+      if (record.schemaChars === null && Array.isArray(message.toolsAdded) && message.toolsAdded.length > 0) {
+        record.schemaChars = JSON.stringify(message.toolsAdded).length;
+        record.schemaTools = message.toolsAdded.length;
+      }
       for (const [name, value] of Object.entries(message.sections ?? {})) {
         if (value === null) delete record.sections[name];
         else record.sections[name] = sha(value);
@@ -232,6 +242,9 @@ async function extractSession(file, relativePath, machine, errorTexts) {
     if (role === "assistant") {
       const usage = message.usage;
       if (usage && typeof usage === "object") {
+        if (record.firstPromptTokens === null && (usage.input ?? 0) > 0) {
+          record.firstPromptTokens = (usage.input ?? 0) + (usage.cacheRead ?? 0);
+        }
         record.tokens.input += usage.input ?? 0;
         record.tokens.output += usage.output ?? 0;
         record.tokens.cacheRead += usage.cacheRead ?? 0;
@@ -261,6 +274,10 @@ async function extractSession(file, relativePath, machine, errorTexts) {
       const duration = typeof message.durationMs === "number" ? message.durationMs : 0;
       record.toolCallMs += duration;
       if (duration >= 60_000) record.slowCalls += 1;
+      if (duration > 0) {
+        record.durationByTool[name] = (record.durationByTool[name] ?? 0) + duration;
+        if (duration >= 60_000) record.slowByTool[name] = (record.slowByTool[name] ?? 0) + 1;
+      }
       if (message.isError === true) {
         record.toolErrorCount += 1;
         bump(record.errors, name);

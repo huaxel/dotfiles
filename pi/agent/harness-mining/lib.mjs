@@ -4,7 +4,7 @@
 import { createHash } from "node:crypto";
 
 /** Bump when the record schema or a normalization rule changes. */
-export const EXTRACTOR_VERSION = 2;
+export const EXTRACTOR_VERSION = 7;
 
 /** Short stable hash for correlating harness configuration across machines. */
 export function sha(value, length = 16) {
@@ -46,6 +46,12 @@ export function normalizeCommand(raw) {
   text = text.replace(/\s+/g, " ").trim();
   text = text.replace(/'[^']*'/g, "Q").replace(/"[^"]*"/g, "Q");
   text = text.replace(/(^|[\s=(])((?:\.{1,2}\/|\/|~\/)[^\s"')]*)/g, "$1P");
+  // Relative paths carry no leading marker, so without this every file in a lint
+  // or grep command becomes its own signature and one recurring behaviour looks
+  // like hundreds of one-offs.
+  text = text.replace(/(^|[\s=|(])((?!https?:)[^\s"'=|(]*\/[^\s"')]*)/g, "$1P");
+  // Bare filenames: no separator at all, but an extension gives them away.
+  text = text.replace(/(^|[\s=|(])([A-Za-z0-9_.-]+\.[A-Za-z0-9]{1,6})(?=$|[\s"')|])/g, "$1F");
   text = text.replace(/\b[0-9a-f]{7,}\b/g, "H");
   text = text.replace(/\b\d{2,}\b/g, "N");
   const tokens = text.split(" ").filter(Boolean);
@@ -85,18 +91,25 @@ export function signatureFor(toolName, args) {
   return `${toolName}(${keys.join(" ")})`;
 }
 
+// Lines that carry no diagnostic value: bare JSON punctuation and closers.
+const NOISE_LINE = /^[{}[\]",;\s]*$/;
+
 /**
- * Failure reason, redacted and capped. Two lines are kept because structured
- * errors put the actual complaint on the line after the headline —
- * `Validation failed for tool "edit":` is useless without the line below it.
+ * Failure reason, redacted and capped. The deciding fact sits at different ends
+ * for different error shapes: a validation failure names the offending property
+ * on line two, a Python traceback puts the exception type just before a trailing
+ * `Command exited with code N`, and a long log needs both head and tail. So the
+ * first two and last two informative lines are kept, deduplicated and capped.
  * Local output only.
  */
 export function normalizeErrorText(value) {
   const lines = redact(value)
     .split("\n")
     .map((line) => line.replace(/\s+/g, " ").trim())
-    .filter((line) => line !== "");
-  const text = lines.slice(0, 2).join(" · ");
+    .filter((line) => line !== "" && !NOISE_LINE.test(line));
+  if (lines.length === 0) return "";
+  const picked = [...new Set([...lines.slice(0, 2), ...lines.slice(-2)])];
+  const text = picked.join(" · ");
   return text.length > 240 ? `${text.slice(0, 240)}…` : text;
 }
 
