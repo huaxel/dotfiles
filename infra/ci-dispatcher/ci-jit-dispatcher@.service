@@ -1,0 +1,31 @@
+[Unit]
+Description=Ephemeral GitHub Actions JIT dispatcher (%i)
+Documentation=https://github.com/huaxel/dotfiles/tree/main/infra/ci-dispatcher
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# gh/jq live in ~/.nix-profile/bin on nix-managed hosts but that is not
+# on the non-interactive PATH; /usr/bin covers Debian hosts. Both here.
+Environment=PATH=/home/juan/.nix-profile/bin:/usr/local/bin:/usr/bin:/bin
+# %i is the host key: liedelpi | framearch. Config lives next to the script
+# wherever dotfiles stages it; adjust ExecStart path at install time.
+ExecStart=/usr/local/libexec/ci-dispatcher/jit-dispatcher.sh /etc/ci-jit-dispatcher/config.%i.json
+Restart=always
+RestartSec=10
+# Runs as the login user, NEVER root: the GitHub runner refuses root
+# outright, and jobs execute arbitrary steps — root would be far worse
+# than a user-owned token file. Token: juan-owned 0600 (see README).
+# Runs as the login user, NEVER root: the GitHub runner refuses root
+# outright, and jobs execute arbitrary steps — root would be far worse
+# than a user-owned token file. Token: juan-owned 0600 (see README).
+# No ProtectSystem/ProtectHome sandboxing: the runner must write _diag
+# and logs into its install dir, and stock upstream units run unconfined
+# too. (Hardening needs the full writable-path map — future work.)
+User=juan
+NoNewPrivileges=yes
+ReadWritePaths=/home/juan/_work-jit /home/juan/.local/state/ci-jit /home/juan/actions-runner
+
+[Install]
+WantedBy=multi-user.target

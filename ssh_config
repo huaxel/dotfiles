@@ -9,7 +9,6 @@ Host framearch-juan
 Host liedelpi
     HostName liedelpi.bonobo-fort.ts.net
     User juan
-    ProxyJump framearch-juan
     StrictHostKeyChecking accept-new
 
 Host arch-wsl

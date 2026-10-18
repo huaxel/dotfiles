@@ -1,0 +1,60 @@
+# Staged, NOT applied — needs one owner "apply" before anything changes.
+# Target: liedelpi ~/apps/<name>/current/Caddyfile (one block per app),
+# then `caddy reload`. Pattern follows the live belpolsim block:
+# plain HTTP bound to the tailnet IP. TLS upgrade path at the bottom.
+#
+# After apply, every UI below is reachable as http://100.127.61.2:<port>
+# from any tailnet device — no LAN IP needed. Auth is unchanged
+# (qbittorrent still asks its password; *arr/jellyfin keep theirs).
+
+http://100.127.61.2:7878 {
+    bind 100.127.61.2
+    reverse_proxy localhost:7878
+    encode gzip
+}
+http://100.127.61.2:8096 {
+    bind 100.127.61.2
+    reverse_proxy localhost:8096
+    encode gzip
+}
+http://100.127.61.2:8989 {
+    bind 100.127.61.2
+    reverse_proxy localhost:8989
+    encode gzip
+}
+http://100.127.61.2:6969 {
+    bind 100.127.61.2
+    reverse_proxy localhost:6969
+    encode gzip
+}
+http://100.127.61.2:2283 {
+    bind 100.127.61.2
+    reverse_proxy localhost:2283
+    encode gzip
+}
+http://100.127.61.2:9999 {
+    bind 100.127.61.2
+    reverse_proxy localhost:9999
+    encode gzip
+}
+http://100.127.61.2:9696 {
+    bind 100.127.61.2
+    reverse_proxy localhost:9696
+    encode gzip
+}
+http://100.127.61.2:5055 {
+    bind 100.127.61.2
+    reverse_proxy localhost:5055
+    encode gzip
+}
+http://100.127.61.2:8082 {
+    bind 100.127.61.2
+    reverse_proxy localhost:8082
+    encode gzip
+}
+
+# TLS upgrade (optional, acerpepe pattern — NOT staged above because
+# liedelpi has no tailscale certs yet):
+#   ssh liedelpi 'tailscale cert --cert-file /home/juan/.config/tailscale/certs/liedelpi.bonobo-fort.ts.net.crt --key-file /home/juan/.config/tailscale/certs/liedelpi.bonobo-fort.ts.net.key liedelpi.bonobo-fort.ts.net'
+# then wrap each block as https://... with `tls <crt> <key>` like acerpepe's.
+# Torrent traffic :6881 stays 0.0.0.0 — never proxy that.
