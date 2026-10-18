@@ -85,7 +85,7 @@ gh_api() { # $1 = endpoint (GET)
   fi
 }
 
-in_flight() { ls -d "$STATE_DIR"/*.lock 2>/dev/null | wc -l; }
+in_flight() { find "$STATE_DIR" -maxdepth 1 -type d -name '*.lock' -print | wc -l; }
 
 dispatch_for_repo() { # $1 = repo (owner/name)
   local repo="$1" run_id job runner_name jit_file lockdir workdir
