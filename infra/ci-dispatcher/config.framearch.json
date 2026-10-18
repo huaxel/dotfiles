@@ -1,0 +1,17 @@
+{
+  "name_prefix": "framearch",
+  "labels": ["self-hosted", "linux", "x64", "muscle", "jit"],
+  "unique_labels": ["muscle", "jit"],
+  "repos": [
+    "huaxel/belpolsim",
+    "huaxel/nursultan-web"
+  ],
+  "runner_dir": "/home/juan/actions-runner",
+  "work_root": "/home/juan/_work-jit",
+  "state_dir": "/home/juan/.local/state/ci-jit",
+  "token_file": "/etc/ci-jit-dispatcher/token",
+  "poll_interval_seconds": 30,
+  "max_concurrent": 1,
+  "run_timeout_seconds": 3300,
+  "note": "aanbestedingen keeps its VM-isolated Rust controller (separate labels, separate service). Heavy Rust/Docker builds that want muscle WITHOUT VM isolation opt in here via runs-on [self-hosted, linux, x64, muscle, jit]."
+}
