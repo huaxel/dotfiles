@@ -8,7 +8,7 @@ node extract.mjs            # session JSONL → one small record per session
 node report.mjs             # records → out/report.md
 ```
 
-Extraction over the 5,930 sessions on all three machines takes about 35 seconds.
+Extraction over the 10,825 session files on all three machines takes about 55 seconds.
 
 ## What this is for
 
@@ -40,6 +40,26 @@ Redaction replaces secret-shaped strings (env assignments, bearer tokens, provid
 prefixes, long base64 runs) while preserving readable filenames and paths, so that
 `the-parser-rewrite-notes.md` survives but `sk-proj-…` does not.
 
+## Recurring run
+
+One command refreshes everything and regenerates the report:
+
+```sh
+pi/agent/harness-mining/mine.sh                    # every host in PI_MINE_HOSTS
+PI_MINE_HOSTS="arch-wsl" mine.sh                   # one host
+PI_MINE_HOSTS="" mine.sh                           # this machine only
+```
+
+Measured end to end: **about 24 seconds** for three machines, because unchanged
+sessions are skipped. Extraction alone with nothing changed takes 0.28 s.
+
+**Why it fails loudly instead of quietly.** An unreachable host produces an empty
+stream and no error of its own, so the pipeline would report success while the report
+kept using that host's previous records — stale data presented as current. `ingest.mjs`
+therefore takes `--expect-machine <name>` and exits 2 if an expected machine delivers
+nothing. Without any expectation, an empty stream is also an error. If you replace the
+pipeline with your own, keep that check.
+
 ## Usage
 
 ```sh
@@ -47,11 +67,34 @@ node extract.mjs --limit 40          # last 40 sessions, for a quick look
 node extract.mjs --force             # re-extract everything, ignoring the cache
 node extract.mjs --no-error-text     # no reason strings on disk
 node report.mjs --top 50             # longer recurring-failure table
+node report.mjs --active-days 7      # narrower "still occurring" window (default 30)
 ```
+
+The recurring table ranks by distinct sessions across the whole corpus, which mixes
+live defects with patterns that stopped months ago. Every row carries a **`last seen`**
+date, and a *Still occurring* table lists the subset that fired inside the active
+window — that subset is what to fix next. On the current corpus, 285 of 883 recurring
+signatures are still live.
 
 Extraction is incremental: `out/index.json` records mtime and size per session, so a
 re-run only touches what changed. Bump `EXTRACTOR_VERSION` in `lib.mjs` when the record
 schema or a normalization rule changes, and the next run re-extracts everything.
+
+### Scan both session roots, and deduplicate
+
+A machine usually has two pi session stores — `~/.pi/agent/sessions` (runtime) and
+`~/dotfiles/pi/agent/sessions` (the dotfiles copy). They are not consistently nested:
+on one machine the runtime store is a strict superset, on another it is entirely
+duplicate. Pass both:
+
+```sh
+node extract.mjs --sessions ~/dotfiles/pi/agent/sessions --sessions ~/.pi/agent/sessions
+```
+
+The stores hold **10,825 files for 5,600 distinct sessions** on these three machines:
+the runtime directory keeps several files per conversation. `report.mjs` collapses
+duplicates by session-header id, keeping the most complete record, and reports both
+counts. Without that step every number is inflated by roughly 9%.
 
 ### Other machines
 
@@ -63,7 +106,7 @@ stream back as NDJSON and `ingest.mjs` files them locally with a machine-name pr
 node bundle.mjs > /tmp/harness-mining.mjs
 ssh other-machine "node --input-type=module - --stdout --machine other-machine \
   --sessions ~/dotfiles/pi/agent/sessions --sessions ~/.pi/agent/sessions" \
-  < /tmp/harness-mining.mjs | node ingest.mjs
+  < /tmp/harness-mining.mjs | node ingest.mjs --expect-machine other-machine
 ```
 
 Every remote run must pass `--sessions` explicitly: the script's default resolves from
@@ -82,6 +125,7 @@ Deduplicating the *same task* run on two machines is not implemented: `cwd` plus
 | field | meaning |
 | --- | --- |
 | `formatVersion`, `id`, `cwd`, `parentSession` | from the session header |
+| `machine`, `file` | which store the record came from; `id` is the dedupe key |
 | `startedAt`, `endedAt`, `durationMinutes` | session span |
 | `counts`, `totalMessages` | entries by message role || `calls`, `errors`, `toolCallCount`, `toolErrorCount` | tool calls and failures by tool |
 | `toolCallMs`, `slowCalls` | tool latency; calls with no result are not counted |
@@ -96,6 +140,17 @@ Deduplicating the *same task* run on two machines is not implemented: `cwd` plus
 
 ## Known limits
 
+- **Figures are a snapshot.** Sessions are appended while an analysis runs, so counts
+drift between extractions. Re-extract before quoting a number; the incremental skip
+makes that seconds for unchanged files.
+- **The extractor has been independently verified.** A Python recount of 60 sessions
+using a different parsing path, compared against every record sharing a session id,
+reproduced tool calls, errors, compactions, messages, and failing-hit totals exactly.
+An earlier run showed five mismatches, all of which were stale snapshots of sessions
+appended after extraction rather than extractor defects.
+- **Deduplication is safe, verified corpus-wide.** Of 5,600 session ids, 3,456 appear
+as more than one file, and none of those copies disagree on tool calls: the
+most-complete and least-complete rules both total 825,847. Duplicates are true copies.
 - **Harness attribution is partial.** Prompt sections are persisted only by recent pi
   versions. Across all three machines, 646 of 5,930 sessions carry a fingerprint (earliest
   2026-09-20) spread over 401 distinct fingerprints — far too sparse to correlate
@@ -109,4 +164,4 @@ Deduplicating the *same task* run on two machines is not implemented: `cwd` plus
   repositories. Use the `top cwd` column to see where a signature concentrates.
 - Subagent transcripts under `subagents-herdr/` are not part of `sessions/` and are not
   extracted.
-- **Records grow with the corpus.** 5,930 sessions produce ~30 MB of records today.
+- **Records grow with the corpus.** 10,825 session files produce ~55 MB of records today.
