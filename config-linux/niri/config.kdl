@@ -1,0 +1,352 @@
+// Niri config for framearch — replaces sway, keeps sway/aerospace muscle memory.
+//
+// Modifier is Alt everywhere (sway $mod=Mod1, aerospace Option). Niri calls
+// Super "Mod"; we bind Alt explicitly so fingers don't relearn anything.
+//
+// Mapping notes (sway key -> niri action):
+// - Alt+Return terminal, Alt+Q/W kill, Alt+Space launcher (walker)
+// - Alt+HJKL/arrows focus, Alt+Shift+HJKL/arrows move (columns left/right,
+//   windows up/down within a column — matches sway's move semantics)
+// - Alt+1..9,0 workspaces; Alt+Shift+1..0 move column there AND follow
+// - Alt+Tab previous workspace; Alt+Shift+Tab workspace to next monitor
+// - Alt+T tabbed column (sway tabbed); Alt+S center column
+// - Alt+Slash consume/expel (sway split-toggle analog); Alt+Comma/Period
+//   consume into / expel from column
+// - Alt+F maximize column, Alt+Shift+F fullscreen (sway fullscreen)
+// - Alt+Shift+Return floating toggle; Alt+M/Alt+O overview (scratchpad has
+//   no niri analog — overview is the closest "where is everything" view)
+// - Alt+Minus/Equal column width -/+10% (aerospace resize); Alt+Shift+Minus/
+//   Equal window height -/+10%; Alt+R cycle widths (sway resize-mode analog)
+// - Alt+Shift+C / Alt+Shift+R reload config (sway/aerospace reload)
+// - Alt+Shift+Semicolon keyboard-layout switch (niri native switch-layout)
+// - Alt+Shift+Apostrophe lock (same lock.sh); Print/Ctrl+Print/Alt+Print
+//   screenshots to ~/Desktop like sway's grimblast names
+// - Alt+Shift+V clipboard (cliphist+wofi), Alt+Grave fuzzel,
+//   Alt+B bluetooth, Alt+Shift+X power, Alt+Shift+W wifi,
+//   Alt+Shift+O steam, Alt+Shift+F file search, Alt+C/V/X/Z/A wtype
+//   macOS-style keys, media/brightness keys unchanged from sway
+// - DROPPED with no analog: Alt+D opacity dim, Alt+Shift+G emergency move
+//   (folded into Alt+Shift+1), standalone calc (use walker, type "="),
+//   Alt+Shift+; service-mode (aerospace-only concept)
+// - Screenshots also land on the clipboard (niri default behavior).
+// - Sticky PiP: niri floats PiP via window rules; cross-workspace stickiness
+//   doesn't exist — rules open it floating on the current workspace.
+// - Dim-inactive (swayFX) has no niri equivalent — omitted.
+//
+// Outputs mirror sway 02-outputs.conf. VERIFY with `niri msg outputs` on
+// first login: connector names (DP-4/DP-1/HDMI-A-1) must match, and the
+// IIYAMA x position assumes its rotated logical width (1920).
+//
+// Input: custom mac_colemak layout (services.xserver.xkb.extraLayouts on the
+// NixOS side installs it system-wide). If niri ever fails to start after an
+// xkb change, check `journalctl --user-unit=niri -b` and temporarily fall
+// back to layout "us,gb" below.
+
+// Input device configuration.
+input {
+    keyboard {
+        xkb {
+            layout "mac_colemak,gb"
+        }
+        numlock
+    }
+
+    touchpad {
+        tap
+        natural-scroll
+    }
+
+    mouse {
+    }
+
+    trackpoint {
+    }
+
+    focus-follows-mouse max-scroll-amount="0%"
+}
+
+// Output configuration (mirrors sway config.d/02-outputs.conf).
+output "DP-4" {
+    scale 2
+    position x=0 y=0
+    transform "normal"
+}
+
+output "DP-1" {
+    scale 1
+    position x=1920 y=0
+    transform "normal"
+}
+
+output "HDMI-A-1" {
+    scale 1
+    position x=-1920 y=0
+    transform "270"
+}
+
+// Named workspaces 1-10 (always exist, like sway's fixed set) with
+// sway's monitor assignment (06-rules workspace outputs).
+workspace "1" {
+    open-on-output "DP-4"
+}
+workspace "2" {
+    open-on-output "HDMI-A-1"
+}
+workspace "3" {
+    open-on-output "DP-1"
+}
+workspace "4" {
+    open-on-output "DP-4"
+}
+workspace "5" {
+    open-on-output "DP-4"
+}
+workspace "6" {
+    open-on-output "DP-4"
+}
+workspace "7" {
+}
+workspace "8" {
+}
+workspace "9" {
+}
+workspace "10" {
+}
+
+// Layout: gaps/border/shadow mirror sway 05-visuals.conf
+// (gaps 10, 2px focused border #76cce0, 10px rounding, soft shadow).
+layout {
+    gaps 10
+
+    center-focused-column "never"
+
+    preset-column-widths {
+        proportion 0.33333
+        proportion 0.5
+        proportion 0.66667
+    }
+
+    default-column-width { proportion 0.5; }
+
+    focus-ring {
+        width 2
+        active-color "#76cce0"
+        inactive-color "#333333"
+    }
+
+    border {
+        off
+    }
+
+    shadow {
+        on
+        softness 30
+        spread 5
+        offset x=0 y=5
+        color "#0007"
+    }
+}
+
+// Rounded corners for every window (swayFX corner_radius 10).
+window-rule {
+    geometry-corner-radius 10
+    clip-to-geometry true
+}
+
+// App -> workspace routing (mirrors sway 06-rules.conf / aerospace).
+window-rule {
+    match app-id=r#"^app\.zen-browser\.zen$"#
+    open-on-workspace "1"
+}
+window-rule {
+    match app-id=r#"^md\.obsidian$"#
+    open-on-workspace "2"
+}
+window-rule {
+    match app-id=r#"^net\.whatsapp\.WhatsApp$"#
+    open-on-workspace "3"
+}
+window-rule {
+    match app-id=r#"^com\.hnc\.Discord$"#
+    open-on-workspace "3"
+}
+window-rule {
+    match app-id=r#"^discord$"#
+    open-on-workspace "3"
+}
+window-rule {
+    match app-id=r#"^lazygit$"#
+    open-on-workspace "4"
+}
+window-rule {
+    match app-id=r#"^himalaya$"#
+    open-on-workspace "4"
+}
+window-rule {
+    match app-id=r#"^ncmpcpp$"#
+    open-on-workspace "5"
+}
+window-rule {
+    match app-id=r#"^gamescope$"#
+    open-on-workspace "1"
+}
+
+// Video picture-in-picture floats (sticky has no niri analog).
+window-rule {
+    match title="^Picture-in-Picture$"
+    open-floating true
+}
+window-rule {
+    match app-id=r#"^firefox$"#
+    title="^Picture-in-Picture$"
+    open-floating true
+}
+window-rule {
+    match app-id=r#"^chromium.*$"#
+    title="^Picture in picture$"
+    open-floating true
+}
+
+// Startup: bar, notifications, wallpaper, launcher service, idle/lock,
+// clipboard watcher. (sway 07-autostart.conf equivalents.)
+spawn-at-startup "waybar"
+spawn-at-startup "mako"
+spawn-at-startup "swaybg" "-i" "~/Pictures/mountains-bg.jpg" "-m" "fill"
+spawn-at-startup "walker" "--gapplication-service"
+spawn-at-startup "elephant"
+spawn-at-startup "wl-paste" "--watch" "cliphist" "store"
+spawn-sh-at-startup "swayidle -w timeout 300 ~/.config/sway/scripts/lock.sh timeout 600 'niri msg action power-off-monitors' before-sleep ~/.config/sway/scripts/lock.sh"
+
+hotkey-overlay {
+}
+
+screenshot-path "~/Desktop/Screenshot from %Y-%m-%d %H-%M-%S.png"
+
+animations {
+}
+
+binds {
+    // Terminal, launcher, files, window switcher.
+    Alt+Return { spawn "ghostty" "start"; }
+    Alt+Q { close-window; }
+    Alt+W { close-window; }
+    Alt+Space { spawn "walker"; }
+    Alt+Shift+F { spawn "~/.config/sway/scripts/walker-files.sh"; }
+    Alt+Grave { spawn "fuzzel"; }
+
+    // macOS-style editing keys via wtype (mirrors sway exactly).
+    Alt+C { spawn-sh "wtype -M ctrl c -m ctrl"; }
+    Alt+V { spawn-sh "wtype -M ctrl v -m ctrl"; }
+    Alt+X { spawn-sh "wtype -M ctrl x -m ctrl"; }
+    Alt+Z { spawn-sh "wtype -M ctrl z -m ctrl"; }
+    Alt+A { spawn-sh "wtype -M ctrl a -m ctrl"; }
+
+    // Focus: arrows + vim keys.
+    Alt+Left { focus-column-left; }
+    Alt+Down { focus-window-down; }
+    Alt+Up { focus-window-up; }
+    Alt+Right { focus-column-right; }
+    Alt+H { focus-column-left; }
+    Alt+J { focus-window-down; }
+    Alt+K { focus-window-up; }
+    Alt+L { focus-column-right; }
+
+    // Move: columns left/right, windows up/down within a column.
+    Alt+Shift+Left { move-column-left; }
+    Alt+Shift+Down { move-window-down; }
+    Alt+Shift+Up { move-window-up; }
+    Alt+Shift+Right { move-column-right; }
+    Alt+Shift+H { move-column-left; }
+    Alt+Shift+J { move-window-down; }
+    Alt+Shift+K { move-window-up; }
+    Alt+Shift+L { move-column-right; }
+
+    // Workspaces 1-10 (0 is 10, like sway).
+    Alt+1 { focus-workspace 1; }
+    Alt+2 { focus-workspace 2; }
+    Alt+3 { focus-workspace 3; }
+    Alt+4 { focus-workspace 4; }
+    Alt+5 { focus-workspace 5; }
+    Alt+6 { focus-workspace 6; }
+    Alt+7 { focus-workspace 7; }
+    Alt+8 { focus-workspace 8; }
+    Alt+9 { focus-workspace 9; }
+    Alt+0 { focus-workspace 10; }
+    Alt+Shift+1 { move-column-to-workspace 1; focus-workspace 1; }
+    Alt+Shift+2 { move-column-to-workspace 2; focus-workspace 2; }
+    Alt+Shift+3 { move-column-to-workspace 3; focus-workspace 3; }
+    Alt+Shift+4 { move-column-to-workspace 4; focus-workspace 4; }
+    Alt+Shift+5 { move-column-to-workspace 5; focus-workspace 5; }
+    Alt+Shift+6 { move-column-to-workspace 6; focus-workspace 6; }
+    Alt+Shift+7 { move-column-to-workspace 7; focus-workspace 7; }
+    Alt+Shift+8 { move-column-to-workspace 8; focus-workspace 8; }
+    Alt+Shift+9 { move-column-to-workspace 9; focus-workspace 9; }
+    Alt+Shift+0 { move-column-to-workspace 10; focus-workspace 10; }
+    Alt+Tab { focus-workspace-previous; }
+    Alt+Shift+Tab { move-workspace-to-monitor-next; }
+
+    // Layout: tabbed / center / consume-expel (sway stacking/split analogs).
+    Alt+T { toggle-column-tabbed-display; }
+    Alt+S { center-column; }
+    Alt+Slash { consume-or-expel-window-left; }
+    Alt+Comma { consume-window-into-column; }
+    Alt+Period { expel-window-from-column; }
+
+    // Fullscreen / floating (Alt+F is true fullscreen, exactly like sway;
+    // maximize-column has no sway analog and stays available via niri msg).
+    Alt+F { fullscreen-window; }
+    Alt+Shift+Return { toggle-window-floating; }
+
+    // Overview (no scratchpad in niri; overview is the substitute).
+    Alt+M { toggle-overview; }
+    Alt+O { toggle-overview; }
+
+    // Sizing (aerospace resize increments).
+    Alt+Minus { set-column-width "-10%"; }
+    Alt+Equal { set-column-width "+10%"; }
+    Alt+Shift+Minus { set-window-height "-10%"; }
+    Alt+Shift+Equal { set-window-height "+10%"; }
+    Alt+R { switch-preset-column-width; }
+
+    // Reload config (sway Alt+Shift+C, aerospace Alt+Shift+R).
+    Alt+Shift+C { load-config-file; }
+    Alt+Shift+R { load-config-file; }
+
+    // Keyboard layout switch (Keychron Colemak/QWERTY, replaces
+    // switch-kb-layout.sh which is swaymsg-bound).
+    Alt+Shift+Semicolon { switch-layout "next"; }
+
+    // Lock (same script as sway).
+    Alt+Shift+Apostrophe { spawn "~/.config/sway/scripts/lock.sh"; }
+
+    // Screenshots to ~/Desktop (sway grimblast naming).
+    Print { screenshot; }
+    Ctrl+Print { screenshot-screen; }
+    Alt+Print { screenshot-window; }
+
+    // Clipboard history (cliphist + wofi, like sway).
+    Alt+Shift+V { spawn-sh "cliphist list | wofi --dmenu | cliphist decode | wl-copy"; }
+
+    // Bluetooth / power / wifi menus, steam (same scripts as sway).
+    Alt+B { spawn "~/.config/sway/scripts/wofi-bluetooth.sh"; }
+    Alt+Shift+X { spawn "~/.config/wofi/scripts/wofi-power.sh"; }
+    Alt+Shift+W { spawn "~/.config/wofi/scripts/wofi-wifi.sh"; }
+    Alt+Shift+O { spawn "steam" "-no-browser"; }
+
+    // Audio / media / brightness (same commands as sway).
+    XF86AudioRaiseVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.1+ -l 1.0"; }
+    XF86AudioLowerVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.1-"; }
+    XF86AudioMute allow-when-locked=true { spawn-sh "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"; }
+    XF86AudioMicMute allow-when-locked=true { spawn-sh "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"; }
+    XF86AudioPlay allow-when-locked=true { spawn "playerctl" "play-pause"; }
+    XF86AudioNext allow-when-locked=true { spawn "playerctl" "next"; }
+    XF86AudioPrev allow-when-locked=true { spawn "playerctl" "previous"; }
+    XF86KbdBrightnessUp allow-when-locked=true { spawn "brightnessctl" "--device=*kbd*" "set" "+10%"; }
+    XF86KbdBrightnessDown allow-when-locked=true { spawn "brightnessctl" "--device=*kbd*" "set" "10%-"; }
+
+    // Inhibit escape hatch (for remote desktop / VMs).
+    Alt+Escape allow-inhibiting=false { toggle-keyboard-shortcuts-inhibit; }
+
+    // Quit (confirmation dialog, like sway's Alt+Shift+E).
+    Alt+Shift+E { quit; }
+}

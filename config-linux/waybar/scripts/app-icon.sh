@@ -79,11 +79,15 @@ get_icon() {
     esac
 }
 
-# Get focused window app_id
-app_id=$(swaymsg -t get_tree | jq -r '.. | objects | select(.focused == true) | .app_id // .window_properties.class // "unknown"')
-
-# Get window title
-title=$(swaymsg -t get_tree | jq -r '.. | objects | select(.focused == true) | .name // "Desktop"')
+# Get focused window app_id (niri first, sway fallback).
+if niri msg -j focused-window >/dev/null 2>&1; then
+    focused_json=$(niri msg -j focused-window 2>/dev/null)
+    app_id=$(echo "$focused_json" | jq -r '.app_id // "unknown"')
+    title=$(echo "$focused_json" | jq -r '.title // "Desktop"')
+else
+    app_id=$(swaymsg -t get_tree | jq -r '.. | objects | select(.focused == true) | .app_id // .window_properties.class // "unknown"')
+    title=$(swaymsg -t get_tree | jq -r '.. | objects | select(.focused == true) | .name // "Desktop"')
+fi
 
 # Get icon
 icon=$(get_icon "$app_id")

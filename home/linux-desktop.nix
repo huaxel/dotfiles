@@ -1,22 +1,13 @@
-# Linux desktop configuration shared by framearch and arch-wsl, matching the
-# The shared Linux desktop module. Files map one-to-one from config-linux/.
+# Linux desktop configuration shared by framearch (niri) and arch-wsl.
+# Compositor-specific files live in the host module (framearch.nix maps
+# niri; arch-wsl.nix maps sway). Only compositor-agnostic helpers stay here
+# (lock.sh, walker-files.sh and the wofi menus are referenced by both).
 { ... }:
 
 {
   home.file.".config/llamaman/config.json".source = ../config-linux/llamaman/config.json;
 
-  home.file.".config/sway/config".source = ../config-linux/sway/config;
-  home.file.".config/sway/config.d/01-variables.conf".source = ../config-linux/sway/config.d/01-variables.conf;
-  home.file.".config/sway/config.d/02-outputs.conf".source = ../config-linux/sway/config.d/02-outputs.conf;
-  home.file.".config/sway/config.d/03-inputs.conf".source = ../config-linux/sway/config.d/03-inputs.conf;
-  home.file.".config/sway/config.d/04-keybindings.conf".source = ../config-linux/sway/config.d/04-keybindings.conf;
-  home.file.".config/sway/config.d/05-visuals.conf".source = ../config-linux/sway/config.d/05-visuals.conf;
-  home.file.".config/sway/config.d/06-rules.conf".source = ../config-linux/sway/config.d/06-rules.conf;
-  home.file.".config/sway/config.d/07-autostart.conf".source = ../config-linux/sway/config.d/07-autostart.conf;
-  home.file.".config/sway/scripts/autotiling.sh".source = ../config-linux/sway/scripts/autotiling.sh;
   home.file.".config/sway/scripts/lock.sh".source = ../config-linux/sway/scripts/lock.sh;
-  home.file.".config/sway/scripts/switch-kb-layout.sh".source = ../config-linux/sway/scripts/switch-kb-layout.sh;
-  home.file.".config/sway/scripts/toggle-keyboard.sh".source = ../config-linux/sway/scripts/toggle-keyboard.sh;
   home.file.".config/sway/scripts/walker-files.sh".source = ../config-linux/sway/scripts/walker-files.sh;
   home.file.".config/sway/scripts/wofi-bluetooth.README.md".source = ../config-linux/sway/scripts/wofi-bluetooth.README.md;
   home.file.".config/sway/scripts/wofi-bluetooth.sh".source = ../config-linux/sway/scripts/wofi-bluetooth.sh;

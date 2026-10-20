@@ -26,6 +26,15 @@
   home.file.".aerospace.toml".source = ../aerospace;
   home.file.".config/borders".source = ../config-macos/borders;
 
+  # OmniWM (macOS Niri/Hyprland-style tiler): declarative settings mirror
+  # aerospace/sway muscle memory (Alt-based binds, Niri layout, gaps 10).
+  # First launch still needs manual steps: separate Spaces ON, log out/in,
+  # grant Accessibility + Input Monitoring, then Start OmniWM.
+  programs.omniwm = {
+    enable = true;
+    settings = ../config-macos/omniwm/settings.toml;
+  };
+
   home.sessionVariables = {
     PI_CODING_AGENT_DIR = "/Users/juanbenjumea/dotfiles/pi/agent";
     PI_CODING_AGENT_SESSION_DIR = "/Users/juanbenjumea/dotfiles/pi/agent/sessions";
