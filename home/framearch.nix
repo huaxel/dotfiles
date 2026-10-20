@@ -33,6 +33,11 @@ in
   };
 
   config = {
+  # Niri (replaces sway on this host): Alt-based binds mirror sway so
+  # muscle memory carries over. Validate on the host after switching:
+  # `niri validate` and `niri msg outputs` (connector names / positions).
+  home.file.".config/niri/config.kdl".source = ../config-linux/niri/config.kdl;
+
   home.file.".config/llama.cpp/models-laptop.ini".source = ../config/llama.cpp/models-laptop.ini;
 
   home.sessionVariables = {

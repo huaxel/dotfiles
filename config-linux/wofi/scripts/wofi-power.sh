@@ -8,7 +8,13 @@ case $selected in
   lock)
     ~/.config/sway/scripts/lock.sh;;
   logout)
-    swaymsg exit;;
+    if pgrep -x niri >/dev/null 2>&1; then
+        niri msg action quit skip-confirmation=true
+    elif pgrep -x sway >/dev/null 2>&1; then
+        swaymsg exit
+    else
+        loginctl terminate-session "${XDG_SESSION_ID:-$PPID}"
+    fi;;
   suspend)
     exec systemctl suspend;;
   reboot)
