@@ -4,7 +4,9 @@
 from __future__ import annotations
 
 import re
+import tomllib
 from pathlib import Path
+from uuid import UUID
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -47,5 +49,22 @@ require("mas account" not in bootstrap, "bootstrap uses the removed mas account 
 require("mas install \"$app_id\"" in bootstrap, "bootstrap does not attempt missing App Store apps")
 require("grep -qx \"$app_id\"" in bootstrap, "App Store app IDs are matched as substrings")
 require('critical "Some Homebrew packages failed' in bootstrap, "failed package provisioning is not reported as incomplete")
+
+omniwm = tomllib.loads(read("config-macos/omniwm/settings.toml"))
+for key in (
+    "monitorBarOverrides", "monitorOrientationOverrides", "monitorNiriOverrides",
+    "monitorDwindleOverrides", "monitorGapOverrides",
+):
+    require(isinstance(omniwm.get(key), list), f"OmniWM requires root-level {key}")
+for section in ("workspaces", "appRules"):
+    for entry in omniwm[section]:
+        if "id" in entry:
+            UUID(entry["id"])  # Invalid UUIDs reject the entire config.
+ids = [entry["id"] for entry in omniwm["hotkeys"]]
+require(len(ids) == len(set(ids)), "OmniWM contains duplicate action IDs")
+bindings = [entry["binding"] for entry in omniwm["hotkeys"] if "binding" in entry]
+require(len(bindings) == len(set(bindings)), "OmniWM contains duplicate bindings")
+require(omniwm["workspaceBar"]["position"] == "bottom", "OmniWM bar must be at bottom")
+require(omniwm["workspaceBar"]["reserveLayoutSpace"] is True, "OmniWM bar must reserve space")
 
 print("macOS static checks passed")

@@ -5,10 +5,9 @@
 # general.workspaceAutoBackAndForth) until nixpkgs moves past 0.7.6.
 #
 # Hotkey IDs were verified against the 0.7.6 binary + upstream v0.7.6 tag
-# sources (ActionCatalog+*.swift). Two spellings coexist there:
-# camelCase for most actions, kebab-case for a few (toggle-overview).
-# Every action may appear at most once; an omitted action is unassigned
-# (NOT default) — so this file lists every binding we want, and nothing else.
+# sources (ActionCatalog+*.swift).
+# Use the catalog IDs verbatim (for example, toggleOverview).
+# Every action must appear exactly once; actions without a binding are unassigned.
 # An unknown/duplicate id rejects the WHOLE file (OmniWM keeps running with
 # previous settings and reports it under Settings > Troubleshooting).
 # After first launch, validate there: any reported id is a one-line fix here.
@@ -18,6 +17,13 @@
 # Border mirrors aerospace: 6pt rose (#bb9af7), dark mode default.
 
 schemaVersion = 4
+
+# Required root-level arrays; empty means no per-monitor overrides.
+monitorBarOverrides = []
+monitorOrientationOverrides = []
+monitorNiriOverrides = []
+monitorDwindleOverrides = []
+monitorGapOverrides = []
 
 [general]
 hotkeysEnabled = true
@@ -32,7 +38,6 @@ animationSpeed = 1.0
 
 [focus]
 followsMouse = true
-edgeNavigationInterval = 1.5
 raiseOnMouseFocus = false
 lockModifier = "off"
 moveMouseToFocusedWindow = false
@@ -117,17 +122,15 @@ notificationBadgeRefreshIntervalSeconds = 5.0
 showLabels = true
 showFloatingWindows = false
 windowLevel = "popup"
-position = "overlappingMenuBar"
+position = "bottom"
 notchMode = "moveBelowMenuBar"
 notchActiveZoneWidth = 180.0
-fullWidth = false
-fullWidthNotchMode = "rightOfNotch"
 systemStatsButton = false
 deduplicateAppIcons = false
 hideEmptyWorkspaces = false
 excludedBundleIDs = []
 iconOverrides = {}
-reserveLayoutSpace = false
+reserveLayoutSpace = true
 autoHide = false
 autoHideRevealDelayMilliseconds = 0.0
 autoHideHideDelayMilliseconds = 0.0
@@ -162,9 +165,6 @@ windowMoveFingerCount = 4
 windowResizeEnabled = false
 windowResizeFingerCount = 3
 windowGestureSensitivity = 1.0
-resizePreviewStyle = "live"
-dwindleGroupDragAcrossDisplays = "group"
-adoptNativeResize = false
 
 [statusBar]
 showWorkspaceName = true
@@ -294,12 +294,12 @@ bundleId = "app.zen-browser.zen"
 minWidth = 500.0
 minHeight = 495.0
 [[appRules]]
-id = "005C00D3-F665-47BE-BDAE-D8079E0E46B"
+id = "CB6AD277-98D7-5432-9508-6319FC59F744"
 bundleId = "org.mozilla.firefox"
 minWidth = 500.0
 minHeight = 120.0
 [[appRules]]
-id = "C21156B1-0224-4998-97E3-8F4FA5B9F3B"
+id = "CDBDD1C8-BC40-50F4-AE88-DEA56F2FDDF1"
 bundleId = "company.thebrowser.dia"
 minWidth = 500.0
 minHeight = 420.0
@@ -309,7 +309,7 @@ bundleId = "com.spotify.client"
 minWidth = 800.0
 minHeight = 600.0
 [[appRules]]
-id = "AF752D95-8497-4844-BE20-4E93E73BAEF"
+id = "30F63076-153E-55AB-9E9E-EC55059C0455"
 bundleId = "com.hnc.Discord"
 minWidth = 800.0
 minHeight = 500.0
@@ -344,148 +344,625 @@ assignToWorkspace = "2"
 [[appRules]]
 bundleId = "net.kovidgoyal.kitty"
 layout = "tile"
+# Hotkeys: exhaustive for 0.7.6 (bound actions carry muscle-memory binds;
+# the rest are present unassigned because this build requires every id).
 
-# Hotkeys: sway/aerospace muscle memory on Option (Alt).
-# Omitted actions are unassigned. Canonical binding names come from
-# KeySymbolMapper (Option, Shift, Control, Command + key name).
+[[hotkeys]]
+id = "toggleScratchpad.1"
+
+[[hotkeys]]
+id = "toggleScratchpad.2"
+
+[[hotkeys]]
+id = "toggleScratchpad.3"
+
+[[hotkeys]]
+id = "toggleScratchpad.4"
+
+[[hotkeys]]
+id = "toggleScratchpad.5"
+
+[[hotkeys]]
+id = "toggleScratchpad.6"
+
+[[hotkeys]]
+id = "toggleScratchpad.7"
+
+[[hotkeys]]
+id = "toggleScratchpad.8"
+
+[[hotkeys]]
+id = "toggleScratchpad.9"
+
+[[hotkeys]]
+id = "toggleScratchpad.10"
+
+[[hotkeys]]
+id = "assignFocusedWindowToScratchpad.1"
+
+[[hotkeys]]
+id = "assignFocusedWindowToScratchpad.2"
+
+[[hotkeys]]
+id = "assignFocusedWindowToScratchpad.3"
+
+[[hotkeys]]
+id = "assignFocusedWindowToScratchpad.4"
+
+[[hotkeys]]
+id = "assignFocusedWindowToScratchpad.5"
+
+[[hotkeys]]
+id = "assignFocusedWindowToScratchpad.6"
+
+[[hotkeys]]
+id = "assignFocusedWindowToScratchpad.7"
+
+[[hotkeys]]
+id = "assignFocusedWindowToScratchpad.8"
+
+[[hotkeys]]
+id = "assignFocusedWindowToScratchpad.9"
+
+[[hotkeys]]
+id = "assignFocusedWindowToScratchpad.10"
+
 [[hotkeys]]
 id = "switchWorkspace.0"
 binding = "Option+1"
+
 [[hotkeys]]
 id = "switchWorkspace.1"
 binding = "Option+2"
+
 [[hotkeys]]
 id = "switchWorkspace.2"
 binding = "Option+3"
+
 [[hotkeys]]
 id = "switchWorkspace.3"
 binding = "Option+4"
+
 [[hotkeys]]
 id = "switchWorkspace.4"
 binding = "Option+5"
+
 [[hotkeys]]
 id = "switchWorkspace.5"
 binding = "Option+6"
+
 [[hotkeys]]
 id = "switchWorkspace.6"
 binding = "Option+7"
+
 [[hotkeys]]
 id = "switchWorkspace.7"
 binding = "Option+8"
+
 [[hotkeys]]
 id = "switchWorkspace.8"
 binding = "Option+9"
+
 [[hotkeys]]
 id = "moveToWorkspace.0"
 binding = "Option+Shift+1"
+
 [[hotkeys]]
 id = "moveToWorkspace.1"
 binding = "Option+Shift+2"
+
 [[hotkeys]]
 id = "moveToWorkspace.2"
 binding = "Option+Shift+3"
+
 [[hotkeys]]
 id = "moveToWorkspace.3"
 binding = "Option+Shift+4"
+
 [[hotkeys]]
 id = "moveToWorkspace.4"
 binding = "Option+Shift+5"
+
 [[hotkeys]]
 id = "moveToWorkspace.5"
 binding = "Option+Shift+6"
+
 [[hotkeys]]
 id = "moveToWorkspace.6"
 binding = "Option+Shift+7"
+
 [[hotkeys]]
 id = "moveToWorkspace.7"
 binding = "Option+Shift+8"
+
 [[hotkeys]]
 id = "moveToWorkspace.8"
 binding = "Option+Shift+9"
+
 [[hotkeys]]
-id = "focus.left"
-binding = "Option+Left Arrow"
+id = "moveColumnToWorkspace.0"
+
 [[hotkeys]]
-id = "focus.down"
-binding = "Option+Down Arrow"
+id = "moveColumnToWorkspace.1"
+
 [[hotkeys]]
-id = "focus.up"
-binding = "Option+Up Arrow"
+id = "moveColumnToWorkspace.2"
+
 [[hotkeys]]
-id = "focus.right"
-binding = "Option+Right Arrow"
+id = "moveColumnToWorkspace.3"
+
 [[hotkeys]]
-id = "move.left"
-binding = "Option+Shift+Left Arrow"
+id = "moveColumnToWorkspace.4"
+
 [[hotkeys]]
-id = "move.down"
-binding = "Option+Shift+Down Arrow"
+id = "moveColumnToWorkspace.5"
+
 [[hotkeys]]
-id = "move.up"
-binding = "Option+Shift+Up Arrow"
+id = "moveColumnToWorkspace.6"
+
 [[hotkeys]]
-id = "move.right"
-binding = "Option+Shift+Right Arrow"
+id = "moveColumnToWorkspace.7"
+
+[[hotkeys]]
+id = "moveColumnToWorkspace.8"
+
+[[hotkeys]]
+id = "switchWorkspaceSlot.1"
+
+[[hotkeys]]
+id = "switchWorkspaceSlot.2"
+
+[[hotkeys]]
+id = "switchWorkspaceSlot.3"
+
+[[hotkeys]]
+id = "switchWorkspaceSlot.4"
+
+[[hotkeys]]
+id = "switchWorkspaceSlot.5"
+
+[[hotkeys]]
+id = "switchWorkspaceSlot.6"
+
+[[hotkeys]]
+id = "switchWorkspaceSlot.7"
+
+[[hotkeys]]
+id = "switchWorkspaceSlot.8"
+
+[[hotkeys]]
+id = "switchWorkspaceSlot.9"
+
+[[hotkeys]]
+id = "moveToWorkspaceSlot.1"
+
+[[hotkeys]]
+id = "moveToWorkspaceSlot.2"
+
+[[hotkeys]]
+id = "moveToWorkspaceSlot.3"
+
+[[hotkeys]]
+id = "moveToWorkspaceSlot.4"
+
+[[hotkeys]]
+id = "moveToWorkspaceSlot.5"
+
+[[hotkeys]]
+id = "moveToWorkspaceSlot.6"
+
+[[hotkeys]]
+id = "moveToWorkspaceSlot.7"
+
+[[hotkeys]]
+id = "moveToWorkspaceSlot.8"
+
+[[hotkeys]]
+id = "moveToWorkspaceSlot.9"
+
 [[hotkeys]]
 id = "workspaceBackAndForth"
 binding = "Option+Tab"
+
 [[hotkeys]]
-id = "focusMonitorNext"
-binding = "Control+Command+Tab"
+id = "switchWorkspace.next"
+
 [[hotkeys]]
-id = "moveWorkspaceToMonitor.right"
-binding = "Option+Shift+Tab"
+id = "switchWorkspace.previous"
+
 [[hotkeys]]
-id = "toggleFullscreen"
-binding = "Option+F"
+id = "moveWindowToWorkspaceUp"
+
 [[hotkeys]]
-id = "closeFocusedWindow"
-binding = "Option+Q"
+id = "moveWindowToWorkspaceDown"
+
+[[hotkeys]]
+id = "moveColumnToWorkspaceUp"
+
+[[hotkeys]]
+id = "moveColumnToWorkspaceDown"
+
+[[hotkeys]]
+id = "focus.left"
+binding = "Option+Left Arrow"
+
+[[hotkeys]]
+id = "focus.down"
+binding = "Option+Down Arrow"
+
+[[hotkeys]]
+id = "focus.up"
+binding = "Option+Up Arrow"
+
+[[hotkeys]]
+id = "focus.right"
+binding = "Option+Right Arrow"
+
+[[hotkeys]]
+id = "focusPrevious"
+
+[[hotkeys]]
+id = "focusDownOrLeft"
+
+[[hotkeys]]
+id = "focusUpOrRight"
+
+[[hotkeys]]
+id = "focusWindowTop"
+
+[[hotkeys]]
+id = "focusWindowBottom"
+
+[[hotkeys]]
+id = "focusWindowDownOrTop"
+
+[[hotkeys]]
+id = "focusWindowUpOrBottom"
+
+[[hotkeys]]
+id = "focusWindowOrWorkspaceDown"
+
+[[hotkeys]]
+id = "focusWindowOrWorkspaceUp"
+
+[[hotkeys]]
+id = "centerColumn"
+
+[[hotkeys]]
+id = "centerVisibleColumns"
+
+[[hotkeys]]
+id = "focusColumn.0"
+
+[[hotkeys]]
+id = "focusColumn.1"
+
+[[hotkeys]]
+id = "focusColumn.2"
+
+[[hotkeys]]
+id = "focusColumn.3"
+
+[[hotkeys]]
+id = "focusColumn.4"
+
+[[hotkeys]]
+id = "focusColumn.5"
+
+[[hotkeys]]
+id = "focusColumn.6"
+
+[[hotkeys]]
+id = "focusColumn.7"
+
+[[hotkeys]]
+id = "focusColumn.8"
+
+[[hotkeys]]
+id = "focusWindowInColumn.1"
+
+[[hotkeys]]
+id = "focusWindowInColumn.2"
+
+[[hotkeys]]
+id = "focusWindowInColumn.3"
+
+[[hotkeys]]
+id = "focusWindowInColumn.4"
+
+[[hotkeys]]
+id = "focusWindowInColumn.5"
+
+[[hotkeys]]
+id = "focusWindowInColumn.6"
+
+[[hotkeys]]
+id = "focusWindowInColumn.7"
+
+[[hotkeys]]
+id = "focusWindowInColumn.8"
+
+[[hotkeys]]
+id = "focusWindowInColumn.9"
+
+[[hotkeys]]
+id = "move.left"
+binding = "Option+Shift+Left Arrow"
+
+[[hotkeys]]
+id = "move.down"
+binding = "Option+Shift+Down Arrow"
+
+[[hotkeys]]
+id = "move.up"
+binding = "Option+Shift+Up Arrow"
+
+[[hotkeys]]
+id = "move.right"
+binding = "Option+Shift+Right Arrow"
+
+[[hotkeys]]
+id = "moveWindowDown"
+
+[[hotkeys]]
+id = "moveWindowUp"
+
+[[hotkeys]]
+id = "moveWindowDownOrToWorkspaceDown"
+
+[[hotkeys]]
+id = "moveWindowUpOrToWorkspaceUp"
+
+[[hotkeys]]
+id = "consumeWindowIntoColumn"
+
+[[hotkeys]]
+id = "expelWindowFromColumn"
+
+[[hotkeys]]
+id = "moveColumn.left"
+
+[[hotkeys]]
+id = "moveColumn.right"
+
+[[hotkeys]]
+id = "moveColumn.up"
+
+[[hotkeys]]
+id = "moveColumn.down"
+
+[[hotkeys]]
+id = "moveColumnToFirst"
+
+[[hotkeys]]
+id = "moveColumnToLast"
+
 [[hotkeys]]
 id = "toggleColumnTabbed"
 binding = "Option+T"
+
+[[hotkeys]]
+id = "focusColumnFirst"
+
+[[hotkeys]]
+id = "focusColumnLast"
+
+[[hotkeys]]
+id = "moveColumnToIndex.1"
+
+[[hotkeys]]
+id = "moveColumnToIndex.2"
+
+[[hotkeys]]
+id = "moveColumnToIndex.3"
+
+[[hotkeys]]
+id = "moveColumnToIndex.4"
+
+[[hotkeys]]
+id = "moveColumnToIndex.5"
+
+[[hotkeys]]
+id = "moveColumnToIndex.6"
+
+[[hotkeys]]
+id = "moveColumnToIndex.7"
+
+[[hotkeys]]
+id = "moveColumnToIndex.8"
+
+[[hotkeys]]
+id = "moveColumnToIndex.9"
+
+[[hotkeys]]
+id = "focusMonitorNext"
+binding = "Control+Command+Tab"
+
+[[hotkeys]]
+id = "focusMonitorPrevious"
+
+[[hotkeys]]
+id = "focusMonitorLast"
+
+[[hotkeys]]
+id = "moveWorkspaceToMonitor.left"
+
+[[hotkeys]]
+id = "moveWorkspaceToMonitor.right"
+binding = "Option+Shift+Tab"
+
+[[hotkeys]]
+id = "moveWorkspaceToMonitor.up"
+
+[[hotkeys]]
+id = "moveWorkspaceToMonitor.down"
+
+[[hotkeys]]
+id = "moveWindowToMonitor.left"
+
+[[hotkeys]]
+id = "moveWindowToMonitor.right"
+
+[[hotkeys]]
+id = "moveWindowToMonitor.up"
+
+[[hotkeys]]
+id = "moveWindowToMonitor.down"
+
+[[hotkeys]]
+id = "toggleFullscreen"
+binding = "Option+F"
+
+[[hotkeys]]
+id = "toggleNativeFullscreen"
+
 [[hotkeys]]
 id = "cycleSizeForward"
 binding = "Option+Period"
+
 [[hotkeys]]
 id = "cycleSizeBackward"
 binding = "Option+Comma"
+
 [[hotkeys]]
-id = "setContainerPrimarySpan.shrink"
-binding = "Option+Minus"
+id = "cycleWindowPrimarySpanForward"
+
 [[hotkeys]]
-id = "setContainerPrimarySpan.grow"
-binding = "Option+Equal"
+id = "cycleWindowPrimarySpanBackward"
+
 [[hotkeys]]
-id = "setWindowSecondarySpan.shrink"
-binding = "Option+Shift+Minus"
+id = "cycleWindowSecondarySpanForward"
+
 [[hotkeys]]
-id = "setWindowSecondarySpan.grow"
-binding = "Option+Shift+Equal"
-[[hotkeys]]
-id = "balanceSizes"
-binding = "Option+Shift+B"
+id = "cycleWindowSecondarySpanBackward"
+
 [[hotkeys]]
 id = "toggleContainerFullPrimarySpan"
 binding = "Option+Shift+F"
+
 [[hotkeys]]
 id = "expandContainerToAvailablePrimarySpan"
 binding = "Control+Option+F"
+
 [[hotkeys]]
 id = "resetWindowSecondarySpan"
 binding = "Control+Option+R"
+
+[[hotkeys]]
+id = "setContainerPrimarySpan.decrease10Percent"
+binding = "Option+Minus"
+
+[[hotkeys]]
+id = "setContainerPrimarySpan.increase10Percent"
+binding = "Option+Equal"
+
+[[hotkeys]]
+id = "setWindowPrimarySpan.decrease10Percent"
+
+[[hotkeys]]
+id = "setWindowPrimarySpan.increase10Percent"
+
+[[hotkeys]]
+id = "setWindowSecondarySpan.decrease10Percent"
+binding = "Option+Shift+Minus"
+
+[[hotkeys]]
+id = "setWindowSecondarySpan.increase10Percent"
+binding = "Option+Shift+Equal"
+
+[[hotkeys]]
+id = "balanceSizes"
+binding = "Option+Shift+B"
+
+[[hotkeys]]
+id = "moveToRoot"
+
+[[hotkeys]]
+id = "toggleSplit"
+
+[[hotkeys]]
+id = "swapSplit"
+
+[[hotkeys]]
+id = "resizeGrow.horizontal"
+
+[[hotkeys]]
+id = "resizeGrow.vertical"
+
+[[hotkeys]]
+id = "resizeShrink.horizontal"
+
+[[hotkeys]]
+id = "resizeShrink.vertical"
+
+[[hotkeys]]
+id = "resizeFocusedWindow.grow"
+
+[[hotkeys]]
+id = "resizeFocusedWindow.shrink"
+
+[[hotkeys]]
+id = "preselect.left"
+
+[[hotkeys]]
+id = "preselect.right"
+
+[[hotkeys]]
+id = "preselect.up"
+
+[[hotkeys]]
+id = "preselect.down"
+
+[[hotkeys]]
+id = "preselectClear"
+
 [[hotkeys]]
 id = "openCommandPalette"
 binding = "Option+Space"
+
 [[hotkeys]]
-id = "toggleQuakeTerminal"
-binding = "Option+Grave"
+id = "raiseAllFloatingWindows"
+
 [[hotkeys]]
-id = "toggle-overview"
-binding = "Option+Shift+O"
+id = "toggleFloatingFocus"
+
 [[hotkeys]]
-id = "toggleWorkspaceLayout"
-binding = "Option+Slash"
+id = "rescueOffscreenWindows"
+
 [[hotkeys]]
 id = "toggleFocusedWindowFloating"
 binding = "Option+Shift+Return"
+
+[[hotkeys]]
+id = "closeFocusedWindow"
+binding = "Option+Q"
+
+[[hotkeys]]
+id = "openMenuAnywhere"
+
+[[hotkeys]]
+id = "setWindowMark"
+
+[[hotkeys]]
+id = "removeWindowMark"
+
+[[hotkeys]]
+id = "toggleWorkspaceBarVisibility"
+
+[[hotkeys]]
+id = "toggleHiddenBarPanel"
+
+[[hotkeys]]
+id = "toggleQuakeTerminal"
+binding = "Option+Grave"
+
+[[hotkeys]]
+id = "toggleWorkspaceLayout"
+binding = "Option+Slash"
+
+[[hotkeys]]
+id = "toggleOverview"
+binding = "Option+Shift+O"
+
+[[hotkeys]]
+id = "toggleSystemStats"
