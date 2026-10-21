@@ -13,8 +13,8 @@
 # After first launch, validate there: any reported id is a one-line fix here.
 #
 # Layout: Niri everywhere (defaultLayoutType + all workspaces).
-# Gaps mirror aerospace: inner 10, outer 10, top 40 (menu-bar clearance).
-# Border mirrors aerospace: 6pt rose (#bb9af7), dark mode default.
+# Gaps mirror niri: 10 everywhere, top 40 for macOS menu-bar clearance.
+# Border mirrors niri focus ring: 2pt #76cce0, dark mode default.
 
 schemaVersion = 4
 
@@ -80,11 +80,11 @@ moveToRootStable = true
 
 [borders]
 enabled = true
-width = 6.0
+width = 2.0
 [borders.color]
-red = 0.7333
-green = 0.6039
-blue = 0.9686
+red = 0.4627
+green = 0.8
+blue = 0.8784
 alpha = 1.0
 
 [overview]
