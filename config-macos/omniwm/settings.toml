@@ -627,6 +627,8 @@ id = "focusWindowOrWorkspaceUp"
 
 [[hotkeys]]
 id = "centerColumn"
+# Niri Alt+S; physical S types R in Colemak.
+binding = "Option+S"
 
 [[hotkeys]]
 id = "centerVisibleColumns"
@@ -715,9 +717,13 @@ id = "moveWindowUpOrToWorkspaceUp"
 
 [[hotkeys]]
 id = "consumeWindowIntoColumn"
+# Niri Alt+Comma; shifted here — Option+Comma cycles sizes.
+binding = "Option+Shift+Comma"
 
 [[hotkeys]]
 id = "expelWindowFromColumn"
+# Niri Alt+Period; shifted here — Option+Period cycles sizes.
+binding = "Option+Shift+Period"
 
 [[hotkeys]]
 id = "moveColumn.left"
@@ -964,7 +970,8 @@ binding = "Option+Slash"
 
 [[hotkeys]]
 id = "toggleOverview"
-binding = "Option+Shift+O"
+# Niri Alt+M (OmniWM allows one chord per action; M beats Shift+O).
+binding = "Option+M"
 
 [[hotkeys]]
 id = "toggleSystemStats"
