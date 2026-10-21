@@ -29,6 +29,13 @@ background-opacity = 0.88
 clipboard-write = allow
 
 # Keybindings
+# Launch a normal terminal window from any app (not the OmniWM overlay).
+keybind = global:alt+enter=new_window
+# Quick (Quake-style) overlay terminal: Ctrl+` toggles from any app.
+# Kept OmniWM-compatible on purpose: OmniWM's toggleQuakeTerminal stays
+# unassigned in config-macos/omniwm/settings.toml, so only Ghostty handles
+# this chord (no double-toggle). Requires Ghostty Accessibility permission.
+keybind = global:ctrl+grave_accent=toggle_quick_terminal
 keybind = ctrl+shift+c=copy_to_clipboard
 keybind = ctrl+shift+v=paste_from_clipboard
 keybind = super+d=new_split:right

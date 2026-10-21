@@ -185,7 +185,7 @@ maxTotalBytes = 67108864
 ignoredTypes = []
 
 [quakeTerminal]
-enabled = true
+enabled = false
 position = "center"
 widthPercent = 50.0
 heightPercent = 50.0
@@ -237,14 +237,14 @@ type = "main"
 [[workspaces]]
 id = "5953F2BF-A378-4266-91B2-287174C4FA4D"
 name = "6"
-displayName = "❤️"
+displayName = "6"
 layoutType = "niri"
 [workspaces.monitorAssignment]
 type = "secondary"
 [[workspaces]]
 id = "A7D5E104-6985-4516-8ED5-07F144F2A33D"
 name = "7"
-displayName = "🚀"
+displayName = "7"
 layoutType = "niri"
 [workspaces.monitorAssignment]
 type = "secondary"
@@ -811,7 +811,8 @@ id = "moveWindowToMonitor.down"
 
 [[hotkeys]]
 id = "toggleFullscreen"
-binding = "Option+F"
+# OmniWM names physical QWERTY positions: E types F in Colemak.
+binding = "Option+E"
 
 [[hotkeys]]
 id = "toggleNativeFullscreen"
@@ -838,11 +839,13 @@ id = "cycleWindowSecondarySpanBackward"
 
 [[hotkeys]]
 id = "toggleContainerFullPrimarySpan"
-binding = "Option+Shift+F"
+# Actual Colemak shortcut: Option+Shift+F.
+binding = "Option+Shift+E"
 
 [[hotkeys]]
 id = "expandContainerToAvailablePrimarySpan"
-binding = "Control+Option+F"
+# Actual Colemak shortcut: Control+Option+F.
+binding = "Control+Option+E"
 
 [[hotkeys]]
 id = "resetWindowSecondarySpan"
@@ -916,9 +919,9 @@ id = "preselect.down"
 [[hotkeys]]
 id = "preselectClear"
 
+# Option+Space belongs to Alfred; leave OmniWM's launcher unassigned.
 [[hotkeys]]
 id = "openCommandPalette"
-binding = "Option+Space"
 
 [[hotkeys]]
 id = "raiseAllFloatingWindows"
@@ -954,7 +957,6 @@ id = "toggleHiddenBarPanel"
 
 [[hotkeys]]
 id = "toggleQuakeTerminal"
-binding = "Option+Grave"
 
 [[hotkeys]]
 id = "toggleWorkspaceLayout"
