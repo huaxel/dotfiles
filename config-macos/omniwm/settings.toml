@@ -344,6 +344,42 @@ assignToWorkspace = "2"
 [[appRules]]
 bundleId = "net.kovidgoyal.kitty"
 layout = "tile"
+# Terminal TUIs share Ghostty's bundle id — match on window title instead
+# (niri routes lazygit/himalaya to 4, ncmpcpp to 5).
+[[appRules]]
+bundleId = "com.mitchellh.ghostty"
+titleRegex = "(?i)lazygit"
+assignToWorkspace = "4"
+[[appRules]]
+bundleId = "com.mitchellh.ghostty"
+titleRegex = "(?i)himalaya"
+assignToWorkspace = "4"
+[[appRules]]
+bundleId = "com.mitchellh.ghostty"
+titleRegex = "(?i)ncmpcpp"
+assignToWorkspace = "5"
+# Picture-in-Picture floats (niri parity; one rule per browser since
+# bundleId matching is exact — the regex covers hyphen/space variants).
+[[appRules]]
+bundleId = "com.apple.Safari"
+titleRegex = "(?i)picture.in.picture"
+layout = "float"
+[[appRules]]
+bundleId = "com.google.Chrome"
+titleRegex = "(?i)picture.in.picture"
+layout = "float"
+[[appRules]]
+bundleId = "app.zen-browser.zen"
+titleRegex = "(?i)picture.in.picture"
+layout = "float"
+[[appRules]]
+bundleId = "org.mozilla.firefox"
+titleRegex = "(?i)picture.in.picture"
+layout = "float"
+[[appRules]]
+bundleId = "company.thebrowser.dia"
+titleRegex = "(?i)picture.in.picture"
+layout = "float"
 # Hotkeys: exhaustive for 0.7.6 (bound actions carry muscle-memory binds;
 # the rest are present unassigned because this build requires every id).
 
