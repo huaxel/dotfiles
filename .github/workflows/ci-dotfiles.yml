@@ -32,5 +32,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # test-pi-packages resolves agent internals (managed install is
+      # gitignored, so fresh clones use the global agent). Pin matches
+      # pi/agent/install/current-version on dev machines — bump together.
+      - name: Install pinned Pi agent
+        run: sudo npm install -g @earendil-works/pi-coding-agent@1.4.0
+
       - name: Full local gate (strict — no silent skips)
         run: just ci

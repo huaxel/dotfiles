@@ -208,6 +208,22 @@ test-pi-packages:
     #!/usr/bin/env bash
     set -euo pipefail
     cd "{{dotfiles-dir}}"
+    # Pi extension tests resolve agent internals via pi-resolve-hook.mjs:
+    # managed install first, then the global npm agent. Without either,
+    # skip locally but fail in CI (the workflow installs the pinned agent).
+    pi_root=""
+    for d in pi/agent/install/releases/*/node_modules/@earendil-works/pi-coding-agent; do
+        if [ -f "$d/package.json" ]; then pi_root="$d"; break; fi
+    done
+    if [ -z "$pi_root" ]; then
+        global_root="$(npm root -g 2>/dev/null || true)/@earendil-works/pi-coding-agent"
+        if [ -f "$global_root/package.json" ]; then pi_root="$global_root"; fi
+    fi
+    if [ -z "$pi_root" ]; then
+        if [ "${CI:-}" = "true" ]; then echo "  ❌ no Pi agent found in CI"; exit 1; fi
+        echo "  ⚠️  no Pi agent installed — skipping pi package tests"
+        exit 0
+    fi
     node pi/agent/extensions/capacity.test.mjs
     node pi/agent/extensions/continue-after-compaction.test.mjs
     node pi/agent/extensions/git-interceptor.test.mjs
