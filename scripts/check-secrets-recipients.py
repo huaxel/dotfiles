@@ -36,11 +36,34 @@ def file_recipients(path):
     )
 
 
+def check_labels(config_path, want):
+    """Every recipient must be documented in a `#` comment (inline or map block)."""
+    comments = [l for l in open(config_path).read().splitlines() if "#" in l]
+    missing = [r for r in want if not any(r in l.split("#", 1)[1] for l in comments)]
+    if missing:
+        print("  ❌ Recipients without a '# host' comment in .sops.yaml:")
+        for r in missing:
+            print(f"    {r}")
+        return False
+    print("  ✅ All recipients labeled")
+    unconfirmed = [r for r in want
+                   if any(r in l for l in comments if "unconfirmed" in l.lower())]
+    if unconfirmed:
+        print("  ⚠️  UNCONFIRMED recipients (resolve or remove):")
+        for r in unconfirmed:
+            print(f"    {r}")
+    return True
+
+
 def main():
-    config_path = sys.argv[1] if len(sys.argv) > 1 else ".sops.yaml"
-    files = sys.argv[2:] if len(sys.argv) > 2 else []
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    want_labels = "--labels" in sys.argv[1:]
+    config_path = args[0] if len(args) > 0 else ".sops.yaml"
+    files = args[1:] if len(args) > 1 else []
     want = config_recipients(config_path)
     failed = False
+    if want_labels and not check_labels(config_path, want):
+        return 1
     for f in files:
         try:
             got = file_recipients(f)

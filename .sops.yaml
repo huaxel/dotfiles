@@ -1,6 +1,12 @@
+# Recipient → machine map (verified 2026-10-23). Keep in sync when adding/removing keys.
+# Retired 2026-10-23: age15e76… (Windows, unconfirmed) and age1l4f2… (claimed
+# liedelpi, held nowhere) — removed from config and re-encrypted via updatekeys.
+# - age13tmsqsgvls98xku94mc53t0tn9et450nfkmydqrpl380cytt0pwsl7s8zl = arch-wsl (verified via ssh; original key, 2026-06-09)
+# - age1cwtzgplxgffvyru3ez82lxaneg6v8hzwywr0qxd44kvch6pxvdks739zza = linux-home-lab shared: framearch-juan + liedelpi + acerpepe (verified via ssh; added as cachyos key, 2026-06-09)
+# - age1s0drt7y3ejvd0sj8f9numjg5k83mv2acf4nfr96z5p7aqy2vrasq5xlspz = mac-juan, this machine (verified; added 2026-06-09)
 creation_rules:
   - path_regex: secrets/.*$
-    age:
-      - age13tmsqsgvls98xku94mc53t0tn9et450nfkmydqrpl380cytt0pwsl7s8zl # arch-wsl — verified 2026-10-23 via ssh (original key, 2026-06-09)
-      - age1cwtzgplxgffvyru3ez82lxaneg6v8hzwywr0qxd44kvch6pxvdks739zza # linux-home-lab shared: framearch-juan + liedelpi + acerpepe — verified 2026-10-23 (added as cachyos key, 2026-06-09)
-      - age1s0drt7y3ejvd0sj8f9numjg5k83mv2acf4nfr96z5p7aqy2vrasq5xlspz # mac-juan (this machine) — verified 2026-10-23 (added 2026-06-09)
+    age: >
+      age13tmsqsgvls98xku94mc53t0tn9et450nfkmydqrpl380cytt0pwsl7s8zl,
+      age1cwtzgplxgffvyru3ez82lxaneg6v8hzwywr0qxd44kvch6pxvdks739zza,
+      age1s0drt7y3ejvd0sj8f9numjg5k83mv2acf4nfr96z5p7aqy2vrasq5xlspz
