@@ -43,7 +43,7 @@ printf '{\n\tadmin 127.0.0.1:2019\n}\n\nimport %s/apps/*/current/Caddyfile\n' "$
 
 work="$TMP/work"
 repo="$HOME/repos/demo.git"
-git init -q "$work"
+git init -q -b main "$work" # explicit: must not depend on init.defaultBranch
 git -C "$work" config user.email test@example.invalid
 git -C "$work" config user.name Test
 printf 'first\n' > "$work/index.html"
