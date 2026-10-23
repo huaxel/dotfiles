@@ -188,7 +188,7 @@ case "$OS" in
             grep '^mas "' "$BREWFILE" | while IFS= read -r line; do
                 app_name=$(echo "$line" | sed -n 's/^mas "\(.*\)", id: \([0-9]*\)/\1/p')
                 app_id=$(echo "$line" | sed -n 's/^mas "\(.*\)", id: \([0-9]*\)/\2/p')
-                [ -n "$app_name" ] && [ -n "$app_id" ] || continue
+                if [ -z "$app_name" ] || [ -z "$app_id" ]; then continue; fi
                 if ! mas list 2>/dev/null | awk '{print $1}' | grep -qx "$app_id"; then
                     info "  Installing $app_name..."
                     mas install "$app_id" 2>/dev/null || \
