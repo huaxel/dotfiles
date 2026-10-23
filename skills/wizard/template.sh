@@ -127,4 +127,4 @@ trap finish EXIT
 # Replace this example with one stage per manual step, then update TOTAL_STAGES.
 stage "Example stage"
 say "Replace this stage with a focused manual action."
-pause
+pause "Press Enter when this stage is done"
