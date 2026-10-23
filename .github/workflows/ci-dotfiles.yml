@@ -29,6 +29,9 @@ jobs:
     timeout-minutes: 120
     env:
       CI: "true"
+      # User-scoped global root: workers run with NoNewPrivileges, so no
+      # sudo. pi-resolve-hook.mjs reads `npm root -g`, which honors this.
+      NPM_CONFIG_PREFIX: /home/juan/.npm-global
     steps:
       - uses: actions/checkout@v4
 
@@ -36,7 +39,7 @@ jobs:
       # gitignored, so fresh clones use the global agent). Pin matches
       # pi/agent/install/current-version on dev machines — bump together.
       - name: Install pinned Pi agent
-        run: sudo npm install -g @earendil-works/pi-coding-agent@1.4.0
+        run: npm install -g @earendil-works/pi-coding-agent@1.4.0
 
       - name: Full local gate (strict — no silent skips)
         run: just ci
