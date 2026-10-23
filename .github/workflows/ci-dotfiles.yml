@@ -1,0 +1,36 @@
+# ─────────────────────────────────────────────────────────
+# Dotfiles CI — runs FREE on the home-lab self-hosted runner.
+#
+# No GitHub-hosted minutes and no per-repo runner to register: the
+# ci-jit-dispatcher on acerpepe (infra/ci-dispatcher) already serves
+# huaxel/dotfiles and mints one ephemeral runner per job from its own
+# token file. Push, wait ~30s for the poll, watch it go green.
+#
+# macOS-only checks (macos defaults, Brewfile install, pwsh AST) are NOT in
+# this workflow: no always-on mac runner exists (mac-juan sleeps). Run
+# `just ci` on the Mac after touching macos/, config/Brewfile, or *.ps1.
+# ─────────────────────────────────────────────────────────
+
+name: ci-dotfiles
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-dotfiles-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux:
+    name: gate (self-hosted linux)
+    runs-on: [self-hosted, linux, x64, jit]
+    timeout-minutes: 120
+    env:
+      CI: "true"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Full local gate (strict — no silent skips)
+        run: just ci
