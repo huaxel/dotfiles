@@ -81,6 +81,7 @@ check-sh:
     #!/usr/bin/env bash
     echo "=== ShellCheck ==="
     if ! command -v shellcheck &>/dev/null; then
+        if [ "${CI:-}" = "true" ]; then echo "  ❌ shellcheck required in CI"; exit 1; fi
         echo "  ⚠️  shellcheck not installed — run 'just install' first"
         echo "  ⚡ Skipping shell check"
         exit 0
@@ -113,6 +114,7 @@ check-ts:
     #!/usr/bin/env bash
     echo "=== TypeScript (pi/agent/extensions) ==="
     if ! command -v deno &>/dev/null; then
+        if [ "${CI:-}" = "true" ]; then echo "  ❌ deno required in CI"; exit 1; fi
         echo "  ⚠️  deno not installed — skipping"
         exit 0
     fi
@@ -302,6 +304,7 @@ check-ts-packages:
     #!/usr/bin/env bash
     echo "=== TypeScript (pi/packages) ==="
     if ! command -v deno &>/dev/null; then
+        if [ "${CI:-}" = "true" ]; then echo "  ❌ deno required in CI"; exit 1; fi
         echo "  ⚠️  deno not installed — skipping"
         exit 0
     fi
@@ -323,7 +326,7 @@ check-ts-packages:
 check-secrets:
     #!/usr/bin/env bash
     echo "=== Secrets ==="
-    if ! command -v sops &>/dev/null; then echo "  ⚠️  sops not installed — skipping"; exit 0; fi
+    if ! command -v sops &>/dev/null; then if [ "${CI:-}" = "true" ]; then echo "  ❌ sops required in CI"; exit 1; fi; echo "  ⚠️  sops not installed — skipping"; exit 0; fi
     errors=0; count=0
     for f in secrets/*.enc; do
         [ -f "$f" ] || continue
@@ -448,6 +451,7 @@ check-nu:
     #!/usr/bin/env bash
     echo "=== Nushell Config ==="
     if ! command -v nu &>/dev/null; then
+        if [ "${CI:-}" = "true" ]; then echo "  ❌ nu required in CI"; exit 1; fi
         echo "  ⚠️  nu not installed — skipping"
         exit 0
     fi
@@ -479,6 +483,7 @@ check-nix:
     set -euo pipefail
     echo "=== Nix/Home Manager ==="
     if ! command -v nix &>/dev/null; then
+        if [ "${CI:-}" = "true" ]; then echo "  ❌ nix required in CI"; exit 1; fi
         echo "  ⚠️  nix not installed — skipping"
         exit 0
     fi
