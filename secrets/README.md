@@ -39,17 +39,21 @@ The public key from `~/.config/sops/age/keys.txt` is already in `.sops.yaml`.
 For other machines to decrypt, add their public keys to `.sops.yaml`:
 
 ```yaml
+# Recipient → machine map (keep in sync; `just check-secrets` enforces it):
+# - age13tmsqsgvls98xku94mc53t0tn9et450nfkmydqrpl380cytt0pwsl7s8zl = arch-wsl — verified 2026-10-23
+# - age1<other-machine-key> = <host> — verified YYYY-MM-DD
 creation_rules:
   - path_regex: secrets/.*$
-    age:
-      - age13tmsqsgvls98xku94mc53t0tn9et450nfkmydqrpl380cytt0pwsl7s8zl # arch-wsl — verified 2026-10-23
-      - age1<other-machine-key> # <host> — verified YYYY-MM-DD
+    age: >
+      age13tmsqsgvls98xku94mc53t0tn9et450nfkmydqrpl380cytt0pwsl7s8zl,
+      age1<other-machine-key>
 ```
 
-Every recipient line must carry a `# <host> — verified DATE` comment;
-`just check-secrets` fails on unlabeled lines. Mark keys you cannot tie to
-a live private key as `# UNCONFIRMED: <why>` so they stay visible until
-resolved or removed.
+Every recipient must be documented in a `# <key> = <host> — verified DATE`
+comment (folded-string form: sops < 3.10 cannot parse a YAML list here, and
+the fleet mixes sops versions — see `just check-secrets --labels`). Mark keys
+you cannot tie to a live private key as `# UNCONFIRMED: <why>` so they stay
+visible until resolved or removed.
 
 ### 1b. Remove a machine key (retired / lost / compromised host)
 

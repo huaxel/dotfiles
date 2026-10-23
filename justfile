@@ -355,24 +355,10 @@ check-secrets:
     echo "  Checked $count encrypted secrets"
     if [ "$errors" -gt 0 ]; then echo "  ❌ $errors secrets have issues"; exit 1; fi
     echo "  ✅ All secrets decryptable"
-    # Recipient parity: .sops.yaml vs each .enc's embedded recipient list.
-    if ! python3 scripts/check-secrets-recipients.py .sops.yaml secrets/*.enc; then
+    # Recipient parity (.sops.yaml vs each .enc) plus label coverage
+    # (every recipient documented in a `#` comment; UNCONFIRMED warns only).
+    if ! python3 scripts/check-secrets-recipients.py --labels .sops.yaml secrets/*.enc; then
         errors=$((errors + 1))
-    fi
-    # Comment coverage: every age1 recipient line must carry a `# host` label.
-    unlabeled=$(grep -E 'age1[0-9a-z]+' .sops.yaml | grep -v '#' || true)
-    if [ -n "$unlabeled" ]; then
-        echo "  ❌ Unlabeled recipients in .sops.yaml (add '# host — verified DATE'):"
-        echo "$unlabeled" | sed 's/^/    /'
-        errors=$((errors + 1))
-    else
-        echo "  ✅ All recipients labeled"
-    fi
-    # Warn (not fail) on UNCONFIRMED recipients so removal candidates stay visible.
-    unconfirmed=$(grep -E 'age1[0-9a-z]+' .sops.yaml | grep -i 'unconfirmed' || true)
-    if [ -n "$unconfirmed" ]; then
-        echo "  ⚠️  UNCONFIRMED recipients (resolve or remove):"
-        echo "$unconfirmed" | sed 's/^/    /'
     fi
     if [ "$errors" -gt 0 ]; then echo "  ❌ $errors secrets issues found"; exit 1; fi
     if command -v yq &>/dev/null; then
