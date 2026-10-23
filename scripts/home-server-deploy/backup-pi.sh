@@ -32,7 +32,7 @@ if [ -e "${BACKUP_DIR}" ]; then
 fi
 mkdir -p "${BACKUP_DIR}"
 
-# shellcheck disable=SC2329 # Invoked by trap.
+# shellcheck disable=SC2329,SC2317 # Invoked by trap (SC2317: pre-0.11 cannot see trap callers).
 cleanup() {
   if [ "${PUBLISHED}" -eq 0 ] && [ -d "${BACKUP_DIR}" ]; then
     rm -rf -- "${BACKUP_DIR}"

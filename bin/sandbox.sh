@@ -73,7 +73,7 @@ case "$ACTION" in
     PORT=$(ssh "$SERVER" "seq $PORT_MIN $PORT_MAX | while read -r p; do
         ss -tln 2>/dev/null | grep -qE \":\$p( |\$)\" || { echo \"\$p\"; break; }
       done")
-    [ -n "$PORT" ] && [ "$PORT" -le "$PORT_MAX" ] 2>/dev/null || { echo "  ❌ no free port in $PORT_MIN-$PORT_MAX"; exit 1; }
+    if [ -z "$PORT" ] || ! [ "$PORT" -le "$PORT_MAX" ] 2>/dev/null; then echo "  ❌ no free port in $PORT_MIN-$PORT_MAX"; exit 1; fi
 
     # Default name: sb-<image-slug>-<timestamp-tail>
     if [ -z "$NAME" ]; then
