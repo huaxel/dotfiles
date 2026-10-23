@@ -38,6 +38,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Dispatcher scrubs HOME, so $HOME/.nix-profile paths dangle; the real
+      # nix is the system profile outside HOME. acerpepe-only.
+      - name: Expose system nix
+        run: echo "/nix/var/nix/profiles/default/bin" >> "$GITHUB_PATH"
+
       # test-pi-packages resolves agent internals (managed install is
       # gitignored, so fresh clones use the global agent). Pin matches
       # pi/agent/install/current-version on dev machines — bump together.
