@@ -12,6 +12,17 @@
 
 set -euo pipefail
 
+# Go plugin builds must use a self-consistent toolchain. Mise's Go backend
+# exports GOROOT/GOBIN into the login session, but Home Manager activation
+# (and other sanitized contexts) may resolve `go` to a different toolchain
+# (e.g. Arch's /usr/bin/go). A foreign GOROOT makes the driver invoke
+# mismatched compile/asm tools:
+#   compile: version "go1.26.8" does not match go tool version "go1.27.1-..."
+# Unset them so whichever `go` is found uses its own GOROOT. Every supported
+# Go (mise, system, brew, Nix) locates its own GOROOT correctly when the
+# variable is absent.
+unset GOROOT GOBIN
+
 # plugin_id<TAB>owner/repo<TAB>immutable Git revision
 # Keep these revisions pinned so a fresh machine gets the same plugin set.
 PLUGIN_SOURCES="
