@@ -32,6 +32,9 @@ jobs:
       # User-scoped global root: workers run with NoNewPrivileges, so no
       # sudo. pi-resolve-hook.mjs reads `npm root -g`, which honors this.
       NPM_CONFIG_PREFIX: /home/juan/.npm-global
+      # Ephemeral workers run with HOME=isolated workdir (dispatcher hygiene),
+      # so sops cannot find ~/.config/sops/age/keys.txt on its own. acerpepe-only.
+      SOPS_AGE_KEY_FILE: /home/juan/.config/sops/age/keys.txt
     steps:
       - uses: actions/checkout@v4
 
