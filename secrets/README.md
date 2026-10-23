@@ -41,10 +41,34 @@ For other machines to decrypt, add their public keys to `.sops.yaml`:
 ```yaml
 creation_rules:
   - path_regex: secrets/.*$
-    age: >
-      age13tmsqsgvls98xku94mc53t0tn9et450nfkmydqrpl380cytt0pwsl7s8zl,
-      age1<other-machine-key>
+    age:
+      - age13tmsqsgvls98xku94mc53t0tn9et450nfkmydqrpl380cytt0pwsl7s8zl # arch-wsl — verified 2026-10-23
+      - age1<other-machine-key> # <host> — verified YYYY-MM-DD
 ```
+
+Every recipient line must carry a `# <host> — verified DATE` comment;
+`just check-secrets` fails on unlabeled lines. Mark keys you cannot tie to
+a live private key as `# UNCONFIRMED: <why>` so they stay visible until
+resolved or removed.
+
+### 1b. Remove a machine key (retired / lost / compromised host)
+
+Do one key per commit so a mistaken deletion reverts cleanly:
+
+```bash
+# 1. Delete the key's line from .sops.yaml
+# 2. Re-encrypt every secret with the reduced recipient set:
+sops updatekeys secrets/environment.d.enc secrets/llama-webui-config.json.enc secrets/pi-quota-sessions.json.enc
+# 3. Verify the remaining machines still decrypt (this host + one remote):
+just check-secrets
+ssh <another-host> 'bash -lc "sops --decrypt ~/dotfiles/secrets/environment.d.enc > /dev/null && echo ok"'
+# 4. Commit .sops.yaml + all re-encrypted .enc files (+ .sha256 sidecars) together
+```
+
+If the removed host is merely offline (not retired), confirm it can no
+longer decrypt before relying on the rotation: anyone holding the old
+`.enc` blobs plus the removed private key can still read *old* plaintext.
+Rotation protects future edits, not already-distributed ciphertext.
 
 ### 2. Create / edit a secret file
 
