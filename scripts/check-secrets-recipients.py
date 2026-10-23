@@ -24,9 +24,12 @@ def config_recipients(path):
         rules = (cfg or {}).get("creation_rules", [])
         age = rules[0].get("age", []) if rules else []
         if isinstance(age, str):
-            return sorted(re.findall(r"age1[0-9a-z]+", age))
-        return sorted(age)
-    return sorted(re.findall(r"age1[0-9a-z]+", text))
+            return sorted(set(re.findall(r"age1[0-9a-z]+", age)))
+        return sorted(set(age))
+    # No PyYAML: strip `#` comments first so the key map block cannot
+    # double-count recipients and truncated keys in prose cannot phantom-match.
+    body = "\n".join(l.split("#", 1)[0] for l in text.splitlines())
+    return sorted(set(re.findall(r"age1[0-9a-z]+", body)))
 
 
 def file_recipients(path):
