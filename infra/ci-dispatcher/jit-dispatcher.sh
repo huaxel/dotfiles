@@ -164,7 +164,10 @@ dispatch_for_repo() { # $1 = repo (owner/name)
       mkdir -p "$SHARED_CACHE/uv" "$SHARED_CACHE/pip"
       log "starting ephemeral runner $runner_name"
       # Scrubbed env: jobs must never see the minting token.
-      ( cd "$RUNNER_DIR" && env -i PATH="/usr/bin:/bin:/usr/local/bin:$HOME/.nix-profile/bin" \
+      # /usr/local first (Unix convention): admin-installed tools must shadow
+      # distro packages. Inverted order once let apt shellcheck 0.10 shadow
+      # /usr/local 0.11 and fail the gate on fixed-since versions (2026-10-23).
+      ( cd "$RUNNER_DIR" && env -i PATH="/usr/local/bin:/usr/bin:/bin:$HOME/.nix-profile/bin" \
           HOME="$workdir" RUNNER_WORKDIR="$workdir" \
           UV_CACHE_DIR="$SHARED_CACHE/uv" PIP_CACHE_DIR="$SHARED_CACHE/pip" \
           timeout "$RUN_TIMEOUT" ./run.sh --jitconfig "$jit_arg" ) \
