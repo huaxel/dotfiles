@@ -38,6 +38,11 @@ jobs:
       # test-pi-packages resolves agent internals (managed install is
       # gitignored, so fresh clones use the global agent). Pin matches
       # pi/agent/install/current-version on dev machines — bump together.
+      # Fresh clones have no node_modules; workspaces resolve their bins
+      # (tsc, …) locally. Lockfile-pinned, no audit/fund noise.
+      - name: Install workspace dependencies
+        run: npm ci --no-audit --no-fund
+
       - name: Install pinned Pi agent
         run: npm install -g @earendil-works/pi-coding-agent@1.4.0
 
