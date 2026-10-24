@@ -1,8 +1,18 @@
 # CUTOVER-02: acerpepe window (belpolsim removal + last listener retirement)
 
-Staged 2026-10-24, NOT executed. Each destructive phase needs explicit
-human approval (`approve phase 1` / `approve phase 2`). Pre-flight evidence
-was verified live 2026-10-23/24; re-run Phase 0 at window time (state drifts).
+EXECUTED 2026-10-24 ~10:45 CEST (human-approved Phase 1+2 via ask_user).
+Phase 1: snapshot /tmp/belpolsim-acerpepe-20261024.tgz (191M) -> rm
+~/apps/belpolsim + ~/repos/belpolsim.git -> caddy reload -> :8081 still 200:
+root causes found live: (a) belpolsim backend was Docker container
+127.0.0.1:8081 (Up 9d), not static files; (b) TWO caddy masters (1006 stale
++ 1151657 current) splitting :8080/:30080, stale holding :8081+admin.
+Completed: docker stop/rm belpolsim (image kept), :8081 -> 502, kill 1006,
+single master 1151657, :8081 refused (exit 7), :8080 200, :30080 200 (http),
+liedelpi:8080 200. Phase 2: listener idle (busy=false) -> svc stop (2.5G mem
+peak/856M swap: the RAM case) -> uninstall -> server-side remove (creds
+shredded) -> rm -rf dir -> unit file auto-removed -> daemon-reload ->
+pgrep clean, API lists only liedelpi-project-atom, dispatcher active.
+Pre-flight evidence was verified live 2026-10-23/24.
 
 Goal: acerpepe becomes infra-only (Caddy edge + uptime-kuma + crons +
 backups + x64 JIT). Blast radius: belpolsim serves from liedelpi
