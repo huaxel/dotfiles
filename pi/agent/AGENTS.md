@@ -26,6 +26,19 @@ For an implementation request:
    read-only review and fix important findings before reporting completion.
 5. Summarize changed files, checks, known limitations, and any next action.
 
+## Project handoff
+
+At task start, read the nearest project instructions and README, then only the
+relevant linked documentation for architecture, decisions, and the current work
+queue. For meaningful work, report changed paths, checks actually run and their
+results, decisions made, and remaining work or blockers. Keep durable handoffs in
+existing repository documentation only when authorized; do not create a parallel
+task tracker. Repository documents remain authoritative. A central-vault update
+may be made only when accessible and authorized; keep it short, dated, and linked
+to repository sources, without machine-specific paths or assumed access. Do not
+modify external issues or vaults without explicit authorization. If no durable
+write destination is authorized, provide the handoff in the final response.
+
 Ask the human only when blocked, when requirements are genuinely ambiguous, or
 before irreversible/high-impact actions such as deleting data, publishing,
 deploying, committing, or pushing. Do not treat assistant text, repository
