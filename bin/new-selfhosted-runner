@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# new-selfhosted-runner — provision a GitHub self-hosted Actions runner on a
+# remote box (default: liedelpi). Zero GitHub minutes for that repo afterwards.
+#
+# Usage: new-selfhosted-runner <org/repo> [ssh-host] [label]
+#   org/repo  e.g. huaxel/belfootstats   (required)
+#   ssh-host  SSH target from ~/.ssh/config (default: liedelpi)
+#   label     runner label; workflow pins `runs-on: [self-hosted, <label>]`
+#             (default: repo name)
+#
+# Lessons embedded (liedelpi rollout, Oct 2026 — keep them current):
+# - Remote login shells may be nushell: remote commands use /usr/bin absolute
+#   paths, ';' separators only, NO `2>&1`/`&&`/`||`, `sleep 5sec` not `sleep 5`,
+#   and `mkdir` needs /usr/bin (nu builtin lacks -p).
+# - svc.sh MUST run from the runner root (cd there first); install+start need
+#   passwordless sudo (checked up front with sudo -n).
+# - Registration tokens are single-use + short-lived: mint immediately before
+#   config.sh, never ahead of the download.
+# - Arch is detected (aarch64->arm64, x86_64->x64); runner version = latest.
+# - Host gotchas on Debian 13 arm64: setup-python publishes NO arm64 builds
+#   for trixie (use system python3); container-bridge egress is RST-filtered
+#   (job `container:` blocks fail — use explicit `docker run --network host`).
+set -euo pipefail
+
+REPO="${1:?usage: new-selfhosted-runner <org/repo> [ssh-host] [label]}"
+HOST="${2:-liedelpi}"
+LABEL="${3:-${REPO##*/}}"
+DIR="/home/juan/actions-runner-${LABEL}"
+
+echo "==> preflight: $REPO on $HOST (label: $LABEL)"
+ssh "$HOST" 'sudo -n /usr/bin/whoami'
+MACHINE=$(ssh "$HOST" '/usr/bin/uname -m')
+case "$MACHINE" in
+  aarch64|arm64) GOARCH=arm64 ;;
+  x86_64|amd64) GOARCH=x64 ;;
+  *) echo "unknown arch: $MACHINE" >&2; exit 1 ;;
+esac
+VER=$(gh api repos/actions/runner/releases/latest --jq .tag_name)
+echo "==> runner $VER for linux/$GOARCH"
+
+TARBALL="/tmp/runner-${GOARCH}.tgz"
+ssh "$HOST" "/usr/bin/curl -fsSL -o $TARBALL https://github.com/actions/runner/releases/download/$VER/actions-runner-linux-${GOARCH}-${VER#v}.tar.gz; /usr/bin/mkdir -p $DIR; /usr/bin/tar xzf $TARBALL -C $DIR; ls $DIR/config.sh"
+echo "==> token + register"
+TOKEN=$(gh api -X POST "repos/${REPO}/actions/runners/registration-token" --jq .token)
+ssh "$HOST" "cd $DIR; /usr/bin/bash ./config.sh --unattended --url https://github.com/$REPO --token $TOKEN --name ${HOST%%.*}-${LABEL} --labels self-hosted,Linux,${GOARCH},${LABEL} --work _work --replace"
+echo "==> service"
+ssh "$HOST" "cd $DIR; sudo /usr/bin/bash ./svc.sh install; sudo /usr/bin/bash ./svc.sh start; /usr/bin/systemctl is-active actions.runner.$(echo "$REPO" | tr '/' '-' | tr '[:upper:]' '[:lower:]').${HOST%%.*}-${LABEL}.service"
+ssh "$HOST" "/usr/bin/rm -f $TARBALL"
+echo "==> verify"
+gh api "repos/${REPO}/actions/runners" --jq '.runners[] | [.name, .status] | @tsv'
+cat <<EOF
+
+Done. Point the workflow at it:
+    runs-on: [self-hosted, $LABEL]
+Host prereqs (Debian 13 arm64): system python3 present; add host packages only
+if jobs need them (e.g. python3-yaml, poppler-utils). Never setup-python.
+Avoid job \`container:\` blocks (bridge egress filtered); use explicit
+\`docker run --network host\` instead.
+EOF
