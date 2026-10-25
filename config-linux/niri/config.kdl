@@ -13,13 +13,13 @@
 // - Alt+T tabbed column (sway tabbed); Alt+S center column
 // - Alt+Slash consume/expel (sway split-toggle analog); Alt+Comma/Period
 //   consume into / expel from column
-// - Alt+F maximize column, Alt+Shift+F fullscreen (sway fullscreen)
+// - Alt+F fullscreen (sway fullscreen), Alt+Shift+F maximize column
 // - Alt+Shift+G gather workspaces home (undo Alt+Shift+Tab drift)
 // - Alt+Shift+Return floating toggle; Alt+M/Alt+O overview (scratchpad has
 //   no niri analog — overview is the closest "where is everything" view)
 // - Alt+Minus/Equal column width -/+10% (aerospace resize); Alt+Shift+Minus/
 //   Equal window height -/+10%; Alt+R cycle widths (sway resize-mode analog)
-// - Alt+Shift+C / Alt+Shift+R reload config (sway/aerospace reload)
+// - Config reloads automatically on save (no reload shortcuts)
 // - Alt+Shift+Semicolon keyboard-layout switch (niri native switch-layout)
 // - Alt+Shift+Apostrophe lock (same lock.sh); Print/Ctrl+Print/Alt+Print
 //   screenshots to ~/Desktop like sway's grimblast names
@@ -37,7 +37,7 @@
 //
 // Outputs mirror sway 02-outputs.conf. VERIFY with `niri msg outputs` on
 // first login: connector names (DP-4/DP-1/HDMI-A-1) must match, and the
-// IIYAMA x position assumes its rotated logical width (1920).
+// IIYAMA x position assumes its rotated logical width (1080).
 //
 // Input: custom mac_colemak layout (services.xserver.xkb.extraLayouts on the
 // NixOS side installs it system-wide). If niri ever fails to start after an
@@ -108,7 +108,7 @@ workspace "5" {
 workspace "6" {
     open-on-output "DP-4"
 }
-// 7-10 are overflow with no dedicated role; they live on the primary
+// 7-9 are overflow with no dedicated role; they live on the primary
 // screen so Alt+Shift+G can always restore full numeric order.
 workspace "7" {
     open-on-output "DP-4"
@@ -220,6 +220,11 @@ window-rule {
     open-floating true
 }
 
+// Start with `niri-session` from a TTY (or select Niri in the login manager),
+// not bare `niri`: portals need environment import and graphical-session.target.
+// Do not emulate session setup in spawn-at-startup: these run asynchronously
+// and race portal consumers. See README.md in this directory.
+
 // Startup: bar, notifications, wallpaper, launcher service, idle/lock,
 // clipboard watcher. (sway 07-autostart.conf equivalents.)
 // BAR EXPERIMENT 2026-10-24: noctalia instead of waybar (revert = uncomment
@@ -242,7 +247,7 @@ spawn-sh-at-startup "systemctl --user start elephant"
 // is forced per-app via *-flags.conf; this covers the rest on the 4K out).
 spawn-sh-at-startup "DISPLAY=:0 xrdb -merge ~/.Xresources"
 spawn-at-startup "wl-paste" "--watch" "cliphist" "store"
-spawn-sh-at-startup "swayidle -w timeout 300 ~/.config/sway/scripts/lock.sh timeout 600 'niri msg action power-off-monitors' before-sleep ~/.config/sway/scripts/lock.sh"
+spawn-sh-at-startup "swayidle -w timeout 300 ~/.config/desktop/scripts/lock.sh timeout 600 'niri msg action power-off-monitors' before-sleep ~/.config/desktop/scripts/lock.sh"
 
 hotkey-overlay {
 }
@@ -258,7 +263,7 @@ binds {
     Alt+Q { close-window; }
     Alt+W { close-window; }
     Alt+Space { spawn "walker"; }
-    Alt+Shift+D { spawn "~/.config/sway/scripts/walker-files.sh"; }
+    Alt+Shift+D { spawn "~/.config/desktop/scripts/walker-files.sh"; }
     Alt+Shift+G { spawn "~/.config/niri/scripts/gather-workspaces.sh"; }
     Alt+Grave { spawn "fuzzel"; }
 
@@ -352,7 +357,7 @@ binds {
     Alt+Shift+Semicolon { switch-layout "next"; }
 
     // Lock (same script as sway).
-    Alt+Shift+Apostrophe { spawn "~/.config/sway/scripts/lock.sh"; }
+    Alt+Shift+Apostrophe { spawn "~/.config/desktop/scripts/lock.sh"; }
 
     // Screenshots to ~/Desktop (sway grimblast naming).
     Print { screenshot; }
@@ -363,7 +368,7 @@ binds {
     Alt+Shift+V { spawn-sh "cliphist list | wofi --dmenu | cliphist decode | wl-copy"; }
 
     // Bluetooth / power / wifi menus, steam (same scripts as sway).
-    Alt+B { spawn "~/.config/sway/scripts/wofi-bluetooth.sh"; }
+    Alt+B { spawn "~/.config/desktop/scripts/wofi-bluetooth.sh"; }
     Alt+Shift+X { spawn "~/.config/wofi/scripts/wofi-power.sh"; }
     Alt+Shift+W { spawn "~/.config/wofi/scripts/wofi-wifi.sh"; }
     // GDK_SCALE=2: steam is X11-only; without it the client renders at 1x

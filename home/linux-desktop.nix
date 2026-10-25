@@ -7,10 +7,10 @@
 {
   home.file.".config/llamaman/config.json".source = ../config-linux/llamaman/config.json;
 
-  home.file.".config/sway/scripts/lock.sh".source = ../config-linux/sway/scripts/lock.sh;
-  home.file.".config/sway/scripts/walker-files.sh".source = ../config-linux/sway/scripts/walker-files.sh;
-  home.file.".config/sway/scripts/wofi-bluetooth.README.md".source = ../config-linux/sway/scripts/wofi-bluetooth.README.md;
-  home.file.".config/sway/scripts/wofi-bluetooth.sh".source = ../config-linux/sway/scripts/wofi-bluetooth.sh;
+  home.file.".config/desktop/scripts/lock.sh".source = ../config-linux/desktop/scripts/lock.sh;
+  home.file.".config/desktop/scripts/walker-files.sh".source = ../config-linux/desktop/scripts/walker-files.sh;
+  home.file.".config/desktop/scripts/wofi-bluetooth.README.md".source = ../config-linux/desktop/scripts/wofi-bluetooth.README.md;
+  home.file.".config/desktop/scripts/wofi-bluetooth.sh".source = ../config-linux/desktop/scripts/wofi-bluetooth.sh;
 
   home.file.".config/walker/config.toml".source = ../config-linux/walker/config.toml;
 

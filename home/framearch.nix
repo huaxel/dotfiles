@@ -37,6 +37,8 @@ in
   # muscle memory carries over. Validate on the host after switching:
   # `niri validate` and `niri msg outputs` (connector names / positions).
   home.file.".config/niri/config.kdl".source = ../config-linux/niri/config.kdl;
+  # Host-specific: the WSL/Sway profile must not inherit Niri's backend choice.
+  home.file.".config/xdg-desktop-portal/portals.conf".source = ../config-linux/niri/portals.conf;
   home.file.".config/niri/scripts/gather-workspaces.sh".source = ../config-linux/niri/scripts/gather-workspaces.sh;
 
   # Bar experiment (2026-10-24): Noctalia replaces waybar, Trayscale gives

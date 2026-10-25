@@ -11,7 +11,7 @@
 set -euo pipefail
 
 # workspace -> output, keep in sync with `workspace "..." { open-on-output }`.
-declare -A HOME=(
+declare -A WORKSPACE_OUTPUTS=(
   [1]="DP-4"
   [2]="HDMI-A-1"
   [3]="DP-1"
@@ -26,10 +26,45 @@ declare -A HOME=(
 ws_json() { niri msg -j workspaces; }
 
 focused_id=$(ws_json | jq -r '.[] | select(.is_focused) | .id')
+outputs=$(niri msg -j outputs)
+
+# Disabled outputs can remain in IPC results with logical=null.
+output_connected() {
+  jq -e --arg output "$1" '.[$output].logical != null' <<< "$outputs" >/dev/null
+}
+
+# Preserve the original failure status, even if restoration also fails (e.g.
+# the compositor exits or the original workspace disappears during hotplug).
+restore_focus() {
+  local status=$? loc
+  trap - EXIT
+  if [[ -n "$focused_id" && "$focused_id" != null ]]; then
+    if loc=$(ws_json | jq -r --argjson id "$focused_id" \
+      '.[] | select(.id == $id and .output != null) | "\(.output) \(.idx)"') && [[ -n "$loc" ]]; then
+      if ! { niri msg action focus-monitor "${loc% *}" >/dev/null &&
+             niri msg action focus-workspace "${loc#* }" >/dev/null; }; then
+        printf 'Could not restore workspace focus\n' >&2
+        if (( status == 0 )); then status=1; fi
+      fi
+    else
+      printf 'Original workspace unavailable; focus not restored\n' >&2
+      if (( status == 0 )); then status=1; fi
+    fi
+  fi
+  return "$status"
+}
+trap restore_focus EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 for ws in 1 2 3 4 5 6 7 8 9; do
-  home=${HOME[$ws]}
-  loc=$(ws_json | jq -r --arg n "$ws" '.[] | select(.name == $n) | "\(.output) \(.idx)"')
+  home=${WORKSPACE_OUTPUTS[$ws]}
+  if ! output_connected "$home"; then
+    printf 'Skipping workspace %s: output %s is disconnected or disabled\n' "$ws" "$home" >&2
+    continue
+  fi
+  loc=$(ws_json | jq -r --arg n "$ws" '.[] | select(.name == $n and .output != null) | "\(.output) \(.idx)"')
+  [[ -n "$loc" ]] || continue
   out=${loc% *}; idx=${loc#* }
   if [[ $out != "$home" ]]; then
     niri msg action focus-monitor "$out" >/dev/null
@@ -44,6 +79,7 @@ done
 # 1..p-1 already hold the right names, so the wanted name is always at
 # index >= p and one move per slot suffices. Unnamed empties end up last.
 for mon in DP-4 HDMI-A-1 DP-1; do
+  output_connected "$mon" || continue
   names=$(ws_json | jq -r --arg m "$mon" '.[] | select(.output == $m and .name != null) | .name' | sort -n)
   p=1
   while IFS= read -r n; do
@@ -58,7 +94,4 @@ for mon in DP-4 HDMI-A-1 DP-1; do
   done <<< "$names"
 done
 
-# Restore original focus (ids survive moves; resolve to current position).
-loc=$(ws_json | jq -r --argjson id "$focused_id" '.[] | select(.id == $id) | "\(.output) \(.idx)"')
-niri msg action focus-monitor "${loc% *}" >/dev/null
-niri msg action focus-workspace "${loc#* }" >/dev/null
+# The EXIT trap restores original focus on success and failure.

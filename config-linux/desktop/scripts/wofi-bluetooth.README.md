@@ -3,7 +3,7 @@
 Lightweight keyboard-first Bluetooth manager using `bluetoothctl` and `wofi`.
 
 Files installed
-- `~/.config/sway/scripts/wofi-bluetooth.sh` — main script (executable)
+- `~/.config/desktop/scripts/wofi-bluetooth.sh` — main script (executable)
 - `~/.config/waybar/config` — example Waybar module calling the script on-click
 - `~/.config/sway/config` — appended `bindsym $mod+b` and `bar { swaybar_command waybar }`
 - `~/.config/wofi/style.css` — optional Wofi styling
