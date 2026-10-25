@@ -30,9 +30,14 @@
     # flake evaluation graph for Darwin or non-Vulkan builds — the package is
     # only referenced in legacyPackages (evaluation-only), never in homeConfigurations.
     nixgl.url = "github:guibou/nixGL/b6105297e6f0cd041670c3e8628394d4ee247ed5";
+
+    # Noctalia v5 desktop shell for the framearch niri experiment.
+    # No `inputs.nixpkgs.follows` on purpose: upstream docs say following
+    # disables their binary cache, which avoids compiling locally.
+    noctalia.url = "github:noctalia-dev/noctalia";
   };
 
-  outputs = { nixpkgs, home-manager, herdr, sops-nix, cachy-llama, nixgl, ... }:
+  outputs = { nixpkgs, home-manager, herdr, sops-nix, cachy-llama, nixgl, noctalia, ... }:
     let
       cachyLlamaVulkan = nixpkgs.legacyPackages.x86_64-linux.callPackage
         ./nixos/cachy-llama-package.nix {
@@ -67,6 +72,18 @@
           extraSpecialArgs = {
             herdrPackage = if system == "aarch64-linux" then herdrAarch64
                           else herdr.packages.${system}.default;
+            # Only framearch (x86_64-linux) uses it; other hosts get null.
+            # Lazy: never evaluated unless a host module references it.
+            noctaliaPackage =
+              if system == "x86_64-linux" && noctalia.packages ? x86_64-linux
+              then noctalia.packages.x86_64-linux.default
+              else null;
+            # nixGL wrapper so nix OpenGL apps (Noctalia) run on this Arch
+            # host's mesa. Linux-only: nixgl has no darwin packages.
+            nixGLIntelPackage =
+              if builtins.elem system [ "x86_64-linux" "aarch64-linux" ]
+              then nixgl.packages.${system}.nixGLIntel
+              else null;
           };
           modules = [
             sops-nix.homeManagerModules.sops

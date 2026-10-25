@@ -37,7 +37,8 @@
     "npm:@sting8k/pi-vcc",
     "npm:@mobrienv/pi-tidy-tools",
     "/home/juan/projects/pi-extensions/pi-subagent",
-    "npm:@juanbenjumea/pi-go-on"
+    "npm:@juanbenjumea/pi-go-on",
+    "https://github.com/earendil-works/pi-claude-code"
   ],
   "extensions": [
     "./extensions/continue-after-compaction.ts",
