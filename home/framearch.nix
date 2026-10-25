@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, noctaliaPackage ? null, nixGLIntelPackage ? null, ... }:
 
 let
   home = config.home.homeDirectory;
@@ -37,6 +37,14 @@ in
   # muscle memory carries over. Validate on the host after switching:
   # `niri validate` and `niri msg outputs` (connector names / positions).
   home.file.".config/niri/config.kdl".source = ../config-linux/niri/config.kdl;
+  home.file.".config/niri/scripts/gather-workspaces.sh".source = ../config-linux/niri/scripts/gather-workspaces.sh;
+
+  # Bar experiment (2026-10-24): Noctalia replaces waybar, Trayscale gives
+  # the mac-like Tailscale tray item. Revert = drop these, uncomment
+  # waybar in config-linux/niri/config.kdl.
+  home.packages = lib.optionals (noctaliaPackage != null) [ noctaliaPackage ]
+    ++ lib.optionals (nixGLIntelPackage != null) [ nixGLIntelPackage ]
+    ++ (with pkgs; [ trayscale ]);
 
   home.file.".config/llama.cpp/models-laptop.ini".source = ../config/llama.cpp/models-laptop.ini;
 
