@@ -6,7 +6,7 @@ selected=$(echo -e $entries | wofi --width 250 --height 210 --dmenu --cache-file
 
 case $selected in
   lock)
-    ~/.config/sway/scripts/lock.sh;;
+    ~/.config/desktop/scripts/lock.sh;;
   logout)
     if pgrep -x niri >/dev/null 2>&1; then
         niri msg action quit skip-confirmation=true

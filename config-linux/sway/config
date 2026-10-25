@@ -13,7 +13,7 @@ include ~/.config/sway/config.d/*
 
 ## Bluetooth Manager binding and bar
 # Bluetooth Manager (Modifier + B)
-bindsym $mod+b exec ~/.config/sway/scripts/wofi-bluetooth.sh
+bindsym $mod+b exec ~/.config/desktop/scripts/wofi-bluetooth.sh
 
 # Status Bar — waybar is launched from 07-autostart.conf (not here, to avoid duplicates)
 

@@ -48,7 +48,7 @@ nushell-setup:
 # ──────────── Check recipes ────────────
 
 # Run ALL checks (the full CI pipeline)
-ci: check-sh check-ts check-ts-packages test-pi-packages check-recovery check-windows check-macos check-home-server check-lockfile check-secrets check-gitignore check-templates check-brewfile check-nu check-nix
+ci: check-desktop check-sh check-ts check-ts-packages test-pi-packages check-recovery check-windows check-macos check-home-server check-lockfile check-secrets check-gitignore check-templates check-brewfile check-nu check-nix
     @echo ""
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     @echo "  🟢  All CI checks passed!  🟢"
@@ -72,6 +72,11 @@ ci-strict:
     exec just ci
 
 # ── Shell scripts ──
+
+# Check desktop helpers without opening a lock screen.
+check-desktop:
+    python3 scripts/tests/desktop-lock.test.py
+    python3 scripts/tests/gather-workspaces.test.py
 
 # Lint all shell scripts with ShellCheck
 # Excludes: node_modules (npm deps), pi/agent/npm/node_modules (Pi npm deps),

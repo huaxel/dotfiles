@@ -1,6 +1,6 @@
 # Lightweight Walker setup for Sway.
 # Main goals: fast app launch, quick calculator, web search.
-# File search is handled by ~/.config/sway/scripts/walker-files.sh because
+# File search is handled by ~/.config/desktop/scripts/walker-files.sh because
 # Walker's native files provider needs the Elephant backend/provider packages.
 
 force_keyboard_focus = true
