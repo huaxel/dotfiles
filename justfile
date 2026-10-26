@@ -209,6 +209,7 @@ test-pi-extensions:
     #!/usr/bin/env bash
     set -euo pipefail
     cd "{{dotfiles-dir}}"
+    python3 scripts/tests/pi-npm-patches.test.py
     # Pi extension tests resolve agent internals via pi-resolve-hook.mjs:
     # managed install first, then the global npm agent. Without either,
     # skip locally but fail in CI (the workflow installs the pinned agent).

@@ -54,7 +54,7 @@ in
     HF_HOME = "/mnt/ai_models";
     HF_HUB_CACHE = "/mnt/ai_models/models";
     # LLAMA_*/MEMORYFIELD_* live in config/environment.d/10-dotfiles.conf
-    // (deployed by home/common.nix, loaded via systemd + both shells).
+    # (deployed by home/common.nix, loaded via systemd + both shells).
     PI_CODING_AGENT_DIR = "/home/juan/dotfiles/pi/agent";
     PI_CODING_AGENT_SESSION_DIR = "/home/juan/dotfiles/pi/agent/sessions";
     PRIME_AGENT_CODING_AGENT_DIR = "${home}/prime-agent/agent";
