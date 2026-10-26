@@ -43,8 +43,9 @@ the existing age key to
 `~/.config/sops/age/keys.txt` before bootstrap; missing tools, keys, packages, or
 secret decryption now fail the deployment instead of printing false success.
 
-After bootstrap: restart PowerShell, run `glazewm` to start the window manager,
-and `zebar` for the status bar. For llama.cpp inference:
+After bootstrap: restart PowerShell. Windows runs the stock shell (GlazeWM +
+Zebar were removed; tiling lives on framearch/niri and macbook/OmniWM).
+For llama.cpp inference:
 `cd ~/.config/llama.cpp; .\start-server.ps1`.
 
 ### Linux / manual
@@ -71,9 +72,9 @@ Do not switch that profile on the existing Arch installation.
 ```
 ~/dotfiles/
 ├── flake.nix, flake.lock, home/, nixos/  # Nix/Home Manager (Unix)
-├── gitconfig, ssh_config, starship.toml, aerospace, gitignore_global
+├── gitconfig, ssh_config, starship.toml, gitignore_global
 ├── config/ config-linux/ config-macos/   # application configuration
-├── powershell/ windows-terminal/ glazewm/ zebar/ autohotkey/  # Windows
+├── powershell/ windows-terminal/ autohotkey/ flow-launcher/  # Windows
 ├── secrets/                               # sops-encrypted (see secrets/README.md)
 ├── pi/ skills/                            # agent tooling
 ├── bin/ scripts/ justfile                 # helpers + CI gate

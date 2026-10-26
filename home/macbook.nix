@@ -23,11 +23,11 @@
   '';
 
   home.file.".config/llama.cpp/models-macbook.ini".source = ../config/llama.cpp/models-macbook.ini;
-  home.file.".aerospace.toml".source = ../aerospace;
   home.file.".config/borders".source = ../config-macos/borders;
 
-  # OmniWM (macOS Niri/Hyprland-style tiler): declarative settings mirror
-  # aerospace/sway muscle memory (Alt-based binds, Niri layout, gaps 10).
+  # OmniWM (macOS Niri/Hyprland-style tiler): declarative settings follow the
+  # cross-OS contract (Alt-based binds, Niri layout, gaps 10 — see
+  # docs/patterns/window-management.md).
   # First launch still needs manual steps: separate Spaces ON, log out/in,
   # grant Accessibility + Input Monitoring, then Start OmniWM.
   programs.omniwm = {

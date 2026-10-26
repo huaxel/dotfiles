@@ -21,8 +21,6 @@ def require(condition: bool, message: str) -> None:
 # All JSON shipped to native Windows must remain syntactically valid.
 for relative in (
     "windows-terminal/settings.json",
-    "zebar/settings.json",
-    "zebar/bar/zpack.json",
 ):
     json.loads(read(relative))
 
@@ -31,6 +29,10 @@ require("C:\\\\Users\\\\" not in terminal, "Windows Terminal contains a hard-cod
 require("%USERPROFILE%\\\\scoop\\\\apps\\\\pwsh" in terminal, "pwsh profile is not user-portable")
 
 deploy = read("scripts/deploy-windows.ps1")
+# The tiling stack was removed 2026-10-26 (stock Windows shell instead).
+# Assert the removal holds so the deploy script and this test stay in sync.
+# (.glzr/ is the GlazeWM/Zebar config home; nothing else uses it.)
+require(".glzr" not in deploy, "tiling-stack links survived removal")
 require("Microsoft\\Windows Terminal\\settings.json" in deploy, "Unpackaged Windows Terminal settings path is missing")
 require("Microsoft.WindowsTerminal_8wekyb3d8bbwe" in deploy, "Store Windows Terminal settings path is missing")
 require("Get-AppxPackage -Name Microsoft.WindowsTerminal" in deploy, "Windows Terminal install type is not detected")
@@ -39,7 +41,6 @@ require('Write-Host "  [COPY]' in deploy, "File deployment has no non-admin copy
 require("function Render-WindowsGitConfig" in deploy, "Windows Git config is not rendered")
 require("Render-WindowsGitConfig" in deploy and 'Source = "gitconfig"' not in deploy, "Windows deploy may install the raw Git template")
 require("{{#if (eq os" in read("gitconfig"), "Git config platform template markers are missing from regression coverage")
-require('Source = "zebar\\bar"' in deploy, "Zebar startup pack is not deployed")
 link_removal = deploy.split("if ($existing.LinkType)", 1)[1].split("return", 1)[0]
 require("-Recurse" not in link_removal, "Windows deployment can recurse through a configuration link")
 
