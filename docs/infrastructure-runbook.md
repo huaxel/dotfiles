@@ -31,17 +31,18 @@ Tailnet: `bonobo-fort.ts.net`. SSH via `~/.ssh/config` (symlinked from `dotfiles
 - `just deploy-server <server>` / `just register-project <server> <name>`.
 - belpolsim served at `https://acerpepe.bonobo-fort.ts.net:8081` and `http://100.127.61.2:8080` (Pi, direct port).
 
-## Backup (liedelpi → acerpepe)
+## Backup (backup host: liedelpi; spare + mirror: acerpepe)
 
-- Script: acerpepe `/data/backups/scripts/backup-pi.sh` (versioned in `dotfiles/scripts/home-server-deploy/backup-pi.sh`).
-- Cron: `0 3 * * *` — hardlink-incremental snapshots (`/data/backups/pi/YYYY-MM-DDTHHMMSS`), 30-day retention, Immich `pg_dumpall`, and a K3s etcd restore bundle with server token/config. Failed snapshots are removed automatically; `latest` advances atomically only after all primary stages succeed.
-- The 1 TB acerpepe target intentionally excludes `~/media/{movies,series,downloads}`, CI runner trees, and language/package caches from nightly home snapshots. Kingston2TB remains the media archive/source; acerpepe backs up Docker configs, application data, databases, and K3s recovery state only.
-- Acerpepe’s `/mnt/wd-blue` 500 GB disk is ext4 and mirrors the current published snapshot at `/mnt/wd-blue/backups/pi/latest`; the backup script refuses to write there unless it is mounted.
-- Framearch critical data is backed up daily by the user timer `framearch-restic.timer` to the encrypted Restic repository `/data/backups/framearch-restic`, with a second encrypted mirror at `/mnt/wd-blue/backups/framearch-restic`. Weekly `framearch-restic-prune.timer` retains 7 daily, 4 weekly, and 6 monthly snapshots. It includes dotfiles, projects, documents, configs, SSH, and Pi state; caches, model data, build dependencies, and runner state are excluded. The password file is `~/.config/restic/framearch-acerpepe.password` and must also be stored in a password manager.
+- Pi self-backup script: liedelpi `/home/juan/backups/backup-pi.sh` (versioned in `dotfiles/scripts/home-server-deploy/backup-pi.sh`), juan cron `30 3 * * *`. Migrated off acerpepe 2026-10-26 after its 19 h outage death-scare (batteryless laptop + power cut); old acerpepe `/data/backups/pi` kept as archive, old 03:00 cron commented out.
+- Primary: WD Blue 500 GB (UUID `1d5d2b91…`, whole-disk ext4) mounted at liedelpi `/mnt/wd-blue` (fstab `nofail`) — hardlink-incremental snapshots (`/mnt/wd-blue/backups/pi/YYYY-MM-DDTHHMMSS`), 30-day retention, Immich `pg_dumpall`, and a K3s etcd restore bundle with server token/config. Refuses to run unless the disk is mounted. Failed snapshots are removed automatically; `latest` advances atomically only after all primary stages succeed.
+- Secondary: full-history mirror pushed to `acerpepe:/data/backups/pi-mirror/` (liedelpi key in acerpepe `authorized_keys`). A mirror failure fails the run loud but leaves the primary intact.
+- Privilege model: rsync stages read with sudo (root-owned container state), then the snapshot is chown'd back to juan so retention/cleanup and future `--link-dest` work unprivileged.
+- Nightly home snapshots intentionally exclude `~/media/{movies,series,downloads}`, CI runner trees, and language/package caches. Kingston2TB remains the media archive/source; the backup covers Docker configs, application data, databases, and K3s recovery state only.
+- Framearch critical data: user timer `framearch-restic.timer` pushes daily to encrypted Restic `sftp:liedelpi:/mnt/wd-blue/backups/framearch-restic`, then mirrors liedelpi→acerpepe `/data/backups/framearch-restic` (second encrypted copy). Weekly `framearch-restic-prune.timer` retains 7 daily, 4 weekly, and 6 monthly snapshots. It includes dotfiles, projects, documents, configs, SSH, and Pi state; caches, model data, build dependencies, and runner state are excluded. The password file is `~/.config/restic/framearch-restic.password` (old `framearch-acerpepe.password` name kept as a symlink) and must also be stored in a password manager. Both restic units have `OnFailure=` → ntfy alert via `framearch-backup-notify@.service`.
 - `smartd` now monitors framearch, acerpepe, and liedelpi. All drives currently pass SMART; liedelpi’s NVMe has historical critical-temperature time, so keep its cooling/temperature under review.
 - **Fails loud**: exits non-zero and refuses to update `latest` unless the snapshot is complete. `latest` must always point at a real snapshot (Aug 2026 bug: silent 8-day outage produced empty shells).
-- Uses `--rsync-path='sudo rsync'` (container data is root-owned) and excludes `data/portainer/` (regenerable runtime).
-- Restore: rsync from `/data/backups/pi/latest/` back to the Pi. `k3s-restore.tar` contains a fresh compressed etcd snapshot plus `/var/lib/rancher/k3s/server/token` and optional `/etc/rancher/k3s/config.yaml`; follow the matching K3s snapshot-restore procedure before restoring application data.
+- Rsync stages read with sudo (container data is root-owned) and the snapshot is chown'd back to juan afterwards; excludes `data/portainer/` (regenerable runtime).
+- Restore: rsync from `/mnt/wd-blue/backups/pi/latest/` back to the Pi. `k3s-restore.tar` contains a fresh compressed etcd snapshot plus `/var/lib/rancher/k3s/server/token` and optional `/etc/rancher/k3s/config.yaml`; follow the matching K3s snapshot-restore procedure before restoring application data.
 
 ## liedelpi quirks (learned the hard way — Aug 2026)
 
@@ -66,7 +67,7 @@ Then verify: `curl -s http://127.0.0.1:2283/api/server/ping` (Immich 200), conta
 
 ### Backup catch-up
 ```bash
-ssh acerpepe '/data/backups/scripts/backup-pi.sh'   # run manually; check /data/backups/scripts/backup-pi.log
+ssh liedelpi /home/juan/backups/backup-pi.sh   # run manually; check /home/juan/logs/backup-pi.log
 ```
 
 ### Throwaway dev containers (any home server)
