@@ -100,10 +100,14 @@ source $atuin_source
 # the first prompt render when it doesn't. This only runs on prompt render
 # (never for `nu -c` / scripts / piped stdin), and nushell already refuses to
 # start a REPL on non-tty stdin, so legitimate uses are unaffected.
-$env.config.hooks.pre_prompt = (
-  [{ || if (^test -t 0 | complete | get exit_code) != 0 { exit } }]
-  ++ ($env.config.hooks.pre_prompt | default [])
-)
+if $nu.os-info.name != "windows" {
+    # `test` is a POSIX builtin; Windows has no equivalent, and the guard
+    # would otherwise bail out of every native Windows REPL on first prompt.
+    $env.config.hooks.pre_prompt = (
+      [{ || if (^test -t 0 | complete | get exit_code) != 0 { exit } }]
+      ++ ($env.config.hooks.pre_prompt | default [])
+    )
+}
 
 # mise activation can rebuild PATH, so restore the Nix daemon tools after
 # integrations have loaded. This keeps `nix` available in interactive Nu.
