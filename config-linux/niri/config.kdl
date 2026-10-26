@@ -4,7 +4,7 @@
 // Super "Mod"; we bind Alt explicitly so fingers don't relearn anything.
 //
 // Mapping notes (sway key -> niri action):
-// - Alt+Return terminal, Alt+Q/W kill, Alt+Space launcher (walker)
+// - Alt+Return terminal, Alt+Q/W kill, Alt+Space launcher (noctalia)
 // - Alt+HJKL/arrows focus, Alt+Shift+HJKL/arrows move (columns left/right,
 //   windows up/down within a column — matches sway's move semantics)
 // - Alt+1..9 workspaces (0 is an alias for 9); Alt+Shift+1..0 move column
@@ -28,7 +28,7 @@
 //   Alt+Shift+O steam, Alt+Shift+D file search, Alt+C/V/X/Z/A wtype
 //   macOS-style keys, media/brightness keys unchanged from sway
 // - DROPPED with no analog: Alt+D opacity dim, Alt+Shift+G emergency move
-//   (folded into Alt+Shift+1), standalone calc (use walker, type "="),
+//   (folded into Alt+Shift+1), standalone calc (noctalia launcher: just type, or "/calc"),
 //   Alt+Shift+; service-mode (aerospace-only concept)
 // - Screenshots also land on the clipboard (niri default behavior).
 // - Sticky PiP: niri floats PiP via window rules; cross-workspace stickiness
@@ -228,21 +228,15 @@ window-rule {
 // Startup: bar, notifications, wallpaper, launcher service, idle/lock,
 // clipboard watcher. (sway 07-autostart.conf equivalents.)
 // BAR EXPERIMENT 2026-10-24: noctalia instead of waybar (revert = uncomment
-// waybar, delete noctalia + tryscale lines below).
+// waybar, delete the noctalia line below).
 // spawn-at-startup "waybar"
 // Noctalia needs nixGL on this Arch host (nix OpenGL apps can't use the
 // system mesa directly); absolute profile paths because niri's spawn PATH
-// is minimal (same reason elephant runs via systemd). Revert = uncomment
+// is minimal (background daemons run via systemd user services instead). Revert = uncomment
 // waybar, delete the two lines below.
 spawn-sh-at-startup "exec /home/juan/.nix-profile/bin/nixGLIntel /home/juan/.nix-profile/bin/noctalia"
-spawn-at-startup "/home/juan/.nix-profile/bin/trayscale"
 spawn-at-startup "mako"
 spawn-at-startup "swaybg" "-i" "~/Pictures/mountains-bg.jpg" "-m" "fill"
-spawn-at-startup "walker" "--gapplication-service"
-// NOTE: elephant lives in ~/.local/bin (manual install, no pacman package),
-// which is not on a display-manager PATH — so start it via systemd (same
-// as sway's 07-autostart.conf) instead of a bare spawn that fails silently.
-spawn-sh-at-startup "systemctl --user start elephant"
 // X11 DPI for leftovers running through xwayland-satellite (native Wayland
 // is forced per-app via *-flags.conf; this covers the rest on the 4K out).
 spawn-sh-at-startup "DISPLAY=:0 xrdb -merge ~/.Xresources"
@@ -262,8 +256,8 @@ binds {
     Alt+Return { spawn "ghostty" "start"; }
     Alt+Q { close-window; }
     Alt+W { close-window; }
-    Alt+Space { spawn "walker"; }
-    Alt+Shift+D { spawn "~/.config/desktop/scripts/walker-files.sh"; }
+    Alt+Space { spawn "/home/juan/.nix-profile/bin/noctalia" "msg" "panel-toggle" "launcher"; }
+    Alt+Shift+D { spawn "~/.config/desktop/scripts/files-search.sh"; }
     Alt+Shift+G { spawn "~/.config/niri/scripts/gather-workspaces.sh"; }
     Alt+Grave { spawn "fuzzel"; }
 

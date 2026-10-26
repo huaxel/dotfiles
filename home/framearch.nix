@@ -41,12 +41,12 @@ in
   home.file.".config/xdg-desktop-portal/portals.conf".source = ../config-linux/niri/portals.conf;
   home.file.".config/niri/scripts/gather-workspaces.sh".source = ../config-linux/niri/scripts/gather-workspaces.sh;
 
-  # Bar experiment (2026-10-24): Noctalia replaces waybar, Trayscale gives
-  # the mac-like Tailscale tray item. Revert = drop these, uncomment
-  # waybar in config-linux/niri/config.kdl.
+  # Bar experiment (2026-10-24): Noctalia replaces waybar.
+  # (Trayscale removed 2026-10-26: 0.19.0 incompatible with tailscaled 1.104,
+  # tray stayed empty; manage Tailscale via CLI.) Revert = drop these,
+  # uncomment waybar in config-linux/niri/config.kdl.
   home.packages = lib.optionals (noctaliaPackage != null) [ noctaliaPackage ]
-    ++ lib.optionals (nixGLIntelPackage != null) [ nixGLIntelPackage ]
-    ++ (with pkgs; [ trayscale ]);
+    ++ lib.optionals (nixGLIntelPackage != null) [ nixGLIntelPackage ];
 
   home.file.".config/llama.cpp/models-laptop.ini".source = ../config/llama.cpp/models-laptop.ini;
 
