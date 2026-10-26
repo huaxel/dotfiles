@@ -724,29 +724,6 @@ nix-switch profile="juan@framearch":
     # Back up pre-existing paths during the Home Manager handoff.
     nix run ".#home-manager" -- -b hm-backup switch --flake '.#{{profile}}'
 
-# Build the NixOS system closure without activating it.
-# Run on an x86_64-linux builder; the disposable host profile is not cross-built.
-nixos-check:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    nix flake check --all-systems
-    system=$(nix eval --impure --raw --expr 'builtins.currentSystem')
-    if [ "$system" != "x86_64-linux" ]; then
-        echo "⚠️  NixOS framearch build requires x86_64-linux; current host is $system"
-        echo "   Evaluation passed; run this recipe on the target or a matching builder."
-        exit 0
-    fi
-    # Small builders OOM on wide parallel C++ links (observed 2026-10-23:
-    # acerpepe 3GB reaped cc1plus at 1.3GB anon while building llama-cpp-vulkan).
-    # Cap parallelism under 8GB; big iron keeps daemon defaults.
-    build_flags=()
-    if mem_gb=$(free -g 2>/dev/null | awk '/^Mem:/{print $2}') && [ -n "$mem_gb" ] && [ "$mem_gb" -lt 8 ]; then
-        echo "  Small builder (${mem_gb}GB RAM) — capping Nix parallelism"
-        build_flags=(--max-jobs 1 --cores 2)
-    fi
-    nix build '.#nixosConfigurations.framearch.config.system.build.toplevel' --no-link --quiet "${build_flags[@]}"
-    echo "✅ NixOS framearch system builds"
-
 # Build the pinned CachyLLama binary and probe host Vulkan through nixGL.
 # This is diagnostic only; it never touches the live llama.cpp service.
 nix-test-cachy-vulkan profile="qwen-0.8b" port="18123" model="":

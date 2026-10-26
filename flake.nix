@@ -92,24 +92,12 @@
           ];
         };
 
-      # Disposable/separate-disk host definition. Keep this separate from the
-      # current Arch installation until hardware and rollback are validated.
-      framearchNixos = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        specialArgs.cachyLlamaPackage = cachyLlamaVulkan;
-        modules = [ ./nixos/framearch.nix ];
-      };
     in {
       # Kept under legacyPackages so `nix flake check` validates the module
       # without compiling the large Vulkan/WebUI derivation on every change.
       legacyPackages.x86_64-linux.cachyLlamaVulkan = cachyLlamaVulkan;
       legacyPackages.x86_64-linux.nixVulkanIntel =
         nixgl.packages.x86_64-linux.nixVulkanIntel;
-
-      nixosModules.framearchAi = ./nixos/framearch-ai.nix;
-      nixosModules.framearchHardware = ./nixos/framearch-hardware.nix;
-
-      nixosConfigurations.framearch = framearchNixos;
 
       apps.x86_64-linux.home-manager = {
         type = "app";
@@ -126,38 +114,6 @@
         program = "${home-manager.packages.aarch64-linux.default}/bin/home-manager";
         meta.description = "Locked Home Manager activation tool";
       };
-
-      checks.x86_64-linux.framearchNixos =
-        let
-          evaluated = framearchNixos;
-          ai = evaluated.config.services.juan.framearchAi;
-          embedding = evaluated.config.systemd.services.memoryfield-embed;
-          embeddingService = embedding.serviceConfig;
-          portForward = evaluated.config.systemd.services.port-forward-llama.serviceConfig;
-        in
-        assert evaluated.config.hardware.graphics.enable;
-        assert evaluated.config.fileSystems."/mnt/ai_models".device == "/dev/disk/by-uuid/fcef66f9-3a98-42ff-83f6-890cb249a22e";
-        assert evaluated.config.systemd.services."llama.cpp".serviceConfig.User == "juan";
-        assert evaluated.config.systemd.services."llama.cpp".serviceConfig.ExecStart == "${cachyLlamaVulkan}/bin/llama-server";
-        assert embeddingService.User == "juan";
-        assert embeddingService.Group == "users";
-        assert builtins.elem "tailscaled.service" embedding.after;
-        assert portForward.User == "juan";
-        assert portForward.AmbientCapabilities == [ "CAP_NET_BIND_SERVICE" ];
-        assert builtins.elem 80 evaluated.config.networking.firewall.allowedTCPPorts;
-        assert builtins.elem 8001 evaluated.config.networking.firewall.interfaces.tailscale0.allowedTCPPorts;
-        assert evaluated.config.networking.useDHCP;
-        assert evaluated.config.services.tailscale.openFirewall;
-        assert builtins.elem "flakes" evaluated.config.nix.settings.experimental-features;
-        assert builtins.elem "network-online.target" evaluated.config.systemd.services."llama.cpp".after;
-        assert evaluated.config.systemd.services."llama.cpp".serviceConfig.NoNewPrivileges;
-        assert evaluated.config.systemd.services."llama.cpp".serviceConfig.ProtectHome == "read-only";
-        assert builtins.elem "/home/juan/.cache" evaluated.config.systemd.services."llama.cpp".serviceConfig.ReadWritePaths;
-        assert evaluated.config.systemd.services.memoryfield-embed.serviceConfig.NoNewPrivileges;
-        assert ai.modelsPreset == "/home/juan/.config/llama.cpp/models.ini";
-        nixpkgs.legacyPackages.x86_64-linux.runCommand "framearch-nixos-module-check" { } ''
-          touch $out
-        '';
 
       homeConfigurations = {
         "juan@framearch" = mkHome {

@@ -59,19 +59,12 @@ just nix-switch juan@framearch   # or juan@arch-wsl / juan@macbook / juan@liedel
 The generic bootstrap leaves host-specific `/etc` configuration untouched. On
 the designated Linux inference host, use `INSTALL_SYSTEM_CONFIG=1 ./bootstrap.sh`.
 
-The separate NixOS inference-host profile is intentionally not part of generic
-bootstrap. On the target NixOS machine, from this checkout:
-
-```bash
-nix flake check --all-systems
-nix build '.#nixosConfigurations.framearch.config.system.build.toplevel'
-sudo nixos-rebuild build --flake .#framearch
-# After verifying the generated system and disk labels:
-sudo nixos-rebuild switch --flake .#framearch
-```
-
-It expects a root filesystem labelled `nixos` and model storage at the configured
-UUID. Do not switch this profile on the existing Arch installation.
+The NixOS inference-host migration lives on the `nixos-framearch-future`
+branch, not on main — main carries only the shared `nixos/cachy-llama-package.nix`
+consumed by the smoke scripts. To resume migration work, check out that branch
+on the target NixOS machine; its README-era commands (`nixos-rebuild build/switch
+--flake .#framearch`, root filesystem labelled `nixos`) are preserved there.
+Do not switch that profile on the existing Arch installation.
 
 ## Layout
 

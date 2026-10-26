@@ -170,17 +170,14 @@ This must be tested from a separate bootable NixOS installation or rollback
 path. Do not replace the running Arch system in place as part of the Home
 Manager pilot.
 
-`nixos/framearch-ai.nix` records the intended service contract and is exported
-as `nixosModules.framearchAi`. The disposable host definition in
-`nixos/framearch.nix` now exposes `nixosConfigurations.framearch`, but it is
-not a replacement for the current Arch host. It selects the pinned package
-with `services.juan.framearchAi.package`; leaving that option null preserves
-the external `/opt/cachy-llama` fallback. `nixos/framearch-hardware.nix`
-separately records the AMD graphics, render/video/audio groups, and current kernel tuning behind
-`services.juan.framearchHardware.enable`; it is also opt-in. It records the
-current model filesystem as an additional opt-in mount:
-`/dev/disk/by-uuid/fcef66f9-3a98-42ff-83f6-890cb249a22e` (ext4) at
-`/mnt/ai_models`, enabled with `services.juan.framearchHardware.enableModelStorage`.
+The intended service contract, disposable host definition, and hardware/kernel
+tuning now live on the `nixos-framearch-future` branch (`nixos/framearch-ai.nix`
+exported as `nixosModules.framearchAi`, `nixos/framearch.nix` exposing
+`nixosConfigurations.framearch`, `nixos/framearch-hardware.nix` with the AMD
+graphics, render/video/audio groups, kernel tuning, and the opt-in model-storage
+mount `/dev/disk/by-uuid/fcef66f9-3a98-42ff-83f6-890cb249a22e` at `/mnt/ai_models`).
+The host selects the pinned package with `services.juan.framearchAi.package`;
+leaving that option null preserves the external `/opt/cachy-llama` fallback.
 The mount declaration still needs a bootable NixOS rollback test. The Home
 Manager embedding service is enabled by default on framearch, but has an
 explicit opt-out for the future NixOS system-service handoff. The standalone
@@ -190,17 +187,18 @@ secret writers from overwriting the managed destinations.
 ### Bootable test checklist
 
 Use a disposable VM or separate bootable disk; do not replace the current Arch
-root. The flake now provides the host directly. Evaluate it first, then build
-its system or VM artifact deliberately:
+root. Check out the `nixos-framearch-future` branch first — main no longer
+evaluates the host. Then evaluate and build its system or VM artifact deliberately:
 
 ```bash
+git checkout nixos-framearch-future
 nix eval '.#nixosConfigurations.framearch.config.system.build.toplevel.drvPath'
 nix build '.#nixosConfigurations.framearch.config.system.build.toplevel'
 # For a disposable VM, build and run the generated result/\"bin/run-*-vm\".
 nix build '.#nixosConfigurations.framearch.config.system.build.vm'
 ```
 
-For a custom future host, import both exported modules and pass the pinned package explicitly:
+On the branch, for a custom future host, import both exported modules and pass the pinned package explicitly:
 
 ```nix
 imports = [
