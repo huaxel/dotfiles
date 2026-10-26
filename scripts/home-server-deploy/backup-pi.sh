@@ -1,21 +1,22 @@
 #!/bin/bash
-# Backup liedelpi → acerpepe (nightly 03:00 via cron).
-# Hardlink-incremental snapshots with 30-day retention.
+# liedelpi self backup (nightly 03:30 via juan crontab).
+# Primary: /mnt/wd-blue/backups/pi (hardlink-incremental, 30-day retention).
+# Secondary: full-history mirror to acerpepe:/data/backups/pi-mirror/.
 # Fails loud: exits non-zero and refuses to update `latest` on any failure,
 # so restore-from-latest always points at the last COMPLETE snapshot.
+#
+# Adapted from acerpepe's backup-pi.sh (which pulled over ssh); all sources
+# are local now that the backup host IS liedelpi.
 
 set -uo pipefail
 
-BACKUP_ROOT="${BACKUP_ROOT:-/data/backups/pi}"
+BACKUP_ROOT="${BACKUP_ROOT:-/mnt/wd-blue/backups/pi}"
 RUN_ID="$(date +%Y-%m-%dT%H%M%S)"
 BACKUP_DIR="${BACKUP_ROOT}/${RUN_ID}"
 LATEST_LINK="${BACKUP_ROOT}/latest"
-PI_HOST="${PI_HOST:-100.127.61.2}"
-PI_USER="${PI_USER:-juan}"
-LOG="${BACKUP_LOG:-/data/backups/scripts/backup-pi.log}"
-SECONDARY_MOUNT="${SECONDARY_MOUNT:-/mnt/wd-blue}"
-SECONDARY_ROOT="${SECONDARY_ROOT:-${SECONDARY_MOUNT}/backups/pi/latest}"
-SSH_OPTS=(-o StrictHostKeyChecking=accept-new -o ConnectTimeout=10)
+LOG="${BACKUP_LOG:-/home/juan/logs/backup-pi.log}"
+SECONDARY="${SECONDARY:-acerpepe:/data/backups/pi-mirror/}"
+SSH_OPTS=(-o BatchMode=yes -o ConnectTimeout=10)
 
 FAILED=0
 PUBLISHED=0
@@ -32,49 +33,52 @@ if [ -e "${BACKUP_DIR}" ]; then
 fi
 mkdir -p "${BACKUP_DIR}"
 
-# shellcheck disable=SC2329,SC2317 # Invoked by trap (SC2317: pre-0.11 cannot see trap callers).
+# shellcheck disable=SC2329 # Invoked by trap.
 cleanup() {
   if [ "${PUBLISHED}" -eq 0 ] && [ -d "${BACKUP_DIR}" ]; then
-    rm -rf -- "${BACKUP_DIR}"
+    sudo rm -rf -- "${BACKUP_DIR}"
     echo "Removed incomplete snapshot: ${BACKUP_DIR}" >> "${LOG}"
   fi
 }
 trap cleanup EXIT HUP INT TERM
 
-echo "=== Backup started: $(date) ===" >> "${LOG}"
+echo "=== Backup started: $(date) (host: $(hostname)) ===" >> "${LOG}"
 
-# 1. Backup Docker compose files and configs.
+# Primary must be the mounted WD Blue; never fill the root FS.
+if ! mountpoint -q /mnt/wd-blue; then
+  echo "⚠️  FAILURE: primary disk not mounted at /mnt/wd-blue" >> "${LOG}"
+  exit 1
+fi
+
+# 1. Docker compose files and configs.
 echo "Backing up Docker configs..." >> "${LOG}"
-rsync -a --delete --rsync-path='sudo rsync' -e "ssh ${SSH_OPTS[*]}" \
-  "${PI_USER}@${PI_HOST}:/home/juan/docker/" \
+# Privileged read (root-owned container state); ownership normalized below.
+sudo rsync -a --delete \
+  /home/juan/docker/ \
   --exclude='data/portainer/' \
   "${BACKUP_DIR}/docker-configs/" \
   --link-dest="${LATEST_LINK}/docker-configs" 2>>"${LOG}" || FAILED=1
 
-# 2. Backup Pi-hole config.
+# 2. Pi-hole config (root-owned).
 echo "Backing up Pi-hole..." >> "${LOG}"
-rsync -a --delete --rsync-path='sudo rsync' -e "ssh ${SSH_OPTS[*]}" \
-  "${PI_USER}@${PI_HOST}:/data/k3s/pihole/" \
+sudo rsync -a --delete \
+  /data/k3s/pihole/ \
   "${BACKUP_DIR}/pihole/" \
   --link-dest="${LATEST_LINK}/pihole" 2>>"${LOG}" || FAILED=1
 
-# 3. Backup Docker compose files and configs from /home/juan/Data.
+# 3. Docker compose files and configs from /home/juan/Data.
 echo "Backing up Data dir..." >> "${LOG}"
-rsync -a --delete --rsync-path='sudo rsync' -e "ssh ${SSH_OPTS[*]}" \
-  "${PI_USER}@${PI_HOST}:/home/juan/Data/docker/" \
+# Privileged read (root-owned container state); ownership normalized below.
+sudo rsync -a --delete \
+  /home/juan/Data/docker/ \
   --exclude='data/portainer/' \
   "${BACKUP_DIR}/data-docker/" \
   --link-dest="${LATEST_LINK}/data-docker" 2>>"${LOG}" || FAILED=1
 
-# 4. Stream a consistent Immich PostgreSQL dump. Explicitly invoke Bash on the
-# remote host: its login shell is Nushell, which does not parse Bash redirects.
+# 4. Stream a consistent Immich PostgreSQL dump.
 echo "Backing up databases..." >> "${LOG}"
-if ! ssh "${SSH_OPTS[@]}" "${PI_USER}@${PI_HOST}" bash -s \
-  > "${BACKUP_DIR}/immich-db.sql" 2>>"${LOG}" <<'REMOTE_DB'
-set -euo pipefail
-docker exec immich_postgres pg_dumpall -U root
-REMOTE_DB
-then
+if ! docker exec immich_postgres pg_dumpall -U root \
+  > "${BACKUP_DIR}/immich-db.sql" 2>>"${LOG}"; then
   echo "Immich DB dump failed" >> "${LOG}"
   FAILED=1
 elif [ ! -s "${BACKUP_DIR}/immich-db.sql" ]; then
@@ -82,12 +86,9 @@ elif [ ! -s "${BACKUP_DIR}/immich-db.sql" ]; then
   FAILED=1
 fi
 
-# 5. Create and stream a fresh compressed etcd snapshot together with the K3s
-# server token and config needed for disaster recovery. The temporary source
-# snapshot is removed from liedelpi after tar has consumed it.
+# 5. Fresh compressed etcd snapshot + K3s server token/config.
 echo "Backing up K3s etcd state..." >> "${LOG}"
-if ! ssh "${SSH_OPTS[@]}" "${PI_USER}@${PI_HOST}" bash -s \
-  > "${BACKUP_DIR}/k3s-restore.tar" 2>>"${LOG}" <<'REMOTE_K3S'
+if ! bash -s > "${BACKUP_DIR}/k3s-restore.tar" 2>>"${LOG}" <<'REMOTE_K3S'
 set -euo pipefail
 snapshot=""
 cleanup() { [ -z "$snapshot" ] || sudo rm -f -- "$snapshot"; }
@@ -107,19 +108,27 @@ elif [ ! -s "${BACKUP_DIR}/k3s-restore.tar" ]; then
   FAILED=1
 fi
 
-# 6. Backup home directory (excluding caches and large media files).
-# Kingston remains the media archive/source; acerpepe stores configs and DBs.
+# 6. Home directory (excluding caches and large media files).
 echo "Backing up home dir..." >> "${LOG}"
-rsync -a --delete --rsync-path='sudo rsync' -e "ssh ${SSH_OPTS[*]}" \
+# Privileged read (container droppings may be root-owned); normalized below.
+sudo rsync -a --delete \
   --exclude='.cache' --exclude='.npm' --exclude='.local' \
   --exclude='node_modules' --exclude='.cargo' --exclude='.rustup' \
   --exclude='.bun/install/cache/' --exclude='.codex/tmp/' \
   --exclude='actions-runner*/' --exclude='runner-bin/' \
   --exclude='Data/docker/data/portainer/' \
   --exclude='media/movies/' --exclude='media/series/' --exclude='media/downloads/' \
-  "${PI_USER}@${PI_HOST}:/home/juan/" \
+  /home/juan/ \
   "${BACKUP_DIR}/home/" \
   --link-dest="${LATEST_LINK}/home" 2>>"${LOG}" || FAILED=1
+
+# Normalize ownership: privileged reads may create root-owned files, but
+# snapshots must stay juan-owned for retention/cleanup and future --link-dest.
+echo "Normalizing ownership..." >> "${LOG}"
+if ! sudo chown -R juan: "${BACKUP_DIR}" 2>>"${LOG}"; then
+  echo "ownership normalization failed" >> "${LOG}"
+  FAILED=1
+fi
 
 # Publish atomically only when every primary stage succeeded and produced data.
 if [ "${FAILED}" -eq 0 ] && [ -n "$(ls -A "${BACKUP_DIR}" 2>/dev/null)" ]; then
@@ -132,26 +141,19 @@ else
   echo "⚠️  FAILURE: latest NOT updated (still -> $(readlink "${LATEST_LINK}" 2>/dev/null || echo none))" >> "${LOG}"
 fi
 
-# Mirror the published config/database snapshot to the secondary disk.
-# Refuse to write unless the disk is actually mounted; never fill the root FS.
+# Mirror the full history to the secondary on acerpepe.
+# Refuse to write unless the target is reachable; never fail the primary.
 if [ "${PUBLISHED}" -eq 1 ]; then
-  if mountpoint -q "${SECONDARY_MOUNT}"; then
-    mkdir -p "${SECONDARY_ROOT}"
-    if rsync -a --delete "${BACKUP_DIR}/" "${SECONDARY_ROOT}/" 2>>"${LOG}"; then
-      echo "secondary mirror -> ${SECONDARY_ROOT}" >> "${LOG}"
-    else
-      echo "⚠️  FAILURE: secondary mirror failed" >> "${LOG}"
-      FAILED=1
-    fi
+  if rsync -aH --delete -e "ssh ${SSH_OPTS[*]}" "${BACKUP_ROOT}/" "${SECONDARY}" 2>>"${LOG}"; then
+    echo "secondary mirror -> ${SECONDARY}" >> "${LOG}"
   else
-    echo "⚠️  FAILURE: secondary disk not mounted at ${SECONDARY_MOUNT}" >> "${LOG}"
+    echo "⚠️  FAILURE: secondary mirror failed" >> "${LOG}"
     FAILED=1
   fi
 fi
 
 # Remove old complete snapshots, but never delete the snapshot referenced by
 # `latest`: it may be older than the retention window after prolonged failures.
-# The pattern covers both legacy YYYY-MM-DD and YYYY-MM-DDTHHMMSS directories.
 LATEST_TARGET="$(readlink -f "${LATEST_LINK}" 2>/dev/null || true)"
 while IFS= read -r -d '' old_snapshot; do
   if [ "${old_snapshot}" != "${LATEST_TARGET}" ]; then
