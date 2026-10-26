@@ -4,9 +4,8 @@
     "actions": [],
     "copyFormatting": "none",
     "copyOnSelect": false,
-    "defaultProfile": "{f4c537a1-7ea8-5a0f-a85c-93d03066cf7b}",
-    "keybindings":
-    [
+    "defaultProfile": "{51855cb2-8b98-4e5b-8e77-7a9041156f2b}",
+    "keybindings": [
         {
             "id": "Terminal.CopyToClipboard",
             "keys": "ctrl+c"
@@ -35,21 +34,17 @@
             "keys": "ctrl+shift+3"
         }
     ],
-    "newTabMenu":
-    [
+    "newTabMenu": [
         {
             "type": "remainingProfiles"
         }
     ],
-    "profiles":
-    {
-        "defaults":
-        {
+    "profiles": {
+        "defaults": {
             "bellStyle": "none",
             "colorScheme": "TokyoNight",
             "cursorShape": "bar",
-            "font":
-            {
+            "font": {
                 "face": "JetBrainsMono Nerd Font"
             },
             "historySize": 50000,
@@ -57,13 +52,11 @@
             "padding": "8, 8, 8, 8",
             "useAcrylic": true
         },
-        "list":
-        [
+        "list": [
             {
                 "colorScheme": "TokyoNight",
                 "elevate": true,
-                "font":
-                {
+                "font": {
                     "face": "FiraCode Nerd Font Mono"
                 },
                 "guid": "{61c54bbd-c2c6-5271-96e7-009a87ff44bf}",
@@ -73,8 +66,7 @@
             {
                 "colorScheme": "One Half Dark",
                 "elevate": true,
-                "font":
-                {
+                "font": {
                     "face": "JetBrainsMonoNL Nerd Font"
                 },
                 "guid": "{0caa0dad-35be-5f56-a8ff-afceeeaa6101}",
@@ -84,8 +76,7 @@
             {
                 "colorScheme": "TokyoNight",
                 "commandline": "%USERPROFILE%\\scoop\\apps\\pwsh\\current\\pwsh.exe",
-                "font":
-                {
+                "font": {
                     "face": "JetBrainsMono Nerd Font"
                 },
                 "guid": "{574e775e-4f2a-5b96-ac1e-a2962a402336}",
@@ -93,19 +84,28 @@
                 "name": "pwsh"
             },
             {
-                "font":
-                {
+                "font": {
                     "face": "JetBrainsMono Nerd Font"
                 },
                 "guid": "{f4c537a1-7ea8-5a0f-a85c-93d03066cf7b}",
                 "hidden": false,
                 "name": "archlinux",
                 "source": "Microsoft.WSL"
+            },
+            {
+                "guid": "{51855cb2-8b98-4e5b-8e77-7a9041156f2b}",
+                "name": "Nushell",
+                "commandline": "nu.exe",
+                "icon": "ms-appx:///ProfileIcons/{504ca574-497e-4998-b564-007f6b00e96f}.png",
+                "startingDirectory": "%USERPROFILE%",
+                "font": {
+                    "face": "JetBrainsMono Nerd Font"
+                },
+                "colorScheme": "TokyoNight"
             }
         ]
     },
-    "schemes":
-    [
+    "schemes": [
         {
             "background": "#16161E",
             "black": "#363B54",

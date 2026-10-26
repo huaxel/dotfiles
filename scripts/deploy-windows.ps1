@@ -287,7 +287,10 @@ $links = @(
     @{ Source = "config\btop"; Target = (Join-Path $HOME ".config\btop") },
     @{ Source = "config\eza"; Target = (Join-Path $HOME ".config\eza") },
     @{ Source = "config\nushell"; Target = (Join-Path $env:APPDATA "nushell") },
-    @{ Source = "config\fastfetch"; Target = (Join-Path $HOME ".config\fastfetch") }
+    @{ Source = "config\fastfetch"; Target = (Join-Path $HOME ".config\fastfetch") },
+    # Shared non-secret env (single file, NOT the directory — the directory
+    # holds decrypted secrets on Linux and must never be linked as a whole).
+    @{ Source = "config\environment.d\10-dotfiles.conf"; Target = (Join-Path $HOME ".config\environment.d\10-dotfiles.conf") }
 )
 
 foreach ($link in $links) {
