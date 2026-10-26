@@ -114,6 +114,8 @@ if $nu.os-info.name != "windows" {
 if ("/nix/var/nix/profiles/default/bin" | path exists) {
     $env.PATH = ($env.PATH | prepend "/nix/var/nix/profiles/default/bin" | uniq)
 }
+# Mise can replace PATH after env.nu has loaded; restore Pi's managed launcher.
+$env.PATH = ($env.PATH | prepend ($env.PI_CODING_AGENT_DIR | path join "bin") | uniq)
 
 # Fish semantics: atuin owns Ctrl-R for history search (its init does
 # `bind ctrl-r _atuin_search`, replacing the default). Nushell's built-in
