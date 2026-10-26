@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Fast file search for Walker without Elephant.
-# Searches common home directories with fd, lets Walker act as a dmenu,
+# Fast file search with Noctalia dmenu (no Walker/Elephant needed).
+# Searches common home directories with fd, lets Noctalia act as a dmenu,
 # then opens the selected file/folder with the default application.
+
+NOCTALIA=/home/juan/.nix-profile/bin/noctalia
 
 search_roots=(
   "$HOME/Desktop"
@@ -33,7 +35,7 @@ selection=$(
     --exclude target \
     --exclude dist \
     --exclude build \
-  | walker --dmenu --placeholder "Search files" --width 900 --maxheight 650
+  | "$NOCTALIA" dmenu -p "Search files"
 )
 
 [[ -n "${selection:-}" ]] || exit 0

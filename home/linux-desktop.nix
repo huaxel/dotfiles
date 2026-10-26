@@ -1,18 +1,16 @@
 # Linux desktop configuration shared by framearch (niri) and arch-wsl.
 # Compositor-specific files live in the host module (framearch.nix maps
 # niri; arch-wsl.nix maps sway). Only compositor-agnostic helpers stay here
-# (lock.sh, walker-files.sh and the wofi menus are referenced by both).
+# (lock.sh, files-search.sh and the wofi menus are referenced by both).
 { ... }:
 
 {
   home.file.".config/llamaman/config.json".source = ../config-linux/llamaman/config.json;
 
   home.file.".config/desktop/scripts/lock.sh".source = ../config-linux/desktop/scripts/lock.sh;
-  home.file.".config/desktop/scripts/walker-files.sh".source = ../config-linux/desktop/scripts/walker-files.sh;
+  home.file.".config/desktop/scripts/files-search.sh".source = ../config-linux/desktop/scripts/files-search.sh;
   home.file.".config/desktop/scripts/wofi-bluetooth.README.md".source = ../config-linux/desktop/scripts/wofi-bluetooth.README.md;
   home.file.".config/desktop/scripts/wofi-bluetooth.sh".source = ../config-linux/desktop/scripts/wofi-bluetooth.sh;
-
-  home.file.".config/walker/config.toml".source = ../config-linux/walker/config.toml;
 
   home.file.".config/waybar/config".source = ../config-linux/waybar/config;
   home.file.".config/waybar/style.css".source = ../config-linux/waybar/style.css;
