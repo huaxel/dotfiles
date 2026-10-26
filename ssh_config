@@ -1,3 +1,7 @@
+# Machine-local overrides live in ~/.ssh/config.local (never committed).
+# Included first so local entries win (first-obtained value). Missing file is ignored.
+Include config.local
+
 Host bf-lt020980
     HostName bf-lt020980.bonobo-fort.ts.net
     User jbenjumeamoreno
@@ -28,20 +32,3 @@ Host github.com
     HostName ssh.github.com
     Port 443
     User git
-
-# Windows VM (MSYS2 user-mode sshd on 2222). Reachable on the FISCBRUS
-# network/VPN at this IP; from outside, use the ngrok tcp address instead.
-Host campagne-rbnb
-    HostName 10.136.16.166
-    Port 2222
-    User jbenjumeamoreno
-    IdentityFile ~/.ssh/id_ed25519
-    StrictHostKeyChecking accept-new
-
-# Temporary ngrok TCP tunnel; host/port can change when ngrok restarts.
-Host campagne-rbnb-ngrok
-    HostName 7.tcp.eu.ngrok.io
-    Port 22654
-    User jbenjumeamoreno
-    IdentityFile ~/.ssh/id_ed25519
-    StrictHostKeyChecking accept-new
