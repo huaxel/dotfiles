@@ -89,8 +89,6 @@ $packages = @(
     "btop", "bottom", "fastfetch", "procs", "dust", "duf"
     # Dev tools
     "gh", "jq", "glow", "viddy", "just", "lazygit", "uv"
-    # Window manager
-    "glazewm", "zebar"
     # Browser & launcher
     "zen-browser", "flow-launcher"
     # Encryption
@@ -156,8 +154,6 @@ finally {
 Write-Host "`n Windows dotfiles deployed successfully!" -ForegroundColor Green
 Write-Host "`nNext steps:" -ForegroundColor Cyan
 Write-Host "  - Restart PowerShell or run: . `$PROFILE"
-Write-Host "  - Start GlazeWM: glazewm"
-Write-Host "  - Start Zebar: zebar"
 Write-Host "  - For llama.cpp: cd ~/.config/llama.cpp && .\start-server.ps1"
 Write-Host "  - For WSL setup, run: ./bootstrap.sh (inside WSL)"
 Write-Host ""

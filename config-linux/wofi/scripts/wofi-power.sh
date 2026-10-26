@@ -10,8 +10,6 @@ case $selected in
   logout)
     if pgrep -x niri >/dev/null 2>&1; then
         niri msg action quit skip-confirmation=true
-    elif pgrep -x sway >/dev/null 2>&1; then
-        swaymsg exit
     else
         loginctl terminate-session "${XDG_SESSION_ID:-$PPID}"
     fi;;

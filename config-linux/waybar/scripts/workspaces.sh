@@ -1,28 +1,17 @@
 #!/bin/bash
 # Custom workspace indicator for Waybar - always shows 10 workspaces
-# Mimics macOS Dock spaces
-# Works under niri (via `niri msg`) and sway (via swaymsg).
+# Mimics macOS Dock spaces. Niri-only (via `niri msg`).
 
-if niri msg -j workspaces >/dev/null 2>&1; then
-    ws_json=$(niri msg -j workspaces 2>/dev/null)
-    focused=$(echo "$ws_json" | jq -r '[.[] | select(.is_focused) | (.name // "\(.idx)")] | first // "1"')
-    exists_names=$(echo "$ws_json" | jq -r '.[] | (.name // "\(.idx)")')
-    is_niri=1
-else
-    focused=$(swaymsg -t get_workspaces | jq -r '.[] | select(.focused) | .name')
-    is_niri=0
-fi
+ws_json=$(niri msg -j workspaces 2>/dev/null)
+focused=$(echo "$ws_json" | jq -r '[.[] | select(.is_focused) | (.name // "\(.idx)")] | first // "1"')
+exists_names=$(echo "$ws_json" | jq -r '.[] | (.name // "\(.idx)")')
 
 # Build output for all 10 workspaces
 output=""
 for i in {1..10}; do
     # Check if workspace exists and has windows
-    if [ "$is_niri" = 1 ]; then
-        exists=$(echo "$exists_names" | grep -x "$i" || true)
-    else
-        exists=$(swaymsg -t get_workspaces | jq -r ".[] | select(.name == \"$i\") | .name")
-    fi
-    
+    exists=$(echo "$exists_names" | grep -x "$i" || true)
+
     if [ "$i" == "$focused" ]; then
         # Focused workspace
         output+="<span color='#76cce0'><b> $i </b></span>"

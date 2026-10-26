@@ -20,11 +20,13 @@ Keep deployment paths stable; organize new material under the matching area belo
   template invoked by justfile), not a deployed `~/.config/ci`.
 - `config-linux/` — Linux-only Wayland, launcher, inference, and XKB configuration.
 - `config-macos/` — macOS-only configuration.
-- Windows roots (`powershell/`, `windows-terminal/`, `autohotkey/`, `glazewm/`,
-  `zebar/`, `flow-launcher/`) — Windows-specific application files.
-- Root dotfiles (`gitconfig`, `ssh_config`, `starship.toml`,
-  `aerospace`) — remaining source files whose target paths are not naturally
-  grouped under `config/`; Unix files are consumed by Home Manager and
+- Windows roots (`powershell/`, `windows-terminal/`, `autohotkey/`,
+  `flow-launcher/`) — Windows-specific application files. The stock shell is
+  used natively; tiling lives on framearch (niri) and macbook (OmniWM) — see
+  `docs/patterns/window-management.md`.
+- Root dotfiles (`gitconfig`, `ssh_config`, `starship.toml`)
+  — remaining source files whose target paths are not naturally grouped
+  under `config/`; Unix files are consumed by Home Manager and
   Windows files are linked by `scripts/deploy-windows.ps1`.
 - `secrets/` — encrypted inputs only; plaintext and decrypted files stay local.
 

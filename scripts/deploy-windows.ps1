@@ -278,9 +278,8 @@ $links = @(
     @{ Source = "windows-terminal\settings.json"; Target = $terminalSettingsPath },
     @{ Source = "autohotkey\mac-layout.ahk"; Target = (Join-Path $HOME ".config\autohotkey\mac-layout.ahk") },
     @{ Source = "flow-launcher\README.md"; Target = (Join-Path $HOME ".config\flow-launcher\README.md") },
-    @{ Source = "glazewm\config.yaml"; Target = (Join-Path $HOME ".glzr\glazewm\config.yaml") },
-    @{ Source = "zebar\settings.json"; Target = (Join-Path $HOME ".glzr\zebar\settings.json") },
-    @{ Source = "zebar\bar"; Target = (Join-Path $HOME ".glzr\zebar\bar") },
+    # Stock Windows shell: the tiling stack was removed 2026-10-26 (see
+    # docs/patterns/window-management.md). Re-add links here to restore.
     @{ Source = "config\nvim"; Target = (Join-Path $HOME "AppData\Local\nvim") },
     @{ Source = "config\llama.cpp\start-server.ps1"; Target = (Join-Path $HOME ".config\llama.cpp\start-server.ps1") },
     @{ Source = "config\llama.cpp\README-windows.md"; Target = (Join-Path $HOME ".config\llama.cpp\README.md") },

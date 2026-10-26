@@ -1,5 +1,5 @@
 #!/bin/sh
-# Standalone Wayland locker shared by Niri and Sway sessions
+# Standalone Wayland locker (swaylock runs fine without the Sway compositor)
 
 # Path to wallpaper
 WALLPAPER="$HOME/Pictures/mountains-bg.jpg"

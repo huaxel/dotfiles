@@ -33,11 +33,11 @@ in
   };
 
   config = {
-  # Niri (replaces sway on this host): Alt-based binds mirror sway so
-  # muscle memory carries over. Validate on the host after switching:
+  # Niri: Alt-based binds (see docs/patterns/window-management.md for the
+  # cross-OS contract). Validate on the host after switching:
   # `niri validate` and `niri msg outputs` (connector names / positions).
   home.file.".config/niri/config.kdl".source = ../config-linux/niri/config.kdl;
-  # Host-specific: the WSL/Sway profile must not inherit Niri's backend choice.
+  # Host-specific: the terminal-only WSL profile must not inherit Niri's backend choice.
   home.file.".config/xdg-desktop-portal/portals.conf".source = ../config-linux/niri/portals.conf;
   home.file.".config/niri/scripts/gather-workspaces.sh".source = ../config-linux/niri/scripts/gather-workspaces.sh;
 

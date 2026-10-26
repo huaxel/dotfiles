@@ -79,23 +79,18 @@ get_icon() {
     esac
 }
 
-# Get focused window app_id (niri first, sway fallback).
-if niri msg -j focused-window >/dev/null 2>&1; then
-    focused_json=$(niri msg -j focused-window 2>/dev/null)
-    app_id=$(echo "$focused_json" | jq -r '.app_id // "unknown"')
-    title=$(echo "$focused_json" | jq -r '.title // "Desktop"')
-else
-    app_id=$(swaymsg -t get_tree | jq -r '.. | objects | select(.focused == true) | .app_id // .window_properties.class // "unknown"')
-    title=$(swaymsg -t get_tree | jq -r '.. | objects | select(.focused == true) | .name // "Desktop"')
-fi
+# Get focused window app_id (niri-only).
+focused_json=$(niri msg -j focused-window 2>/dev/null)
+app_id=$(echo "$focused_json" | jq -r '.app_id // "unknown"')
+title=$(echo "$focused_json" | jq -r '.title // "Desktop"')
 
 # Get icon
 icon=$(get_icon "$app_id")
 
 # Output for waybar (icon + truncated title)
-# Keep this short: on the 4K monitor Sway uses scale 2, so Waybar has
-# 1920 logical pixels, not 3840. Long browser/page titles otherwise collide
-# with the right-side modules and make the bar look duplicated/cut off.
+# Keep this short: on the 4K monitor at scale 2, Waybar has 1920 logical
+# pixels, not 3840. Long browser/page titles otherwise collide with the
+# right-side modules and make the bar look duplicated/cut off.
 max_title_len=${WAYBAR_APP_TITLE_MAX:-40}
 display_title=$(jq -rn --arg title "$title" --argjson max "$max_title_len" '
   $title | if length > $max then .[:($max - 1)] + "…" else . end
