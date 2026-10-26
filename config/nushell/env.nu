@@ -11,6 +11,9 @@
 # same constraint).
 
 # Nushell does not source Home Manager's POSIX session-variable script.
+# Windows provides USERPROFILE instead of HOME; normalize it before deriving
+# shared paths so the same profile works on native Windows and Unix.
+$env.HOME = ($env.HOME? | default $env.USERPROFILE?)
 # Respect existing XDG overrides; these defaults keep tool caches portable.
 $env.XDG_CONFIG_HOME = ($env.XDG_CONFIG_HOME? | default ($env.HOME | path join ".config"))
 $env.XDG_CACHE_HOME = ($env.XDG_CACHE_HOME? | default ($env.HOME | path join ".cache"))
