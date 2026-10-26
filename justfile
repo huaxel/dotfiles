@@ -681,16 +681,6 @@ deploy-server server branch="main":
 sandbox server action *args="":
     bash {{dotfiles-dir}}/bin/sandbox.sh {{server}} {{action}} {{args}}
 
-# ──────────── Quality Gauntlet ────────────
-
-# Run the full Uncle Bob quality gauntlet (all 7 gates).
-# Usage:  just quality          # Full gauntlet
-#         just quality --quick  # Skip mutation testing
-#         just quality --gate lint # Single gate
-quality *args="":
-    #!/usr/bin/env bash
-    exec {{dotfiles-dir}}/bin/quality-gauntlet {{args}}
-
 # ──────────── Utility ────────────
 
 # List all available recipes
