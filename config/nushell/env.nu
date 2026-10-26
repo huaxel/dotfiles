@@ -1,32 +1,24 @@
 # Nushell environment configuration
-# Loaded before config.nu. API keys and tokens reach this shell from the
-# single secret source: ~/.config/environment.d/99-environment.conf (decrypted
-# by sops-nix). On Linux systemd applies it to user sessions; env.nu also parses
-# it directly so Nushell gets the keys on hosts without systemd (e.g. macOS).
-# Keep that file to bare `KEY=value` lines — no quotes, no $VAR expansion —
-# because this parser takes values literally while systemd would strip quotes
-# and expand variables (the fish parser in config.fish has the same constraint).
+# Loaded before config.nu. Shared non-secret defaults come from
+# ~/.config/environment.d/10-dotfiles.conf (tracked source:
+# config/environment.d/10-dotfiles.conf, deployed by home/common.nix) and
+# machine-local secrets from 99-environment.conf (decrypted by sops-nix).
+# On Linux systemd applies both files to user sessions; env.nu also parses
+# them directly so Nushell gets the values on hosts without systemd (e.g.
+# macOS). Keep those files to bare `KEY=value` lines — no quotes, no $VAR
+# expansion — because this parser takes values literally while systemd would
+# strip quotes and expand variables (the fish parser in config.fish has the
+# same constraint).
 
 # Nushell does not source Home Manager's POSIX session-variable script.
-$env.LANG = "en_US.UTF-8"
-$env.EDITOR = "nvim"
-$env.VISUAL = "nvim"
-$env.PAGER = "less"
 # Respect existing XDG overrides; these defaults keep tool caches portable.
 $env.XDG_CONFIG_HOME = ($env.XDG_CONFIG_HOME? | default ($env.HOME | path join ".config"))
 $env.XDG_CACHE_HOME = ($env.XDG_CACHE_HOME? | default ($env.HOME | path join ".cache"))
 $env.XDG_DATA_HOME = ($env.XDG_DATA_HOME? | default ($env.HOME | path join ".local" "share"))
 $env.EZA_CONFIG_DIR = ($env.XDG_CONFIG_HOME | path join "eza")
 $env.MANPAGER = "sh -c 'col -bx | bat -l man -p --theme=tokyonight_night'"
-# These mirror home/framearch.nix sessionVariables on purpose: Home Manager
-# exports them only to POSIX login shells (hm-session-vars.sh), which Nushell
-# does not source. Keep values in sync when editing either location.
-$env.LLAMA_BASE_URL = "http://127.0.0.1:8000"
-# Memoryfield uses the dedicated llama.cpp embedding endpoint.
-$env.MEMORYFIELD_EMBED_PROVIDER = "llama-server"
-$env.MEMORYFIELD_EMBED_URL = "http://framearch-juan.bonobo-fort.ts.net:8001/v1/embeddings"
-$env.MEMORYFIELD_EMBED_MODEL = "nomic-embed-text-v1.5"
-$env.MEMORYFIELD_MODEL_CODE = "nomic-embed-text-v1.5"
+# LLAMA_*/MEMORYFIELD_* arrive via 10-dotfiles.conf (see header). $HOME-
+# derived paths below can't live in that file (no $VAR expansion there).
 $env.PYTHONPYCACHEPREFIX = ($env.HOME | path join ".cache/cpython")
 $env.PI_CODING_AGENT_DIR = ($env.HOME | path join "dotfiles/pi/agent")
 $env.PI_CODING_AGENT_SESSION_DIR = ($env.HOME | path join "dotfiles/pi/agent/sessions")
@@ -34,7 +26,9 @@ $env.PRIME_AGENT_CODING_AGENT_DIR = ($env.HOME | path join "prime-agent/agent")
 $env.BUN_INSTALL = ($env.HOME | path join ".bun")
 $env.JUST_GLOBAL_JUSTFILE = ($env.HOME | path join ".config/just/justfile")
 
-# fzf defaults, matching the Fish setup.
+# fzf defaults, matching the Fish setup (parity enforced by
+# scripts/tests/shell-env-parity.test.py; values stay here because spaces and
+# quotes are illegal in the shared environment.d files).
 $env.FZF_DEFAULT_OPTS = "--height 40% --layout=reverse --border --preview 'bat --color=always --style=numbers --line-range=:500 {}' --preview-window=right:60%"
 $env.FZF_CTRL_T_OPTS = "--preview 'bat --color=always --style=numbers --line-range=:500 {}' --preview-window=right:60%"
 $env.FZF_CTRL_R_OPTS = "--preview 'echo {}' --preview-window=up:3:hidden:wrap --bind 'ctrl-/:toggle-preview'"
@@ -90,43 +84,51 @@ if ("/mnt/ai_models" | path exists) {
     $env.HF_HUB_CACHE = "/mnt/ai_models/models"
 }
 
-# Keep mise quiet; its activation is loaded from config.nu.
-$env.MISE_LOG_LEVEL = "error"
-
-# Keep machine-specific secrets outside this repository. Treat the decrypted
-# environment.d file as authoritative: remember its previously managed key
+# Keep machine-specific secrets outside this repository. Treat the
+# environment.d files as authoritative: remember their previously managed key
 # names (never values), remove those inherited variables, then load the current
-# assignments. This lets adding/removing any key in the file take effect on
-# `exec nu` without disturbing unrelated environment variables.
-let secrets_file = ($env.XDG_CONFIG_HOME | path join "environment.d" "99-environment.conf")
+# assignments. This lets adding/removing any key in either file take effect on
+# `exec nu` without disturbing unrelated environment variables. Later files
+# win on duplicate keys, matching systemd directory semantics.
+let env_files = (["10-dotfiles.conf" "99-environment.conf"]
+    | each { |name| $env.XDG_CONFIG_HOME | path join "environment.d" $name }
+    | where { |p| $p | path exists })
 let managed_names_file = ($env.XDG_CACHE_HOME | path join "nushell" "environment.d-managed-keys")
 let previous_secret_names = if ($managed_names_file | path exists) {
     open --raw $managed_names_file | lines | where { |name| $name | is-not-empty }
 } else { [] }
-# Commented-out `KEY=` lines name keys this file used to assign. Inherited
+# Commented-out `KEY=` lines name keys these files used to assign. Inherited
 # copies of such retired keys (and of keys loaded on a previous start, per the
 # manifest) must not survive a shell start: a parent process launched before
 # an edit keeps the stale value in memory and passes it down to children.
-let retired_secret_names = if ($secrets_file | path exists) {
-    open --raw $secrets_file
-    | lines
-    | each { |line| $line | str trim }
-    | where { |line| $line | str starts-with "#" }
-    | each { |line| $line | parse --regex '^#\s*(?<key>[A-Za-z_][A-Za-z0-9_]*)=' }
+let retired_secret_names = if ($env_files | is-not-empty) {
+    $env_files
+    | each { |f|
+        open --raw $f
+        | lines
+        | each { |line| $line | str trim }
+        | where { |line| $line | str starts-with "#" }
+        | each { |line| $line | parse --regex '^#\s*(?<key>[A-Za-z_][A-Za-z0-9_]*)=' }
+        | flatten
+    }
     | flatten
-    | get key
+    | each { |row| $row.key }
 } else { [] }
 let inherited_secret_names = (($previous_secret_names | append $retired_secret_names | uniq)
     | where { |name| $name in ($env | columns) })
 if ($inherited_secret_names | is-not-empty) {
     hide-env ...$inherited_secret_names
 }
-let secrets = if ($secrets_file | path exists) {
-    open --raw $secrets_file
-    | lines
-    | each { |line| $line | str trim }
-    | where { |line| ($line | is-not-empty) and not ($line | str starts-with "#") }
-    | each { |line| $line | parse --regex '^(?<key>[A-Za-z_][A-Za-z0-9_]*)=(?<value>.*)$' }
+let secrets = if ($env_files | is-not-empty) {
+    $env_files
+    | each { |f|
+        open --raw $f
+        | lines
+        | each { |line| $line | str trim }
+        | where { |line| ($line | is-not-empty) and not ($line | str starts-with "#") }
+        | each { |line| $line | parse --regex '^(?<key>[A-Za-z_][A-Za-z0-9_]*)=(?<value>.*)$' }
+        | flatten
+    }
     | flatten
     # upsert = last assignment wins, matching systemd and the fish loader;
     # insert would abort on a duplicated key.

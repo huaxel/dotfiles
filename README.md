@@ -110,8 +110,8 @@ On Windows, run `just windows-deploy` or `powershell.exe -ExecutionPolicy Bypass
 
 ### Shell
 
-Nushell is the default shell (`config/nushell/`), with Fish kept as a fallback
-(`config/fish/config.fish`). `bootstrap.sh` installs Nushell and sets it as the
+Nushell is the default shell (`config/nushell/`), with Fish kept as a minimal
+fallback stub (`config/fish/config.fish`: PATH + shared env only). `bootstrap.sh` installs Nushell and sets it as the
 login shell. Nu differs from Fish in a few ways (semicolon pipes, structured
 builtins, `nu -c` skips config) — details and the keybinding/alias map are
 generated into `~/.cache/nushell/` and checked by `just nu-health`.

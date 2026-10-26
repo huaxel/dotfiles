@@ -48,7 +48,7 @@ nushell-setup:
 # ──────────── Check recipes ────────────
 
 # Run ALL checks (the full CI pipeline)
-ci: check-desktop check-sh check-ts check-ts-packages test-pi-packages check-recovery check-windows check-macos check-home-server check-lockfile check-secrets check-gitignore check-templates check-brewfile check-nu check-nix
+ci: check-desktop check-sh check-ts check-ts-packages test-pi-packages check-recovery check-windows check-macos check-home-server check-lockfile check-secrets check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
     @echo ""
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     @echo "  🟢  All CI checks passed!  🟢"
@@ -480,6 +480,10 @@ check-nu:
     if [ "$errors" -gt 0 ]; then echo "  ❌ $errors Nushell config files have issues"; exit 1; fi
     echo "  ✅ All Nushell config files parse"
 
+# Validate Nushell/Fish literals against the shared environment.d defaults.
+check-env-parity:
+    python3 scripts/tests/shell-env-parity.test.py
+
 # ── Nix ──
 
 # Validate the Nix flake and build profiles native to this machine.
@@ -702,14 +706,17 @@ windows-deploy:
 nix-check profile="juan@framearch":
     #!/usr/bin/env bash
     set -euo pipefail
-    # New flake modules are invisible to evaluation until Git tracks them.
+    # New flake files are invisible to evaluation until Git tracks them.
     # Use a temporary index so intent-to-add never mutates the user's index.
+    # NOTE: Nix >= 2.35 ignores GIT_INDEX_FILE, so brand-new files still need
+    # one real `git add -N <path>` (as above for config/environment.d); the
+    # temp index only covers files already registered in the real index.
     index_path="${GIT_INDEX_FILE:-$(git rev-parse --git-path index)}"
     temp_index=$(mktemp)
     cp "$index_path" "$temp_index"
     export GIT_INDEX_FILE="$temp_index"
     trap 'rm -f "$temp_index"' EXIT
-    git ls-files --others --exclude-standard -z -- home nixos | xargs -0 -r git add -N
+    git ls-files --others --exclude-standard -z -- home nixos config/environment.d | xargs -0 -r git add -N
     nix flake check --all-systems
     nix build '.#homeConfigurations."{{profile}}".activationPackage' --no-link --quiet
     echo "✅ Nix profile {{profile}} builds"
@@ -722,7 +729,7 @@ nix-switch profile="juan@framearch":
     # Expose untracked Nix modules to the flake with intent-to-add entries.
     # (Nix >= 2.35 ignores GIT_INDEX_FILE, so a temporary index no longer
     # works; `git add -N` is what Nix itself recommends and is idempotent.)
-    git ls-files --others --exclude-standard -z -- home nixos | xargs -0 -r git add -N
+    git ls-files --others --exclude-standard -z -- home nixos config/environment.d | xargs -0 -r git add -N
     nix flake check --all-systems
     # Back up pre-existing paths during the Home Manager handoff.
     nix run ".#home-manager" -- -b hm-backup switch --flake '.#{{profile}}'
