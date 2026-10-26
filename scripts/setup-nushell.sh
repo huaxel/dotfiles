@@ -8,6 +8,12 @@ CACHE_DIR=""
 if command -v nu >/dev/null 2>&1; then
     CACHE_DIR=$(nu -n -c "print \$nu.cache-dir" 2>/dev/null || true)
 fi
+# Native Windows Nushell prints a Windows path. When this script runs under
+# Git Bash, convert it before mkdir/mktemp/mv so generated files land in the
+# same cache directory that Nushell reads.
+if [[ "$CACHE_DIR" =~ ^[A-Za-z]:[\\/] ]] && command -v cygpath >/dev/null 2>&1; then
+    CACHE_DIR=$(cygpath -u "$CACHE_DIR")
+fi
 CACHE_DIR="${CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/nushell}"
 ATUIN_INIT="$CACHE_DIR/atuin.nu"
 

@@ -37,13 +37,7 @@ install:
 # Regenerate Nushell shell integrations (starship/atuin/mise/zoxide/fzf)
 # after installing or upgrading those tools.
 nushell-setup:
-    #!/usr/bin/env bash
-    if [ -x scripts/setup-nushell.sh ]; then
-        scripts/setup-nushell.sh
-    else
-        echo "  ⚠️  scripts/setup-nushell.sh not found"
-        exit 1
-    fi
+    @if [ -x scripts/setup-nushell.sh ]; then bash scripts/setup-nushell.sh; else echo "  ⚠️  scripts/setup-nushell.sh not found"; exit 1; fi
 
 # ──────────── Check recipes ────────────
 
