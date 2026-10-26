@@ -10,8 +10,9 @@ Keep deployment paths stable; organize new material under the matching area belo
 - `scripts/deploy-windows.ps1` — native Windows configuration links and
   generated files; Scoop remains the package manager.
 - `scripts/deploy-secrets.*` — platform-specific sops/age secret materialization.
-- `nixos/` — disabled, evaluated system modules for a future NixOS migration;
-  these do not configure the current Arch host.
+- `nixos/` — only the shared `cachy-llama-package.nix` (live: feeds the
+  `legacyPackages` smoke-test derivations). The future NixOS system modules
+  live on the `nixos-framearch-future` branch, not on main.
 - `config/` — shared Unix application configuration deployed to `~/.config`
   (includes `config/nushell/` — env.nu/config.nu/login.nu for the Nushell
   shell, managed with `just nushell-setup` / `just nu-health`).
