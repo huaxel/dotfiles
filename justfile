@@ -553,6 +553,17 @@ check-precommit:
             fi
         done < <(git diff --cached --name-only --diff-filter=ACM 2>/dev/null | grep -E '\.nu$' || true)
     fi
+    # 5. Scan staged changes for secrets (diff-aware; sops .enc re-encrypts verified clean)
+    if command -v gitleaks >/dev/null 2>&1; then
+        if gitleaks protect --staged --no-banner --redact 2>&1 | sed 's/^/    /'; then
+            echo "  ✅ gitleaks staged scan clean"
+        else
+            echo "  ❌ gitleaks found potential secrets in staged changes"
+            errors=$((errors + 1))
+        fi
+    else
+        echo "  ⚠️  gitleaks not installed — skipping staged secret scan (go install github.com/zricethezav/gitleaks/v8@latest)"
+    fi
     echo ""
     if [ "$errors" -gt 0 ]; then
         echo "  ❌ $errors pre-commit check(s) failed — aborting commit"

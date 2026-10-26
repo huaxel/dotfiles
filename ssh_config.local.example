@@ -1,0 +1,20 @@
+# Machine-local SSH overrides — copy to ~/.ssh/config.local (never commit).
+# Included first by ssh_config, so entries here win over the shared file.
+# Fresh machines get nothing here; add only the blocks you need.
+
+# Windows VM (MSYS2 user-mode sshd). Reachable on its local network/VPN;
+# from outside, use the ngrok tcp address instead.
+#Host campagne-rbnb
+#    HostName 10.x.x.x
+#    Port 2222
+#    User <user>
+#    IdentityFile ~/.ssh/id_ed25519
+#    StrictHostKeyChecking accept-new
+
+# Temporary ngrok TCP tunnel; host/port change when ngrok restarts.
+#Host campagne-rbnb-ngrok
+#    HostName 0.tcp.eu.ngrok.io
+#    Port 0
+#    User <user>
+#    IdentityFile ~/.ssh/id_ed25519
+#    StrictHostKeyChecking accept-new
