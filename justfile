@@ -628,6 +628,14 @@ deploy-server server branch="main":
 sandbox server action *args="":
     bash {{dotfiles-dir}}/bin/sandbox.sh {{server}} {{action}} {{args}}
 
+# ──────────── Machine health ────────────
+
+# Read-only health check for the current machine (tools, keys, env,
+# VPN, backups). Deliberately NOT part of `just ci`, which checks
+# repository state identically on every host.
+doctor:
+    bash scripts/doctor.sh
+
 # ──────────── Utility ────────────
 
 # List all available recipes
