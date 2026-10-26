@@ -46,6 +46,7 @@ $env.PATH = (
         ($env.HOME | path join ".nix-profile" "bin")
         "/nix/var/nix/profiles/default/bin"
         ($env.HOME | path join ".local/bin")
+        ($env.PI_CODING_AGENT_DIR | path join "bin")
         ($env.HOME | path join ".cargo/bin")
         ($env.HOME | path join ".opencode/bin")
         ($env.HOME | path join ".npm-global/bin")
