@@ -53,11 +53,8 @@ in
   home.sessionVariables = {
     HF_HOME = "/mnt/ai_models";
     HF_HUB_CACHE = "/mnt/ai_models/models";
-    LLAMA_BASE_URL = "http://127.0.0.1:8000";
-    MEMORYFIELD_EMBED_PROVIDER = "llama-server";
-    MEMORYFIELD_EMBED_URL = "http://framearch-juan.bonobo-fort.ts.net:8001/v1/embeddings";
-    MEMORYFIELD_EMBED_MODEL = "nomic-embed-text-v1.5";
-    MEMORYFIELD_MODEL_CODE = "nomic-embed-text-v1.5";
+    # LLAMA_*/MEMORYFIELD_* live in config/environment.d/10-dotfiles.conf
+    // (deployed by home/common.nix, loaded via systemd + both shells).
     PI_CODING_AGENT_DIR = "/home/juan/dotfiles/pi/agent";
     PI_CODING_AGENT_SESSION_DIR = "/home/juan/dotfiles/pi/agent/sessions";
     PRIME_AGENT_CODING_AGENT_DIR = "${home}/prime-agent/agent";

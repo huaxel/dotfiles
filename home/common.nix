@@ -208,6 +208,10 @@ in
   home.file.".config/nushell/config.nu".source = ../config/nushell/config.nu;
   home.file.".config/nushell/env.nu".source = ../config/nushell/env.nu;
   home.file.".config/nushell/login.nu".source = ../config/nushell/login.nu;
+  # Shared non-secret shell defaults (LLAMA_*, MEMORYFIELD_*, LANG, EDITOR,
+  # MISE_LOG_LEVEL, ...). Both shells parse this file directly, so host
+  # modules must not repeat these in sessionVariables — edit the file instead.
+  home.file.".config/environment.d/10-dotfiles.conf".source = ../config/environment.d/10-dotfiles.conf;
   # Nushell uses ~/Library/Application Support/nushell on macOS unless it is
   # started with --config-home. Keep that native location in sync with the
   # XDG-style path above so Terminal-launched Nushell loads these dotfiles.
