@@ -48,7 +48,7 @@ nushell-setup:
 # ──────────── Check recipes ────────────
 
 # Run ALL checks (the full CI pipeline)
-ci: check-desktop check-sh check-ts check-ts-packages test-pi-packages check-recovery check-windows check-macos check-home-server check-lockfile check-secrets check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
+ci: check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-macos check-home-server check-secrets check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
     @echo ""
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     @echo "  🟢  All CI checks passed!  🟢"
@@ -171,11 +171,6 @@ check-ts:
     fi
     echo "  ✅ All TypeScript files pass"
 
-# Install npm workspace deps for pi/packages/* (creates node_modules symlinks so
-# shared libs like @juanbenjumea/opencode-go-usage resolve on any clone).
-pi-install:
-    npm install
-
 # Sync pi extensions from the dotfiles repo to the auto-discovery dir
 # (~/.pi/agent/extensions). Run after changing pi/agent/extensions/*.ts,
 # or call just ci afterwards to re-lint. herdr-managed files are left alone.
@@ -208,8 +203,9 @@ pi-sync-extensions:
     done
     echo "Synced $synced extensions to $dst (reload pi with /reload to pick them up)"
 
-# Test every maintained Pi package and verify the publishable package shape.
-test-pi-packages:
+# Test the tracked Pi extensions (pi/agent/extensions/*.test.mjs).
+# Published Pi packages live in ~/projects/pi-extensions and are tested there.
+test-pi-extensions:
     #!/usr/bin/env bash
     set -euo pipefail
     cd "{{dotfiles-dir}}"
@@ -237,16 +233,6 @@ test-pi-packages:
     node pi/agent/extensions/todos.test.mjs
     node pi/agent/extensions/worksheet-loop.test.mjs
     node pi/agent/extensions/worksheet-mode.test.mjs
-    npm run typecheck --workspace @juanbenjumea/opencode-go-usage
-    npm test --workspace @juanbenjumea/opencode-go-usage
-    npm test --workspace pi-auto-permissions-local
-    npm test --workspace @juanbenjumea/pi-ghostty-theme-sync
-    npm test --workspace @juanbenjumea/pi-multi-opencode-go
-    cd pi/packages/pi-multi-opencode-go
-    npm pack --dry-run 2>&1 | tail -12
-
-# Backward-compatible alias.
-pi-test-multi-opencode-go: test-pi-packages
 
 # Verify workstation backup/restore behavior with isolated fixtures.
 check-recovery:
@@ -289,57 +275,6 @@ backup-preflight volume="/Volumes/KingstonPhotos":
 # Create a verified workstation backup on an encrypted mounted destination.
 backup-workstation volume="/Volumes/KingstonPhotos":
     BACKUP_VOLUME="{{volume}}" bash scripts/backup-to-kingston.sh
-
-# Ensure npm workspace installs remain reproducible.
-check-lockfile:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    test -f package-lock.json || { echo "❌ package-lock.json is required"; exit 1; }
-    node -e 'const p=require("./package-lock.json"); if (p.lockfileVersion < 3 || !p.packages?.["pi/packages/opencode-go-usage"]) process.exit(1)'
-    npm ci --dry-run --ignore-scripts >/dev/null
-    echo "  ✅ npm workspace lockfile is complete and synchronized"
-
-# Publish shared usage lib first, then Pi extensions
-pi-publish-opencode-go-usage:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    cd "{{dotfiles-dir}}/pi/packages/opencode-go-usage"
-    npm test
-    npm publish --access public
-
-# Publish order: opencode-go-usage → multi-opencode-go → dynamic-footer.
-# Before publishing, flip each package's "@juanbenjumea/opencode-go-usage" dep
-# from file:../opencode-go-usage to "^0.2.0" (npm accepts file: deps at publish,
-# but they're broken for consumers — the published tarball keeps the relative path).
-pi-publish-multi-opencode-go:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    cd "{{dotfiles-dir}}/pi/packages/pi-multi-opencode-go"
-    npm pack --dry-run >/dev/null
-    npm publish --access public
-
-# ── Pi packages (monorepo) ──
-
-# Syntax-check pi/packages TypeScript
-check-ts-packages:
-    #!/usr/bin/env bash
-    echo "=== TypeScript (pi/packages) ==="
-    if ! command -v deno &>/dev/null; then
-        if [ "${CI:-}" = "true" ]; then echo "  ❌ deno required in CI"; exit 1; fi
-        echo "  ⚠️  deno not installed — skipping"
-        exit 0
-    fi
-    errors=0; count=0
-    for f in $(find pi/packages -type f -name '*.ts' ! -path '*/node_modules/*' -print | sort); do
-        count=$((count + 1))
-        if deno eval "import 'file://$(realpath "$f")'" 2>&1 | grep -q 'SyntaxError'; then
-            echo "  ❌ $f has syntax errors"
-            errors=$((errors + 1))
-        fi
-    done
-    echo "  Checked $count package TypeScript files"
-    if [ "$errors" -gt 0 ]; then exit 1; fi
-    echo "  ✅ All package TypeScript files pass"
 
 # ── Secrets ──
 

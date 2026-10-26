@@ -55,7 +55,10 @@ Keep deployment paths stable; organize new material under the matching area belo
   may then contain stripped defaults (and pi may ask you to choose them again).
   The same compat-symlink pattern is used for `auth.json`
   (ad-hoc after `/login`, since auth is gitignored per-machine).
-- `pi/packages/` — TypeScript packages managed by the root npm workspace.
+- Published Pi packages live in `~/projects/pi-extensions/` (separate working
+  collection, one directory per package, published to npm under `@juanbenjumea`),
+  not in this repository. The runtime consumes them from the registry; the only
+  tree-local Pi code is `pi/agent/extensions/`.
 - `skills/` — reusable skills shared by agents and projects.
 
 ## Documentation and investigations
