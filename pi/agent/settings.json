@@ -1,11 +1,12 @@
 {
   "enabledModels": [
-    "opencode-go/muse-spark-1.3-contributor",
-    "opencode-go/deepseek-v4.1-flash",
     "openai-codex/gpt-6-luna",
     "llama.cpp/Qwen3.8-27B",
     "openai-codex/gpt-6-astra",
-    "openai-codex/gpt-6.1-sol"
+    "openai-codex/gpt-6.1-sol",
+    "openai-codex/gpt-6.1-terra",
+    "opencode-go/muse-spark-1.3-contributor",
+    "opencode-go/deepseek-v4.1-flash"
   ],
   "lastChangelogVersion": "0.0.0",
   "theme": "dark",
@@ -38,7 +39,8 @@
     "npm:@mobrienv/pi-tidy-tools",
     "/home/juan/projects/pi-extensions/pi-subagent",
     "npm:@juanbenjumea/pi-go-on",
-    "https://github.com/earendil-works/pi-claude-code"
+    "https://github.com/earendil-works/pi-claude-code",
+    "npm:pi-cursor-sdk"
   ],
   "extensions": [
     "./extensions/continue-after-compaction.ts",
