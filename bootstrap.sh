@@ -387,9 +387,6 @@ else
     fi
 fi
 
-# Ghostty theme is auto-synced by the @ogulcancelik/pi-ghostty-theme-sync
-# package on every pi start. No manual command needed.
-
 # Install CLI extras (npm/pnpm/uv global packages). Invoke through Bash so a
 # fresh clone cannot silently skip the step because of an incorrect mode bit.
 if [ -f "$SCRIPT_DIR/scripts/install-cli-extras.sh" ]; then

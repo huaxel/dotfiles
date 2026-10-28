@@ -9,7 +9,7 @@
     "opencode-go/deepseek-v4.1-flash"
   ],
   "lastChangelogVersion": "0.0.0",
-  "theme": "dark",
+  "theme": "high-contrast",
   "defaultProvider": null,
   "defaultModel": null,
   "defaults": {
