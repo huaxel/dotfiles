@@ -115,6 +115,26 @@
         meta.description = "Locked Home Manager activation tool";
       };
 
+      # Toolchain for public/fork CI. The gate validates encrypted SOPS
+      # metadata but never decrypts files or receives an age key.
+      devShells.x86_64-linux.ci = let
+        pkgs = nixpkgs.legacyPackages.x86_64-linux;
+        python = pkgs.python3.withPackages (ps: [ ps.pyyaml ]);
+      in pkgs.mkShell {
+        packages = with pkgs; [
+          bun
+          deno
+          just
+          jq
+          nodejs
+          nushell
+          python
+          rsync
+          ruby
+          shellcheck
+        ];
+      };
+
       homeConfigurations = {
         "juan@framearch" = mkHome {
           system = "x86_64-linux";

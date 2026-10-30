@@ -41,11 +41,18 @@ nushell-setup:
 
 # ──────────── Check recipes ────────────
 
-# Run ALL checks (the full CI pipeline)
+# Run ALL checks (the full trusted CI pipeline, including SOPS decryption)
 ci: check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-macos check-home-server check-secrets check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
     @echo ""
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     @echo "  🟢  All CI checks passed!  🟢"
+    @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# Public/fork-safe variant: full gate, but validate only encrypted metadata.
+ci-public: check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-macos check-home-server check-secrets-structure check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
+    @echo ""
+    @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    @echo "  🟢  All secret-free CI checks passed!  🟢"
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # Alias: `just check` = `just ci`
@@ -272,6 +279,10 @@ backup-workstation volume="/Volumes/KingstonPhotos":
     BACKUP_VOLUME="{{volume}}" bash scripts/backup-to-kingston.sh
 
 # ── Secrets ──
+
+# Validate encrypted recipient metadata without decrypting payloads or reading age keys.
+check-secrets-structure:
+    python3 scripts/check-secrets-recipients.py --labels .sops.yaml secrets/*.enc
 
 # Verify encrypted secrets are consistent with current sops config
 check-secrets:
