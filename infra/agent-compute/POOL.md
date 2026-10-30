@@ -50,12 +50,15 @@ pool). Raising a config limit alone does not add parallel workers.
 
 ## Readiness and operations
 
-The initial Ansible rollout was verified on 2026-10-30: all four dispatcher
-units were active and runner binaries passed version checks. That rollout used
-the earlier shared-UID layout. The staged source now defines a security
-migration to separate dispatcher and job accounts; this migration has **not**
-been deployed to the live hosts. Do not treat the new UID boundary as active
-until an explicitly authorized Ansible rollout completes and is verified.
+The isolated-account migration was authorized, deployed to all four hosts on
+2026-10-30, and verified: each dispatcher runs as `ci-jit-dispatcher`, jobs
+run as `actions-runner`, and the token/allowlist permissions match the intended
+boundary. Read-only queued-runs API probes succeeded for every configured
+allowlist on every host. A controlled manual workflow dispatch also completed
+successfully on the ARM64/JIT route; the ephemeral runner registration and
+job-specific state were cleaned up, and Liedelpi's dispatcher remained active
+with zero restarts. Persistent runner installations remain separate and are
+not managed by this migration.
 
 For future changes, `just check-ci-jit` validates routing, encrypted allowlist
 paths, and (when an operator age key is available) the decrypted allowlist
