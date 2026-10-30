@@ -122,15 +122,12 @@
     - name: Verify dispatcher-to-runner privilege drop before service changes
       ansible.builtin.command:
         argv:
-          - /usr/bin/sudo
-          - -n
-          - -u
-          - actions-runner
-          - --
-          - /usr/bin/env
-          - -i
-          - /usr/bin/true
-      become_user: ci-jit-dispatcher
+          - /bin/su
+          - --shell
+          - /bin/sh
+          - --command
+          - /usr/bin/sudo -n -u actions-runner -- /usr/bin/env -i /usr/bin/true
+          - ci-jit-dispatcher
       changed_when: false
 
     - name: Refuse to restart while a JIT claim is active
@@ -332,9 +329,12 @@
     - name: Verify the installed runner reports its version
       ansible.builtin.command:
         argv:
-          - "{{ jit_config.runner_dir }}/bin/Runner.Listener"
-          - --version
-      become_user: actions-runner
+          - /bin/su
+          - --shell
+          - /bin/sh
+          - --command
+          - "{{ jit_config.runner_dir }}/bin/Runner.Listener --version"
+          - actions-runner
       register: runner_version_output
       changed_when: false
       failed_when: runner_version_output.rc != 0
