@@ -21,6 +21,9 @@ def main() -> None:
     assert "ci-jit-dispatcher ALL=(actions-runner)" in deploy
     assert "sops" in deploy and "no_log: true" in deploy
     assert "owner: ci-jit-dispatcher" in deploy
+    assert deploy.count("- /bin/su") >= 2
+    assert "become_user: ci-jit-dispatcher" not in deploy
+    assert "become_user: actions-runner" not in deploy
     assert "User=ci-jit-dispatcher" in unit
     assert "ExecStartPre=/usr/bin/bash -c 'command -v gh" in unit
     assert "User=juan" not in unit
