@@ -1,0 +1,96 @@
+---
+- name: Verify the common remote-management baseline
+  hosts: home_servers
+  gather_facts: false
+  become: false
+  tasks:
+    - name: Assert SSH and Tailscale are enabled and active
+      ansible.builtin.raw: |
+        /usr/bin/bash --noprofile --norc -c '
+        set -euo pipefail
+        for unit in ssh.service tailscaled.service; do
+          enabled=$(systemctl is-enabled "$unit" 2>/dev/null || true)
+          active=$(systemctl is-active "$unit" 2>/dev/null || true)
+          [[ "$enabled" == enabled && "$active" == active ]] \
+            || { echo "FAIL: $unit is enabled=$enabled active=$active" >&2; exit 1; }
+        done
+        echo "PASS: SSH and Tailscale are enabled and active"
+        '
+      register: fleet_access
+      changed_when: false
+      failed_when: fleet_access.rc != 0
+
+    - name: Display the management-access result
+      ansible.builtin.debug:
+        msg: "{{ fleet_access.stdout }}"
+
+- name: Verify the shared host-firewall baseline
+  hosts: home_servers
+  gather_facts: false
+  become: false
+  tasks:
+    - name: Assert UFW is active with deny-incoming and allow-outgoing defaults
+      ansible.builtin.raw: |
+        /usr/bin/bash --noprofile --norc -c '
+        set -euo pipefail
+        ufw=$(sudo -n /usr/sbin/ufw status verbose)
+        grep -Fqx "Status: active" <<<"$ufw" || { echo "FAIL: UFW is not active" >&2; exit 1; }
+        grep -Fq "Default: deny (incoming), allow (outgoing)," <<<"$ufw" || { echo "FAIL: UFW defaults differ from deny-incoming/allow-outgoing" >&2; exit 1; }
+        echo "PASS: UFW active with deny-incoming/allow-outgoing defaults"
+        '
+      register: firewall_baseline
+      changed_when: false
+      failed_when: firewall_baseline.rc != 0
+
+    - name: Display the firewall result
+      ansible.builtin.debug:
+        msg: "{{ firewall_baseline.stdout }}"
+
+- name: Verify K3s remains enabled only on Liedelpi
+  hosts: liedelpi
+  gather_facts: false
+  become: false
+  tasks:
+    - name: Assert the approved K3s host is active and enabled
+      ansible.builtin.raw: |
+        /usr/bin/bash --noprofile --norc -c '
+        set -euo pipefail
+        enabled=$(systemctl is-enabled k3s.service 2>/dev/null || true)
+        active=$(systemctl is-active k3s.service 2>/dev/null || true)
+        [[ "$enabled" == enabled && "$active" == active ]] \
+          || { echo "FAIL: k3s.service is enabled=$enabled active=$active" >&2; exit 1; }
+        echo "PASS: K3s is enabled and active on Liedelpi"
+        '
+      register: k3s_owner
+      changed_when: false
+      failed_when: k3s_owner.rc != 0
+
+    - name: Display the K3s owner result
+      ansible.builtin.debug:
+        msg: "{{ k3s_owner.stdout }}"
+
+- name: Verify K3s is not enabled on the other fleet hosts
+  hosts: "home_servers:!liedelpi"
+  gather_facts: false
+  become: false
+  tasks:
+    - name: Assert K3s is neither enabled nor active on this host
+      ansible.builtin.raw: |
+        /usr/bin/bash --noprofile --norc -c '
+        set -euo pipefail
+        enabled=$(systemctl is-enabled k3s.service 2>/dev/null || true)
+        active=$(systemctl is-active k3s.service 2>/dev/null || true)
+        [[ "$enabled" != enabled && "$active" != active ]] \
+          || { echo "FAIL: k3s.service is enabled=$enabled active=$active" >&2; exit 1; }
+        echo "PASS: K3s is not enabled or active on this host"
+        '
+      register: k3s_scope
+      changed_when: false
+      failed_when: k3s_scope.rc != 0
+
+    - name: Display the K3s scope result
+      ansible.builtin.debug:
+        msg: "{{ k3s_scope.stdout }}"
+
+- import_playbook: verify-storage.yml
+- import_playbook: verify-lola.yml

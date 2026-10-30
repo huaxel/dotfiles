@@ -10,6 +10,10 @@
 # - age10rc79qmxdrj6570xjwrhup4s70wtkvck0wtfj5y9qjcq4vz2dpfst3p3v5 = acerpepe (verified via ssh; per-host key, 2026-10-26)
 # - age1s0drt7y3ejvd0sj8f9numjg5k83mv2acf4nfr96z5p7aqy2vrasq5xlspz = mac-juan (verified; added 2026-06-09)
 creation_rules:
+  - path_regex: secrets/ci-jit-repos[.].*[.]enc$
+    age: >
+      age14279gnaktj8qjsy7m9t2n30tlc4q0tf89e40xhuqe8zhzhdqp9eq552y6l,
+      age1s0drt7y3ejvd0sj8f9numjg5k83mv2acf4nfr96z5p7aqy2vrasq5xlspz
   - path_regex: secrets/.*$
     age: >
       age13tmsqsgvls98xku94mc53t0tn9et450nfkmydqrpl380cytt0pwsl7s8zl,

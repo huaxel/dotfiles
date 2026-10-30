@@ -60,6 +60,16 @@ justfile = read("justfile")
 require('ssh "{{server}}" bash -s -- "$PROJECT"' in justfile, "project registration does not force Bash remotely")
 require('ssh "{{server}}" "$HOME/deploy-hooks/register-project"' not in justfile, "local HOME leaks into remote registration path")
 
+inventory = read("infra/ansible/hosts.yml")
+require(".ts.net" not in inventory, "public Ansible inventory exposes internal DNS names")
+require("ansible_host:" not in inventory, "public Ansible inventory must use local SSH aliases")
+require("StrictHostKeyChecking=yes" in inventory, "SSH host-key verification is not required")
+
+audit = read("infra/ansible/audit.yml")
+audit_raw = audit.partition("ansible.builtin.raw: |")[2].partition("      register: fleet_audit")[0]
+require(bool(audit_raw), "read-only audit raw command is missing")
+require("{{" not in audit_raw and "}}" not in audit_raw, "raw audit shell contains Ansible template delimiters")
+
 runner = read("config/ci/runner/setup-runner.sh")
 require('read -r -s -p "  Enter runner token:' in runner, "runner token input is echoed")
 require("echo '$RUNNER_TOKEN' > .token" not in runner, "short-lived runner token is persisted")

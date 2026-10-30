@@ -6,26 +6,34 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-# gh/jq live in ~/.nix-profile/bin on nix-managed hosts but that is not
-# on the non-interactive PATH; /usr/bin covers Debian hosts. Both here.
-Environment=PATH=/home/juan/.nix-profile/bin:/usr/local/bin:/usr/bin:/bin
-# %i is the host key: liedelpi | framearch. Config lives next to the script
+# Expose only the read-only Nix command profile, not the operator's home.
+Environment=PATH=/opt/ci-jit-profile/bin:/usr/local/bin:/usr/bin:/bin
+# %i is the host key; each instance loads config.%i.json.
 # wherever dotfiles stages it; adjust ExecStart path at install time.
+ExecStartPre=/usr/bin/bash -c 'command -v gh >/dev/null && command -v jq >/dev/null && command -v sudo >/dev/null'
 ExecStart=/usr/local/libexec/ci-dispatcher/jit-dispatcher.sh /etc/ci-jit-dispatcher/config.%i.json
 Restart=always
 RestartSec=10
-# Runs as the login user, NEVER root: the GitHub runner refuses root
-# outright, and jobs execute arbitrary steps — root would be far worse
-# than a user-owned token file. Token: juan-owned 0600 (see README).
-# Runs as the login user, NEVER root: the GitHub runner refuses root
-# outright, and jobs execute arbitrary steps — root would be far worse
-# than a user-owned token file. Token: juan-owned 0600 (see README).
-# No ProtectSystem/ProtectHome sandboxing: the runner must write _diag
-# and logs into its install dir, and stock upstream units run unconfined
-# too. (Hardening needs the full writable-path map — future work.)
-User=juan
-NoNewPrivileges=yes
-ReadWritePaths=/home/juan/_work-jit /home/juan/.local/state/ci-jit /home/juan/actions-runner
+# The dispatcher alone can read the 0600 PAT. It drops each job to the
+# separate actions-runner UID through a narrowly scoped sudoers rule. Home
+# directories are hidden; only the read-only command profile is bind-mounted.
+User=ci-jit-dispatcher
+UMask=0077
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+# Optional on Lola, where dispatcher CLI tools are system-installed.
+BindReadOnlyPaths=-/home/juan/.nix-profile:/opt/ci-jit-profile
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+RestrictRealtime=yes
+LockPersonality=yes
+CPUWeight=80
+MemoryMax=70%
+TasksMax=1024
+ReadWritePaths=/var/lib/ci-jit-dispatcher /var/lib/ci-jit-runner /var/cache/ci-jit
 
 [Install]
 WantedBy=multi-user.target

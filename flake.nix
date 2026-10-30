@@ -63,6 +63,14 @@
         meta.mainProgram = "herdr";
       };
 
+      mkAnsiblePlaybookApp = system:
+        let ansible = nixpkgs.legacyPackages.${system}.ansible;
+        in {
+          type = "app";
+          program = "${ansible}/bin/ansible-playbook";
+          meta.description = "Pinned Ansible CLI for home-server operations";
+        };
+
       mkHome = { system, hostModule }:
         home-manager.lib.homeManagerConfiguration {
           pkgs = import nixpkgs {
@@ -92,6 +100,14 @@
           ];
         };
 
+      # Minimal server-user profiles intentionally avoid the workstation
+      # common module, its secrets, activation hooks, and developer toolchain.
+      mkMinimalServerHome = system:
+        home-manager.lib.homeManagerConfiguration {
+          pkgs = nixpkgs.legacyPackages.${system};
+          modules = [ ./home/server-minimal.nix ];
+        };
+
     in {
       # Kept under legacyPackages so `nix flake check` validates the module
       # without compiling the large Vulkan/WebUI derivation on every change.
@@ -114,6 +130,10 @@
         program = "${home-manager.packages.aarch64-linux.default}/bin/home-manager";
         meta.description = "Locked Home Manager activation tool";
       };
+
+      apps.x86_64-linux.ansible-playbook = mkAnsiblePlaybookApp "x86_64-linux";
+      apps.aarch64-linux.ansible-playbook = mkAnsiblePlaybookApp "aarch64-linux";
+      apps.aarch64-darwin.ansible-playbook = mkAnsiblePlaybookApp "aarch64-darwin";
 
       # Toolchain for public/fork CI. The gate validates encrypted SOPS
       # metadata but never decrypts files or receives an age key.
@@ -155,6 +175,10 @@
           system = "aarch64-linux";
           hostModule = ./home/liedelpi.nix;
         };
+
+        # Draft-only outputs; these are build-checked but not activated.
+        "juan@lenovo-lola" = mkMinimalServerHome "x86_64-linux";
+        "juan@acerpepe" = mkMinimalServerHome "x86_64-linux";
       };
     };
 }

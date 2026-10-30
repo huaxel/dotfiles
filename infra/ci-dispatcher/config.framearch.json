@@ -1,17 +1,25 @@
 {
   "name_prefix": "framearch",
-  "labels": ["self-hosted", "linux", "x64", "muscle", "jit"],
-  "unique_labels": ["muscle", "jit"],
-  "repos": [
-    "huaxel/belpolsim",
-    "huaxel/nursultan-web"
+  "dry_run": false,
+  "labels": [
+    "self-hosted",
+    "linux",
+    "x64",
+    "muscle",
+    "jit"
   ],
-  "runner_dir": "/home/juan/actions-runner",
-  "work_root": "/home/juan/_work-jit",
-  "state_dir": "/home/juan/.local/state/ci-jit",
+  "unique_labels": [
+    "muscle"
+  ],
+  "runner_dir": "/var/lib/ci-jit-runner/runner",
+  "work_root": "/var/lib/ci-jit-runner/work",
   "token_file": "/etc/ci-jit-dispatcher/token",
   "poll_interval_seconds": 30,
   "max_concurrent": 1,
   "run_timeout_seconds": 3300,
-  "note": "aanbestedingen keeps its VM-isolated Rust controller (separate labels, separate service). Heavy Rust/Docker builds that want muscle WITHOUT VM isolation opt in here via runs-on [self-hosted, linux, x64, muscle, jit]."
+  "note": "aanbestedingen keeps its VM-isolated Rust controller (separate labels, separate service). Heavy Rust/Docker builds that want muscle WITHOUT VM isolation opt in here via runs-on [self-hosted, linux, x64, muscle, jit].",
+  "repos_file": "/etc/ci-jit-dispatcher/repos.framearch.json",
+  "runner_user": "actions-runner",
+  "shared_cache_dir": "/var/cache/ci-jit",
+  "state_dir": "/var/lib/ci-jit-dispatcher/state"
 }

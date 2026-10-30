@@ -1,0 +1,49 @@
+---
+- name: Verify persistent data-disk mounts without changing them
+  hosts: home_servers
+  gather_facts: false
+  become: false
+  vars:
+    expected_data_mounts:
+      lenovo-lola:
+        mountpoint: /data
+        uuid: 49924bd9-f2d2-4827-9e81-71faee751cb5
+      acerpepe:
+        mountpoint: /data
+        uuid: d7a08712-8af0-423c-8b14-1a38018d78db
+      liedelpi:
+        mountpoint: /mnt/wd-blue
+        uuid: 1d5d2b91-2fb4-430a-b6e8-cb07b945a924
+  tasks:
+    - name: Assert the current mount matches its persistent UUID entry
+      ansible.builtin.raw: |
+        /usr/bin/bash --noprofile --norc -c '
+        set -euo pipefail
+        mountpoint="{{ expected_data_mounts[inventory_hostname].mountpoint }}"
+        expected_uuid="{{ expected_data_mounts[inventory_hostname].uuid }}"
+        fail() { echo "FAIL: $*" >&2; exit 1; }
+
+        current_uuid=$(findmnt -n -o UUID --target "$mountpoint")
+        current_fstype=$(findmnt -n -o FSTYPE --target "$mountpoint")
+        [[ "$current_uuid" == "$expected_uuid" ]] \
+          || fail "$mountpoint currently uses UUID $current_uuid"
+        [[ "$current_fstype" == ext4 ]] || fail "$mountpoint filesystem is $current_fstype"
+
+        fstab_source=$(findmnt --fstab -rn -o SOURCE --target "$mountpoint")
+        fstab_fstype=$(findmnt --fstab -rn -o FSTYPE --target "$mountpoint")
+        fstab_options=$(findmnt --fstab -rn -o OPTIONS --target "$mountpoint")
+        [[ "$fstab_source" == "UUID=$expected_uuid" ]] \
+          || fail "$mountpoint fstab source is $fstab_source"
+        [[ "$fstab_fstype" == ext4 ]] || fail "$mountpoint fstab filesystem is $fstab_fstype"
+        [[ ",$fstab_options," == *,nofail,* ]] \
+          || fail "$mountpoint fstab entry lacks nofail"
+
+        echo "PASS: $mountpoint is ext4, UUID-pinned, and persistent with nofail"
+        '
+      register: storage_baseline
+      changed_when: false
+      failed_when: storage_baseline.rc != 0
+
+    - name: Display the storage result
+      ansible.builtin.debug:
+        msg: "{{ storage_baseline.stdout }}"

@@ -1,0 +1,69 @@
+---
+- name: Verify Lola's explicitly approved server baseline
+  hosts: lenovo-lola
+  gather_facts: false
+  become: false
+  tasks:
+    - name: Assert boot, disk, access, firewall, and minimal-service policy
+      ansible.builtin.raw: |
+        /usr/bin/bash --noprofile --norc -c '
+        set -euo pipefail
+        fail() { echo "FAIL: $*" >&2; exit 1; }
+
+        target=$(systemctl get-default)
+        [[ "$target" == multi-user.target ]] || fail "default target is $target"
+        graphical_target=$(systemctl is-active graphical.target 2>/dev/null || true)
+        [[ "$graphical_target" == inactive ]] || fail "graphical.target is $graphical_target"
+        for unit in display-manager.service gdm3.service gdm.service lightdm.service sddm.service; do
+          active=$(systemctl is-active "$unit" 2>/dev/null || true)
+          [[ "$active" != active ]] || fail "$unit is active"
+        done
+
+        expected_uuid=49924bd9-f2d2-4827-9e81-71faee751cb5
+        mounted_uuid=$(findmnt -n -o UUID /data)
+        [[ "$mounted_uuid" == "$expected_uuid" ]] || fail "/data UUID is $mounted_uuid"
+        [[ "$(findmnt -n -o FSTYPE /data)" == ext4 ]] || fail "/data is not ext4"
+        grep -Fqx "UUID=$expected_uuid /data ext4 defaults,nofail 0 2" /etc/fstab \
+          || fail "/data UUID mount is not persistent in fstab"
+
+        for unit in ssh.service tailscaled.service cockpit.socket; do
+          active=$(systemctl is-active "$unit" 2>/dev/null || true)
+          [[ "$active" == active ]] || fail "$unit is $active"
+        done
+        cockpit_enabled=$(systemctl is-enabled cockpit.socket 2>/dev/null || true)
+        [[ "$cockpit_enabled" == enabled ]] || fail "cockpit.socket is $cockpit_enabled"
+
+        for unit in cups.service cups.socket cups.path cups-browsed.service \
+                    bluetooth.service ModemManager.service avahi-daemon.service \
+                    avahi-daemon.socket; do
+          enabled=$(systemctl is-enabled "$unit" 2>/dev/null || true)
+          active=$(systemctl is-active "$unit" 2>/dev/null || true)
+          [[ "$enabled" == disabled && "$active" == inactive ]] \
+            || fail "$unit is enabled=$enabled active=$active"
+        done
+
+        ufw=$(sudo -n /usr/sbin/ufw status verbose)
+        grep -Fqx "Status: active" <<<"$ufw" || fail "UFW is not active"
+        grep -Fq "Default: deny (incoming), allow (outgoing)," <<<"$ufw" \
+          || fail "UFW ingress/egress defaults differ from the approved baseline"
+        grep -Eq "^22/tcp[[:space:]]+ALLOW IN[[:space:]]+Anywhere([[:space:]]|$)" <<<"$ufw" \
+          || fail "global IPv4 SSH allowance is missing"
+        grep -Eq "^22/tcp \\(v6\\)[[:space:]]+ALLOW IN[[:space:]]+Anywhere \\(v6\\)" <<<"$ufw" \
+          || fail "global IPv6 SSH allowance is missing"
+        grep -Eq "^9090/tcp on tailscale0[[:space:]]+ALLOW IN[[:space:]]+Anywhere" <<<"$ufw" \
+          || fail "Tailscale-scoped IPv4 Cockpit allowance is missing"
+        grep -Eq "^9090/tcp \\(v6\\) on tailscale0[[:space:]]+ALLOW IN[[:space:]]+Anywhere \\(v6\\)" <<<"$ufw" \
+          || fail "Tailscale-scoped IPv6 Cockpit allowance is missing"
+        if grep -Eq "^9090/tcp([[:space:]]+ALLOW IN[[:space:]]+Anywhere)|^9090/tcp \\(v6\\)[[:space:]]+ALLOW IN[[:space:]]+Anywhere" <<<"$ufw"; then
+          fail "Cockpit has an unscoped UFW allowance"
+        fi
+
+        echo "PASS: Lola matches the approved read-only baseline"
+        '
+      register: lola_baseline
+      changed_when: false
+      failed_when: lola_baseline.rc != 0
+
+    - name: Display the baseline result
+      ansible.builtin.debug:
+        msg: "{{ lola_baseline.stdout }}"

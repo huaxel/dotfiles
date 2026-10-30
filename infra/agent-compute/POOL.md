@@ -1,53 +1,68 @@
-# Agent compute pool: liedelpi + acerpepe
+# Agent compute pool: four-host GitHub Actions JIT
 
-Standing offer: these two hosts are reachable for agent work (services, CI,
-sandboxes). Verified 2026-10-18. Access: `ssh <host>` from any tailnet
-machine with the admin key (see audit 2026-10-18: RSA `gmail` key).
+This pool distributes private-repository CI across four Linux hosts. Jobs run
+as a dedicated unprivileged `actions-runner` account, separate from the
+`ci-jit-dispatcher` account that can read the minting PAT. This is process and
+systemd isolation, **not** VM isolation: jobs still share the host kernel and
+network, so route only trusted code.
 
-## liedelpi — ARM workhorse (Pi 5)
+## Security boundary
 
-- Arch: aarch64, 4 cores, 16 GB RAM (~6 free), 351 GB disk free. Load ~1.
-- Toolchain: docker, gh + uv (nix-profile), node, python3, rustc. Go missing.
-- Current roles: CI JIT dispatcher (`ci-jit-dispatcher@liedelpi`, system
-  unit, labels `[self-hosted, linux, arm64, jit]`, max 2 concurrent),
-  persistent pet runners (fallback), always-on services.
-- Good for: ARM CI via `jit` labels (proven: project-atom canary 1/3),
-  docker services, agent sandboxes. Heaviest box — prefer for builds.
+- Host allowlists are stored as SOPS-encrypted files at
+  `secrets/ci-jit-repos.<host>.enc`. The deployment controller decrypts each
+  file in memory and installs it root-owned, readable only by the dispatcher
+  group. Repository names are not stored in plaintext in tracked configs or
+  documentation.
+- Public `huaxel/dotfiles` is deliberately excluded from every host. Its CI
+  workflow runs on GitHub-hosted `ubuntu-latest` and calls `just ci-public`:
+  standard checks plus SOPS recipient-metadata validation, without decrypting
+  payloads or receiving an age key or local PAT.
+- JIT-eligible workflows must opt in with a host-specific label. Liedelpi
+  requires `jit` as well as `arm64`; an architecture label alone must not
+  capture work intended for a persistent ARM runner.
+- Existing per-repository runner services remain separate. JIT runner
+  installations, work directories, and caches use separate paths from those
+  services. Each job gets a fresh HOME/workdir, but the host-local runner
+  installation and tool caches persist under the shared `actions-runner` UID;
+  allowlisted repositories must therefore contain trusted code.
+- The JIT systemd unit hides operator home directories and, where present,
+  bind-mounts only the read-only Nix command profile. It caps each
+  dispatcher-plus-job cgroup at 70% of host memory and 1024 tasks, with CPU
+  weight 80.
 
-## acerpepe — x86 lightweight
+## Host map
 
-- Arch: x86_64, 4 cores, 4 GB RAM, 369 GB disk + 796 GB /data free.
-  At pilot time: ~1.4 GiB available with ~0.6 GiB swap in use; post-job
-  ~1.6 GiB available. Use lightweight jobs only.
-- Toolchain: docker, node, python3 + gh 2.102 + uv 0.13 (nix, added
-  2026-10-18; flakes enabled in /etc/nix/nix.conf). Still missing:
-  rustc, go (install only if a job needs them).
-- Current roles: infra watchdog + live CI JIT dispatcher
-  (`ci-jit-dispatcher@acerpepe`, enabled/active, labels
-  `[self-hosted, linux, x64, jit]`, max 1 concurrent). End-to-end
-  workflow_dispatch pilot passed 2026-10-18: runner
-  `acerpepe-huaxel_dotfiles-1792360031-19417`, job success, runner
-  cleaned up. This proves dispatch/mint/run/cleanup, not arbitrary build
-  suitability.
-- Good for: light services, watchdog jobs, small x86 CI. 4 GB RAM rules
-  out heavy gates — max one job; observe memory/swap on real workloads.
+| Host | Architecture / labels | Limit | Allowlist source | Role |
+|---|---|---:|---|---|
+| `acerpepe` | `x64`, `jit` | 1 | `secrets/ci-jit-repos.acerpepe.enc` | Lightweight x86 jobs; keep memory use modest. |
+| `framearch` | `x64`, `muscle`, `jit` | 1 | `secrets/ci-jit-repos.framearch.enc` | Opt-in heavier x86 jobs; shares the interactive workstation. |
+| `liedelpi` | `arm64`, `jit` | 1 | `secrets/ci-jit-repos.liedelpi.enc` | ARM-native jobs; existing services and persistent runners remain unchanged. |
+| `lenovo-lola` | `x64`, `light`, `jit` | 1 | `secrets/ci-jit-repos.lenovo-lola.enc` | Low-impact jobs on the minimal server. |
 
-## How agents use the pool
+Each host has one dispatcher loop and runs the JIT runner synchronously, so
+supported per-host concurrency is one (up to four independent jobs across the
+pool). Raising a config limit alone does not add parallel workers.
 
-- CI: push a workflow using the JIT labels for the arch you need
-  (`[self-hosted, linux, arm64, jit]` on liedelpi or
-  `[self-hosted, linux, x64, jit]` on acerpepe); the dispatcher mints an
-  ephemeral runner, runs, cleans up. Both paths now have a successful
-  pilot. No pet-runner babysitting.
-- Services/sandboxes: `ssh <host>`, use docker or the nix toolchain.
-  dkpg/apt need root — ask the human, don't improvise with sudo.
-- Etiquette: check `uptime` first; liedelpi max 2 concurrent CI runners;
-  acerpepe is RAM-thin — one job at a time, nothing hungry.
+`runs-on` must include the desired architecture and opt-in label, for example
+`[self-hosted, linux, arm64, jit]` for Liedelpi,
+`[self-hosted, linux, x64, light, jit]` for Lola, or
+`[self-hosted, linux, x64, muscle]` for Framearch.
 
-## Remaining / watch items
+## Readiness and operations
 
-1. Keep acerpepe to one light CI job at a time; measure peak RAM/swap on
-   representative jobs before considering an upgrade. Its pilot was tiny.
-2. Add Rust/Go only if an actual queued job requires them.
-3. belpolsim pet runners on liedelpi become removable only after its JIT
-   migration/promotion is complete and removal is explicitly approved.
+The initial Ansible rollout was verified on 2026-10-30: all four dispatcher
+units were active and runner binaries passed version checks. That rollout used
+the earlier shared-UID layout. The staged source now defines a security
+migration to separate dispatcher and job accounts; this migration has **not**
+been deployed to the live hosts. Do not treat the new UID boundary as active
+until an explicitly authorized Ansible rollout completes and is verified.
+
+For future changes, `just check-ci-jit` validates routing, encrypted allowlist
+paths, and (when an operator age key is available) the decrypted allowlist
+structure. `just check-home-server` performs offline Ansible/config checks.
+The deployment playbook validates each existing token's presence, mode, and
+size without reading or copying token contents, decrypts allowlists only on the
+controller, refuses to restart a host with an active claim, and selects the
+official x64 or ARM64 runner archive by host architecture. It does not manage
+unrelated Home Manager profiles, firewalls, DNS, application services, or
+persistent runner registrations.
