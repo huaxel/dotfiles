@@ -73,15 +73,20 @@ before stopping a host with an active claim. It does not remove or reconfigure
 persistent runners, Home Manager profiles, K3s, application services,
 firewalls, or DNS.
 
-The initial 2026-10-30 rollout succeeded on all four hosts, but used the earlier
-shared-UID layout. The isolated-account migration described above is source-only
-and has **not** been deployed; do not treat the credential boundary as active
-until an explicitly authorized rollout completes and its service identities
-are verified. The playbook must not be run without explicit authorization. The
-obsolete public `liedelpi-ci` registration was separately unregistered and its
-systemd unit disabled with owner authorization; this playbook does not remove
-persistent runner registrations. See the [dispatcher operations
-guide](../ci-dispatcher/README.md) for current allowlists and status.
+The initial 2026-10-30 rollout used the earlier shared-UID layout. The
+isolated-account migration described above was explicitly authorized, deployed
+to all four hosts on 2026-10-30, and verified: dispatcher services run as
+`ci-jit-dispatcher`, jobs run as `actions-runner`, and token/allowlist
+permissions match the intended boundary. Read-only queued-runs API probes
+succeeded for every configured allowlist on every host. A controlled manual
+workflow dispatch also completed successfully on Liedelpi through the ARM64/JIT
+route; its ephemeral runner registration and job state were cleaned up, and the
+dispatcher remained active with zero restarts. The playbook must not be run
+without explicit authorization. The obsolete public `liedelpi-ci` registration
+was separately unregistered and its systemd unit disabled with owner
+authorization; this playbook does not remove persistent runner registrations.
+See the [dispatcher operations guide](../ci-dispatcher/README.md) for current
+allowlists and status.
 
 ## Verify the fleet baseline
 
