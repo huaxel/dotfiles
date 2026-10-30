@@ -75,9 +75,14 @@ A deployment command (do not run without explicit authorization):
 just ci-jit-deploy
 ```
 
-The initial Ansible rollout was verified on 2026-10-30. It used the earlier
-shared-UID layout; the isolated-account migration described above is source-only
-and has **not** been deployed. The live pool must not be considered migrated
-until an explicitly authorized rollout completes and the resulting service
-identity and permissions are verified. Persistent runner installations remain
-separate and are not managed by this migration.
+The initial Ansible rollout used the earlier shared-UID layout. The
+isolated-account migration was explicitly authorized, deployed to all four
+hosts on 2026-10-30, and verified: dispatcher units run as
+`ci-jit-dispatcher`, jobs run as `actions-runner`, and the token/allowlist
+permissions match the intended boundary. Read-only queued-runs API probes
+succeeded for every configured allowlist on every host. A controlled manual
+workflow dispatch then exercised the ARM64/JIT route on Liedelpi and completed
+successfully in 29m46s. GitHub removed that ephemeral runner registration, its
+specific claim and work directory were absent after completion, and the
+Liedelpi dispatcher remained active with zero restarts. Persistent runner
+installations remain separate and are not managed by this migration.
