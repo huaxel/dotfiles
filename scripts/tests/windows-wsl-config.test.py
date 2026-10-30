@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -28,11 +29,27 @@ terminal = read("windows-terminal/settings.json")
 require("C:\\\\Users\\\\" not in terminal, "Windows Terminal contains a hard-coded user path")
 require("%USERPROFILE%\\\\scoop\\\\apps\\\\pwsh" in terminal, "pwsh profile is not user-portable")
 
+leopard = tomllib.loads(read("config-windows/leopardwm/config.toml"))
+require(leopard["layout"]["gap"] == 10, "LeopardWM inner gap drifted from OmniWM")
+require(leopard["layout"]["outer_gap_left"] == 5, "LeopardWM left outer gap drifted")
+require(leopard["layout"]["outer_gap_right"] == 5, "LeopardWM right outer gap drifted")
+require(leopard["layout"]["outer_gap_top"] == 15, "LeopardWM top outer gap drifted")
+require(leopard["layout"]["outer_gap_bottom"] == 5, "LeopardWM bottom outer gap drifted")
+require(leopard["layout"]["centering_mode"] == "on_overflow", "LeopardWM centering mode drifted")
+require(leopard["layout"]["center_single_column"] is True, "LeopardWM should center a single column")
+require(leopard["behavior"]["focus_follows_mouse"] is False, "LeopardWM unexpectedly follows the mouse")
+require(leopard["behavior"]["mouse_follows_focus"] is True, "LeopardWM should warp to keyboard-focused windows")
+require(leopard["behavior"]["new_window_monitor"] == "focused", "LeopardWM new windows should follow the focused monitor")
+require(leopard["behavior"]["skip_empty_workspaces"] is True, "LeopardWM should skip empty workspaces")
+require(len(leopard["workspaces"]["names"]) == 9, "LeopardWM workspace names must cover its nine slots")
+require(leopard["workspaces"]["names"][:5] == ["Companion", "Work 1", "Work 2", "Work 3", "Work 4"], "LeopardWM active workspace roles drifted")
+require(leopard["workspaces"]["names"][5:] == ["Spare 6", "Spare 7", "Spare 8", "Spare 9"], "LeopardWM spare workspaces must remain clearly marked")
+
 deploy = read("scripts/deploy-windows.ps1")
-# The tiling stack was removed 2026-10-26 (stock Windows shell instead).
-# Assert the removal holds so the deploy script and this test stay in sync.
-# (.glzr/ is the GlazeWM/Zebar config home; nothing else uses it.)
-require(".glzr" not in deploy, "tiling-stack links survived removal")
+# Legacy GlazeWM/Zebar config is not deployed; LeopardWM replaces it.
+require(".glzr" not in deploy, "legacy GlazeWM/Zebar links survived removal")
+require('config-windows\\leopardwm\\config.toml' in deploy, "LeopardWM config source is not deployed")
+require('leopardwm\\config\\config.toml' in deploy, "LeopardWM config target path is missing")
 require("Microsoft\\Windows Terminal\\settings.json" in deploy, "Unpackaged Windows Terminal settings path is missing")
 require("Microsoft.WindowsTerminal_8wekyb3d8bbwe" in deploy, "Store Windows Terminal settings path is missing")
 require("Get-AppxPackage -Name Microsoft.WindowsTerminal" in deploy, "Windows Terminal install type is not detected")

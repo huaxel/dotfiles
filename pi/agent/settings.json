@@ -40,7 +40,8 @@
     "/home/juan/projects/pi-extensions/pi-subagent",
     "npm:@juanbenjumea/pi-go-on",
     "https://github.com/earendil-works/pi-claude-code",
-    "npm:pi-cursor-sdk"
+    "npm:pi-cursor-sdk",
+    "npm:@plannotator/pi-extension"
   ],
   "extensions": [
     "./extensions/continue-after-compaction.ts",

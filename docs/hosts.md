@@ -11,7 +11,7 @@ which. See also: `docs/patterns/window-management.md` (tilers),
 | arch-wsl | Arch WSL2, x86_64 | `juan@arch-wsl` | terminal-only WSL sidecar for Windows |
 | macbook | macOS, aarch64 | `juan@macbook` | portable daily driver (OmniWM + borders) |
 | liedelpi | Pi 5 headless, aarch64 | `juan@liedelpi` | media, DNS, CI runners, deploy target |
-| Windows host | Windows 11 | `bootstrap.ps1` + `just windows-deploy` | native apps, stock shell, WSL2 host |
+| Windows laptop | Windows 11 | `bootstrap.ps1` + `just windows-deploy` | LeopardWM, WSL2; two- or three-monitor docks |
 
 ## Per-host notes
 
@@ -28,8 +28,9 @@ which. See also: `docs/patterns/window-management.md` (tilers),
   bootout-then-bootstrap workaround in `home/macbook.nix`.
 - **liedelpi** deliberately skips `linux-desktop.nix` (headless). Home-server
   deploy target for `just register-project` / `just deploy-server`.
-- **Windows host** is deployed by `deploy-windows.ps1` (symlink → junction
-  → copy fallback) plus Scoop for packages. No tiling stack since 2026-10.
+- **Windows laptop** is deployed by `deploy-windows.ps1` (symlink → junction
+  → copy fallback) plus Scoop for packages. LeopardWM’s profile targets the
+  focused monitor so window placement can adapt between the home and work docks.
 
 ## Where truth lives
 

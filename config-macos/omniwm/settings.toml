@@ -37,13 +37,13 @@ animationsEnabled = true
 animationSpeed = 1.0
 
 [focus]
-followsMouse = true
+followsMouse = false
 raiseOnMouseFocus = false
 lockModifier = "off"
-moveMouseToFocusedWindow = false
+moveMouseToFocusedWindow = true
 followsWindowToMonitor = true
 crossesMonitorAtEdge = false
-moveCrossesMonitorAtEdge = false
+moveCrossesMonitorAtEdge = true
 
 [mouseWarp]
 margin = 1
@@ -58,16 +58,16 @@ arrangements = []
 size = 10.0
 fullscreenUsesOuterGaps = false
 [gaps.outer]
-left = 10.0
-right = 10.0
-top = 40.0
-bottom = 10.0
+left = 5.0
+right = 5.0
+top = 15.0
+bottom = 5.0
 
 [niri]
 visibleContainerCount = 2
 infiniteLoop = false
 centerFocusedColumn = "never"
-alwaysCenterSingleColumn = false
+alwaysCenterSingleColumn = true
 singleWindowFit = "fill"
 
 [dwindle]

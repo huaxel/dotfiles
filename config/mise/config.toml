@@ -3,7 +3,7 @@ experimental = false
 
 [tools]
 # Default versions for global use
-node = "24"
+node = "24.22.1"
 python = "3.13"
 go = "1.26"
 rust = "1.85"

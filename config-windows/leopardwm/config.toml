@@ -1,0 +1,24 @@
+# LeopardWM trial profile: shared roles, monitor-local workspaces.
+# LeopardWM currently provides nine workspaces per monitor; this config keeps
+# the first five as the intentional working set and names the rest as spares.
+# Keep companion windows on workspace 1 of each connected monitor; use 2-5 for
+# active contexts on the focused/main monitor. No app is pinned to a monitor,
+# so this remains usable across the two-monitor work dock and three-monitor home dock.
+
+[layout]
+gap = 10
+outer_gap_left = 5
+outer_gap_right = 5
+outer_gap_top = 15
+outer_gap_bottom = 5
+centering_mode = "on_overflow"
+center_single_column = true
+
+[behavior]
+focus_follows_mouse = false
+mouse_follows_focus = true
+new_window_monitor = "focused"
+skip_empty_workspaces = true
+
+[workspaces]
+names = ["Companion", "Work 1", "Work 2", "Work 3", "Work 4", "Spare 6", "Spare 7", "Spare 8", "Spare 9"]

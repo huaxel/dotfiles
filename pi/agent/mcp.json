@@ -5,11 +5,14 @@
       "exposure": "direct"
     },
     "Executor": {
-      "url": "https://mcp.executor.sh/mcp"
+      "url": "https://mcp.executor.sh/mcp",
+      "enabled": false
     },
     "cua-driver": {
       "command": "~/.local/bin/cua-driver",
-      "args": ["mcp"],
+      "args": [
+        "mcp"
+      ],
       "description": "Background computer-use driver: window snapshots plus click/type/scroll input that doesn't steal the cursor"
     }
   }
