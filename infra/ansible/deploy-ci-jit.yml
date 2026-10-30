@@ -1,0 +1,340 @@
+---
+- name: Deploy the GitHub Actions JIT dispatcher pool
+  hosts: ci_jit
+  become: true
+  gather_facts: true
+  serial: 1
+  any_errors_fatal: true
+
+  vars:
+    runner_version: "2.338.0"
+    runner_arch_map:
+      x86_64: x64
+      aarch64: arm64
+    runner_sha256_map:
+      x64: "af4b794c1bc41d73d40535e3fe092a39f9679cd8d965954c2aca25a05ca41d32"
+      arm64: "628b4a7258487b80c1d3c221095a7ded349f5ae0175fd3dfab708d07428f041b"
+    runner_arch: "{{ runner_arch_map.get(ansible_facts['architecture'], 'unsupported') }}"
+    runner_sha256: "{{ runner_sha256_map.get(runner_arch, '') }}"
+    runner_archive_name: "actions-runner-linux-{{ runner_arch }}-{{ runner_version }}.tar.gz"
+    runner_archive_url: "https://github.com/actions/runner/releases/download/v{{ runner_version }}/{{ runner_archive_name }}"
+    runner_archive_path: "/tmp/{{ runner_archive_name }}"
+    dispatcher_source_dir: "{{ playbook_dir }}/../ci-dispatcher"
+
+  pre_tasks:
+    - name: Load the host-specific dispatcher configuration
+      ansible.builtin.include_vars:
+        file: "{{ dispatcher_source_dir }}/config.{{ inventory_hostname }}.json"
+        name: jit_config
+
+    - name: Require an official runner build for this machine architecture
+      ansible.builtin.assert:
+        that:
+          - runner_arch in runner_sha256_map
+          - runner_sha256 | length == 64
+        fail_msg: >-
+          Unsupported JIT runner architecture {{ ansible_facts['architecture'] }} on
+          {{ inventory_hostname }}; refusing to download or install an unverified archive.
+
+    - name: Require the isolated runner identity and protected allowlist path
+      ansible.builtin.assert:
+        that:
+          - jit_config.runner_user == 'actions-runner'
+          - jit_config.repos_file is match('^/etc/ci-jit-dispatcher/repos\\.[a-z0-9-]+\\.json$')
+        fail_msg: >-
+          JIT jobs must run as actions-runner and use a host-specific allowlist
+          under /etc/ci-jit-dispatcher.
+
+    - name: Inspect the existing token without reading its contents
+      ansible.builtin.stat:
+        path: "{{ jit_config.token_file }}"
+      register: jit_token
+
+    - name: Require the existing nonempty mode-0600 token file
+      ansible.builtin.assert:
+        that:
+          - jit_token.stat.exists | default(false)
+          - jit_token.stat.mode | default('') == '0600'
+          - jit_token.stat.size | default(0) > 0
+        fail_msg: >-
+          {{ inventory_hostname }} needs the existing PAT at
+          {{ jit_config.token_file }} with mode 0600. Provision it out-of-band;
+          this playbook never reads or copies token contents.
+
+    - name: Decrypt the host allowlist on the controller without logging it
+      ansible.builtin.command:
+        argv:
+          - sops
+          - --decrypt
+          - "{{ playbook_dir }}/../../secrets/ci-jit-repos.{{ inventory_hostname }}.enc"
+      delegate_to: localhost
+      become: false
+      register: jit_repositories_plaintext
+      changed_when: false
+      no_log: true
+
+    - name: Require a nonempty allowlist that excludes public dotfiles
+      ansible.builtin.assert:
+        that:
+          - (jit_repositories_plaintext.stdout | from_json).repos | length > 0
+          - "'huaxel/dotfiles' not in (jit_repositories_plaintext.stdout | from_json).repos"
+        fail_msg: >-
+          The encrypted host allowlist must be nonempty and must exclude public
+          huaxel/dotfiles; public CI runs on GitHub-hosted workers.
+      no_log: true
+
+    - name: Ensure the isolated dispatcher account exists
+      ansible.builtin.user:
+        name: ci-jit-dispatcher
+        system: true
+        create_home: true
+        home: /var/lib/ci-jit-dispatcher
+        shell: /bin/bash
+
+    - name: Ensure the isolated Actions runner account exists
+      ansible.builtin.user:
+        name: actions-runner
+        system: true
+        create_home: true
+        home: /var/lib/ci-jit-runner
+        shell: /bin/bash
+
+    - name: Verify dispatcher tools exist in the host profile or system paths
+      ansible.builtin.command:
+        argv:
+          - /bin/sh
+          - -c
+          - command -v gh >/dev/null && command -v jq >/dev/null && command -v sudo >/dev/null
+      environment:
+        PATH: /home/juan/.nix-profile/bin:/usr/local/bin:/usr/bin:/bin
+      changed_when: false
+
+    - name: Restrict dispatcher sudo to the unprivileged runner UID
+      ansible.builtin.copy:
+        dest: /etc/sudoers.d/ci-jit-runner
+        content: |
+          ci-jit-dispatcher ALL=(actions-runner) NOPASSWD: /usr/bin/env, /usr/bin/mkdir, /usr/bin/rm, /usr/bin/chmod
+        owner: root
+        group: root
+        mode: "0440"
+        validate: "visudo -cf %s"
+
+    - name: Verify dispatcher-to-runner privilege drop before service changes
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/sudo
+          - -n
+          - -u
+          - actions-runner
+          - --
+          - /usr/bin/env
+          - -i
+          - /usr/bin/true
+      become_user: ci-jit-dispatcher
+      changed_when: false
+
+    - name: Refuse to restart while a JIT claim is active
+      ansible.builtin.script:
+        cmd: >-
+          {{ dispatcher_source_dir }}/check-idle.sh
+          {{ jit_config.state_dir | quote }}
+          {{ jit_config.run_timeout_seconds }}
+      register: jit_idle
+      changed_when: false
+
+    - name: Refuse restart while a claim remains in the legacy juan state directory
+      ansible.builtin.script:
+        cmd: >-
+          {{ dispatcher_source_dir }}/check-idle.sh
+          /home/juan/.local/state/ci-jit
+          {{ jit_config.run_timeout_seconds }}
+      changed_when: false
+      when: jit_config.state_dir != '/home/juan/.local/state/ci-jit'
+
+    - name: Check whether this dispatcher is already active
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - is-active
+          - "ci-jit-dispatcher@{{ inventory_hostname }}.service"
+      register: jit_service_state
+      failed_when: false
+      changed_when: false
+
+    - name: Stop the dispatcher before replacing its code or config
+      ansible.builtin.systemd:
+        name: "ci-jit-dispatcher@{{ inventory_hostname }}.service"
+        state: stopped
+      when: jit_service_state.rc == 0
+
+  tasks:
+    - name: Install Lola’s dispatcher tools from Debian packages
+      ansible.builtin.apt:
+        name:
+          - gh
+          - git
+          - jq
+          - curl
+        state: present
+        update_cache: true
+      when: inventory_hostname == "lenovo-lola"
+
+    - name: Ensure dispatcher state home is private to its service account
+      ansible.builtin.file:
+        path: /var/lib/ci-jit-dispatcher
+        state: directory
+        owner: ci-jit-dispatcher
+        group: ci-jit-dispatcher
+        mode: "0750"
+
+    - name: Ensure the service credential directory is private to the dispatcher group
+      ansible.builtin.file:
+        path: /etc/ci-jit-dispatcher
+        state: directory
+        owner: root
+        group: ci-jit-dispatcher
+        mode: "0750"
+
+    - name: Transfer token ownership to the isolated dispatcher account
+      ansible.builtin.file:
+        path: "{{ jit_config.token_file }}"
+        state: file
+        owner: ci-jit-dispatcher
+        group: ci-jit-dispatcher
+        mode: "0600"
+
+    - name: Ensure the runner account home is traversable but not writable by others
+      ansible.builtin.file:
+        path: /var/lib/ci-jit-runner
+        state: directory
+        owner: actions-runner
+        group: actions-runner
+        mode: "0755"
+
+    - name: Ensure the JIT runner directory is owned by the isolated runner account
+      ansible.builtin.file:
+        path: "{{ jit_config.runner_dir }}"
+        state: directory
+        owner: actions-runner
+        group: actions-runner
+        mode: "0755"
+
+    - name: Check whether the host already has a runner installation
+      ansible.builtin.stat:
+        path: "{{ jit_config.runner_dir }}/run.sh"
+      register: jit_runner_script
+
+    - name: Download the pinned official runner archive
+      ansible.builtin.get_url:
+        url: "{{ runner_archive_url }}"
+        dest: "{{ runner_archive_path }}"
+        checksum: "sha256:{{ runner_sha256 }}"
+        mode: "0644"
+      when: not jit_runner_script.stat.exists
+
+    - name: Extract a separate runner installation for JIT jobs
+      ansible.builtin.unarchive:
+        src: "{{ runner_archive_path }}"
+        dest: "{{ jit_config.runner_dir }}"
+        remote_src: true
+        owner: actions-runner
+        group: actions-runner
+        creates: "{{ jit_config.runner_dir }}/run.sh"
+      when: not jit_runner_script.stat.exists
+
+    - name: Install official runner dependencies on Debian hosts
+      ansible.builtin.command:
+        argv:
+          - "{{ jit_config.runner_dir }}/bin/installdependencies.sh"
+      when:
+        - ansible_facts['os_family'] == "Debian"
+        - not jit_runner_script.stat.exists
+
+    - name: Ensure dispatcher executable directory exists
+      ansible.builtin.file:
+        path: /usr/local/libexec/ci-dispatcher
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install the dispatcher script
+      ansible.builtin.copy:
+        src: "{{ dispatcher_source_dir }}/jit-dispatcher.sh"
+        dest: /usr/local/libexec/ci-dispatcher/jit-dispatcher.sh
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install the host-specific dispatcher configuration
+      ansible.builtin.copy:
+        src: "{{ dispatcher_source_dir }}/config.{{ inventory_hostname }}.json"
+        dest: "/etc/ci-jit-dispatcher/config.{{ inventory_hostname }}.json"
+        owner: root
+        group: ci-jit-dispatcher
+        mode: "0640"
+
+    - name: Install the decrypted private repository allowlist
+      ansible.builtin.copy:
+        content: "{{ jit_repositories_plaintext.stdout }}"
+        dest: "{{ jit_config.repos_file }}"
+        owner: root
+        group: ci-jit-dispatcher
+        mode: "0640"
+      no_log: true
+
+    - name: Install the systemd unit template
+      ansible.builtin.copy:
+        src: "{{ dispatcher_source_dir }}/ci-jit-dispatcher@.service"
+        dest: /etc/systemd/system/ci-jit-dispatcher@.service
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Ensure dispatcher state is private to its service account
+      ansible.builtin.file:
+        path: "{{ jit_config.state_dir }}"
+        state: directory
+        owner: ci-jit-dispatcher
+        group: ci-jit-dispatcher
+        mode: "0700"
+
+    - name: Ensure runner work and cache roots are private to the job UID
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: actions-runner
+        group: actions-runner
+        mode: "0700"
+      loop:
+        - "{{ jit_config.work_root }}"
+        - "{{ jit_config.shared_cache_dir }}"
+
+    - name: Reload systemd and enable the host dispatcher
+      ansible.builtin.systemd:
+        name: "ci-jit-dispatcher@{{ inventory_hostname }}.service"
+        daemon_reload: true
+        enabled: true
+        state: started
+
+    - name: Verify the dispatcher is active
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - is-active
+          - "ci-jit-dispatcher@{{ inventory_hostname }}.service"
+      register: jit_service_active
+      until: jit_service_active.rc == 0 and jit_service_active.stdout == "active"
+      retries: 10
+      delay: 3
+      changed_when: false
+
+    - name: Verify the installed runner reports its version
+      ansible.builtin.command:
+        argv:
+          - "{{ jit_config.runner_dir }}/bin/Runner.Listener"
+          - --version
+      become_user: actions-runner
+      register: runner_version_output
+      changed_when: false
+      failed_when: runner_version_output.rc != 0

@@ -1,0 +1,24 @@
+{
+  "name_prefix": "lola",
+  "dry_run": false,
+  "labels": [
+    "self-hosted",
+    "linux",
+    "x64",
+    "light",
+    "jit"
+  ],
+  "unique_labels": [
+    "light"
+  ],
+  "runner_dir": "/var/lib/ci-jit-runner/runner",
+  "work_root": "/var/lib/ci-jit-runner/work",
+  "token_file": "/etc/ci-jit-dispatcher/token",
+  "poll_interval_seconds": 30,
+  "max_concurrent": 1,
+  "run_timeout_seconds": 3300,
+  "repos_file": "/etc/ci-jit-dispatcher/repos.lenovo-lola.json",
+  "runner_user": "actions-runner",
+  "shared_cache_dir": "/var/cache/ci-jit",
+  "state_dir": "/var/lib/ci-jit-dispatcher/state"
+}

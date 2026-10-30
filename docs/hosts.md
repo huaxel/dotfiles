@@ -10,8 +10,20 @@ which. See also: `docs/patterns/window-management.md` (tilers),
 | framearch | Arch Linux, x86_64 | `juan@framearch` | desktop (niri) + llama.cpp inference host |
 | arch-wsl | Arch WSL2, x86_64 | `juan@arch-wsl` | terminal-only WSL sidecar for Windows |
 | macbook | macOS, aarch64 | `juan@macbook` | portable daily driver (OmniWM + borders) |
+| lenovo-lola | Debian 13, x86_64 | none active | headless home server; minimal host baseline verified by Ansible |
+| acerpepe | Debian 13, x86_64 | none active | deploy/backup server; application services documented in the infrastructure runbook |
 | liedelpi | Pi 5 headless, aarch64 | `juan@liedelpi` | media, DNS, CI runners, deploy target |
 | Windows laptop | Windows 11 | `bootstrap.ps1` + `just windows-deploy` | LeopardWM, WSL2; two- or three-monitor docks |
+
+## Draft server profiles (not activated)
+
+The flake also exposes `juan@lenovo-lola` and `juan@acerpepe` as build-only
+starting points. Both use `home/server-minimal.nix` instead of the workstation
+`home/common.nix`: they configure no workstation toolchain, user file mappings,
+secrets, custom services, or system settings. Home Manager still generates its
+standard profile dependencies and support files. The native
+`x86_64-linux` `just ci` path build-checks these outputs. They are not active on
+either host; activation needs separate review.
 
 ## Per-host notes
 

@@ -1,1 +1,23 @@
-{"dry_run": false, "labels": ["self-hosted", "linux", "x64", "jit"], "max_concurrent": 1, "name_prefix": "acerpepe", "poll_interval_seconds": 30, "repos": ["huaxel/dotfiles", "huaxel/belpolsim", "huaxel/nursultan-web", "huaxel/project-atom", "huaxel/energy-dashboard", "huaxel/brussel-jeu", "huaxel/trippin-cloudintegration"], "run_timeout_seconds": 3300, "runner_dir": "/home/juan/actions-runner", "state_dir": "/home/juan/.local/state/ci-jit", "token_file": "/etc/ci-jit-dispatcher/token", "work_root": "/home/juan/_work-jit"}
+{
+  "dry_run": false,
+  "labels": [
+    "self-hosted",
+    "linux",
+    "x64",
+    "jit"
+  ],
+  "unique_labels": [
+    "jit"
+  ],
+  "max_concurrent": 1,
+  "name_prefix": "acerpepe",
+  "poll_interval_seconds": 30,
+  "run_timeout_seconds": 3300,
+  "runner_dir": "/var/lib/ci-jit-runner/runner",
+  "token_file": "/etc/ci-jit-dispatcher/token",
+  "work_root": "/var/lib/ci-jit-runner/work",
+  "repos_file": "/etc/ci-jit-dispatcher/repos.acerpepe.json",
+  "runner_user": "actions-runner",
+  "shared_cache_dir": "/var/cache/ci-jit",
+  "state_dir": "/var/lib/ci-jit-dispatcher/state"
+}

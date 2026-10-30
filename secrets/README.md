@@ -17,6 +17,12 @@ This directory contains **encrypted** secrets that sync across machines via git.
 | `environment.d.enc` | `~/.config/environment.d/99-environment.conf` | All shells (Nushell + Fish fallback). systemd `environment.d` loads it for user sessions on Linux; Nushell/Fish/PowerShell also parse it directly where systemd is absent. Also the **single** synced source for Pi's static API-key providers (OPENCODE_KEY, CURSOR_API_KEY, NOUS_API_KEY, …) across machines. |
 | `pi-quota-sessions.json.enc` | `~/dotfiles/pi/agent/quota-sessions.json` | Pi quota/sessions |
 | `llama-webui-config.json.enc` | `~/.config/llama.cpp/webui-config.json` | llama.cpp Web UI |
+| `ci-jit-repos.<host>.enc` | host-specific private repository allowlist | Ansible deploy; decrypted in memory on the controller and installed for the dispatcher service account |
+
+JIT allowlists use a narrower SOPS recipient rule for operator machines only.
+They are not materialized by Home Manager and the runner hosts do not need age
+keys; Ansible decrypts on the controller and sends the plaintext only to the
+protected dispatcher config directory.
 
 > **`pi/agent/auth.json` is NOT synced.** OpenAI Codex (and other OAuth
 > providers such as `meta` and `commandcode`) use **single-use refresh tokens**

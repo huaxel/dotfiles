@@ -1,0 +1,94 @@
+---
+- name: Read-only inventory of Debian home servers
+  hosts: home_servers
+  gather_facts: false
+  become: false
+  tasks:
+    - name: Collect a bounded host, resource, disk, service, and listener snapshot
+      ansible.builtin.raw: |
+        /usr/bin/bash --noprofile --norc -c '
+        set -euo pipefail
+        export SYSTEMD_PAGER=cat SYSTEMD_COLORS=0 PAGER=cat
+        echo HOST; hostname
+        echo OS; cat /etc/os-release | grep -E "^(PRETTY_NAME|VERSION_ID)="
+        echo ARCH_KERNEL; uname -mrm
+        echo UPTIME_LOAD; uptime -p; uptime | sed "s/.*load average: /load /"
+        echo DEFAULT_TARGET; systemctl get-default
+        echo MEMORY; free -h
+        echo BLOCK_DEVICES; lsblk -o NAME,SIZE,TYPE,MODEL,FSTYPE,MOUNTPOINTS
+        echo FAILED_UNITS; systemctl --failed --no-legend --plain || true
+        echo LISTENING_TCP; ss -lnt
+        echo FIREWALL_POLICY
+        if [ -x /usr/sbin/ufw ]; then sudo -n /usr/sbin/ufw status verbose; else echo UFW_NOT_INSTALLED; fi
+        echo FORWARDING_STATE
+        for path in /proc/sys/net/ipv4/ip_forward /proc/sys/net/ipv6/conf/all/forwarding; do
+          if [ -r "$path" ]; then printf "%s=" "$path"; cat "$path"; else printf "%s=UNAVAILABLE\n" "$path"; fi
+        done
+        if [ -r /etc/default/ufw ]; then grep -E "^DEFAULT_FORWARD_POLICY=" /etc/default/ufw || true; fi
+        echo NAT_PREROUTING_REDIRECTS
+        for tool in iptables ip6tables; do
+          binary="/usr/sbin/$tool"
+          if [ ! -x "$binary" ]; then printf "%s UNAVAILABLE\n" "$tool"; continue; fi
+          if nat_rules=$(sudo -n "$binary" -t nat -L PREROUTING -n -v -x 2>/dev/null); then
+            redirects=$(printf "%s\n" "$nat_rules" | grep "REDIRECT" || true)
+            if [ -n "$redirects" ]; then
+              printf "%s\n" "$redirects" | sed -E "s/([[:space:]])([[:xdigit:].:]+\/[0-9]+)([[:space:]])/\\1<addr>\\3/g" | sed "s/^/$tool /"
+            else
+              printf "%s NO_REDIRECTS\n" "$tool"
+            fi
+          else
+            printf "%s QUERY_UNAVAILABLE\n" "$tool"
+          fi
+        done
+        for tool in iptables ip6tables; do
+          binary=$(command -v "$tool" || true)
+          if [ -n "$binary" ]; then
+            policy=$(sudo -n "$binary" -S FORWARD 2>/dev/null | head -n 1 || true)
+            printf "%s FORWARD %s\n" "$tool" "${policy:-UNAVAILABLE}"
+          else
+            printf "%s FORWARD UNAVAILABLE\n" "$tool"
+          fi
+        done
+        echo K3S_SERVICES
+        if [ -x /usr/local/bin/k3s ] && systemctl is-active --quiet k3s.service; then
+          sudo -n /usr/local/bin/k3s kubectl get services --all-namespaces --output wide
+        else
+          echo K3S_NOT_ACTIVE
+        fi
+        echo DOCKER_PUBLISHED_PORTS
+        if command -v docker >/dev/null 2>&1 && systemctl is-active --quiet docker.service; then
+          docker_format=$(printf "\\173\\173.Names\\175\\175\\t\\173\\173.Ports\\175\\175")
+          if docker_ports=$(sudo -n docker ps --format "$docker_format" 2>/dev/null); then
+            published_ports=$(printf "%s\n" "$docker_ports" | grep -- "->" || true)
+            if [ -n "$published_ports" ]; then printf "%s\n" "$published_ports"; else echo NO_PUBLISHED_PORTS; fi
+          else
+            echo DOCKER_QUERY_UNAVAILABLE
+          fi
+        else
+          echo DOCKER_NOT_ACTIVE
+        fi
+        echo CORE_AND_HOST_SERVICES
+        for unit in ssh.service tailscaled.service ufw.service cockpit.socket docker.service k3s.service; do
+          echo "$unit"
+          systemctl show "$unit" -p LoadState -p ActiveState -p UnitFileState --value 2>/dev/null | paste -sd / -
+        done
+        echo HOME_MANAGER_PROFILE
+        profile="$HOME/.local/state/nix/profiles/home-manager"
+        if [ -L "$profile" ]; then
+          generation=$(readlink -f "$profile" 2>/dev/null || true)
+          if [ -n "$generation" ] && [ -x "$generation/activate" ] && [ -e "$generation/home-path" ]; then
+            printf "ACTIVE_GENERATION=%s\n" "$generation"
+          else
+            echo BROKEN_GENERATION_LINK
+          fi
+        else
+          echo NO_PROFILE_LINK
+        fi
+        '
+      register: fleet_audit
+      changed_when: false
+      failed_when: fleet_audit.rc != 0
+
+    - name: Display the host snapshot
+      ansible.builtin.debug:
+        msg: "{{ fleet_audit.stdout }}"

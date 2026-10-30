@@ -1,21 +1,23 @@
 {
   "name_prefix": "liedelpi",
-  "labels": ["self-hosted", "linux", "arm64", "jit"],
-  "unique_labels": ["arm64", "jit"],
-  "repos": [
-    "huaxel/dotfiles",
-    "huaxel/belpolsim",
-    "huaxel/nursultan-web",
-    "huaxel/project-atom",
-    "huaxel/energy-dashboard",
-    "huaxel/brussel-jeu",
-    "huaxel/trippin-cloudintegration"
+  "dry_run": false,
+  "labels": [
+    "self-hosted",
+    "linux",
+    "arm64",
+    "jit"
   ],
-  "runner_dir": "/home/juan/actions-runner",
-  "work_root": "/home/juan/_work-jit",
-  "state_dir": "/home/juan/.local/state/ci-jit",
+  "unique_labels": [
+    "jit"
+  ],
+  "runner_dir": "/var/lib/ci-jit-runner/runner",
+  "work_root": "/var/lib/ci-jit-runner/work",
   "token_file": "/etc/ci-jit-dispatcher/token",
   "poll_interval_seconds": 30,
-  "max_concurrent": 2,
-  "run_timeout_seconds": 3300
+  "max_concurrent": 1,
+  "run_timeout_seconds": 3300,
+  "repos_file": "/etc/ci-jit-dispatcher/repos.liedelpi.json",
+  "runner_user": "actions-runner",
+  "shared_cache_dir": "/var/cache/ci-jit",
+  "state_dir": "/var/lib/ci-jit-dispatcher/state"
 }
