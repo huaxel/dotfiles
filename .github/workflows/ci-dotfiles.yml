@@ -1,15 +1,6 @@
-# ─────────────────────────────────────────────────────────
-# Dotfiles CI — runs FREE on the home-lab self-hosted runner.
-#
-# No GitHub-hosted minutes and no per-repo runner to register: the
-# ci-jit-dispatcher on acerpepe (infra/ci-dispatcher) already serves
-# huaxel/dotfiles and mints one ephemeral runner per job from its own
-# token file. Push, wait ~30s for the poll, watch it go green.
-#
-# macOS-only checks (macos defaults, Brewfile install, pwsh AST) are NOT in
-# this workflow: no always-on mac runner exists (mac-juan sleeps). Run
-# `just ci` on the Mac after touching macos/, config/Brewfile, or *.ps1.
-# ─────────────────────────────────────────────────────────
+# Public repository CI runs only on ephemeral GitHub-hosted runners.
+# The gate validates encrypted SOPS metadata but never decrypts payloads or
+# receives Acerpepe's local PAT / age key. Keep this repo out of JIT allowlists.
 
 name: ci-dotfiles
 
@@ -18,38 +9,71 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 concurrency:
   group: ci-dotfiles-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   linux:
-    name: gate (self-hosted linux)
-    runs-on: [self-hosted, linux, x64, jit]
+    name: full gate (hosted; secret-free)
+    runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
       CI: "true"
-      # User-scoped global root: workers run with NoNewPrivileges, so no
-      # sudo. pi-resolve-hook.mjs reads `npm root -g`, which honors this.
-      NPM_CONFIG_PREFIX: /home/juan/.npm-global
-      # Ephemeral workers run with HOME=isolated workdir (dispatcher hygiene),
-      # so sops cannot find ~/.config/sops/age/keys.txt on its own. acerpepe-only.
-      SOPS_AGE_KEY_FILE: /home/juan/.config/sops/age/keys.txt
+      NIX_CONFIG: "experimental-features = nix-command flakes"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
-      # Dispatcher scrubs HOME, so $HOME/.nix-profile paths dangle; the real
-      # nix is the system profile outside HOME. acerpepe-only.
-      - name: Expose system nix
-        run: echo "/nix/var/nix/profiles/default/bin" >> "$GITHUB_PATH"
+      - name: Download pinned upstream Nix installer
+        env:
+          NIX_INSTALLER_SHA256: b9911496659f0c35c642353d592926c024c205b597e8094bf73a42908a75e462
+        shell: bash
+        run: |
+          set -euo pipefail
+          installer_dir="$RUNNER_TEMP/nix-installer"
+          installer="$installer_dir/nix-installer-x86_64-linux"
+          mkdir -p "$installer_dir"
+          curl --fail --silent --show-error --location --retry 2 \
+            --connect-timeout 10 --max-time 120 \
+            'https://github.com/DeterminateSystems/nix-installer/releases/download/v3.21.0/nix-installer-x86_64-linux' \
+            -o "$installer"
+          printf '%s  %s\n' "$NIX_INSTALLER_SHA256" "$installer" | sha256sum -c -
+          chmod 0755 "$installer"
 
-      # test-pi-extensions resolves agent internals (managed install is
-      # gitignored, so fresh clones use the global agent). Pin matches
-      # pi/agent/install/current-version on dev machines — bump together.
-      # (No npm install step: published Pi packages now live in
-      # ~/projects/pi-extensions and are tested there.)
-      - name: Install pinned Pi agent
-        run: npm install -g @earendil-works/pi-coding-agent@1.4.0
+      - name: Install upstream Nix from the verified local binary
+        uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa
+        with:
+          determinate: false
+          local-root: ${{ runner.temp }}/nix-installer
+          github-token: ""
+          diagnostic-endpoint: ""
+          kvm: false
 
-      - name: Full local gate (strict — no silent skips)
-        run: just ci
+      - name: Configure a user-local npm prefix
+        shell: bash
+        run: |
+          echo "NPM_CONFIG_PREFIX=$HOME/.npm-global" >> "$GITHUB_ENV"
+          echo "$HOME/.npm-global/bin" >> "$GITHUB_PATH"
+
+      - name: Download and install integrity-pinned Pi agent
+        env:
+          PI_AGENT_SHA512: "sha512-Z41LpZ3yYHSC/UUps6Mr39UMFPwH8elhJBG9DY1P7kuzsE5qSK/6eMj2EHzO5evJRQWLbKSqUMw+4nCNtIyiQg=="
+        shell: bash
+        run: |
+          set -euo pipefail
+          package="$RUNNER_TEMP/pi-coding-agent-1.4.0.tgz"
+          curl --fail --silent --show-error --location --retry 2 \
+            --connect-timeout 10 --max-time 120 \
+            'https://registry.npmjs.org/@earendil-works/pi-coding-agent/-/pi-coding-agent-1.4.0.tgz' \
+            -o "$package"
+          actual="sha512-$(openssl dgst -sha512 -binary "$package" | base64 -w0)"
+          test "$actual" = "$PI_AGENT_SHA512"
+          npm install --global "$package"
+
+      - name: Full CI gate without secret decryption
+        run: nix develop .#ci --command just ci-public
