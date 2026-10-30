@@ -120,11 +120,12 @@ workspace "9" {
     open-on-output "DP-4"
 }
 
-// Layout: OmniWM defaults (inner gap 16, edge-to-edge, cyan focus border,
-// 10px rounding, soft shadow). Preset widths 1/3-1/2-2/3 and default 0.5
-// match OmniWM's container spans; center-focused-column "never" too.
+// Layout: match OmniWM's 10px inner gap, cyan focus border, 10px rounding,
+// and soft shadow. Preset widths 1/3-1/2-2/3 and default 0.5 match OmniWM's
+// container spans; center-focused-column "never" too. Outer margins remain
+// compositor-specific (OmniWM uses per-edge overrides).
 layout {
-    gaps 16
+    gaps 10
 
     center-focused-column "never"
 

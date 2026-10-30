@@ -43,8 +43,8 @@ the existing age key to
 `~/.config/sops/age/keys.txt` before bootstrap; missing tools, keys, packages, or
 secret decryption now fail the deployment instead of printing false success.
 
-After bootstrap: restart PowerShell. Windows runs the stock shell (GlazeWM +
-Zebar were removed; tiling lives on framearch/niri and macbook/OmniWM).
+After bootstrap: restart PowerShell. Windows uses LeopardWM for scrolling tiling;
+its profile is deployed to `%APPDATA%\leopardwm\config\config.toml`.
 For llama.cpp inference:
 `cd ~/.config/llama.cpp; .\start-server.ps1`.
 

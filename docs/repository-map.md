@@ -21,8 +21,8 @@ Keep deployment paths stable; organize new material under the matching area belo
 - `config-linux/` — Linux-only Wayland, launcher, inference, and XKB configuration.
 - `config-macos/` — macOS-only configuration.
 - Windows roots (`powershell/`, `windows-terminal/`, `autohotkey/`,
-  `flow-launcher/`) — Windows-specific application files. The stock shell is
-  used natively; tiling lives on framearch (niri) and macbook (OmniWM) — see
+  `flow-launcher/`, `config-windows/`) — Windows-specific application files,
+  including the LeopardWM scrolling-tiler profile; see
   `docs/patterns/window-management.md`.
 - Root dotfiles (`gitconfig`, `ssh_config`, `starship.toml`)
   — remaining source files whose target paths are not naturally grouped
