@@ -18,7 +18,7 @@ Tailnet: `bonobo-fort.ts.net`. SSH via `~/.ssh/config` (symlinked from `dotfiles
 ## CI cloud (GitHub Actions self-hosted)
 
 - Runner labels: `self-hosted,linux,ci` (+ arch). Repos set `CI_RUNNER = ["self-hosted","linux","ci"]`.
-- Live: framearch (belpolsim, nursultan-web), acerpepe (nursultan-web, project-atom), liedelpi (6: belpolsim, nursultan-web, brussel-jeu, project-atom, energy-dashboard, trippin-cloudintegration).
+- Live: framearch (belpolsim, nursultan-web, four-prices — runs all of its CI, Dependabot runs stay GitHub-hosted), acerpepe (nursultan-web, project-atom), liedelpi (6: belpolsim, nursultan-web, brussel-jeu, project-atom, energy-dashboard, trippin-cloudintegration).
 - Setup: `just runner-setup <host> install` (dotfiles `config/ci/runner/setup-runner.sh`). Re-register with `--labels 'self-hosted,linux,ci'`.
 - **`config.sh` refuses "already configured" if `.runner_migrated` exists** — remove `.runner .credentials .credentials_rsaparams .runner_migrated .path` first.
 - Registration tokens: `gh api -X POST repos/<org>/<repo>/actions/runners/registration-token` (**POST**, not GET).
