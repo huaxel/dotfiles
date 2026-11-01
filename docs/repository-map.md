@@ -34,9 +34,10 @@ Keep deployment paths stable; organize new material under the matching area belo
 
 - `bootstrap.sh`, `bootstrap.ps1` — first-machine setup.
 - `bin/` — small user-facing helper commands that can be installed on `PATH`.
-- `scripts/` — backup, restore, deployment, and platform integration scripts
+- `scripts/` — workstation backup/restore and platform integration scripts
   (includes `setup-nushell.sh` and `nu-health.sh` for Nushell integration
-  generation and health checks).
+  generation and health checks). Homelab deployment assets live in the private
+  `~/projects/homelab` repository.
 - `etc/` — system-level files that are installed explicitly, not by Home Manager.
 - `justfile` — local CI, testing, and maintenance entry points.
 
@@ -65,7 +66,8 @@ Keep deployment paths stable; organize new material under the matching area belo
 
 ## Documentation and investigations
 
-- `README.md` — installation, bootstrap, backup/restore, and secrets guide.
+- `README.md` — installation, workstation bootstrap, backup/restore, and secrets guide.
+- Homelab operations and machine inventory — private `huaxel/homelab` repository.
 - `docs/` — durable operational patterns, design documents, and investigations.
 - `docs/investigations/pi-health-check/` — findings and decision tickets for the
   Pi health-check project; keep new investigation material here.
