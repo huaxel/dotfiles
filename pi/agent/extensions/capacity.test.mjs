@@ -1,7 +1,18 @@
-import { registerHooks } from 'node:module';
+import { registerHooks, createRequire } from 'node:module';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { resolve } from './pi-resolve-hook.mjs';
 import { assert, runTests } from './pi-test-harness.mjs';
-registerHooks({ resolve });
+const extensionsDir = dirname(fileURLToPath(import.meta.url));
+const installDir = join(extensionsDir, '..', 'install');
+const piRoot = process.env.PI_TEST_PI_ROOT ?? join(installDir, 'releases', readFileSync(join(installDir, 'current-version'), 'utf8').trim(), 'node_modules', '@earendil-works', 'pi-coding-agent');
+const typeboxUrl = pathToFileURL(createRequire(join(piRoot, 'package.json')).resolve('typebox')).href;
+const capacityResolve = (specifier, context, nextResolve) =>
+  specifier === 'typebox' && context.parentURL?.endsWith('/capacity.ts')
+    ? nextResolve(typeboxUrl, context)
+    : resolve(specifier, context, nextResolve);
+registerHooks({ resolve: capacityResolve });
 const { default: install, capacityPage } = await import('./capacity.ts');
 
 function view(count = 2) {
