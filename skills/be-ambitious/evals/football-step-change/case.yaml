@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: football-step-change
+expected_outcome: |
+  Proposes and recommends a meaningful new goal grounded in the stated assets. Separates sporting contribution from monetary valuation, identifies missing evidence and a falsifiable first proof, and stays in exploration mode.

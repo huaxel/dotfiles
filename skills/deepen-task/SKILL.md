@@ -1,6 +1,6 @@
 ---
 name: deepen-task
-description: Deepen a task by examining its intended outcome, strengthening its methods, and borrowing useful techniques from other fields, then execute. Use when asked to go deeper, think more ambitiously, or challenge an approach—not merely expand its scope. Also supports requests limited to prompt improvement.
+description: Deepen a task by examining its intended outcome, strengthening its methods, and borrowing useful techniques from other fields, then execute. Use when asked to deepen a concrete task, strengthen its methods, or challenge its approach while preserving the goal. Use be-ambitious instead to reconsider what goal to pursue. Also supports requests limited to prompt improvement.
 ---
 
 # Deepen a Task

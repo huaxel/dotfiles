@@ -62,7 +62,9 @@ Keep deployment paths stable; organize new material under the matching area belo
   collection, one directory per package, published to npm under `@juanbenjumea`),
   not in this repository. The runtime consumes them from the registry; the only
   tree-local Pi code is `pi/agent/extensions/`.
-- `skills/` — reusable skills shared by agents and projects.
+- `skills/` — reusable skills shared by agents and projects. See
+  [`skills/README.md`](../skills/README.md) for ownership, harness selection,
+  and catalog verification.
 
 ## Documentation and investigations
 
