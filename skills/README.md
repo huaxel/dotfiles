@@ -19,8 +19,12 @@
 - **systematic-debugging:** reproduce uncertain failures, test causal hypotheses, and verify fixes without a mandatory planning framework.
 - **property-based-testing:** find meaningful invariants, design generators, and classify minimized counterexamples. Complements `tdd`; it does not require a new library for every task.
 - **mutation-testing:** explicit-only, bounded campaigns or analysis of surviving mutants. In Pi invoke `/skill:mutation-testing`; ordinary coverage/test requests do not start campaigns.
+- **state-machine-audit:** reconstruct hidden lifecycles, transitions, and invalid states from code; audit before proposing structural changes.
+- **prove-it:** replace assurances with reproducible empirical or formal checks, stating assumptions, scope, and remaining gaps.
 
-These three development-method skills are local adaptations of Superpowers (debugging, MIT) and Trail of Bits (property/mutation testing, CC-BY-SA-4.0). Each includes `UPSTREAM.md` with a pinned source revision and change notes, plus its original license. No upstream hooks, executable helpers, tool packages, or required companion plugins were installed. Other harnesses may interpret explicit-only metadata differently; mutation testing also enforces explicit intent in its instructions.
+`systematic-debugging`, `property-based-testing`, and `mutation-testing` are local adaptations of Superpowers (debugging, MIT) and Trail of Bits (property/mutation testing, CC-BY-SA-4.0). Each includes `UPSTREAM.md` with a pinned source revision and change notes, plus its original license. No upstream hooks, executable helpers, tool packages, or required companion plugins were installed. Other harnesses may interpret explicit-only metadata differently; mutation testing also enforces explicit intent in its instructions.
+
+`state-machine-audit` and `prove-it` start from the user’s prompts and incorporate selected pstack practices. Their `UPSTREAM.md` files record the inspected revision and MIT attribution. They do not install pstack’s agents, model routing, toolchain, PR automation, or checkout-reset policies.
 
 Pi’s `pi/agent/settings.json` excludes the synced docs connector, Claude browser/computer-use connectors, Google Workspace connector, Claude memory import, and morning-brief workflow. They depend on capabilities not present in the current Pi setup. Their vendor files remain available to other harnesses. These exclusions are a capability profile, not dynamic tool detection; revisit them if Pi gains the required integrations. A project can explicitly enable an exact skill path with Pi’s `+path` resource override when appropriate.
 
@@ -35,4 +39,4 @@ Both `just ci` and `just ci-public` include `check-skills`. Python and PyYAML ar
 
 The checker validates metadata, duplicate names across shared/Pi roots, literal bundled resource references, and local Markdown links in locally maintained SKILL.md files. It does not execute bundled scripts, audit every reference file, verify external URLs, or measure whether a model follows the skill. Synced metadata and literal resource references are checked without rewriting vendor files.
 
-Behavioral cases currently live under `be-ambitious/evals/` and the three development-method skills’ `evals/` directories; they are prepared prompts and graders, not evidence of completed model evaluations. Add cases selectively for consequential workflows and routing boundaries. Reload the relevant harness after changing its skill catalog; in Pi use `/reload`.
+Behavioral cases live under individual skills’ `evals/` directories; they are prepared prompts and graders, not evidence of completed model evaluations. Add cases selectively for consequential workflows and routing boundaries. Reload the relevant harness after changing its skill catalog; in Pi use `/reload`.
