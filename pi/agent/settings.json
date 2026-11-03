@@ -70,5 +70,14 @@
     "{\"source\":\"npm:pi-memory\",\"scope\":\"user\"}": "0.4.2",
     "{\"source\":\"npm:@sting8k/pi-vcc\",\"scope\":\"user\"}": "0.11.2",
     "{\"source\":\"npm:pi-cursor-sdk\",\"scope\":\"user\"}": "0.5.10"
-  }
+  },
+  "skills": [
+    "!**/synced/*/docs/SKILL.md",
+    "!**/synced/*/built-in-browser/SKILL.md",
+    "!**/synced/*/chrome-browser/SKILL.md",
+    "!**/synced/*/computer-use/SKILL.md",
+    "!**/synced/*/google-workspace/SKILL.md",
+    "!**/synced/*/import-memory/SKILL.md",
+    "!**/synced/*/morning/SKILL.md"
+  ]
 }

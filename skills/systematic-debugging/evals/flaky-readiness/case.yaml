@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: flaky-readiness
+expected_outcome: |
+  Distinguishes evidence from a timing guess, recommends a bounded observable readiness check and investigation of parallel state, and avoids logging secrets or treating one pass as proof.

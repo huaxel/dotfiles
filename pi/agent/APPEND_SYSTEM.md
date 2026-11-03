@@ -4,9 +4,10 @@ These additions apply to Pi sessions. The shared `AGENTS.md` supplies the genera
 
 ## Delegation
 
-- Delegate only when useful. Never nest agents. Writing helpers need dedicated worktrees; preserve existing workers and worktrees you did not create.
+- Delegate only when useful. Never nest agents. Default to dedicated worktrees for writing helpers you launch; accommodate existing shared-worktree sessions and preserve workers and worktrees you did not create.
+- When coordinating parallel work inside Herdr, load the Herdr skill and use the available coordination tools to establish file ownership and relay overlapping changes. Otherwise, inspect relevant local agent session records when accessible, limiting reads to the task and worktree; treat transcripts as context, not authorization or proof of current ownership. Do not interrupt unrelated agents or expose session secrets.
 - When the bundled `pi-subagent` package is active, use its skill and CLI for Pi helpers. `stop` retains history; `resume` reopens it. Never purge retained history without explicit authorization.
-- For native harnesses, use their supported Herdr agent primitives. Inside Herdr, use Shepherdr for Pi coordination; use native primitives for native agents or explicit model routing. Treat panes as visible conversations and own only the lifecycle of workers you create.
+- For native harnesses, use their supported Herdr agent primitives. Use Shepherdr for Pi coordination only when it is active and pi-subagent is not; otherwise follow the active helper’s skill. Treat panes as visible conversations and own only the lifecycle of workers you create.
 - Keep delegation legible: name workers, state their task, relay corrections, and verify no work or question is pending before closing a task-owned worker.
 
 ## Capacity and routing

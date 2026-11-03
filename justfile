@@ -42,14 +42,14 @@ nushell-setup:
 # ──────────── Check recipes ────────────
 
 # Run ALL checks (the full trusted CI pipeline, including SOPS decryption)
-ci: check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-macos check-secrets check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
+ci: check-skills check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-macos check-secrets check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
     @echo ""
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     @echo "  🟢  All CI checks passed!  🟢"
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # Public/fork-safe variant: full gate, but validate only encrypted metadata.
-ci-public: check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-macos check-secrets-structure check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
+ci-public: check-skills check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-macos check-secrets-structure check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
     @echo ""
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     @echo "  🟢  All secret-free CI checks passed!  🟢"
@@ -71,6 +71,15 @@ ci-strict:
         exit 1
     fi
     exec just ci
+
+# Validate skill metadata and bundled resources without running skill code.
+check-skills:
+    python3 scripts/tests/check-skills.test.py
+    python3 scripts/check_skills.py
+
+# Report machine-local skill copies without replacing overrides.
+doctor-skills:
+    python3 scripts/check_skills.py --local
 
 # ── Shell scripts ──
 

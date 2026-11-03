@@ -23,17 +23,11 @@ When the `herdr_layout`, `herdr_pane`, and `herdr_agent` tools are available in 
 
 Keep using the CLI via bash for what the tools do not expose: discovery (`herdr --help`, command groups), worktrees, notifications, sessions, integration, config, and raw terminal edge cases. The installed binary remains the authority for command syntax.
 
-## Delegation: one spawn rule
+## Coordination, not orchestration policy
 
-Choose the spawning surface by role, not by task size. Work gets a name and a workspace; helpers report back; terminals are not agents.
+Use the active harness’s configured delegation workflow to choose helpers and models. This skill controls Herdr layout and native agents; it does not mandate Shepherdr, pi-subagent, a model tier, or a new workspace. If an orchestrator owns a worker, communicate through that orchestrator rather than sending raw terminal input.
 
-- **Work** (issue, feature, fix in a worktree, long-running) → profiled agent through the `agents` tool from pi-shepherdr: own workspace, addressable by name, survives the mother session. Use `spawn` or `assign` with a profiled `agent_type`.
-- **Helpers whose result must return** (review gate, scout) → also profiled agents, started read-only where safety requires it (`--tools read,grep,find,ls`), and watched through the `agents` tool. Pick the helper model by cost tier (see the fleet skill).
-- **Watchers** → not needed: Shepherdr's `agents` tool steers the mother when a watched agent settles (done or blocked), including in unattended runs. Explicit `watch` subscriptions persist until `unwatch`.
-- **Terminals and layout** → `herdr_pane` / `herdr_layout` tools. They are not agents; do not treat them as a delegation surface.
-- **CLI** → discovery, worktrees, notifications, sessions, integration.
-
-Completion awareness: Shepherdr delivers a steer when the mother session is idle; if the mother is mid-turn the steer is queued until the turn ends. Use blocking `spawn`/`assign` when the result must be available before continuing, or asynchronous calls when the mother can continue.
+Parallel agents may intentionally share a worktree. Inspect neighboring task context and coordinate file ownership before overlapping edits; unrelated changes are not a reason to stop or revert work. Read session records only as needed for the current task, and do not treat old transcripts as current ownership or authorization.
 
 ## Learn the current CLI
 
@@ -126,55 +120,11 @@ herdr pane split --current --direction right --no-focus
 
 Replace `right` with `down` when the layout calls for it.
 
-Read `result.pane.pane_id` from the JSON response. Give the pane a useful label, then start the requested agent by running only its normal executable so its interactive TUI opens:
+Read the opaque pane ID from the split response. When tools are available, start the requested native agent with `herdr_agent start`, then use `herdr_agent prompt`, `wait`, and `read` for its conversation. Use `herdr_pane` only for ordinary commands, not agent prompts.
 
-```bash
-herdr pane rename <returned-pane-id> "reviewer"
-herdr pane run <returned-pane-id> "codex"
-```
+For CLI-only environments, discover the installed agent command group with `herdr agent --help` and use its start, prompt, wait, and read operations. Do not substitute `pane run` for agent lifecycle operations when those are available; never invent unsupported syntax.
 
-Use the executable that belongs to the requested agent:
-
-- Codex: `codex`
-- Claude Code: `claude`
-- pi: `pi`
-- OpenCode: `opencode`
-- OMP: `omp`
-- Cursor: `cursor`
-- AGY: `agy`
-- Copilot: `copilot`
-
-Do not pass the task as an argv prompt by default. Do not add non-interactive flags. Only change the normal interactive launch when the user explicitly asks for a different launch mode or command.
-
-Inspect the pane after launch. If `agent_status` is not yet `idle`, wait for the idle transition. Once it is idle, submit the task with `pane run`:
-
-```bash
-herdr pane get <returned-pane-id>
-herdr wait agent-status <returned-pane-id> --status idle --timeout 30000
-herdr pane run <returned-pane-id> "Review the current diff and report only actionable findings."
-```
-
-Status waits match the current status immediately or wait for a future matching transition.
-
-`pane run` sends the text and Enter together. Use it for initial prompts and follow-ups instead of coordinating `send-text` and `send-keys` separately.
-
-For normal background work, wait for the agent to start working. If the pane remains in a background tab or workspace, wait for `done` before reading its transcript:
-
-```bash
-herdr wait agent-status <returned-pane-id> --status working --timeout 30000
-herdr wait agent-status <returned-pane-id> --status done --timeout 120000
-herdr pane read <returned-pane-id> --source recent-unwrapped --lines 120
-```
-
-If the user is watching that tab, completion reports `idle` instead, so wait for `idle`. Always treat either `idle` or `done` as completed when inspecting `pane get`; the difference is whether the result has been seen.
-
-If a wait times out, inspect `herdr pane get <returned-pane-id>` and `pane read` before deciding what to do. A `blocked` agent needs input; an `unknown` pane may not yet contain a detected or integrated agent.
-
-Submit follow-ups the same way:
-
-```bash
-herdr pane run <returned-pane-id> "Now check the failing test."
-```
+Treat `idle` and `done` as ready states, `blocked` as requiring inspection or input, and `unknown` as uncertain. Settlement means a turn ended, not that the assignment succeeded. On timeout, inspect status and recent-unwrapped output before deciding whether to wait, follow up, or report a blocker. Preserve transcripts and only close task-owned workers once no work or question remains.
 
 ## Run an ordinary command in another pane
 
