@@ -42,14 +42,14 @@ nushell-setup:
 # ──────────── Check recipes ────────────
 
 # Run ALL checks (the full trusted CI pipeline, including SOPS decryption)
-ci: check-skills check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-macos check-secrets check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
+ci: check-agents check-skills check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-macos check-secrets check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
     @echo ""
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     @echo "  🟢  All CI checks passed!  🟢"
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # Public/fork-safe variant: full gate, but validate only encrypted metadata.
-ci-public: check-skills check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-macos check-secrets-structure check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
+ci-public: check-agents check-skills check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-macos check-secrets-structure check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
     @echo ""
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     @echo "  🟢  All secret-free CI checks passed!  🟢"
@@ -75,6 +75,9 @@ ci-strict:
 # Validate skill metadata and bundled resources without running skill code.
 check-skills:
     python3 scripts/tests/check-skills.test.py
+    python3 scripts/tests/skill-eval.test.py
+    node --check scripts/skill_eval_pi.mjs
+    node --test scripts/tests/skill-eval-adapter.test.mjs
     python3 scripts/check_skills.py
 
 # Report machine-local skill copies without replacing overrides.
@@ -117,7 +120,7 @@ check-sh:
             echo "  ❌ $f has issues"
             errors=$((errors + 1))
         fi
-    done < <(find . \( -path ./node_modules -o -path ./pi/agent/npm/node_modules -o -path ./pi/agent/install -o -path ./pi/agent/git -o -path ./pi/agent/herdr-plugins -o -path ./pi_npm/node_modules -o -path ./.git -o -path './~' \) -prune -o -type f \( -name '*.sh' -o -name '*.bash' \) -print 2>/dev/null | sort || true)
+    done < <(find . \( -path ./node_modules -o -path ./pi/agent/npm/node_modules -o -path ./pi/agent/install -o -path ./pi/agent/git -o -path ./pi/agent/herdr-plugins -o -path ./pi_npm/node_modules -o -path ./.git -o -path './~' \) -prune -o -type f \( -name '*.sh' -o -name '*.bash' -o -path './bin/pi' \) -print 2>/dev/null | sort || true)
     echo "  Checked $count shell scripts"
     if [ "$errors" -gt 0 ]; then echo "  ❌ $errors files have issues"; exit 1; fi
     echo "  ✅ All shell scripts pass ShellCheck"
@@ -417,6 +420,14 @@ check-nu:
     done
     if [ "$errors" -gt 0 ]; then echo "  ❌ $errors Nushell config files have issues"; exit 1; fi
     echo "  ✅ All Nushell config files parse"
+
+# Offline deployment and launcher fixtures; never touches the real home.
+check-agents:
+    python3 scripts/tests/agent-setup.test.py
+
+# Read-only local entrypoint checks; deliberately outside the repository gate.
+doctor-agents:
+    python3 scripts/agent_setup.py check
 
 # Validate Nushell/Fish literals against the shared environment.d defaults.
 check-env-parity:

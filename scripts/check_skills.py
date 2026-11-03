@@ -89,6 +89,16 @@ def check_catalog(root: Path) -> list[str]:
                 errors.append(f"{relative}: description must contain 1–1024 characters")
             if "disable-model-invocation" in info and not isinstance(info["disable-model-invocation"], bool):
                 errors.append(f"{relative}: disable-model-invocation must be boolean")
+            native_path = path.parent / "agents/openai.yaml"
+            if native_path.is_file():
+                native = yaml.load(native_path.read_text(), Loader=UniqueLoader)
+                if not isinstance(native, dict) or not isinstance(native.get("policy", {}), dict):
+                    raise ValueError("agents/openai.yaml must contain a mapping and a policy mapping")
+                policy = native.get("policy", {})
+                if "allow_implicit_invocation" in policy and type(policy["allow_implicit_invocation"]) is not bool:
+                    errors.append(f"{relative}: allow_implicit_invocation must be boolean")
+                if info.get("disable-model-invocation") is True and policy.get("allow_implicit_invocation", True) is not False:
+                    errors.append(f"{relative}: Codex policy contradicts explicit-only invocation")
             # Vendor files are preserved, but their literal bundled resources still
             # must exist. Full link checks apply to locally maintained skills only.
             targets = resource_targets(text)

@@ -69,6 +69,30 @@ class SkillChecks(unittest.TestCase):
         path.write_text(path.read_text().replace("description:", 'disable-model-invocation: "true"\ndescription:'))
         self.assertIn("must be boolean", str(checker.check_catalog(self.root)))
 
+    def test_native_policy_cannot_reenable_explicit_only(self):
+        path = self.skill()
+        path.write_text(path.read_text().replace("description:", "disable-model-invocation: true\ndescription:"))
+        native = path.parent / "agents/openai.yaml"
+        native.parent.mkdir()
+        native.write_text("policy:\n  allow_implicit_invocation: true\n")
+        self.assertIn("contradicts explicit-only", str(checker.check_catalog(self.root)))
+        native.write_text("policy:\n  allow_implicit_invocation: false\n")
+        self.assertEqual(checker.check_catalog(self.root), [])
+
+    def test_native_policy_boolean_type(self):
+        path = self.skill()
+        native = path.parent / "agents/openai.yaml"
+        native.parent.mkdir()
+        native.write_text('policy:\n  allow_implicit_invocation: "false"\n')
+        self.assertIn("must be boolean", str(checker.check_catalog(self.root)))
+
+    def test_native_policy_mapping_type(self):
+        path = self.skill()
+        native = path.parent / "agents/openai.yaml"
+        native.parent.mkdir()
+        native.write_text("policy: []\n")
+        self.assertIn("policy mapping", str(checker.check_catalog(self.root)))
+
     def test_missing_bundled_script(self):
         path = self.skill()
         path.write_text(path.read_text() + "Run `python scripts/prove.py`.\n")

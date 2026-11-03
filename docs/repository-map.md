@@ -43,14 +43,38 @@ Keep deployment paths stable; organize new material under the matching area belo
 
 ## Agent tooling and packages
 
+- `AGENTS.md` — shared cross-agent defaults. Home Manager links it to
+  `~/.codex/AGENTS.md`, `~/.claude/CLAUDE.md`, and `~/.pi/agent/AGENTS.md`;
+  Pi's canonical `pi/agent/AGENTS.md` also points here. Pi-specific additions
+  stay in `pi/agent/APPEND_SYSTEM.md`, also linked into the fallback profile.
+  Project-local instructions still apply. Nondefault Codex/Claude config roots
+  remain unmanaged; Codex's global `AGENTS.override.md` can mask the baseline.
+- `bin/pi` — tracked Unix entrypoint, deployed as `~/.local/bin/pi`. It selects
+  `pi/agent/` when `PI_CODING_AGENT_DIR` is unset, including reset environments,
+  while preserving explicit profile/session overrides. It uses the existing
+  managed release selected by `pi/agent/install/current-version`; neither
+  generated `pi/agent/bin/pi` nor downloaded release files are patched. Node
+  comes from the existing installer runtime, PATH, or mise shims, without a new
+  installation. Nushell restores the owned entrypoint ahead of generated ones.
+  Native Windows retains its generated `.cmd` launcher.
+  The existing `~/projects/pi-extensions/pi-subagent/index.ts` is an optional
+  extension only on Linux inside Herdr, with `flock` and `herdr` available.
+  The launcher never injects it into alternate profiles, package commands, or
+  `--no-extensions` invocations. Mac and missing-checkout launches skip it.
+- `scripts/agent_setup.py` — `just doctor-agents` checks the local links without
+  inference or writes. `python3 scripts/agent_setup.py apply` applies only those
+  five entrypoints, retaining replaced files/symlinks under
+  `~/.local/state/dotfiles/agent-backups/`. It refuses directory collisions;
+  this is a targeted local rollout, not a Home Manager profile activation.
+  Normal declarative deployment is `just nix-switch <profile>`; use a fresh
+  shell afterward so the new PATH is selected. `just check-agents` runs isolated
+  fixtures in CI without changing the real home or starting an agent.
 - `pi/agent/` — tracked Pi configuration, extensions, skills, and package sources.
-  The tracked `settings.json` is the source of truth for pi config; it is read
-  directly when `PI_CODING_AGENT_DIR` is set (the normal case for nushell/fish
-  shells) and is compat-symlinked into `~/.pi/agent/settings.json` so env-less
-  launches (bash, cron, systemd, subprocesses with a reset env) see the same
-  config. Home Manager provisions that symlink on Unix; the Windows deployment
-  script handles native Windows state. Machine-
-  local fields (`lastChangelogVersion`, `defaultProvider`, `defaultModel`) are
+  The tracked `settings.json` is the source of truth. Home Manager also links it
+  into `~/.pi/agent/settings.json` for clients bypassing the owned launcher;
+  this alias alone is not a complete profile mirror. SDK callers bypassing the
+  launcher must select the canonical agent directory themselves. The Windows
+  deployment script handles native Windows state. Machine-local fields (`lastChangelogVersion`, `defaultProvider`, `defaultModel`) are
   stripped on commit by the `strip-pi-machine-config` git clean filter
   (`.gitattributes`), so pi writing them back through the symlink does not
   create git noise. **Caution:** an autostash/rebase pull with local changes to

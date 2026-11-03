@@ -43,7 +43,6 @@
     "npm:pi-memory",
     "npm:@sting8k/pi-vcc",
     "npm:@mobrienv/pi-tidy-tools",
-    "/home/juan/projects/pi-extensions/pi-subagent",
     "npm:@juanbenjumea/pi-go-on",
     "https://github.com/earendil-works/pi-claude-code",
     "npm:pi-cursor-sdk"

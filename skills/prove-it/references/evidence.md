@@ -26,6 +26,12 @@ Record:
 
 A timeout, state-space cutoff, vacuous precondition, or unchecked property is not a pass. A model counterexample is first a counterexample to the model; establish code correspondence before calling it a demonstrated implementation defect. Do not advance a model’s claimed source version until that correspondence has been rechecked.
 
+## Recheck after changes
+
+Keep the covered files/functions, dependency and tool versions, assumptions, exact command, and last verified source identity alongside the existing check. Relevant code or environment changes make earlier evidence stale for the changed claim; they do not establish a regression by themselves.
+
+Before rerunning a formal check, confirm its actions, guards, and atomic boundaries still describe the implementation. Distinguish a changed requirement, model drift, harness failure, and an actual violated invariant. Advance the verified identity only after checking correspondence and running the affected verification. Do not silently narrow the property to recover a green result.
+
 ## Numbers need experiments
 
 For performance or reliability claims, identify the real workload, baseline, metric, and limiting resource. Compare like with like; repeat runs, disclose variability, and account for caches, warmup, errors, load, and omitted work. A faster isolated function may not improve the end-to-end path. Hold out evaluation data when selection or tuning could bias the result.

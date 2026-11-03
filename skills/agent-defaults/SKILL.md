@@ -16,10 +16,10 @@ Design the development environment so the easiest path is also the correct path.
 
 ## Workflow
 
-1. **Find the failure class, not just the symptom.** Inspect the implementation, callers, nearby conventions, existing checks, and known failure examples. Identify how an agent could plausibly copy the wrong pattern or take a shortcut. Distinguish a one-off bug from a systemic affordance.
+1. **Find the failure class, not just the symptom.** Inspect the implementation, callers, nearby conventions, existing checks, and known failure examples. Identify how an agent could plausibly copy the wrong pattern or take a shortcut. For recurring corrections, cite actual examples and group the shared cause rather than adding one rule per incident.
 2. **Choose the highest layer that can prevent recurrence.** Ask in order: Can the architecture/API make this impossible? Can types/schema/invariants reject it? Can a deterministic check catch it? Is concise guidance genuinely still needed? Does a residual risk merit human review? Do not reach for prose or review before evaluating stronger layers.
 3. **Make the safe path easy.** Minimize special cases and duplicated policy. Prefer a clear canonical abstraction and executable examples over warnings. Ensure migration or compatibility boundaries are explicit where needed.
-4. **Test the invariant.** Add focused tests or static checks that fail on the old unsafe behavior, not merely tests that exercise the new happy path. Run the narrow check, then the repository gate when available. Report checks that could not run without implying success.
+4. **Test the invariant.** Demonstrate the new guard rejecting a representative past mistake in an isolated fixture or historical reproducer, then accepting the corrected case. A rule listed in AGENTS.md is not enforcement. Run the narrow check, then the repository gate when available. Report checks that could not run without implying success.
 5. **Review residual risk.** For substantial architectural, security-sensitive, public-API, or cross-subsystem changes, obtain independent review if available. Ask reviewers to challenge the invariant, missed callers, bypasses, and unintended consequences—not just style. Keep review bounded to what automation cannot prove.
 6. **Report the leverage.** Summarize the failure class eliminated, the layer that now enforces the behavior, verification evidence, and any remaining judgment-dependent risk. Do not claim a class of bugs is eliminated unless the invariant and its bypass surface support that claim.
 
