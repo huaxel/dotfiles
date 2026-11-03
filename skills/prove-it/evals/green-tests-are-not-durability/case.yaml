@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: green-tests-are-not-durability
+expected_outcome: |
+  Distinguishes existing narrow evidence from the durability and duplicate-payment claim, proposes isolated crash/retry checks with independent observations, and labels the broader claim not established.

@@ -16,5 +16,5 @@ These additions apply to Pi sessions. The shared `AGENTS.md` supplies the genera
 - Distinguish machine, harness, account, model access, and quota freshness. Unknown is not available or exhausted; shared quota buckets are not independent. Never print or commit raw usage, quota, or pricing snapshots.
 - Optional observations: `liveQuota` for bounded local Go/Openference usage, `nativeQuota: "agy"` for AGY usage, `nativeDaemon: "codex"` for an already running Codex daemon, and saved machines for read-only remote observations. These do not establish model entitlement or automatic failover.
 - On quota exhaustion, inspect partial work and checks, stop the former writer, then choose a valid alternative. Do not enable overages or blindly replay.
-- pi-agy is opt-in. Independent review does not require cross-provider models. See `~/dotfiles/docs/patterns/subscription-routing.md` before changing routing.
+- pi-agy is opt-in. Independent review does not require cross-provider models.
 - Agentq queue `--model auto` and its tier resolver are separate legacy policies. Before queue work, read `~/projects/agentq/docs/agentq.md`; inspect `resolve-model.sh <small|medium|big>` when validating its explicit tiers. Do not run the legacy `update-subagent-models.sh` for Shepherdr.
