@@ -1,0 +1,33 @@
+{
+  "repeats": 1,
+  "versions": {
+    "none": null,
+    "after": "../../../skills/blast-radius"
+  },
+  "tasks": [
+    {
+      "id": "serialized-consumer",
+      "prompt": "Audit only. A change renames player_id to id in an exported JSON object. All local typed callers compile, but a scheduled Python consumer in another repository reads player_id and has not been exercised. No runtime evidence is supplied. Return JSON with verdict (established or not-established), external_contract_checked (boolean), and reason (string). Is compatibility across the known consumers established?",
+      "expected": {
+        "verdict": "not-established",
+        "external_contract_checked": false
+      }
+    },
+    {
+      "id": "pinned-library",
+      "prompt": "A cleanup change is called safe because expire() supposedly removes only dead cache entries. The pinned dependency has a local patch that can also notify active subscribers. No probe was run. Choose next_check from pinned-library-side-effect-probe or grep-callers-only. Return JSON with next_check, safety_established (boolean), and reason. Do not claim execution.",
+      "expected": {
+        "next_check": "pinned-library-side-effect-probe",
+        "safety_established": false
+      }
+    },
+    {
+      "id": "no-imaginary-consumers",
+      "prompt": "A private experimental module changes an internal function signature. Every known caller was migrated and focused contract tests passed. There is no public API or known external consumer. Should an extra compatibility layer be required solely because a hypothetical future consumer might exist? Return JSON with speculative_compatibility_required (boolean), universal_safety_proved (boolean), and reason. Keep the distinction between evidence for known scope and universal proof.",
+      "expected": {
+        "speculative_compatibility_required": false,
+        "universal_safety_proved": false
+      }
+    }
+  ]
+}

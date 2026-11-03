@@ -23,8 +23,8 @@ $env.MANPAGER = "sh -c 'col -bx | bat -l man -p --theme=tokyonight_night'"
 # LLAMA_*/MEMORYFIELD_* arrive via 10-dotfiles.conf (see header). $HOME-
 # derived paths below can't live in that file (no $VAR expansion there).
 $env.PYTHONPYCACHEPREFIX = ($env.HOME | path join ".cache/cpython")
-$env.PI_CODING_AGENT_DIR = ($env.HOME | path join "dotfiles/pi/agent")
-$env.PI_CODING_AGENT_SESSION_DIR = ($env.HOME | path join "dotfiles/pi/agent/sessions")
+$env.PI_CODING_AGENT_DIR = ($env.PI_CODING_AGENT_DIR? | default ($env.HOME | path join "dotfiles/pi/agent"))
+$env.PI_CODING_AGENT_SESSION_DIR = ($env.PI_CODING_AGENT_SESSION_DIR? | default ($env.PI_CODING_AGENT_DIR | path join "sessions"))
 $env.PRIME_AGENT_CODING_AGENT_DIR = ($env.HOME | path join "prime-agent/agent")
 $env.BUN_INSTALL = ($env.HOME | path join ".bun")
 $env.JUST_GLOBAL_JUSTFILE = ($env.HOME | path join ".config/just/justfile")

@@ -246,14 +246,23 @@ in
       ${../llama-models.ini}
   '';
 
-  # Pi fallback config: when launched without PI_CODING_AGENT_DIR (bash/cron/
-  # systemd/subprocesses with a reset env), pi reads ~/.pi/agent/settings.json.
-  # Symlink it to the tracked source so the fallback matches the live config.
-  # Home Manager provisions the link on Unix. The
-  # strip-pi-machine-config git clean filter keeps machine-local fields out
-  # of git, so pi writing back through the link creates no git noise.
-  # (auth.json is NOT managed here — it is gitignored per-machine and created
-  # ad-hoc after `/login openai-codex`.)
+  # One shared instruction source, using each harness's actual global entrypoint.
+  # Keep collision checks enabled; normal `nix-switch` backs up differing files.
+  home.file.".codex/AGENTS.md".source =
+    config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/dotfiles/AGENTS.md";
+  home.file.".claude/CLAUDE.md".source =
+    config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/dotfiles/AGENTS.md";
+  home.file.".pi/agent/AGENTS.md".source =
+    config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/dotfiles/AGENTS.md";
+  home.file.".pi/agent/APPEND_SYSTEM.md".source =
+    config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/dotfiles/pi/agent/APPEND_SYSTEM.md";
+  home.file.".local/bin/pi".source =
+    config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/dotfiles/bin/pi";
+
+  # The owned launcher selects the canonical profile when unset. Clients
+  # bypassing it still get this settings alias, not a complete profile mirror.
+  # The git clean filter strips machine-local settings written through the link.
+  # auth.json remains unmanaged, gitignored, and created by the user's login.
   home.file.".pi/agent/settings.json".source =
     config.lib.file.mkOutOfStoreSymlink
       "${config.home.homeDirectory}/dotfiles/pi/agent/settings.json";
@@ -291,7 +300,6 @@ in
   home.file.".config/fastfetch".source = ../config/fastfetch;
   home.file.".config/icons.sh".source = ../config/icons.sh;
   home.file.".config/fish/config.fish".source = ../config/fish/config.fish;
-  home.file.".config/kitty/kitty.conf".source = ../config/kitty/kitty.conf;
   home.file.".config/markdownlint/.markdownlint-cli2.yaml".source = ../config/markdownlint/.markdownlint-cli2.yaml;
 
   sops = {

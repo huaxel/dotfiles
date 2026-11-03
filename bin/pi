@@ -1,0 +1,83 @@
+#!/bin/sh
+# Home Manager owns this entrypoint; Pi still owns its managed release tree.
+case "$0" in
+  */*) pi_launcher="$0" ;;
+  *) pi_launcher=$(command -v "$0") || exit 127 ;;
+esac
+pi_links=0
+while [ -L "$pi_launcher" ]; do
+  pi_links=$((pi_links + 1))
+  if [ "$pi_links" -gt 40 ]; then
+    printf 'Pi launcher symlink chain is too long.\n' >&2
+    exit 1
+  fi
+  pi_link=$(readlink "$pi_launcher") || exit 1
+  case "$pi_link" in
+    /*) pi_launcher="$pi_link" ;;
+    *) pi_launcher=${pi_launcher%/*}/$pi_link ;;
+  esac
+done
+pi_bin_dir=${pi_launcher%/*}
+pi_repo_dir=$(CDPATH='' cd -P "$pi_bin_dir/.." && pwd) || exit 1
+pi_agent_dir=$pi_repo_dir/pi/agent
+
+# Normal shells and env-cleared subprocesses share instructions and resources.
+# An intentional alternate profile remains an intentional alternate profile.
+if [ -z "${PI_CODING_AGENT_DIR:-}" ]; then
+  PI_CODING_AGENT_DIR=$pi_agent_dir
+  export PI_CODING_AGENT_DIR
+fi
+
+pi_current_file=$pi_agent_dir/install/current-version
+if ! IFS= read -r pi_current_version < "$pi_current_file"; then
+  printf 'Could not read managed Pi version from %s.\n' "$pi_current_file" >&2
+  exit 1
+fi
+case "$pi_current_version" in
+  ""|.|..|*[!0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz._+-]*)
+    printf 'Managed Pi version is invalid.\n' >&2
+    exit 1
+    ;;
+esac
+pi_release_bin=$pi_agent_dir/install/releases/$pi_current_version/node_modules/.bin/pi
+if [ ! -x "$pi_release_bin" ]; then
+  printf 'Managed Pi executable is missing: %s\n' "$pi_release_bin" >&2
+  exit 1
+fi
+pi_node_bin=${XDG_DATA_HOME:-$HOME/.local/share}/pi-node/current/bin
+if [ -x "$pi_node_bin/node" ]; then
+  PATH=$pi_node_bin:$PATH
+  export PATH
+elif ! command -v node >/dev/null 2>&1; then
+  pi_mise_shims=${MISE_DATA_DIR:-$HOME/.local/share/mise}/shims
+  if [ -x "$pi_mise_shims/node" ]; then
+    PATH=$pi_mise_shims:$PATH
+    export PATH
+  fi
+fi
+PI_MANAGED_INSTALL_ROOT=$pi_agent_dir/install
+export PI_MANAGED_INSTALL_ROOT
+
+# The existing fork is Linux/flock/Herdr-specific. Load it via Pi's supported
+# extension flag only for canonical interactive/headless session invocations.
+# Never defeat --no-extensions, alter package commands, or inject into a profile.
+pi_helper_allowed=yes
+case "${1:-}" in
+  install|remove|uninstall|update|list|config|auth|mcp) pi_helper_allowed=no ;;
+esac
+for pi_arg do
+  case "$pi_arg" in
+    --) break ;;
+    --no-extensions|-ne|--help|-h|--version|-v|--list-models) pi_helper_allowed=no ;;
+  esac
+done
+pi_helper=$HOME/projects/pi-extensions/pi-subagent/index.ts
+if [ "$pi_helper_allowed" = yes ] &&
+   [ "$PI_CODING_AGENT_DIR" = "$pi_agent_dir" ] &&
+   [ "${HERDR_ENV:-}" = 1 ] &&
+   [ "$(uname -s)" = Linux ] &&
+   [ -f "$pi_helper" ] &&
+   command -v flock >/dev/null 2>&1 && command -v herdr >/dev/null 2>&1; then
+  exec "$pi_release_bin" --extension "$pi_helper" "$@"
+fi
+exec "$pi_release_bin" "$@"

@@ -1,0 +1,5 @@
+interface:
+  display_name: "Skill Diet"
+  short_description: "Slim skills with frozen before/after/no-skill comparisons"
+policy:
+  allow_implicit_invocation: false
