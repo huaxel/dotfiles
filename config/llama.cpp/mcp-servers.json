@@ -37,7 +37,7 @@
     "id": "git",
     "name": "Local Git Repos",
     "enabled": true,
-    "url": "http://framearch-juan:3002/mcp",
+    "url": "http://127.0.0.1:3002/mcp",
     "requestTimeoutSeconds": 30,
     "useProxy": false
   },
