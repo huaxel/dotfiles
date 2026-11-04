@@ -11,6 +11,7 @@ Shared defaults across projects and harnesses. Follow applicable project instruc
 - Run focused checks, then the project gate (`just ci` when provided). Fix failures caused by your changes; report unrelated failures and unavailable checks.
 - Seek independent read-only review for substantial or high-risk changes. Resolve important findings before reporting completion; report when review is unavailable.
 - Finish with changed paths, checks actually run, remaining risks, and blockers. Never imply unperformed checks passed.
+- A restriction is a conclusion you earn from a real failure, not a field you read. Never report an operation as blocked, unavailable, or not-permitted based on a metadata flag, a config field, or a docs claim - attempt it and quote the actual error. (maintainerCanModify: false on a PR does not mean you cannot push: it governs the upstream-maintainer auto-grant, not your own access to the fork.) If you genuinely cannot attempt it, say "not attempted", never "we can't".
 
 ## Engineering
 
