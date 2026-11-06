@@ -7,11 +7,7 @@ Mock at **system boundaries** only:
 - Time/randomness
 - File system (sometimes)
 
-Don't mock:
-
-- Your own classes/modules
-- Internal collaborators
-- Anything you control
+Avoid mocks of internal collaborators merely because they are separate classes or modules. Ownership is not the criterion: an adapter you own may still be the right external-system boundary. Prefer real collaborators when they are deterministic, cheap, and isolated.
 
 ## Designing for Mockability
 

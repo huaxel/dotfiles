@@ -1,0 +1,5 @@
+interface:
+  display_name: "Benchmark Checklist"
+  short_description: "Validate performance evidence before trusting a number"
+policy:
+  allow_implicit_invocation: false

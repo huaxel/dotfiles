@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: coverage-and-model-boundary
+expected_outcome: |
+  Rejects the unsupported coverage and atomicity claims, identifies missing scope and interleavings, and names evidence needed to connect the diagram to the implementation.

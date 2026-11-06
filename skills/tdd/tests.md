@@ -20,7 +20,7 @@ Characteristics:
 - Uses public API only
 - Survives internal refactors
 - Describes WHAT, not HOW
-- One logical assertion per test
+- One coherent behavior per test, with all assertions needed to verify it
 
 ## Bad Tests
 
@@ -42,17 +42,17 @@ Red flags:
 - Asserting on call counts/order
 - Test breaks when refactoring without behavior change
 - Test name describes HOW not WHAT
-- Verifying through external means instead of interface
+- Coupling assertions to storage or internal representation when that is not the contract under test
 
 ```typescript
-// BAD: Bypasses interface to verify
+// Fragile if the contract is user retrieval, not a specific storage schema
 test("createUser saves to database", async () => {
   await createUser({ name: "Alice" });
   const row = await db.query("SELECT * FROM users WHERE name = ?", ["Alice"]);
   expect(row).toBeDefined();
 });
 
-// GOOD: Verifies through interface
+// Prefer the retrieval interface when that is the behavior promised
 test("createUser makes user retrievable", async () => {
   const user = await createUser({ name: "Alice" });
   const retrieved = await getUser(user.id);

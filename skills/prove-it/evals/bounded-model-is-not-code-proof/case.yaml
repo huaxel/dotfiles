@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: bounded-model-is-not-code-proof
+expected_outcome: |
+  Reports the bounded model result narrowly, identifies the atomicity mismatch, and rejects a general correctness proof without code correspondence or additional evidence.

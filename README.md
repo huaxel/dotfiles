@@ -4,7 +4,8 @@ Personal multi-platform dotfiles managed with Nix/Home Manager on Unix and
 small platform-native scripts on Windows.
 
 For a maintained map of responsibilities, deployment boundaries, and cleanup rules,
-see [`docs/repository-map.md`](docs/repository-map.md).
+see [`docs/repository-map.md`](docs/repository-map.md). Homelab inventory, deployment,
+and recovery source now lives in the private [homelab repository](https://github.com/huaxel/homelab).
 
 ## Quick Start
 
@@ -75,10 +76,10 @@ Do not switch that profile on the existing Arch installation.
 ├── gitconfig, ssh_config, starship.toml, gitignore_global
 ├── config/ config-linux/ config-macos/   # application configuration
 ├── powershell/ windows-terminal/ autohotkey/ flow-launcher/  # Windows
-├── secrets/                               # sops-encrypted (see secrets/README.md)
+├── secrets/                               # personal sops-encrypted (see secrets/README.md)
 ├── pi/ skills/                            # agent tooling
 ├── bin/ scripts/ justfile                 # helpers + CI gate
-└── docs/ worksheets/                      # investigations and notes
+└── docs/ worksheets/                      # dotfiles documentation and notes
 ```
 
 ## Templates
@@ -98,6 +99,7 @@ just nushell-setup      # regenerate shell integrations after tool upgrades
 just nu-health          # verify nu config, integrations, keybindings, aliases
 just pi-healthcheck     # pi setup health report (also --json)
 just check-windows      # static Windows/WSL deployment checks
+# Homelab infra operations now live in the private ~/projects/homelab repo
 ```
 
 On Windows, run `just windows-deploy` or `powershell.exe -ExecutionPolicy Bypass -File ./scripts/deploy-windows.ps1`.

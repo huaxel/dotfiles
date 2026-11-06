@@ -6,11 +6,14 @@
 # Shared settings (threads, batch, GPU, KV cache, etc.)
 source /etc/conf.d/llama.cpp.common
 
+# Keep the router single-slot under systemd as well as shell launchers.
+LLAMA_ARG_N_PARALLEL=1
+
 # ── Server-specific overrides ───────────────────────────────────────
 
-# Keep the unauthenticated inference API local; expose it only via an
-# explicitly authenticated reverse proxy if remote access is required.
-LLAMA_ARG_HOST=127.0.0.1
+# Unauthenticated router with tools enabled; retain trusted-Tailscale access.
+# UFW currently permits port 8000 on tailscale0 and denies other inbound paths.
+LLAMA_ARG_HOST=0.0.0.0
 LLAMA_ARG_PORT=8000
 
 # Model routing via models.ini preset

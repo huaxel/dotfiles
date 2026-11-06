@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: dirty-shared-campaign
+expected_outcome: |
+  Plans an isolated exact-source snapshot including relevant dirty and untracked inputs, validates the baseline, stays within the budget, and does not mutate, reset, stash, or otherwise disrupt the shared checkout.
