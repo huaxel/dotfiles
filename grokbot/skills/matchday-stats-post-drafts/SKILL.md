@@ -1,10 +1,11 @@
 ---
-name: Matchday stats post drafts
+name: Matchday round angles
 description: >-
-  Use when turning a finished football league round into 3 to 5 sourced,
-  ready-to-post X drafts for a stats account.
+  Use when a football league round has finished and you need 3 to 5 sourced stat
+  angles from it for a stats account, ready to hand to whoever writes the post
+  copy.
 ---
-# Matchday stats post drafts
+# Matchday round angles
 
 ## 1. Confirm the round is done
 - Check the league's official fixtures page. Note any postponed or rescheduled match by date, because it changes games-played counts and the table.
@@ -19,7 +20,7 @@ description: >-
 - When sources disagree on a position or number, use wording that's true under both ("bottom", "in the top three") and flag the gap.
 - Never estimate or interpolate. If no source has it, say so.
 
-## 3. Pick angles a stats account wins with
+## 3. Pick 3 to 5 angles a stats account wins with
 - Gaps between xG or xPts and the actual result: overperformers and underperformers.
 - Streaks, records and extreme game profiles, such as total goals in a team's games against the league average.
 - Player outliers, with minutes played as a sample-size caveat.
@@ -27,13 +28,11 @@ description: >-
 - Check-ins on a saved recurring idea, such as a season-by-season comparison due after N games.
 - Match each superlative to the exact metric. "Biggest overperformance" on points minus xPts isn't the same claim as goals minus xG.
 
-## 4. Write each draft
-- Under 280 characters, or a numbered thread.
-- Lead with the finding in plain words. Keep jargon like "npxG/90" on the chart or later in the post.
-- Voice: dry, sharp, numbers-first. No hype words, at most one emoji.
-- Add a one-line chart idea. Keep it simple: one highlighted bar column, 8 to 10 rows, one footnote that names the metric and data source.
-- Under each draft, list every number with its source link.
-- Optionally add an x.com/intent/post?text= link with the URL-encoded text. Count the characters with code, not by eye.
+## 4. Hand over the angles, not the copy
+For each angle give:
+- the finding in one plain-words line (the hook to test)
+- every number it rests on, each with its source link
+- the exact metric behind any superlative, and any caveat (sample size, source disagreement)
+- a one-line chart idea: one highlighted bar column, 8 to 10 rows, one footnote naming the metric and source
 
-## 5. Hand over
-- Send the drafts for the user to post. Never post, reply or DM yourself.
+Send the angles to whoever writes the posts. Don't write post copy, and never post, reply or DM.
