@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "measured_at": "2026-11-03T11:50:55.863377+00:00",
+  "scope": "text-only reasoning pilot; one trial per case, no tools or discovery",
+  "provider": "openai-codex",
+  "model": "gpt-6.1-sol",
+  "total_model_requests": 12,
+  "suites": {
+    "blast-radius": {
+      "plan_digest": "382126c50492ea2c3d2dfd2836171562bf4a8851b2cb44a1af4b1a792ad81193",
+      "skill_files_sha256": "d0808bbb70a5f6674ca35809b4041f930af2c05f9f8f13c7ce66cf80457bb24d",
+      "task_spec_sha256": "a908a17edac5f5e99d641bc1f01d4fb9f8ab2407bdaaa9d340680d79e6ef0bc9",
+      "adapter_sha256": "2d21f6a4dde159349b3fa2cef4a3085c61b3820c40631d10c38634c79ea7af4e",
+      "harness_sha256": "419910e1b879291d74d0a4be38d508781fca2e5a215fbe87e92f06669f2ed141",
+      "sdk_version": "1.5.0",
+      "passed": {
+        "none": {
+          "passed": 3,
+          "total": 3
+        },
+        "after": {
+          "passed": 3,
+          "total": 3
+        }
+      },
+      "manual_answer_inspection": "Answers examined; no material advantage observed on these cases."
+    },
+    "benchmark-checklist": {
+      "plan_digest": "3bf5b49e58be1be6154ee22901cab4839cf52d79502648851f57e23643fc2f25",
+      "skill_files_sha256": "9a1d6738d422fde3e02d3e2c281debf495e445f83203ee643e2d59aa5fac3dc9",
+      "task_spec_sha256": "7b8f30c9ff14524caf70f7c3d7b405559e62695ba0c7cfa013ae8993b5d1bed4",
+      "adapter_sha256": "2d21f6a4dde159349b3fa2cef4a3085c61b3820c40631d10c38634c79ea7af4e",
+      "harness_sha256": "419910e1b879291d74d0a4be38d508781fca2e5a215fbe87e92f06669f2ed141",
+      "sdk_version": "1.5.0",
+      "passed": {
+        "none": {
+          "passed": 3,
+          "total": 3
+        },
+        "after": {
+          "passed": 3,
+          "total": 3
+        }
+      },
+      "manual_answer_inspection": "Answers examined; no material advantage observed on these cases."
+    }
+  },
+  "decision": "Keep new skills explicit-only; no observed benefit over no-skill on these cases. No equivalence, runtime effectiveness, or token-savings claim.",
+  "validation_status": "Historical pilot: scored at execution under the recorded harness hashes. Subsequent acceptance-gate hardening invalidates rescoring these records as current evidence; no records were rebound and no extra model calls were made."
+}

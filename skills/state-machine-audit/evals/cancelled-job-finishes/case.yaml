@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: cancelled-job-finishes
+expected_outcome: |
+  Reconstructs the lifecycle and demonstrates a source-level start/cancel/finish counterexample, distinguishes inferred state names from enforced guards, and recommends a small enforcement change without a framework rewrite.

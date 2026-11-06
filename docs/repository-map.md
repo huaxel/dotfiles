@@ -34,22 +34,47 @@ Keep deployment paths stable; organize new material under the matching area belo
 
 - `bootstrap.sh`, `bootstrap.ps1` — first-machine setup.
 - `bin/` — small user-facing helper commands that can be installed on `PATH`.
-- `scripts/` — backup, restore, deployment, and platform integration scripts
+- `scripts/` — workstation backup/restore and platform integration scripts
   (includes `setup-nushell.sh` and `nu-health.sh` for Nushell integration
-  generation and health checks).
+  generation and health checks). Homelab deployment assets live in the private
+  `~/projects/homelab` repository.
 - `etc/` — system-level files that are installed explicitly, not by Home Manager.
 - `justfile` — local CI, testing, and maintenance entry points.
 
 ## Agent tooling and packages
 
+- `AGENTS.md` — shared cross-agent defaults. Home Manager links it to
+  `~/.codex/AGENTS.md`, `~/.claude/CLAUDE.md`, and `~/.pi/agent/AGENTS.md`;
+  Pi's canonical `pi/agent/AGENTS.md` also points here. Pi-specific additions
+  stay in `pi/agent/APPEND_SYSTEM.md`, also linked into the fallback profile.
+  Project-local instructions still apply. Nondefault Codex/Claude config roots
+  remain unmanaged; Codex's global `AGENTS.override.md` can mask the baseline.
+- `bin/pi` — tracked Unix entrypoint, deployed as `~/.local/bin/pi`. It selects
+  `pi/agent/` when `PI_CODING_AGENT_DIR` is unset, including reset environments,
+  while preserving explicit profile/session overrides. It uses the existing
+  managed release selected by `pi/agent/install/current-version`; neither
+  generated `pi/agent/bin/pi` nor downloaded release files are patched. Node
+  comes from the existing installer runtime, PATH, or mise shims, without a new
+  installation. Nushell restores the owned entrypoint ahead of generated ones.
+  Native Windows retains its generated `.cmd` launcher.
+  The existing `~/projects/pi-extensions/pi-subagent/index.ts` is an optional
+  extension only on Linux inside Herdr, with `flock` and `herdr` available.
+  The launcher never injects it into alternate profiles, package commands, or
+  `--no-extensions` invocations. Mac and missing-checkout launches skip it.
+- `scripts/agent_setup.py` — `just doctor-agents` checks the local links without
+  inference or writes. `python3 scripts/agent_setup.py apply` applies only those
+  five entrypoints, retaining replaced files/symlinks under
+  `~/.local/state/dotfiles/agent-backups/`. It refuses directory collisions;
+  this is a targeted local rollout, not a Home Manager profile activation.
+  Normal declarative deployment is `just nix-switch <profile>`; use a fresh
+  shell afterward so the new PATH is selected. `just check-agents` runs isolated
+  fixtures in CI without changing the real home or starting an agent.
 - `pi/agent/` — tracked Pi configuration, extensions, skills, and package sources.
-  The tracked `settings.json` is the source of truth for pi config; it is read
-  directly when `PI_CODING_AGENT_DIR` is set (the normal case for nushell/fish
-  shells) and is compat-symlinked into `~/.pi/agent/settings.json` so env-less
-  launches (bash, cron, systemd, subprocesses with a reset env) see the same
-  config. Home Manager provisions that symlink on Unix; the Windows deployment
-  script handles native Windows state. Machine-
-  local fields (`lastChangelogVersion`, `defaultProvider`, `defaultModel`) are
+  The tracked `settings.json` is the source of truth. Home Manager also links it
+  into `~/.pi/agent/settings.json` for clients bypassing the owned launcher;
+  this alias alone is not a complete profile mirror. SDK callers bypassing the
+  launcher must select the canonical agent directory themselves. The Windows
+  deployment script handles native Windows state. Machine-local fields (`lastChangelogVersion`, `defaultProvider`, `defaultModel`) are
   stripped on commit by the `strip-pi-machine-config` git clean filter
   (`.gitattributes`), so pi writing them back through the symlink does not
   create git noise. **Caution:** an autostash/rebase pull with local changes to
@@ -61,11 +86,14 @@ Keep deployment paths stable; organize new material under the matching area belo
   collection, one directory per package, published to npm under `@juanbenjumea`),
   not in this repository. The runtime consumes them from the registry; the only
   tree-local Pi code is `pi/agent/extensions/`.
-- `skills/` — reusable skills shared by agents and projects.
+- `skills/` — reusable skills shared by agents and projects. See
+  [`skills/README.md`](../skills/README.md) for ownership, harness selection,
+  and catalog verification.
 
 ## Documentation and investigations
 
-- `README.md` — installation, bootstrap, backup/restore, and secrets guide.
+- `README.md` — installation, workstation bootstrap, backup/restore, and secrets guide.
+- Homelab operations and machine inventory — private `huaxel/homelab` repository.
 - `docs/` — durable operational patterns, design documents, and investigations.
 - `docs/investigations/pi-health-check/` — findings and decision tickets for the
   Pi health-check project; keep new investigation material here.

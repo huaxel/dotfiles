@@ -1,0 +1,33 @@
+{
+  "repeats": 1,
+  "versions": {
+    "none": null,
+    "after": "../../../skills/benchmark-checklist"
+  },
+  "tasks": [
+    {
+      "id": "lazy-work",
+      "prompt": "A Python benchmark times make_rows() returning a generator, but never iterates it. The old version produced and persisted all rows before returning. The new version appears 1000x faster. Return JSON with speedup_established (boolean), primary_problem (work-not-executed or normal-noise), and reason.",
+      "expected": {
+        "speedup_established": false,
+        "primary_problem": "work-not-executed"
+      }
+    },
+    {
+      "id": "failed-requests",
+      "prompt": "A load test claims implementation A wins at 1000 responses/sec vs B at 800. A has 950 rejections/sec and B has zero. Outputs were not validated and the harness counts every HTTP response. Return JSON with winner_established (boolean), missing_check (successful-correct-work or more-callers), and reason. Do not infer overall production superiority from these data.",
+      "expected": {
+        "winner_established": false,
+        "missing_check": "successful-correct-work"
+      }
+    },
+    {
+      "id": "noise-and-scope",
+      "prompt": "Alternating end-to-end runs in milliseconds are A=[100,120,90,110], B=[99,125,88,111]. The author claims B is reliably faster based on its best run. Correct outputs were checked, but no bottleneck evidence or further repetitions are available. Return JSON with verdict (reliable-speedup or inconclusive), equivalence_proved (boolean), and reason.",
+      "expected": {
+        "verdict": "inconclusive",
+        "equivalence_proved": false
+      }
+    }
+  ]
+}

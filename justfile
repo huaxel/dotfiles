@@ -42,14 +42,14 @@ nushell-setup:
 # ──────────── Check recipes ────────────
 
 # Run ALL checks (the full trusted CI pipeline, including SOPS decryption)
-ci: check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-macos check-home-server check-ci-jit check-secrets check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
+ci: check-agents check-skills check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-macos check-secrets check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
     @echo ""
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     @echo "  🟢  All CI checks passed!  🟢"
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # Public/fork-safe variant: full gate, but validate only encrypted metadata.
-ci-public: check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-macos check-home-server check-ci-jit check-secrets-structure check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
+ci-public: check-agents check-skills check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-macos check-secrets-structure check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
     @echo ""
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     @echo "  🟢  All secret-free CI checks passed!  🟢"
@@ -71,6 +71,18 @@ ci-strict:
         exit 1
     fi
     exec just ci
+
+# Validate skill metadata and bundled resources without running skill code.
+check-skills:
+    python3 scripts/tests/check-skills.test.py
+    python3 scripts/tests/skill-eval.test.py
+    node --check scripts/skill_eval_pi.mjs
+    node --test scripts/tests/skill-eval-adapter.test.mjs
+    python3 scripts/check_skills.py
+
+# Report machine-local skill copies without replacing overrides.
+doctor-skills:
+    python3 scripts/check_skills.py --local
 
 # ── Shell scripts ──
 
@@ -108,7 +120,7 @@ check-sh:
             echo "  ❌ $f has issues"
             errors=$((errors + 1))
         fi
-    done < <(find . \( -path ./node_modules -o -path ./pi/agent/npm/node_modules -o -path ./pi/agent/install -o -path ./pi/agent/git -o -path ./pi/agent/herdr-plugins -o -path ./pi_npm/node_modules -o -path ./.git -o -path './~' \) -prune -o -type f \( -name '*.sh' -o -name '*.bash' \) -print 2>/dev/null | sort || true)
+    done < <(find . \( -path ./node_modules -o -path ./pi/agent/npm/node_modules -o -path ./pi/agent/install -o -path ./pi/agent/git -o -path ./pi/agent/herdr-plugins -o -path ./pi_npm/node_modules -o -path ./.git -o -path './~' \) -prune -o -type f \( -name '*.sh' -o -name '*.bash' -o -path './bin/pi' \) -print 2>/dev/null | sort || true)
     echo "  Checked $count shell scripts"
     if [ "$errors" -gt 0 ]; then echo "  ❌ $errors files have issues"; exit 1; fi
     echo "  ✅ All shell scripts pass ShellCheck"
@@ -243,45 +255,6 @@ check-recovery:
 # Validate macOS provisioning safety on every platform.
 check-macos:
     python3 scripts/tests/macos-config.test.py
-
-# Validate home-server recovery and deployment invariants on every platform.
-check-home-server:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    python3 scripts/tests/home-server-config.test.py
-    bash scripts/tests/home-server-deploy.test.sh
-    if ! command -v nix &>/dev/null; then
-        if [ "${CI:-}" = "true" ]; then echo "  ❌ nix required in CI"; exit 1; fi
-        echo "  ⚠️  nix not installed — skipping Ansible syntax checks"
-    else
-        nix run --no-write-lock-file .#ansible-playbook -- -i infra/ansible/hosts.yml --syntax-check infra/ansible/audit.yml
-        nix run --no-write-lock-file .#ansible-playbook -- -i infra/ansible/hosts.yml --syntax-check infra/ansible/verify-fleet.yml
-        nix run --no-write-lock-file .#ansible-playbook -- -i infra/ansible/hosts.yml --syntax-check infra/ansible/deploy-ci-jit.yml
-    fi
-    if command -v ruby >/dev/null 2>&1; then
-        ruby -e 'require "yaml"; YAML.safe_load(File.read(ARGV[0]), permitted_classes: [], aliases: false)' scripts/home-server-deploy/media-stack.docker-compose.yml
-        echo "home-server YAML checks passed"
-    else
-        echo "  ⚠️  ruby unavailable — static YAML invariants passed; full parse skipped"
-    fi
-
-# Validate JIT host routing everywhere and its Linux runtime behavior.
-check-ci-jit:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    python3 scripts/tests/ci-jit-config.test.py
-    age_key="${SOPS_AGE_KEY_FILE:-$HOME/.config/sops/age/keys.txt}"
-    if [ -f "$age_key" ]; then
-        python3 scripts/tests/ci-jit-private-allowlist.test.py
-    else
-        echo "  ⚠️  Operator age key unavailable — encrypted allowlist decryption skipped"
-    fi
-    bash -n infra/ci-dispatcher/jit-dispatcher.sh infra/ci-dispatcher/check-idle.sh scripts/tests/ci-jit-dispatcher.test.sh
-    if [ "$(uname -s)" = "Linux" ]; then
-        bash scripts/tests/ci-jit-dispatcher.test.sh
-    else
-        echo "  ⚠️  Linux-only dispatcher integration test skipped"
-    fi
 
 # Validate Windows/WSL deployment invariants on any platform. When pwsh is
 # installed, also parse every tracked PowerShell source with its native AST.
@@ -447,6 +420,14 @@ check-nu:
     done
     if [ "$errors" -gt 0 ]; then echo "  ❌ $errors Nushell config files have issues"; exit 1; fi
     echo "  ✅ All Nushell config files parse"
+
+# Offline deployment and launcher fixtures; never touches the real home.
+check-agents:
+    python3 scripts/tests/agent-setup.test.py
+
+# Read-only local entrypoint checks; deliberately outside the repository gate.
+doctor-agents:
+    python3 scripts/agent_setup.py check
 
 # Validate Nushell/Fish literals against the shared environment.d defaults.
 check-env-parity:
@@ -634,36 +615,7 @@ fix-gitignore:
 runner-setup host="" action="install":
     bash {{dotfiles-dir}}/config/ci/runner/setup-runner.sh --host {{host}} {{action}}
 
-# ──────────── Home server recipes ────────────
-
-# Run local syntax checks, then contact the fleet for read-only audit and baseline verification.
-home-servers-check:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    ansible() { nix run --no-write-lock-file .#ansible-playbook -- -i infra/ansible/hosts.yml "$@"; }
-    ansible --syntax-check infra/ansible/audit.yml
-    ansible --syntax-check infra/ansible/verify-fleet.yml
-    ansible infra/ansible/audit.yml
-    ansible infra/ansible/verify-fleet.yml
-
-# Deploy or update the four-host ephemeral CI JIT dispatcher pool.
-# Requires each host's token file to be present and juan-owned mode 0600.
-ci-jit-deploy:
-    nix run --no-write-lock-file .#ansible-playbook -- -i infra/ansible/hosts.yml infra/ansible/deploy-ci-jit.yml
-
-# Register the current (or named) git project on a home server for git-push deployments.
-# Usage: just register-project acerpepe [project-name]
-register-project server project="":
-    #!/usr/bin/env bash
-    PROJECT="{{project}}"
-    if [ -z "$PROJECT" ]; then PROJECT="$(basename "$(git rev-parse --show-toplevel 2>/dev/null || pwd)")"; fi
-    ssh "{{server}}" bash -s -- "$PROJECT" < "{{dotfiles-dir}}/scripts/home-server-deploy/register-project"
-
-# Push the current project branch to a home server, triggering deploy.
-# Usage: just deploy-server acerpepe [branch]
-deploy-server server branch="main":
-    #!/usr/bin/env bash
-    git push "{{server}}" "{{branch}}"
+# ──────────── Home server deployment lives in ~/projects/homelab ────────────
 
 # ──────────── Cheap cloud (throwaway dev containers) ────────────
 
