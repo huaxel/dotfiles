@@ -9,10 +9,8 @@
     "opencode-go/deepseek-v4.1-flash",
     "claude-code/claude-opus-5-5",
     "claude-code/claude-sonnet-5-5",
-    "antigravity/gemini-4-argon",
     "antigravity/gemini-3-8-flash",
-    "antigravity/claude-opus-5-5-medium",
-    "antigravity/claude-sonnet-5-5-medium"
+    "antigravity/gemini-4-argon"
   ],
   "lastChangelogVersion": "0.0.0",
   "theme": "high-contrast",
@@ -63,7 +61,7 @@
     "autoResize": false
   },
   "extensionChangelogVersions": {
-    "{\"source\":\"npm:pi-web-access\",\"scope\":\"user\"}": "0.46.0",
+    "{\"source\":\"npm:pi-web-access\",\"scope\":\"user\"}": "0.47.0",
     "{\"source\":\"npm:@juanbenjumea/pi-agy\",\"scope\":\"user\"}": "0.7.7",
     "{\"source\":\"npm:pi-memory\",\"scope\":\"user\"}": "0.4.2",
     "{\"source\":\"npm:@sting8k/pi-vcc\",\"scope\":\"user\"}": "0.11.2",
