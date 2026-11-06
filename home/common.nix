@@ -256,8 +256,11 @@ in
     config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/dotfiles/AGENTS.md";
   home.file.".pi/agent/APPEND_SYSTEM.md".source =
     config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/dotfiles/pi/agent/APPEND_SYSTEM.md";
-  home.file.".local/bin/pi".source =
-    config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/dotfiles/bin/pi";
+  home.file.".local/bin/pi" = {
+    source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/dotfiles/bin/pi";
+    # This intentionally replaces the legacy Pi launcher during migration.
+    force = true;
+  };
 
   # The owned launcher selects the canonical profile when unset. Clients
   # bypassing it still get this settings alias, not a complete profile mirror.
