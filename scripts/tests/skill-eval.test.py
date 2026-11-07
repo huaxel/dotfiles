@@ -55,8 +55,8 @@ class EvaluationChecks(unittest.TestCase):
 
     def test_frozen_runner_sources_retained(self):
         p = self.freeze()
-        self.assertEqual(p["adapter_source"], self.adapter.read_text())
-        self.assertEqual(p["harness_source"], Path(p["harness_path"]).read_text())
+        self.assertEqual(p["adapter_source"].encode("utf-8"), self.adapter.read_bytes())
+        self.assertEqual(p["harness_source"].encode("utf-8"), Path(p["harness_path"]).read_bytes())
 
     def test_call_matrix_limit(self):
         self.data["repeats"] = 10
@@ -245,7 +245,12 @@ class EvaluationChecks(unittest.TestCase):
             self.freeze()
 
     def test_symlinked_bundle_resource_rejected(self):
-        (self.skill / "secret-link").symlink_to(self.spec)
+        try:
+            (self.skill / "secret-link").symlink_to(self.spec)
+        except OSError as error:
+            if getattr(error, "winerror", None) == 1314:
+                self.skipTest("Windows symlink privilege unavailable; covered under WSL")
+            raise
         with self.assertRaisesRegex(ValueError, "symlink"):
             self.freeze()
 

@@ -14,6 +14,7 @@ GATHER = ROOT / "config-linux/niri/scripts/gather-workspaces.sh"
 MOCK = ROOT / "scripts/tests/fixtures/niri-workspaces.py"
 
 
+@unittest.skipIf(os.name == "nt", "POSIX niri helper; run under WSL on Windows")
 class GatherWorkspacesTests(unittest.TestCase):
     def run_gather(self, state):
         with tempfile.TemporaryDirectory() as tmp:

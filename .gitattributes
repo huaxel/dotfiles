@@ -2,6 +2,8 @@
 # Prevents CRLF issues when sharing dotfiles between Windows, WSL, macOS, and Linux
 
 *.sh text eol=lf
+# This extensionless POSIX launcher is also executed directly by WSL.
+bin/pi text eol=lf
 *.toml text eol=lf
 *.fish text eol=lf
 *.ps1 text eol=crlf

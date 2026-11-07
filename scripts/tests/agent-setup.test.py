@@ -4,7 +4,6 @@ import importlib.util
 import json
 import os
 from pathlib import Path
-import re
 import shutil
 import subprocess
 import sys
@@ -17,6 +16,7 @@ a = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(a)
 
 
+@unittest.skipIf(os.name == "nt", "Unix symlink deployment; run under WSL on Windows")
 class DeploymentTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -104,29 +104,16 @@ class DeploymentTests(unittest.TestCase):
         a.apply_links(self.root, self.home)
         self.assertIn("configured local package missing", str(a.check(self.root, self.home)))
 
-    # Home Manager entries that intentionally replace a stale machine-local file
-    # during migration. Keep this list explicit and tiny: the point of the test is
-    # that nothing else silently force-overwrites user-owned files.
-    FORCED_HOME_ENTRIES = {".local/bin/pi"}
 
+class HomeManagerTests(unittest.TestCase):
     def test_home_manager_declares_same_sources_without_force(self):
         common = (ROOT / "home/common.nix").read_text()
         for name in a.entries(ROOT):
-            declaration = f'home.file."{name}"'
-            if name in self.FORCED_HOME_ENTRIES:
-                block = re.search(
-                    re.escape(declaration) + r" = \{(.*?)\n  \};", common, re.DOTALL
-                )
-                self.assertIsNotNone(
-                    block, f"{name} is force-declared but not in attribute-set form"
-                )
-                self.assertIn("force = true;", block.group(1))
-                self.assertIn("source =", block.group(1))
-                continue
-            self.assertIn(f"{declaration}.source", common)
-            self.assertNotIn(f"{declaration}.force = true", common)
+            self.assertIn(f'home.file."{name}".source', common)
+            self.assertNotIn(f'home.file."{name}".force = true', common)
 
 
+@unittest.skipIf(os.name == "nt", "POSIX shell launcher; run under WSL on Windows")
 class LauncherTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="agent launch ")

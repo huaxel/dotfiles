@@ -14,6 +14,7 @@ LOCK = ROOT / "config-linux/desktop/scripts/lock.sh"
 
 
 class DesktopLockTests(unittest.TestCase):
+    @unittest.skipIf(os.name == "nt", "POSIX desktop helper; run under WSL on Windows")
     def test_lock_arguments(self):
         for wallpaper_exists in (False, True):
             with self.subTest(wallpaper_exists=wallpaper_exists), tempfile.TemporaryDirectory() as tmp:

@@ -48,13 +48,15 @@ class PatchTests(unittest.TestCase):
 
     def test_pristine_idempotence_mode_and_nonmutating_check(self):
         self.target.chmod(0o640)
+        # Windows chmod cannot represent every POSIX mode; preserve the actual mode.
+        original_mode = self.target.stat().st_mode & 0o777
         before = self.snapshot()
         with self.assertRaisesRegex(ValueError, 'missing'):
             helper.apply(self.root, self.patches, check=True)
         self.assertEqual(before, self.snapshot())
         helper.apply(self.root, self.patches)
         self.assertEqual(self.target.read_text(), 'new\n')
-        self.assertEqual(self.target.stat().st_mode & 0o777, 0o640)
+        self.assertEqual(self.target.stat().st_mode & 0o777, original_mode)
         after = self.snapshot()
         helper.apply(self.root, self.patches)
         helper.apply(self.root, self.patches, check=True)
@@ -84,7 +86,12 @@ class PatchTests(unittest.TestCase):
 
     def test_symlinked_root_allowed_but_source_redirection_refused(self):
         alias = self.root.parent/'alias'
-        alias.symlink_to(self.root, target_is_directory=True)
+        try:
+            alias.symlink_to(self.root, target_is_directory=True)
+        except OSError as error:
+            if getattr(error, 'winerror', None) == 1314:
+                self.skipTest('Windows symlink privilege unavailable; covered under WSL')
+            raise
         helper.apply(alias, self.patches)
         external = self.root.parent/'outside'
         external.write_text('old\n')
@@ -141,6 +148,7 @@ class PatchTests(unittest.TestCase):
         self.assertEqual(self.target.read_text(), 'new\n')
         self.assertFalse((self.root.parent/'unrelated-index').exists())
 
+    @unittest.skipIf(os.name == 'nt', 'POSIX installer fixtures; run under WSL on Windows')
     def test_installer_forces_no_hooks_and_rejects_npm_flag_injection(self):
         for filename in ('install-and-patch.sh', 'apply-patches.py'):
             shutil.copy2(SOURCE/filename, self.root/filename)

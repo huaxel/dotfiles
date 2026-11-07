@@ -262,8 +262,10 @@ check-windows:
     set -euo pipefail
     python3 scripts/tests/windows-wsl-config.test.py
     if command -v pwsh >/dev/null 2>&1; then
-        pwsh -NoProfile -Command '$failed=$false; Get-ChildItem bootstrap.ps1,powershell,scripts,config/llama.cpp -Recurse -Filter *.ps1 | ForEach-Object { $tokens=$null; $errors=$null; [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName,[ref]$tokens,[ref]$errors); if($errors.Count){$failed=$true; $errors | ForEach-Object { Write-Error ("{0}: {1}" -f $_.Extent.File,$_.Message) }} }; if($failed){exit 1}'
+        pwsh -NoProfile -Command '$failed=$false; $sources = git ls-files -- "*.ps1"; if($LASTEXITCODE -ne 0){exit 1}; $sources | ForEach-Object { $tokens=$null; $errors=$null; [void][System.Management.Automation.Language.Parser]::ParseFile((Join-Path (Get-Location) $_),[ref]$tokens,[ref]$errors); if($errors.Count){$failed=$true; $errors | ForEach-Object { Write-Error ("{0}: {1}" -f $_.Extent.File,$_.Message) }} }; if($failed){exit 1}'
         echo "  ✅ PowerShell sources parse"
+        pwsh -NoProfile -NonInteractive -File scripts/tests/windows-gitconfig.test.ps1
+        pwsh -NoProfile -NonInteractive -File scripts/tests/windows-links.test.ps1
     else
         echo "  ⚠️  pwsh unavailable — static Windows checks passed; AST parse skipped"
     fi

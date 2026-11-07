@@ -36,8 +36,13 @@ function Remove-Or-Backup {
     if (-not $existing) { return }
 
     if ($existing.LinkType) {
-        # Never recurse through a directory link/junction; remove the link only.
-        Remove-Item -LiteralPath $Path -Force
+        # Windows PowerShell's Remove-Item can prompt for nonempty junctions.
+        # Directory.Delete without recursion removes only the directory link.
+        if ($existing.PSIsContainer) {
+            [System.IO.Directory]::Delete($Path)
+        } else {
+            Remove-Item -LiteralPath $Path -Force
+        }
         return
     }
 
@@ -64,6 +69,17 @@ function Link-Config {
     $existing = Get-ExistingItem $Target
     if ($existing -and $existing.LinkType) {
         $resolvedSource = (Resolve-Path -LiteralPath $source).Path
+        # Resolve-Path on Windows can return the junction path, not its target.
+        $linkTarget = @($existing.Target)[0]
+        if ($linkTarget) {
+            if (-not [System.IO.Path]::IsPathRooted($linkTarget)) {
+                $linkTarget = Join-Path (Split-Path -Parent $Target) $linkTarget
+            }
+            if ([System.IO.Path]::GetFullPath($linkTarget) -eq $resolvedSource) {
+                Write-Host "  [OK] $Target"
+                return
+            }
+        }
         $resolvedTarget = (Resolve-Path -LiteralPath $Target -ErrorAction SilentlyContinue).Path
         if ($resolvedSource -eq $resolvedTarget) {
             Write-Host "  [OK] $Target"
@@ -185,7 +201,8 @@ function Render-WindowsGitConfig {
     $userEmail = $null
     if ($identityBackup) {
         $savedConfig = [System.IO.File]::ReadAllText($identityBackup.FullName)
-        $userSection = [regex]::Match($savedConfig, '(?ims)^\[user\]\s*\r?\n(?<body>(?:[ \t].*\r?\n)*)')
+        # Keep matches line-bounded: Singleline/DotAll would consume later sections.
+        $userSection = [regex]::Match($savedConfig, '(?im)^\[user\][ \t]*\r?\n(?<body>(?:[ \t][^\r\n]*(?:\r?\n|$))*)')
         if ($userSection.Success) {
             $nameMatch = [regex]::Match($userSection.Groups['body'].Value, '(?im)^\s*name\s*=\s*(.+?)\s*$')
             $emailMatch = [regex]::Match($userSection.Groups['body'].Value, '(?im)^\s*email\s*=\s*(.+?)\s*$')
@@ -198,7 +215,7 @@ function Render-WindowsGitConfig {
     if ($userName -and $userEmail) {
         $content = $content.Replace("{{name}}", [string]$userName).Replace("{{email}}", [string]$userEmail)
     } else {
-        $content = [regex]::Replace($content, '(?ms)^\[user\]\r?\n(?:[ \t].*\r?\n)*', '')
+        $content = [regex]::Replace($content, '(?m)^\[user\][ \t]*\r?\n(?:[ \t][^\r\n]*(?:\r?\n|$))*', '')
     }
     $content += [Environment]::NewLine
     Write-Generated (Join-Path $HOME ".gitconfig") $content

@@ -135,7 +135,12 @@ class SkillChecks(unittest.TestCase):
         home = self.root / "home"
         (home / ".agents").mkdir(parents=True)
         (home / ".claude").mkdir()
-        (home / ".agents/skills").symlink_to(self.root / "skills", target_is_directory=True)
+        try:
+            (home / ".agents/skills").symlink_to(self.root / "skills", target_is_directory=True)
+        except OSError as error:
+            if getattr(error, "winerror", None) == 1314:
+                self.skipTest("Windows symlink privilege unavailable; covered under WSL")
+            raise
         (home / ".claude/skills").symlink_to(home / ".agents/skills", target_is_directory=True)
         self.assertEqual(checker.local_drift(self.root, home), [])
 
