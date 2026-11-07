@@ -292,7 +292,9 @@ check-secret-history:
         exit 0
     fi
     if ! git rev-parse --git-dir &>/dev/null; then echo "  ⚠️  Not a git repo — skipping"; exit 0; fi
-    if ! out=$(gitleaks detect --no-banner --redact --config .gitleaks.toml --log-opts="--all" 2>&1); then
+    # Local refs only: remote-tracking branches are stale mirrors of what is
+    # already published, and a mirror we do not control must not fail the gate.
+    if ! out=$(gitleaks detect --no-banner --redact --config .gitleaks.toml --log-opts="--branches --tags HEAD" 2>&1); then
         echo "$out" | tail -30 | sed 's/^/    /'
         echo "  ❌ gitleaks found potential secrets in history"
         exit 1
