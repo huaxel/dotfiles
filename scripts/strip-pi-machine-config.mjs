@@ -47,4 +47,12 @@ settings.defaultModel = null;
 // committed blob must not pin any single machine's value.
 delete settings.deviceId;
 
+// ACP agent commands are absolute paths into per-machine tool installs, so the
+// agents map is machine-local. Keep the policy fields (for example
+// autoApproveTools) in the committed blob.
+if (settings.acp && typeof settings.acp === 'object' && !Array.isArray(settings.acp)) {
+  delete settings.acp.agents;
+  if (Object.keys(settings.acp).length === 0) delete settings.acp;
+}
+
 process.stdout.write(`${JSON.stringify(settings, null, 2)}\n`);

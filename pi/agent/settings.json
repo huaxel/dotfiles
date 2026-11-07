@@ -24,6 +24,9 @@
       "maxRetries": 0
     }
   },
+  "acp": {
+    "autoApproveTools": false
+  },
   "packages": [
     "npm:pi-web-access@0.47.0",
     {
@@ -43,7 +46,8 @@
     "npm:@mobrienv/pi-tidy-tools@0.5.4",
     "npm:@juanbenjumea/pi-go-on@0.1.2",
     "git:github.com/earendil-works/pi-claude-code@d5b5e04c314d3452d357174d16d10dda34daa2d2",
-    "npm:pi-cursor-sdk@0.5.14"
+    "npm:pi-cursor-sdk@0.5.14",
+    "npm:pi-acp-provider@1.2.1"
   ],
   "extensions": [
     "./extensions/continue-after-compaction.ts",
