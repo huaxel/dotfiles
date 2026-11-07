@@ -1,0 +1,31 @@
+# Reviewed false positives for the full-history scan (`just check-secret-history`).
+# Fingerprint format: <commit>:<file>:<rule-id>:<line>.
+#
+# 1. Deleted Cloudflare/Workers skill references: documented placeholders
+#    (`$CF_API_TOKEN`, `YOUR_API_KEY`), removed from the tree after these commits.
+# 2. Deleted pi-agy bridge runtime configs: per-process random tokens for a
+#    127.0.0.1 loopback MCP server (randomBytes in @juanbenjumea/pi-agy),
+#    written 0600 under a pid-scoped directory. The bridge processes and their
+#    ports no longer exist, so the values are inert. Generated runtime dirs are
+#    no longer committed.
+276436a1b7767eb58c31e1126344b5bf39877c7a:skills/cloudflare/references/argo-smart-routing/README.md:curl-auth-header:13
+276436a1b7767eb58c31e1126344b5bf39877c7a:skills/cloudflare/references/argo-smart-routing/api.md:curl-auth-header:27
+276436a1b7767eb58c31e1126344b5bf39877c7a:skills/cloudflare/references/argo-smart-routing/api.md:curl-auth-header:84
+276436a1b7767eb58c31e1126344b5bf39877c7a:skills/cloudflare/references/bindings/patterns.md:generic-api-key:182
+276436a1b7767eb58c31e1126344b5bf39877c7a:skills/cloudflare/references/bindings/patterns.md:generic-api-key:82
+276436a1b7767eb58c31e1126344b5bf39877c7a:skills/workers-best-practices/references/rules.md:generic-api-key:82
+61556fa85f092bf47fe8e37d32e408cf793fcc7b:pi/agent/pi-agy-bridge/bridge-1701007-1/.agents/mcp_config.json:generic-api-key:6
+61556fa85f092bf47fe8e37d32e408cf793fcc7b:pi/agent/pi-agy-bridge/bridge-700925-1/.agents/mcp_config.json:generic-api-key:6
+9b6809dec532dd42c528185206b06be89ed8af1f:pi/agent/pi-agy-bridge/bridge-722285-1/.agents/mcp_config.json:generic-api-key:6
+a8e0c5b9fdb8198f367cd4271dfb357d79d50ea7:skills/cloudflare/references/argo-smart-routing/README.md:curl-auth-header:13
+a8e0c5b9fdb8198f367cd4271dfb357d79d50ea7:skills/cloudflare/references/argo-smart-routing/api.md:curl-auth-header:27
+a8e0c5b9fdb8198f367cd4271dfb357d79d50ea7:skills/cloudflare/references/argo-smart-routing/api.md:curl-auth-header:84
+a8e0c5b9fdb8198f367cd4271dfb357d79d50ea7:skills/cloudflare/references/bindings/patterns.md:generic-api-key:182
+a8e0c5b9fdb8198f367cd4271dfb357d79d50ea7:skills/cloudflare/references/bindings/patterns.md:generic-api-key:82
+a8e0c5b9fdb8198f367cd4271dfb357d79d50ea7:skills/workers-best-practices/references/rules.md:generic-api-key:82
+f4b2373fe1807c081c298f715acd400086281405:skills/cloudflare/references/argo-smart-routing/README.md:curl-auth-header:13
+f4b2373fe1807c081c298f715acd400086281405:skills/cloudflare/references/argo-smart-routing/api.md:curl-auth-header:27
+f4b2373fe1807c081c298f715acd400086281405:skills/cloudflare/references/argo-smart-routing/api.md:curl-auth-header:84
+f4b2373fe1807c081c298f715acd400086281405:skills/cloudflare/references/bindings/patterns.md:generic-api-key:182
+f4b2373fe1807c081c298f715acd400086281405:skills/cloudflare/references/bindings/patterns.md:generic-api-key:82
+f4b2373fe1807c081c298f715acd400086281405:skills/workers-best-practices/references/rules.md:generic-api-key:82

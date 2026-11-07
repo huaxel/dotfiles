@@ -71,13 +71,21 @@ sops updatekeys secrets/environment.d.enc secrets/llama-webui-config.json.enc se
 # 3. Verify the remaining machines still decrypt (this host + one remote):
 just check-secrets
 ssh <another-host> 'bash -lc "sops --decrypt ~/dotfiles/secrets/environment.d.enc > /dev/null && echo ok"'
-# 4. Commit .sops.yaml + all re-encrypted .enc files (+ .sha256 sidecars) together
+# 4. Commit .sops.yaml + all re-encrypted .enc files together
 ```
 
 If the removed host is merely offline (not retired), confirm it can no
 longer decrypt before relying on the rotation: anyone holding the old
 `.enc` blobs plus the removed private key can still read *old* plaintext.
 Rotation protects future edits, not already-distributed ciphertext.
+
+**One recipient set covers every secret.** All keys in `.sops.yaml` are
+recipients of every file under `secrets/`, so one compromised or decommissioned
+host decrypts all of them. That is a deliberate trade: `environment.d` already
+holds the broadest credential set, and per-file rules fail loudly at activation
+time on hosts that lack a key. The controls that matter are keeping age private
+keys at `0600`, removing a host's recipient in its own commit when it retires,
+and treating any host loss as a reason to rotate.
 
 ### 2. Create / edit a secret file
 
@@ -98,7 +106,7 @@ its decrypted plaintext when the content changes, so you can just edit the
 deployed file and commit — no manual `sops --encrypt` needed.
 
 ```bash
-git add secrets/environment.d.enc secrets/environment.d.sha256
+git add secrets/environment.d.enc
 git commit
 ```
 
@@ -108,8 +116,10 @@ To encrypt manually instead:
 cd ~/dotfiles/secrets
 sops --encrypt --input-type binary \
   ~/.config/environment.d/99-environment.conf > environment.d.enc
+# Refresh the local content-hash guard (stays out of git):
+mkdir -p .state
 # Linux: sha256sum; macOS: shasum -a 256
-(sha256sum ~/.config/environment.d/99-environment.conf 2>/dev/null || shasum -a 256 ~/.config/environment.d/99-environment.conf) | awk '{print $1}' > environment.d.sha256  # see note below on sidecar
+(sha256sum ~/.config/environment.d/99-environment.conf 2>/dev/null || shasum -a 256 ~/.config/environment.d/99-environment.conf) | awk '{print $1}' > .state/environment.d.sha256
 ```
 
 ### 4. Use it in your shell
@@ -123,6 +133,9 @@ sops --encrypt --input-type binary \
 ## Files
 
 - `*.enc` — encrypted secrets (committed to git)
+- `.state/*.sha256` — plaintext content hashes (local only, never committed:
+  a published hash of a decrypted secret is a confirmation oracle for anyone
+  holding a candidate plaintext)
 - `~/.config/environment.d/99-environment.conf` — decrypted shell secrets (never committed, 600 permissions)
 - `~/.config/secrets/` — decrypted app-specific secrets (never committed)
 
@@ -130,9 +143,10 @@ sops --encrypt --input-type binary \
 
 The `.githooks/pre-commit` hook auto-re-encrypts `environment.d` (and the
 app-specific secrets) when their decrypted plaintext changes. It guards
-re-encryption with a SHA256 sidecar (`*.sha256` storing the **plaintext**
-content hash) so sops's random nonce doesn't produce spurious diffs on every
-commit.
+re-encryption with a SHA256 sidecar (`secrets/.state/*.sha256`, storing the
+**plaintext** content hash) so sops's random nonce doesn't produce spurious
+diffs on every commit. The staging copy of the plaintext is created `0600` and
+removed on every exit path, including a failed or interrupted commit.
 
 Enable hooks on a fresh clone:
 

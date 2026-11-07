@@ -1,8 +1,16 @@
 # Reviewed Pi package patches
 
 This directory is the source for explicit local patch maintenance. Runtime
-`package.json`, lockfiles and `node_modules` are machine-local/ignored; do not
-copy registry credentials into test fixtures or track them.
+`package.json` and `package-lock.json` ARE tracked (they pin the resolved
+extension tree for review, since extensions run unsandboxed with provider
+credentials in the environment); `node_modules` stays machine-local/ignored.
+Do not copy registry credentials into test fixtures or track them.
+
+Version discipline: `pi/agent/settings.json` pins exact versions for every
+declared package (`npm:pkg@1.2.3`, `git:host/repo@<sha>`), so nothing upgrades
+silently. To upgrade, edit the pin, then run
+`pi update --extensions` and commit the settings, manifest and lockfile
+together.
 
 ## Safe entrypoint
 

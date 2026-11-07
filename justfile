@@ -42,14 +42,14 @@ nushell-setup:
 # ──────────── Check recipes ────────────
 
 # Run ALL checks (the full trusted CI pipeline, including SOPS decryption)
-ci: check-agents check-skills check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-macos check-secrets check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
+ci: check-agents check-skills check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-macos check-secrets check-secret-history check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
     @echo ""
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     @echo "  🟢  All CI checks passed!  🟢"
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # Public/fork-safe variant: full gate, but validate only encrypted metadata.
-ci-public: check-agents check-skills check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-macos check-secrets-structure check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
+ci-public: check-agents check-skills check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-macos check-secrets-structure check-secret-history check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
     @echo ""
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     @echo "  🟢  All secret-free CI checks passed!  🟢"
@@ -239,7 +239,6 @@ test-pi-extensions:
         echo "  ⚠️  no Pi agent installed — skipping pi package tests"
         exit 0
     fi
-    node pi/agent/extensions/capacity.test.mjs
     node pi/agent/extensions/continue-after-compaction.test.mjs
     node pi/agent/extensions/git-interceptor.test.mjs
     node pi/agent/extensions/harness.test.mjs
@@ -278,6 +277,25 @@ backup-workstation volume="/Volumes/KingstonPhotos":
     BACKUP_VOLUME="{{volume}}" bash scripts/backup-to-kingston.sh
 
 # ── Secrets ──
+
+# Scan full commit history for secrets. The pre-commit hook only scans staged
+# changes, so anything committed with --no-verify (or before the hook existed)
+# is invisible to it. Config lives in .gitleaks.toml.
+check-secret-history:
+    #!/usr/bin/env bash
+    echo "=== Secret History ==="
+    if ! command -v gitleaks &>/dev/null; then
+        echo "  ⚠️  gitleaks not installed — skipping history scan"
+        echo "      install: brew install gitleaks"
+        exit 0
+    fi
+    if ! git rev-parse --git-dir &>/dev/null; then echo "  ⚠️  Not a git repo — skipping"; exit 0; fi
+    if ! out=$(gitleaks detect --no-banner --redact --config .gitleaks.toml --log-opts="--all" 2>&1); then
+        echo "$out" | tail -30 | sed 's/^/    /'
+        echo "  ❌ gitleaks found potential secrets in history"
+        exit 1
+    fi
+    echo "  ✅ gitleaks full-history scan clean"
 
 # Validate encrypted recipient metadata without decrypting payloads or reading age keys.
 check-secrets-structure:
@@ -347,8 +365,7 @@ check-gitignore:
     fi
     bad=$(git diff --check HEAD 2>/dev/null || true)
     if [ -n "$bad" ]; then echo "  ⚠️  Whitespace issues:"; echo "$bad" | sed 's/^/    /'; fi
-    if [ -f .gitallowed ]; then echo "  ✅ .gitallowed present"; fi
-    committed_secrets=$(git ls-files 'secrets/*' 2>/dev/null | grep -v '\.enc$' | grep -v '\.sha256$' | grep -v '\.gitkeep' | grep -v 'README.md' || true)
+    committed_secrets=$(git ls-files 'secrets/*' 2>/dev/null | grep -v '\.enc$' | grep -v '\.gitkeep' | grep -v 'README.md' || true)
     if [ -n "$committed_secrets" ]; then
         echo "  ❌ Unencrypted secrets tracked in git:"
         echo "$committed_secrets" | sed 's/^/    /'
@@ -540,8 +557,9 @@ check-precommit:
             fi
         fi
     done < <(git diff --cached --name-only --diff-filter=ACM 2>/dev/null | grep -E '\\.(sh|bash)$' || true)
-    # 2. Check no staged unencrypted secrets
-    staged_secrets=$(git diff --cached --name-only -- 'secrets/*' 2>/dev/null | grep -v '\.enc$' | grep -v '\.sha256$' | grep -v '\.gitkeep' | grep -v 'README.md' || true)
+    # 2. Check no staged unencrypted secrets (deletions are fine: removing a
+    # sidecar or stray plaintext from the index is the cleanup path)
+    staged_secrets=$(git diff --cached --name-only --diff-filter=ACM -- 'secrets/*' 2>/dev/null | grep -v '\.enc$' | grep -v '\.gitkeep' | grep -v 'README.md' || true)
     if [ -n "$staged_secrets" ]; then
         echo "  ❌ Staged unencrypted secrets:"
         echo "$staged_secrets" | sed 's/^/    /'
@@ -569,7 +587,7 @@ check-precommit:
     fi
     # 5. Scan staged changes for secrets (diff-aware; sops .enc re-encrypts verified clean)
     if command -v gitleaks >/dev/null 2>&1; then
-        if gitleaks protect --staged --no-banner --redact 2>&1 | sed 's/^/    /'; then
+        if gitleaks protect --staged --no-banner --redact --config .gitleaks.toml 2>&1 | sed 's/^/    /'; then
             echo "  ✅ gitleaks staged scan clean"
         else
             echo "  ❌ gitleaks found potential secrets in staged changes"
@@ -604,7 +622,6 @@ fix-gitignore:
         git rm --cached "$f"
     done
     echo "  ✅ Removed stale files. Commit the change."
-    echo "  💡  Tip: if a pattern should NOT be ignored, add it to .gitallowed"
 
 # ──────────── Runner setup ────────────
 

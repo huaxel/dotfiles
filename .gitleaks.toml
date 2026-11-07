@@ -1,0 +1,22 @@
+# gitleaks configuration (used by `just check-secret-history` and the
+# pre-commit staged scan). Default rules are kept; only content that cannot
+# hold a first-party secret is excluded.
+#
+# Deliberately NOT excluded: skills/synced/** and bin/**, which are executable
+# code shipped in the repo even when vendored. Put narrow, reviewed exceptions
+# in .gitleaksignore (fingerprints) instead of widening these patterns.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Vendored deps, encrypted blobs, and generated install trees"
+paths = [
+  '''(^|/)node_modules/''',
+  '''^secrets/.*\.enc$''',
+  '''^pi/agent/install/''',
+  '''^pi/agent/npm/node_modules/''',
+  '''^config/vscode/''',
+  '''(^|/)\.pi/''',
+  '''(^|/)\.herdr/''',
+]

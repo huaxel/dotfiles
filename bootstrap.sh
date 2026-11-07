@@ -30,6 +30,15 @@ step()  { echo ""; echo "━━━ $* ━━━"; }
 CRITICAL_FAILURES=0
 critical() { echo "  ❌ $*"; CRITICAL_FAILURES=$((CRITICAL_FAILURES + 1)); }
 
+# Portable SHA-256 (macOS ships shasum; Linux ships sha256sum)
+sha256_of() {
+    if command -v sha256sum &>/dev/null; then
+        sha256sum "$1" | awk '{print $1}'
+    else
+        shasum -a 256 "$1" | awk '{print $1}'
+    fi
+}
+
 # ─────────────────────────────────────────────────────────────────
 # Sudo — ask upfront, keep alive for the whole run.
 # brew bundle and macos defaults both need it.
@@ -44,8 +53,19 @@ step "1/9 — Homebrew + core prerequisites"
 if [ "$OS" = "Darwin" ]; then
     if ! command -v brew &>/dev/null; then
         info "Installing Homebrew..."
-        NONINTERACTIVE=1 /bin/bash -c \
-            "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        # Download first so the installer is inspectable and its hash is recorded.
+        # Upstream publishes no checksum for install.sh, so the printed hash is a
+        # change-detection record, not a verification. Review the file before
+        # re-running bootstrap on a machine you do not control.
+        brew_installer="$(mktemp "${TMPDIR:-/tmp}/homebrew-install.XXXXXX")"
+        if curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh -o "$brew_installer"; then
+            info "Homebrew install.sh sha256: $(sha256_of "$brew_installer")"
+            NONINTERACTIVE=1 /bin/bash "$brew_installer"
+            rm -f "$brew_installer"
+        else
+            critical "Could not download the Homebrew installer"
+            rm -f "$brew_installer"
+        fi
     fi
     # Make brew available (Apple Silicon vs Intel).
     if [ -x /opt/homebrew/bin/brew ]; then

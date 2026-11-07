@@ -66,13 +66,29 @@ try {
 //   const npmrc = fs.readFileSync(path.join(home, "dotfiles", "npmrc"), "utf8");
 //   const m = npmrc.match(/[:_]?authToken[=:]\s*"?([A-Za-z0-9_\-]+)"?/);
 
-// Internal hostnames — manual placeholders so the LLM sees semantic stand-ins
-rules.push(
-  { id: "host_acerpepe_fqdn", description: "Internal Tailscale FQDN of acerpepe server", real: "acerpepe.bonobo-fort.ts.net", placeholder: "prod-node-1.corp.internal" },
-  { id: "host_liedelpi_fqdn", description: "Internal Tailscale FQDN of liedelpi server", real: "liedelpi.bonobo-fort.ts.net", placeholder: "prod-node-2.corp.internal" },
-  { id: "host_acerpepe_short", description: "Short hostname of acerpepe server", real: "acerpepe", placeholder: "prod-node-1" },
-  { id: "host_liedelpi_short", description: "Short hostname of liedelpi server", real: "liedelpi", placeholder: "prod-node-2" },
-);
+// Internal hostnames — read from a gitignored local file so this public repo
+// does not publish the tailnet naming scheme. Shape:
+//   [{ "id": "...", "description": "...", "real": "host.example", "placeholder": "prod-node-1" }]
+// Missing file is fine: masking still covers env values and regexes.
+const hostsFile = path.join(here, "..", "local", "masking-hosts.json");
+try {
+  const hosts = JSON.parse(fs.readFileSync(hostsFile, "utf8"));
+  if (!Array.isArray(hosts)) throw new Error("expected a JSON array");
+  let loaded = 0;
+  for (const rule of hosts) {
+    if (!rule || !rule.id || !rule.real || !rule.placeholder) continue;
+    rules.push({
+      id: String(rule.id),
+      description: rule.description ? String(rule.description) : "Local hostname",
+      real: String(rule.real),
+      placeholder: String(rule.placeholder),
+    });
+    loaded += 1;
+  }
+  report.push(`  ${loaded} local host rule(s) from local/masking-hosts.json`);
+} catch (e) {
+  if (e.code !== "ENOENT") report.push(`  ⚠️  local/masking-hosts.json ignored: ${e.message}`);
+}
 
 // ─── Regex rules (adapted from masking.config.example.json) ─────────────────
 const regexRules = [

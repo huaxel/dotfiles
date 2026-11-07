@@ -150,9 +150,17 @@ echo "  Installing dev tools..."
 ssh "$HOST" 'if command -v pacman &>/dev/null; then
     sudo pacman -S --noconfirm nodejs npm python python-pip deno 2>/dev/null || true
 fi
-# Ensure uv is available
+# Ensure uv is available (download first, record the hash, then run)
 if ! command -v uv &>/dev/null; then
-    curl -fsSL https://astral.sh/uv/install.sh | sh 2>/dev/null && echo "  ✅ uv installed" || echo "  ⚡ uv install skipped"
+    uv_installer=$(mktemp)
+    if curl -fsSL https://astral.sh/uv/install.sh -o "$uv_installer" 2>/dev/null; then
+        uv_hash=$( (sha256sum "$uv_installer" 2>/dev/null || shasum -a 256 "$uv_installer") | cut -d" " -f1 )
+        echo "  uv install.sh sha256: $uv_hash"
+        sh "$uv_installer" >/dev/null 2>&1 && echo "  ✅ uv installed" || echo "  ⚡ uv install skipped"
+    else
+        echo "  ⚡ uv install skipped (download failed)"
+    fi
+    rm -f "$uv_installer"
 fi
 # Ensure PATH includes uv
 if command -v uv &>/dev/null; then echo "  ✅ uv $(uv --version)"; fi' 2>&1 | sed 's/^/  /'
