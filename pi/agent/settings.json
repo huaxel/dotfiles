@@ -10,7 +10,11 @@
     "claude-code/claude-opus-5-5",
     "claude-code/claude-sonnet-5-5",
     "antigravity/gemini-3-8-flash",
-    "antigravity/gemini-4-argon"
+    "mistral/deepseek-v4-1-flash-1017",
+    "mistral/zai-glm-5-3",
+    "mistral/zai-glm-5-3-flash",
+    "mistral/mistral-large-4-0-8",
+    "mistral/mistral-medium-2604"
   ],
   "lastChangelogVersion": "0.0.0",
   "theme": "high-contrast",
