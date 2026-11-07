@@ -9,4 +9,11 @@ These additions apply to Pi sessions. The shared `AGENTS.md` supplies the genera
 - For native harnesses, use their supported Herdr agent primitives. Treat panes as visible conversations and own only the lifecycle of workers you create.
 - Keep delegation legible: name workers, state their task, relay corrections, and verify no work or question is pending before closing a task-owned worker.
 
+## Memory and knowledge layers
+
+- Long-term memory: `~/.pi/agent/memory/MEMORY.md` (INDEX at top is dream-maintained; entries are append-ordered ground truth). Correct stale facts with `memory_forget`, never raw deletion of old entries.
+- The Obsidian vault `/Users/juanbenjumea/JBM` is linked to pi: it is a qmd collection (`JBM`). Search it with `qmd search '<terms>'` (bash) when a question may concern the user's notes, diary, or knowledge graph — `memory_search` alone does not cover it.
+- Project status wiki: `~/JBM/Pi/<slug>.md` — maintained ONLY by the dream pass (`/skill:dream`). Do not edit those pages in normal sessions; record new project facts in memory instead.
+- Dream pass: `/skill:dream` corrects memory against logs, distills dailies, and refreshes the INDEX. Run it when asked, or let the weekly schedule handle it.
+
 <br />
