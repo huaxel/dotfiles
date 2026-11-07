@@ -64,13 +64,6 @@
   "images": {
     "autoResize": false
   },
-  "extensionChangelogVersions": {
-    "{\"source\":\"npm:pi-web-access\",\"scope\":\"user\"}": "0.47.0",
-    "{\"source\":\"npm:@juanbenjumea/pi-agy\",\"scope\":\"user\"}": "0.7.7",
-    "{\"source\":\"npm:pi-memory\",\"scope\":\"user\"}": "0.4.2",
-    "{\"source\":\"npm:@sting8k/pi-vcc\",\"scope\":\"user\"}": "0.11.2",
-    "{\"source\":\"npm:pi-cursor-sdk\",\"scope\":\"user\"}": "0.5.14"
-  },
   "skills": [
     "!**/synced/*/docs/SKILL.md",
     "!**/synced/*/built-in-browser/SKILL.md",

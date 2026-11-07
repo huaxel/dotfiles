@@ -47,6 +47,11 @@ settings.defaultModel = null;
 // committed blob must not pin any single machine's value.
 delete settings.deviceId;
 
+// Per-machine changelog bookkeeping. The keys embed the configured package
+// source strings, so pinning or reordering packages rewrites this map and
+// produces diffs that carry no shared meaning.
+delete settings.extensionChangelogVersions;
+
 // ACP agent commands are absolute paths into per-machine tool installs, so the
 // agents map is machine-local. Keep the policy fields (for example
 // autoApproveTools) in the committed blob.
