@@ -1,6 +1,6 @@
 ---
 name: dream
-description: Dream pass for pi memory. Verify and correct MEMORY.md against daily logs, distill the week's dailies into durable entries, prune the scratchpad, maintain the project wiki in the Obsidian vault (~/JBM/Pi/), and refresh the MEMORY.md INDEX. Use when the user says "dream", "run the dream pass", asks to organize, clean up, or consolidate memory, or when running from the weekly schedule.
+description: Dream pass for pi memory. Verify and correct MEMORY.md against daily logs, distill recent dailies into durable entries, prune the scratchpad, maintain the project wiki in the Obsidian vault (~/JBM/Pi/), and refresh the MEMORY.md INDEX. Use when the user says "dream", "run the dream pass", asks to organize, clean up, or consolidate memory, or when an event trigger fires (project milestone landed, daily log >40KB, in-session memory correction revealed drift).
 ---
 
 # Dream pass
@@ -47,3 +47,7 @@ Write `~/.pi/agent/memory/dream/YYYY-MM-DD.md`: corrections made (with recovery 
 ## Phase 8 — Reindex
 
 Run `qmd update && qmd embed` so memory and vault changes are searchable.
+
+## Cadence
+
+Event-driven, not clock-scheduled (owner decision 2026-11-08): run on milestones, oversized daily logs, or detected drift. Headless runs: `scripts/dream.sh`. The LaunchAgent plist in this directory (Sundays 09:00) is an optional artifact and is NOT loaded; install it only if a clock cadence is ever wanted.
