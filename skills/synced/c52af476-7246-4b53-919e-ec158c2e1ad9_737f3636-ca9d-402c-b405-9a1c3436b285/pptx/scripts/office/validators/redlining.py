@@ -78,7 +78,7 @@ class RedliningValidator:
                             f"FAILED - Error parsing {part} of the {side} document: {e}"
                         )
                 if len(roots) < len(sides):
-                    continue
+                    continue  
                 new_changes, original_text, modified_text = self._compare_part(*roots)
                 change_count += len(new_changes)
                 if modified_text != original_text:
@@ -194,7 +194,7 @@ class RedliningValidator:
         for key, elems in by_group.items():
             rebuilt = text_of(elems)
             if rebuilt and rebuilt == text_of(unmatched_original.get(key, [])):
-                continue
+                continue  
             new.update(elems)
         return new
 
@@ -225,7 +225,7 @@ class RedliningValidator:
             body = part == "word/document.xml"
             heading = "Differences:" if body else f"Differences in {part}:"
             if error_parts[-1]:
-                error_parts.append("")
+                error_parts.append("")  
             git_diff = self._get_git_word_diff(original_text, modified_text)
             if git_diff:
                 error_parts.extend([heading, "=" * len(heading), git_diff])
@@ -256,8 +256,8 @@ class RedliningValidator:
                         "git",
                         "diff",
                         "--word-diff=plain",
-                        "--word-diff-regex=.",
-                        "-U0",
+                        "--word-diff-regex=.",  
+                        "-U0",  
                         "--no-index",
                         str(original_file),
                         str(modified_file),
@@ -286,7 +286,7 @@ class RedliningValidator:
                         "git",
                         "diff",
                         "--word-diff=plain",
-                        "-U0",
+                        "-U0",  
                         "--no-index",
                         str(original_file),
                         str(modified_file),
@@ -420,7 +420,7 @@ class RedliningValidator:
             return "{%s}" % name if self.PAGE_NUMBER.fullmatch(result) else result
 
         parts, fields = [], []
-        skipped = set()
+        skipped = set()  
 
         def sink():
             for *_, result in reversed(fields):

@@ -85,7 +85,7 @@ def _names_pattern(names):
 
 
 def _existing_cells(ws):
-    if not hasattr(ws, "iter_rows"):
+    if not hasattr(ws, "iter_rows"):  
         return []
     return [ws._cells[key] for key in sorted(ws._cells)]
 
@@ -158,13 +158,13 @@ def recalc(filename, timeout=30, force=False):
 
     try:
         get_soffice_env()
-    except Exception as e:
+    except Exception as e:  
         return {"error": f"Could not prepare the LibreOffice environment: {e}"}
 
     if not force:
         try:
             at_risk = external_links_at_risk(filename)
-        except Exception as e:
+        except Exception as e:  
             return {"error": f"Could not inspect {filename} for external links: {e}"}
         if at_risk:
             shown = at_risk[:MAX_LOCATIONS]
@@ -323,7 +323,7 @@ def _scan_xml(filename):
                 part_name = target.lstrip("/")
             else:
                 part_name = posixpath.normpath(f"xl/{target}")
-            if "/worksheets/" not in part_name:
+            if "/worksheets/" not in part_name:  
                 continue
             found = []
             xml = archive.read(part_name)
@@ -399,9 +399,9 @@ def _report(filename):
     try:
         try:
             error_details, formula_count = _scan_xml(filename)
-        except Exception:
+        except Exception:  
             error_details, formula_count = _scan_with_openpyxl(filename)
-    except Exception as e:
+    except Exception as e:  
         return {"error": str(e)}
 
     total_errors = sum(len(locations) for locations in error_details.values())
