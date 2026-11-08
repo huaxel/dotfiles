@@ -78,6 +78,7 @@ require("environment.d" in fish_text,
 
 # 3. Keys owned by 10-dotfiles.conf must not be re-hardcoded in the shells.
 SHARED = ("LANG", "EDITOR", "VISUAL", "PAGER", "MISE_LOG_LEVEL",
+          "PYTHONDONTWRITEBYTECODE",
           "LLAMA_BASE_URL", "MEMORYFIELD_EMBED_PROVIDER",
           "MEMORYFIELD_EMBED_URL", "MEMORYFIELD_EMBED_MODEL",
           "MEMORYFIELD_MODEL_CODE")
