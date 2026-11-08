@@ -50,7 +50,7 @@ ORGANIZER_TIMEOUT="${PI_DREAM_ORGANIZER_TIMEOUT:-900}"
 MAX_SLICE_LINES="${PI_DREAM_SLICE_LINES:-500}"
 
 mkdir -p "$LOG_DIR" "$PENDING" "$DONE_DIR"
-log() { printf '%s\n' "$*" >>"$RUN_LOG"; }
+log() { printf '%s\n' "$*" | flock "$LOG_DIR" tee -a "$RUN_LOG" >/dev/null; }
 say() { printf '%s\n' "$*"; }
 
 # --- single-instance lock (break a lock whose process is gone) ---
@@ -153,7 +153,12 @@ run_analyze_harness() {
     say "analyze: no store for '$h' at $store"; return 1
   fi
 
-  mapfile -t files < <(find "$store" -type f -name '*.jsonl' -mtime -"$DAYS" -print0 2>/dev/null \
+  # Gemini stores each session as transcript.jsonl plus a full copy and numbered
+  # chunk copies under the same session dir. Analyzing all of them repeats one
+  # session many times, so keep only the canonical transcript per session.
+  local namefilter=()
+  [[ "$h" == gemini ]] && namefilter=(-name transcript.jsonl)
+  mapfile -t files < <(find "$store" -type f "${namefilter[@]}" -name '*.jsonl' -mtime -"$DAYS" -print0 2>/dev/null \
     | xargs -0 -r ls -1td 2>/dev/null | head -n "$MAX_SESSIONS")
   if (( ${#files[@]} == 0 )); then
     say "analyze: no $h sessions modified in the last $DAYS day(s)"; return 1
@@ -164,6 +169,10 @@ run_analyze_harness() {
     say "would analyze $h sessions:"; printf '  %s\n' "${files[@]}"; return 0
   fi
 
+  # Each session writes its own uniquely named fragment, so analyzers are
+  # independent. Run a bounded pool; the model calls dominate runtime and a
+  # 30-day import is hundreds of sessions.
+  local jobs="${PI_DREAM_JOBS:-4}"
   for f in "${files[@]}"; do
     # Many harnesses reuse a generic filename per session (copilot always uses
     # events.jsonl, gemini transcript.jsonl), so the path hash is required to
@@ -172,15 +181,26 @@ run_analyze_harness() {
     slice="$PENDING/.src-$h-$base.md"
     out="$PENDING/$h-$base.md"
     [[ -s "$out" ]] && { analyzed=$((analyzed+1)); continue; }
+    while (( $(jobs -rp | wc -l) >= jobs )); do wait -n 2>/dev/null || true; done
+    analyze_one_session "$h" "$f" "$base" "$slice" "$out" &
+  done
+  wait
+  analyzed=$(find "$PENDING" -maxdepth 1 -type f -name "$h-*.md" ! -name '.src-*' | wc -l | tr -d ' ')
+  log "=== analyze harness=$h: $analyzed/${#files[@]} fragments ==="
+  say "analyze $h: $analyzed/${#files[@]} fragments in $PENDING"
+  (( analyzed > 0 ))
+}
 
-    if ! python3 "$SKILL_DIR/scripts/extract-trace.py" "$f" --max-lines 200 --max-chars 600 \
-         --label "$h session $base" >"$slice" 2>>"$RUN_LOG"; then
-      log "analyzer $h/$base: extract failed"; continue
-    fi
-    if ! grep -q '^USER:\|^AGENT:' "$slice"; then
-      log "analyzer $h/$base: no conversational turns, skipping"
-      rm -f "$slice"; continue
-    fi
+analyze_one_session() {
+  local h="$1" f="$2" base="$3" slice="$4" out="$5"
+  if ! python3 "$SKILL_DIR/scripts/extract-trace.py" "$f" --max-lines 200 --max-chars 600 \
+       --label "$h session $base" >"$slice" 2>>"$RUN_LOG"; then
+    log "analyzer $h/$base: extract failed"; return
+  fi
+  if ! grep -q '^USER:\|^AGENT:' "$slice"; then
+    log "analyzer $h/$base: no conversational turns, skipping"
+    rm -f "$slice"; return
+  fi
 
     prompt="You are a memory analyzer. Read ONLY this file: $slice
 It is a bounded slice of a coding-agent session transcript from the '$h' harness. Extract durable facts a future session would need: decisions taken, lessons, verified operational facts (commands, flags, paths, gotchas), and corrections of earlier beliefs.
@@ -199,16 +219,13 @@ Then reply with just the number of bullets you wrote."
          | grep -v '^Warning: No models match pattern' >>"$RUN_LOG"; then
       if [[ -s "$out" ]]; then
         analyzed=$((analyzed+1)); log "analyzer $h/$base: ok ($(wc -l <"$out" | tr -d ' ') lines)"
+        rm -f "$slice"
       else
         log "analyzer $h/$base: FAILED (no fragment written)"
       fi
     else
       log "analyzer $h/$base: FAILED (timeout or error)"
     fi
-  done
-  log "=== analyze harness=$h: $analyzed/${#files[@]} fragments ==="
-  say "analyze $h: $analyzed/${#files[@]} fragments in $PENDING"
-  (( analyzed > 0 ))
 }
 
 # --------------------------------------------------------------- organize ----
