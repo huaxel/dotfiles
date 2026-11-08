@@ -22,6 +22,16 @@ scripts/dream.sh organize [--dry-run]              # merge fragments into memory
 scripts/dream.sh          [--days N]               # analyze then organize (single-machine use)
 ```
 
+`analyze` also reads other harnesses' transcripts, which never sync and reach gigabytes:
+
+```bash
+scripts/dream.sh analyze --harness codex|claude|gemini|copilot|all --days N [--max-sessions N]
+```
+
+`scripts/extract-trace.py` reduces one session to a bounded slice (user and agent turns only, tool noise dropped, ANSI stripped). Cursor is unsupported because it stores SQLite.
+
+Cross-machine sync: `scripts/memory-sync.sh` (pull, privacy gate, commit, push). It configures the `memory.memory-index` merge driver, which unions MEMORY.md entries instead of emitting conflict markers. `scripts/scrub-personal.py check` gates the push and fails closed.
+
 `analyze` is safe on every machine (it only appends fragments); `organize` is the single writer and must run on one machine at a time. Consumed fragments move to `dream/processed/`. If the vault contains sync-conflict files, `organize` skips the wiki phase rather than writing over unresolved state. If the memory dir is a git repo with a remote, the runner commits and pushes after organizing (disable with `PI_DREAM_NO_GIT=1`).
 
 Prefer the script for routine passes. Do the phases below by hand when working interactively or when a fragment needs judgment.
