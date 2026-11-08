@@ -1,0 +1,20 @@
+{
+  "schema_version": 2,
+  "reviewed_lines": [
+    {
+      "path": "MEMORY.md",
+      "line_sha256": "1dd692e796b44c8ed92c6c1054a7c37959c011745ec60d54d5d49aa41d966dcd",
+      "reason": "audit reference to removed compensation details"
+    },
+    {
+      "path": "MEMORY.md",
+      "line_sha256": "770f731cedb5b3e55ed692b24c7797ba53b77cf67b374d5972ae742b37657f5e",
+      "reason": "detector syntax documentation"
+    },
+    {
+      "path": "projects/project-atom-f228a88b205e/MEMORY.md",
+      "line_sha256": "a14afca6fa3f682e5a811f8fb1aa623c32dc52b54d4f4316eef0bff192044935",
+      "reason": "software-package architecture boundary"
+    }
+  ]
+}

@@ -10,7 +10,7 @@
 # sides' entries. Nothing is force-pushed and nothing is deleted.
 #
 # A timestamped backup of the memory dir is taken before anything changes.
-set -uo pipefail
+set -euo pipefail
 
 export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
@@ -56,19 +56,19 @@ printf 'recovery/\ndream/pending/\ndream/processed/\ndream/*.log\ndream/last-run
 # add/add daily logs conflict (observed: 5 conflicts on the first attempt).
 # `**/daily/*.md` covers per-project memory dirs (projects/<hash>/daily/), which
 # a plain `daily/*.md` rule misses.
-printf 'MEMORY.md merge=memory-index\nSCRATCHPAD.md merge=memory-index\n**/daily/*.md merge=union\n.gitignore merge=union\n' > .gitattributes
+printf 'MEMORY.md merge=memory-index\nSCRATCHPAD.md merge=memory-index\n**/daily/*.md merge=memory-index\n.gitignore merge=union\n' > .gitattributes
 git add -A
+python3 "$SKILL_DIR/scripts/check-memory-privacy.py"
 git -c user.email="$(git config --global user.email || echo memory@localhost)" \
     -c user.name="$(git config --global user.name || echo memory)" \
     commit -q -m "memory: local snapshot from $(hostname -s)" || true
 
-# Union drivers: MEMORY.md entry-union, dailies line-union.
+# Three-way driver: union additions, preserve deletions, stop on conflicts.
 # The driver path must exist on THIS machine; a wrong path makes git fall back
 # to a line merge and conflict (observed on the first two attempts).
 DRIVER="$SKILL_DIR/scripts/merge-memory-index.py"
 [[ -x "$DRIVER" ]] || { echo "merge driver not found at $DRIVER" >&2; exit 1; }
-git config merge.memory-index.driver "$DRIVER %O %A %B"
-git config merge.union.driver "git merge-file --union %O %A %B"
+python3 "$SKILL_DIR/scripts/configure-memory-merge.py" || exit 1
 
 git remote add origin "$REMOTE" 2>/dev/null || git remote set-url origin "$REMOTE"
 git fetch -q origin
@@ -94,8 +94,9 @@ if ! git -c user.email="$(git config --global user.email || echo memory@localhos
   exit 1
 fi
 
-echo "pushing"
-if ! git push -u origin main; then
+python3 "$SKILL_DIR/scripts/check-memory-privacy.py" --against origin/main
+echo "pushing inspected branch"
+if ! git push --no-follow-tags -u origin main; then
   echo "push failed; the merge is local and safe. Retry with memory-sync.sh" >&2
   exit 1
 fi

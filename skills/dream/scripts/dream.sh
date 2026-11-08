@@ -68,7 +68,10 @@ trap 'rm -rf "$LOCK_DIR"' EXIT
 # ---------------------------------------------------------------- analyze ----
 run_analyze() {
   local logs analyzed=0 f base out slice prompt
-  mapfile -t logs < <(ls -1t "$MEM_DIR"/daily/*.md 2>/dev/null | head -n "$DAYS")
+  # ISO-dated daily filenames sort chronologically, so the newest N are the
+  # lexicographic tail. Avoids parsing `ls` output and survives odd characters.
+  mapfile -t logs < <(find "$MEM_DIR/daily" -maxdepth 1 -type f -name '*.md' -print0 2>/dev/null \
+    | sort -z | tr '\0' '\n' | tail -n "$DAYS")
   if (( ${#logs[@]} == 0 )); then
     say "dream analyze: no daily logs found."; return 0
   fi
@@ -150,8 +153,8 @@ run_analyze_harness() {
     say "analyze: no store for '$h' at $store"; return 1
   fi
 
-  mapfile -t files < <(find "$store" -type f -name '*.jsonl' -mtime -"$DAYS" 2>/dev/null \
-    | xargs -r ls -1t 2>/dev/null | head -n "$MAX_SESSIONS")
+  mapfile -t files < <(find "$store" -type f -name '*.jsonl' -mtime -"$DAYS" -print0 2>/dev/null \
+    | xargs -0 -r ls -1td 2>/dev/null | head -n "$MAX_SESSIONS")
   if (( ${#files[@]} == 0 )); then
     say "analyze: no $h sessions modified in the last $DAYS day(s)"; return 1
   fi
@@ -215,8 +218,12 @@ vault_has_conflicts() {
 }
 
 run_organize() {
-  local frag_list org_prompt wiki_rule=""
-  frag_list="$(ls -1 "$PENDING"/*.md 2>/dev/null | grep -v '/\.src-')"
+  local frag_list org_prompt wiki_rule="" f
+  # Dot-prefixed slice files never match this glob, so no filtering is needed.
+  frag_list=""
+  for f in "$PENDING"/*.md; do
+    [[ -f "$f" ]] && frag_list+="$f"$'\n'
+  done
   if [[ -z "$frag_list" ]]; then
     say "organize: nothing to do (no fragments pending)."; return 2
   fi
@@ -325,9 +332,10 @@ fi
 # Optionally sync the memory repo (no-op unless it is a git repo with a remote).
 if (( ! DRY_RUN )) && [[ -z "${PI_DREAM_NO_GIT:-}" ]] && git -C "$MEM_DIR" rev-parse --git-dir >/dev/null 2>&1; then
   if git -C "$MEM_DIR" remote | grep -q .; then
-    git -C "$MEM_DIR" add -A >>"$RUN_LOG" 2>&1 || true
-    git -C "$MEM_DIR" commit -m "dream: $STAMP ($(hostname -s))" >>"$RUN_LOG" 2>&1 || true
-    git -C "$MEM_DIR" push >>"$RUN_LOG" 2>&1 || log "git push failed (will retry next run)"
+    if ! PI_MEMORY_DIR="$MEM_DIR" "$SKILL_DIR/scripts/memory-sync.sh" >>"$RUN_LOG" 2>&1; then
+      log "memory sync failed; inspect $RUN_LOG before retrying"
+      rc=1
+    fi
   fi
 fi
 
@@ -341,7 +349,7 @@ if [[ "$PHASE" != analyze ]]; then
   if [[ -f "$DREAM_LOG" ]] && (( $(stat -f %m "$DREAM_LOG" 2>/dev/null || echo 0) >= START_EPOCH )); then
     log "=== dream done $STAMP (log: $DREAM_LOG) ==="
     say "organize: done (log: $DREAM_LOG)"
-    exit 0
+    exit "$rc"
   fi
   log "=== DREAM FAILED: organizer did not write a fresh dream log at $DREAM_LOG. ==="
   say "organize: FAILED (no fresh dream log)" >&2

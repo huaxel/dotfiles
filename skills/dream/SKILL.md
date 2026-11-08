@@ -5,7 +5,7 @@ description: Dream pass for pi memory. Corrects MEMORY.md against daily logs and
 
 # Dream pass
 
-Offline memory consolidation. Architecture record: the `pi memory architecture` entry in MEMORY.md.
+Bounded memory consolidation. For current sync semantics, use the installed scripts and the latest verified correction in MEMORY.md, not historical design proposals.
 
 ## Why two phases
 
@@ -17,30 +17,38 @@ Daily logs reach 1.5MB. A single session that reads them overflows the context w
 `scripts/dream.sh` implements this deterministically, as two separable phases:
 
 ```bash
-scripts/dream.sh analyze  [--days N] [--dry-run]   # distill this machine's dailies into fragments
-scripts/dream.sh organize [--dry-run]              # merge fragments into memory + wiki (single writer)
-scripts/dream.sh          [--days N]               # analyze then organize (single-machine use)
+PI_DREAM_NO_GIT=1 scripts/dream.sh analyze  [--days N] [--dry-run]
+PI_DREAM_NO_GIT=1 scripts/dream.sh organize [--dry-run]
+PI_DREAM_NO_GIT=1 scripts/dream.sh          [--days N]
 ```
 
 `analyze` also reads other harnesses' transcripts, which never sync and reach gigabytes:
 
 ```bash
-scripts/dream.sh analyze --harness codex|claude|gemini|copilot|all --days N [--max-sessions N]
+PI_DREAM_NO_GIT=1 scripts/dream.sh analyze --harness codex|claude|gemini|copilot|all --days N [--max-sessions N]
 ```
 
 `scripts/extract-trace.py` reduces one session to a bounded slice (user and agent turns only, tool noise dropped, ANSI stripped). Cursor is unsupported because it stores SQLite.
 
-Cross-machine sync: `scripts/memory-sync.sh` (pull, privacy gate, commit, push). It configures the `memory.memory-index` merge driver, which unions MEMORY.md entries instead of emitting conflict markers. `scripts/scrub-personal.py check` gates the push and fails closed.
+## Sync safety and actual coordination
 
-`analyze` is safe on every machine (it only appends fragments); `organize` is the single writer and must run on one machine at a time. Consumed fragments move to `dream/processed/`. If the vault contains sync-conflict files, `organize` skips the wiki phase rather than writing over unresolved state. If the memory dir is a git repo with a remote, the runner commits and pushes after organizing (disable with `PI_DREAM_NO_GIT=1`).
+`memory-sync.sh` configures `merge.memory-index` and local `info/attributes` for root/nested MEMORY.md, SCRATCHPAD.md and daily logs. The driver uses Git's common ancestor: union only pure additions; preserve unrelated deletions; stop on overlapping edits/deletions. Unresolved indexes, including autostash conflicts, stop sync before staging.
+
+The publishing gate is `check-memory-privacy.py`, not a top-level daily-only scrub. It checks staged Markdown and outgoing commit history before and after committing. Only exact, path-bound technical lines in the code-owned `privacy-reviewed-lines.json` are reviewed exceptions; it stores line hashes, never memory text, because the dotfiles repo is public. There is no `--force` override; detection is heuristic, not semantic proof. Named medical conditions or medications and numeric-only compensation without personal context are known limits: never write them regardless of what the gate catches. The push targets only the inspected branch's upstream. First imports use the gate before their initial commit and before pushing.
+
+Without `PI_DREAM_NO_GIT=1`, the runner can invoke sync after analysis or organization, not just after organization. Keep that opt-out set unless this run's commits/pushes are explicitly authorized. It does not disable model calls or search maintenance. The runner does not pull before the organizer reads, so do not assume it is a freshness coordinator.
+
+Analyze local material on each machine, but pending/processed fragments are gitignored and remain machine-local. Cross-machine fragment transport is not implemented. Organize only the fragments available on the chosen host. One organizer/wiki writer across machines is an operator policy; `/tmp/pi-dream.lock` serializes only one host. Use the Mac with the vault for wiki maintenance. On wiki-folder sync-conflict filenames, the runner instructs the organizer to skip wiki edits; this is guidance, not filesystem enforcement. Preserve human wording explicitly. Consumed fragments move to `dream/processed/` only after its fresh-log check succeeds.
+
+Verified merge/privacy tests do not establish full analyzer/organizer portability or scheduling. Check the platform's fresh-log success signal before trusting a headless run.
 
 Prefer the script for routine passes. Do the phases below by hand when working interactively or when a fragment needs judgment.
 
 ## Ground rules
 
 - **Never write therapy, health, salary, or personal-relationship details to memory or the wiki (owner policy, 2026-11-08).** This includes emotional state, medical information, compensation figures, and identifying details about friends or family. If a fragment or log contains such content, drop it and note in the dream log that content was withheld. This rule outranks completeness: a missing fact is better than a leak.
-- Write ONLY inside `~/.pi/agent/memory/` and `~/JBM/Fouche/10_Projects/Pi-Memory/`. No repo edits, no git operations, no network.
-- Corrections go through `memory_forget` (recovery IDs are the safety net) followed by `memory_write` of the corrected fact. Never raw-delete history otherwise. The only section you regenerate wholesale is the INDEX, between its `<!-- INDEX START` / `<!-- INDEX END -->` markers.
+- Organizer file tools write only inside `~/.pi/agent/memory/` and `~/JBM/Fouche/10_Projects/Pi-Memory/`; no repo edits, git operations, or network from the organizer. The outer runner has separate model/search/sync behavior described above.
+- When deletion/correction is authorized, use `memory_forget` (recovery IDs are the safety net), then `memory_write` the corrected fact. Without deletion authorization, append a dated, source-verified supersession. Do not treat a maintenance request as permission to delete user data. Only the INDEX may be regenerated wholesale between its markers.
 - If Juan has hand-edited a wiki page, preserve his wording and reconcile around it; note it in the dream log.
 - Uncertain whether a fact drifted? Record the doubt in the dream log; do not change memory.
 - When two sources conflict and neither plainly supersedes the other, keep both and mark plainly: `CONFLICT: <source A, date> says …; <source B, date> says …`. Do not guess.
@@ -56,7 +64,7 @@ Prefer the script for routine passes. Do the phases below by hand when working i
 - **Never call `memory_read` on a daily log** — it returns the whole file. Use `read` with offset/limit, `bash tail -n 120`, or the pre-extraction the runner does (headings + tag lines + last 200 lines).
 - **Budget: at most ~1,200 lines of daily-log text total.** Default: the 3 most recent logs, bounded slices only.
 - MEMORY.md in 2-3 chunks (~65KB). Then SCRATCHPAD.md, every page in `~/JBM/Fouche/10_Projects/Pi-Memory/`, the most recent dream log, `memory_status`.
-- Raw session transcripts under `~/.pi/agent/sessions/` are ground truth: `grep` them for a specific claim, never read them whole.
+- Raw Pi transcripts under `~/dotfiles/pi/agent/sessions/` are ground truth; verify `PI_CODING_AGENT_SESSION_DIR` for overrides. Search a specific claim, never read the store whole. Legacy-looking session paths may be bind mounts: path names or duplicate UUIDs do not authorize cleanup.
 - If a log was too large to read fully, say so in the dream log.
 
 ## Phase 2 — Verify and correct

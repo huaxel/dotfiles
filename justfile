@@ -42,14 +42,14 @@ nushell-setup:
 # ──────────── Check recipes ────────────
 
 # Run ALL checks (the full trusted CI pipeline, including SOPS decryption)
-ci: check-agents check-skills check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-macos check-secrets check-secret-history check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
+ci: check-agents check-skills check-memory check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-macos check-secrets check-secret-history check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
     @echo ""
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     @echo "  🟢  All CI checks passed!  🟢"
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 # Public/fork-safe variant: full gate, but validate only encrypted metadata.
-ci-public: check-agents check-skills check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-macos check-secrets-structure check-secret-history check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
+ci-public: check-agents check-skills check-memory check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-macos check-secrets-structure check-secret-history check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
     @echo ""
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     @echo "  🟢  All secret-free CI checks passed!  🟢"
@@ -80,6 +80,11 @@ check-skills:
     node --test scripts/tests/skill-eval-adapter.test.mjs
     python3 scripts/check_skills.py
 
+# Exercise deletion-aware memory sync in disposable local repositories only.
+check-memory:
+    python3 scripts/tests/memory-merge.test.py
+
+    python3 scripts/tests/memory-privacy.test.py
 # Report machine-local skill copies without replacing overrides.
 doctor-skills:
     python3 scripts/check_skills.py --local

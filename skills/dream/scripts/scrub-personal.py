@@ -36,16 +36,27 @@ TIER1 = [
     # false positive: "no more rerun-therapy needed" in a CI note), so require
     # genuine personal context.
     r"\b(my|in|group|couples?|individual|the)\s+therapy\b",
-    r"\btherapy\s+(session|sessions|appointment)\b",
+    r"\btherapy\s+(session|sessions|appointment|helped|helps|has|is|was)\b",
+    r"\bcounsell?or\b", r"\bEMDR\b",
+    r"\b(I'm|I am)\b.{0,12}\bcounselling\b",
+    r"\b(I'm|I am) pregnan\w*\b", r"\bmy (wife|partner|girlfriend) is pregnan\w*\b",
+    r"\bmiscarriage\b", r"\bcaesarean\b",
     r"\btherapist\b", r"\bpsychiatr\w*", r"\bpsycholog\w*", r"\bennui\b",
     r"\bantidepress\w*", r"\bmental health\b", r"\bburn[- ]?out\b",
     r"\bdepress(ion|ive|ed)\b", r"\banxiety\b", r"\bADHD\b",
     # medical
     r"\bmedication\b", r"\bprescription\b", r"\bmedical (record|history|leave)\b",
+    r"\bdiagnosed with\b", r"\bmy (MRI|CT scan)\b", r"\bin hospital\b", r"\bhospital stay\b",
+    r"\brecovering from surgery\b", r"\bsurgery on my\b", r"\bchemotherapy\b",
+    r"\bblood thinners?\b", r"\bchronic (pain|illness)\b",
+    r"\bmy (GP|doctor)\b", r"\boff sick\b",
     r"\bsick ?leave\b", r"\bziekteverlof\b",
     # compensation: only the owner's own pay, never a bare amount and never a
     # project that merely concerns salaries (e.g. a salary-calculation engine).
     r"\b(my|own|current)\s+(salary|pay|package)\b", r"\bI (earn|make)\b",
+    r"\b(pay|salary) (raise|increase|negotiation)\b", r"\bnegotiating (my |the )?pay\b",
+    r"\bmy offer is\b", r"\bI (got|received|negotiated)\b.{0,30}\b(raise|increase)\b",
+    r"\bbase (is|was) \d+[.,]?\d*\s?k\b",
     r"\bcurrent package\b", r"\bcompensation floor\b", r"\bpay ?slip\b",
     r"\b(gross|net) salary\b", r"\bmaandloon\b", r"\bjaarloon\b",
     r"\bbruto ?loon\b", r"\bnetto ?loon\b", r"\bwedde\b",
@@ -56,6 +67,11 @@ TIER1 = [
 # Tier 2: report only. Relationship and family detail about the owner or others.
 TIER2 = [
     r"\bbest man\b", r"\bgodfather\b", r"\bwedding\b", r"\bmarriage\b", r"\bdivorc\w*",
+    r"\bmy (partner|girlfriend|boyfriend|fianc[ée]e?)\b",
+    r"\bmy (mother|father|parents|brother|sister)\b", r"\bour anniversary\b",
+    r"\bmy (nephew|niece|grandmother|grandfather|grandparents|cousin|aunt|uncle)\b",
+    r"\bmy ex-?(wife|husband|partner|girlfriend|boyfriend)\b",
+    r"\bwe('re| are) separating\b",
     r"\bmy wife\b", r"\bmy husband\b", r"\bmy child\b", r"\bmy son\b", r"\bmy daughter\b",
     r"\bin-?laws?\b", r"\bbrother-in-law\b", r"\bsister-in-law\b",
 ]
