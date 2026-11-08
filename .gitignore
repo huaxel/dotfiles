@@ -127,3 +127,7 @@ node_modules/
 # The visible Markdown worksheets remain tracked; only the .history event log
 # and block-id map are regenerable local artifacts.
 .worksheets/.history/
+
+# Nushell runtime history: machine-local, may contain command text.
+config/nushell/history.sqlite3
+config/nushell/history.sqlite3-*
