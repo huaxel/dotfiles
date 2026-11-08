@@ -1,6 +1,6 @@
 ---
 name: dream
-description: Dream pass for pi memory. Corrects MEMORY.md against daily logs and disk reality, distills recent dailies into durable entries, prunes the scratchpad, maintains the project wiki in the Obsidian vault (~/JBM/Pi/), and refreshes the MEMORY.md INDEX. Use when the user says "dream", "run the dream pass", asks to organize, clean up, or consolidate memory, or when an event trigger fires (project milestone landed, daily log >40KB, in-session memory correction revealed drift).
+description: Dream pass for pi memory. Corrects MEMORY.md against daily logs and disk reality, distills recent dailies into durable entries, prunes the scratchpad, maintains the project wiki in the Obsidian vault (~/JBM/Fouche/10_Projects/Pi-Memory/), and refreshes the MEMORY.md INDEX. Use when the user says "dream", "run the dream pass", asks to organize, clean up, or consolidate memory, or when an event trigger fires (project milestone landed, daily log >40KB, in-session memory correction revealed drift).
 ---
 
 # Dream pass
@@ -18,7 +18,7 @@ Daily logs reach 1.5MB. A single session that reads them overflows the context w
 
 ## Ground rules
 
-- Write ONLY inside `~/.pi/agent/memory/` and `~/JBM/Pi/`. No repo edits, no git operations, no network.
+- Write ONLY inside `~/.pi/agent/memory/` and `~/JBM/Fouche/10_Projects/Pi-Memory/`. No repo edits, no git operations, no network.
 - Corrections go through `memory_forget` (recovery IDs are the safety net) followed by `memory_write` of the corrected fact. Never raw-delete history otherwise. The only section you regenerate wholesale is the INDEX, between its `<!-- INDEX START` / `<!-- INDEX END -->` markers.
 - If Juan has hand-edited a wiki page, preserve his wording and reconcile around it; note it in the dream log.
 - Uncertain whether a fact drifted? Record the doubt in the dream log; do not change memory.
@@ -28,13 +28,13 @@ Daily logs reach 1.5MB. A single session that reads them overflows the context w
 - Never copy credentials into memory or the wiki; refer to them by name ("the deploy token").
 - After each wiki edit, read the file back to confirm the change landed.
 - Keep each wiki page under ~3KB. Abstract and link; never transcribe sources (the wiki must stay smaller than what it describes).
-- Single-writer rule: only dream passes edit `~/JBM/Pi/*`. If a normal session recorded new project facts in memory, the dream pass promotes them into the wiki.
+- Single-writer rule: only dream passes edit `~/JBM/Fouche/10_Projects/Pi-Memory/*`. If a normal session recorded new project facts in memory, the dream pass promotes them into the wiki.
 
 ## Phase 1 — Read (hard-capped)
 
 - **Never call `memory_read` on a daily log** — it returns the whole file. Use `read` with offset/limit, `bash tail -n 120`, or the pre-extraction the runner does (headings + tag lines + last 200 lines).
 - **Budget: at most ~1,200 lines of daily-log text total.** Default: the 3 most recent logs, bounded slices only.
-- MEMORY.md in 2-3 chunks (~65KB). Then SCRATCHPAD.md, every page in `~/JBM/Pi/`, the most recent dream log, `memory_status`.
+- MEMORY.md in 2-3 chunks (~65KB). Then SCRATCHPAD.md, every page in `~/JBM/Fouche/10_Projects/Pi-Memory/`, the most recent dream log, `memory_status`.
 - Raw session transcripts under `~/.pi/agent/sessions/` are ground truth: `grep` them for a specific claim, never read them whole.
 - If a log was too large to read fully, say so in the dream log.
 
@@ -54,7 +54,7 @@ Mark `scratchpad done` for items the logs show resolved; leave genuinely open on
 
 ## Phase 5 — Wiki
 
-Update each `~/JBM/Pi/<slug>.md` (status, rules, traps, `updated:` date). Create pages for newly active projects. Collapse dormant projects into a one-line "Dormant" entry in `~/JBM/Pi/README.md`.
+Update each `~/JBM/Fouche/10_Projects/Pi-Memory/<slug>.md` (status, rules, traps, `updated:` date). Create pages for newly active projects. Collapse dormant projects into a one-line "Dormant" entry in `~/JBM/Fouche/10_Projects/Pi-Memory/README.md`.
 
 ## Phase 6 — INDEX
 
