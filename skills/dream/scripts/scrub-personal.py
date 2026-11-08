@@ -32,7 +32,12 @@ REDACTED = "[redacted: personal content removed by scrub-personal]"
 # generic words are deliberately absent.
 TIER1 = [
     # mental health / therapy
-    r"\btherap(y|ist)\b", r"\bpsychiatr\w*", r"\bpsycholog\w*", r"\bennui\b",
+    # `\btherapy\b` alone matches hyphenated compounds in technical prose (a real
+    # false positive: "no more rerun-therapy needed" in a CI note), so require
+    # genuine personal context.
+    r"\b(my|in|group|couples?|individual|the)\s+therapy\b",
+    r"\btherapy\s+(session|sessions|appointment)\b",
+    r"\btherapist\b", r"\bpsychiatr\w*", r"\bpsycholog\w*", r"\bennui\b",
     r"\bantidepress\w*", r"\bmental health\b", r"\bburn[- ]?out\b",
     r"\bdepress(ion|ive|ed)\b", r"\banxiety\b", r"\bADHD\b",
     # medical
