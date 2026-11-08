@@ -56,6 +56,16 @@ Mark `scratchpad done` for items the logs show resolved; leave genuinely open on
 
 Update each `~/JBM/Fouche/10_Projects/Pi-Memory/<slug>.md` (status, rules, traps, `updated:` date). Create pages for newly active projects. Collapse dormant projects into a one-line "Dormant" entry in `~/JBM/Fouche/10_Projects/Pi-Memory/README.md`.
 
+## Phase 5b — Archive (only when MEMORY.md exceeds ~120KB)
+
+Size is *not* a session concern: the injected snapshot is 2KB head (INDEX) + 2KB tail (newest entries), so the middle is invisible by design. Archiving is housekeeping only, so do not deliberate over it every run; if no entry qualifies, say so in one line.
+
+MEMORY.md is append-ordered and grows monotonically; the article's rule is to keep the top layer small by moving detail *down* the hierarchy, not by merging it (merging risks losing dated evidence, and an organizer that cannot verify supersession will rightly refuse).
+
+So archive rather than merge: move settled entries older than ~45 days whose project is no longer active into `~/.pi/agent/memory/archive/<YYYY-MM>.md`, verbatim, leaving a one-line pointer in MEMORY.md. qmd indexes `archive/`, so `memory_search` still finds them.
+
+Never archive standing preferences, still-governing decisions, or security rules. Verify the move by reading the archive back and comparing line counts; if verification fails, restore the entry. Losing a line is worse than a large file.
+
 ## Phase 6 — INDEX
 
 Regenerate the section between the INDEX markers: date, active-project one-liners, standing preferences, recently-corrected notes. Keep it under 2KB (the session snapshot injects head+tail of MEMORY.md, 4K total).
