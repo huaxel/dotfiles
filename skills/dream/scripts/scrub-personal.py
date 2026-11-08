@@ -83,6 +83,13 @@ def blocks(text):
 
 
 def process(path, outdir, apply):
+    """Return (blocks_redacted, residual_after, tier2_left, ok).
+
+    `ok` means different things per mode, and conflating them was a real bug:
+    check mode asks "is the INPUT clean?" (so any match is a failure, and the
+    caller must refuse to sync), while scrub mode asks "is the OUTPUT clean?"
+    (so it redacts first, then verifies nothing survived).
+    """
     text = path.read_text(encoding="utf-8", errors="replace")
     redacted = 0
     parts = []
@@ -94,14 +101,17 @@ def process(path, outdir, apply):
             parts.append(b)
     new = "".join(parts)
 
-    residual1 = T1.findall(new)
-    residual2 = T2.findall(new)
-    safe = not residual1
+    residual_after = len(T1.findall(new))
+    tier2_left = len(T2.findall(new))
 
-    if apply and safe:
-        dest = outdir / path.name
-        dest.write_text(new, encoding="utf-8")
-    return redacted, len(residual1), len(residual2), safe
+    if apply:
+        ok = residual_after == 0
+        if ok:
+            (outdir / path.name).write_text(new, encoding="utf-8")
+    else:
+        # check mode: clean input means nothing needed redacting at all
+        ok = redacted == 0
+    return redacted, residual_after, tier2_left, ok
 
 
 def main():
@@ -122,20 +132,26 @@ def main():
         pp = pathlib.Path(p)
         files.extend(sorted(pp.glob("*.md")) if pp.is_dir() else [pp])
 
-    total_redacted = unsafe = tier2_hits = 0
+    total_redacted = failed = tier2_hits = 0
     for f in files:
-        r, res1, res2, safe = process(f, outdir, apply)
+        r, residual, res2, ok = process(f, outdir, apply)
         total_redacted += r
         tier2_hits += res2
-        if not safe:
-            unsafe += 1
-            print(f"UNSAFE  {f.name}: {res1} tier-1 match(es) survived redaction", file=sys.stderr)
+        if not ok:
+            failed += 1
+            if apply:
+                print(f"UNSAFE  {f.name}: {residual} tier-1 match(es) survived redaction", file=sys.stderr)
+            else:
+                print(f"NEEDS SCRUB  {f.name}: {r} block(s) contain personal content", file=sys.stderr)
         elif r:
             print(f"scrubbed {f.name}: {r} block(s) redacted")
     print(f"\nfiles={len(files)} blocks_redacted={total_redacted} "
-          f"tier2_mentions_left={tier2_hits} unsafe_files={unsafe}")
-    if unsafe:
-        print("REFUSING: at least one file could not be made safe. Do not sync it.", file=sys.stderr)
+          f"tier2_mentions_left={tier2_hits} failing_files={failed}")
+    if failed:
+        if apply:
+            print("REFUSING: at least one file could not be made safe. Do not sync it.", file=sys.stderr)
+        else:
+            print("NOT CLEAN: personal content present. Scrub before syncing.", file=sys.stderr)
         return 1
     return 0
 
