@@ -28,6 +28,7 @@ Prefer the script for routine passes. Do the phases below by hand when working i
 
 ## Ground rules
 
+- **Never write therapy, health, salary, or personal-relationship details to memory or the wiki (owner policy, 2026-11-08).** This includes emotional state, medical information, compensation figures, and identifying details about friends or family. If a fragment or log contains such content, drop it and note in the dream log that content was withheld. This rule outranks completeness: a missing fact is better than a leak.
 - Write ONLY inside `~/.pi/agent/memory/` and `~/JBM/Fouche/10_Projects/Pi-Memory/`. No repo edits, no git operations, no network.
 - Corrections go through `memory_forget` (recovery IDs are the safety net) followed by `memory_write` of the corrected fact. Never raw-delete history otherwise. The only section you regenerate wholesale is the INDEX, between its `<!-- INDEX START` / `<!-- INDEX END -->` markers.
 - If Juan has hand-edited a wiki page, preserve his wording and reconcile around it; note it in the dream log.
