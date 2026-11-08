@@ -14,7 +14,17 @@ Daily logs reach 1.5MB. A single session that reads them overflows the context w
 - **Analyzers** (one per source file, small context): bash pre-extracts a bounded slice, the analyzer distills it into a fragment.
 - **Organizer** (one, small input): reads MEMORY.md + the fragments, never the raw logs.
 
-`scripts/dream.sh` implements this deterministically. Prefer it for routine passes. Do the phases below by hand when working interactively or when a fragment needs judgment.
+`scripts/dream.sh` implements this deterministically, as two separable phases:
+
+```bash
+scripts/dream.sh analyze  [--days N] [--dry-run]   # distill this machine's dailies into fragments
+scripts/dream.sh organize [--dry-run]              # merge fragments into memory + wiki (single writer)
+scripts/dream.sh          [--days N]               # analyze then organize (single-machine use)
+```
+
+`analyze` is safe on every machine (it only appends fragments); `organize` is the single writer and must run on one machine at a time. Consumed fragments move to `dream/processed/`. If the vault contains sync-conflict files, `organize` skips the wiki phase rather than writing over unresolved state. If the memory dir is a git repo with a remote, the runner commits and pushes after organizing (disable with `PI_DREAM_NO_GIT=1`).
+
+Prefer the script for routine passes. Do the phases below by hand when working interactively or when a fragment needs judgment.
 
 ## Ground rules
 
@@ -80,4 +90,6 @@ Run `qmd update && qmd embed` so changes are searchable.
 
 ## Cadence
 
-Event-driven, not clock-scheduled (owner decision 2026-11-08): run on project milestones, oversized daily logs, or detected drift. Headless: `scripts/dream.sh [--days N] [--dry-run]`. The LaunchAgent plist here (Sundays 09:00) is an unloaded optional artifact.
+Event-driven, not clock-scheduled (owner decision 2026-11-08): run on project milestones, oversized daily logs, or detected drift. The LaunchAgent plist here (Sundays 09:00) is an unloaded optional artifact.
+
+Cross-machine: see `~/JBM/Fouche/10_Projects/Pi-Memory/cross-machine.md`. Analyzers run per machine; the organizer is the single writer.
