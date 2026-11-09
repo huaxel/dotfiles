@@ -1,6 +1,6 @@
 ---
 name: dream
-description: Dream pass for pi memory. Corrects MEMORY.md against daily logs and disk reality, distills recent dailies into durable entries, prunes the scratchpad, maintains the project wiki in the git-synced memory repo (~/.pi/agent/memory/wiki/), and refreshes the MEMORY.md INDEX. Use when the user says "dream", "run the dream pass", asks to organize, clean up, or consolidate memory, or when an event trigger fires (project milestone landed, daily log >40KB, in-session memory correction revealed drift).
+description: Dream pass for pi memory. Corrects MEMORY.md against daily logs and disk reality, distills recent dailies into durable entries, prunes the scratchpad, renders the project wiki from each project's memory INDEX (~/.pi/agent/memory/wiki/), and refreshes the MEMORY.md INDEX. Use when the user says "dream", "run the dream pass", asks to organize, clean up, or consolidate memory, or when an event trigger fires (project milestone landed, daily log >40KB, in-session memory correction revealed drift).
 ---
 
 # Dream pass
@@ -38,7 +38,7 @@ The publishing gate is `check-memory-privacy.py`, not a top-level daily-only scr
 
 Without `PI_DREAM_NO_GIT=1`, the runner can invoke sync after analysis or organization, not just after organization. Keep that opt-out set unless this run's commits/pushes are explicitly authorized. It does not disable model calls or search maintenance. The runner does not pull before the organizer reads, so do not assume it is a freshness coordinator.
 
-Analyze local material on each machine, but pending/processed fragments are gitignored and remain machine-local. Cross-machine fragment transport is not implemented. Organize only the fragments available on the chosen host. One organizer/wiki writer across machines is an operator policy; `/tmp/pi-dream.lock` serializes only one host. The wiki lives in the memory repo, so any host with the clone can maintain it and git carries the result to the others. On unresolved wiki merge state (unmerged index entries or conflict markers) the runner instructs the organizer to skip wiki edits; this is guidance, not filesystem enforcement. Preserve human wording explicitly. Consumed fragments move to `dream/processed/` only after its fresh-log check succeeds.
+Analyze local material on each machine, but pending/processed fragments are gitignored and remain machine-local. Cross-machine fragment transport is not implemented. Organize only the fragments available on the chosen host. One organizer/wiki writer across machines is an operator policy; `/tmp/pi-dream.lock` serializes only one host. The wiki lives in the memory repo and is generated, so any host with the clone can render it and git carries the result to the others. Never author a wiki page: a derived page cannot drift from the memory it summarizes, which is the whole point. On unresolved wiki merge state (unmerged index entries or conflict markers) the runner instructs the organizer to skip wiki edits; this is guidance, not filesystem enforcement. Preserve human wording explicitly. Consumed fragments move to `dream/processed/` only after its fresh-log check succeeds.
 
 Verified merge/privacy tests do not establish full analyzer/organizer portability or scheduling. Check the platform's fresh-log success signal before trusting a headless run.
 
