@@ -259,6 +259,11 @@ run_organize() {
     return 2
   fi
 
+  local DISTILL_ONLY_RULE=""
+  if [[ "${PI_DREAM_DISTILL_ONLY:-}" == 1 ]]; then
+    DISTILL_ONLY_RULE="DISTILL ONLY: do not edit the wiki and do not archive or delete anything from MEMORY.md. Skip steps B and D. Appending a new section is the only MEMORY.md change allowed besides the INDEX."
+  fi
+
   org_prompt="You are the memory organizer for a pi coding-agent memory system. You are running headless; no human will answer questions.
 
 Read these first, in this order:
@@ -269,6 +274,7 @@ $frag_list
 4. $WIKI_DIR/README.md and the wiki pages it links (small status pages per project)
 
 Then do this work, using your file tools:
+${DISTILL_ONLY_RULE}
 
 A. Merge the fragments into MEMORY.md. This batch is small on purpose. Read every fragment listed above and decide on each one; do not skim or summarize the set. Append new durable entries as new sections, each starting with an HTML comment timestamp line like '<!-- $STAMP dream -->' and a '## ' heading. Use #tags and [[links]]. Do not duplicate facts already present; if a fragment corrects an existing entry, use memory_forget on the stale text and memory_write the corrected fact. Never raw-delete history otherwise. In the dream log, list each fragment filename with one outcome: appended, duplicate, or dropped (and why). A fragment is a duplicate only if its specific facts already appear in MEMORY.md, not merely because a related topic does.
 
