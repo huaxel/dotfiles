@@ -1,6 +1,6 @@
 ---
 name: dream
-description: Dream pass for pi memory. Corrects MEMORY.md against daily logs and disk reality, distills recent dailies into durable entries, prunes the scratchpad, maintains the project wiki in the Obsidian vault (~/JBM/Fouche/10_Projects/Pi-Memory/), and refreshes the MEMORY.md INDEX. Use when the user says "dream", "run the dream pass", asks to organize, clean up, or consolidate memory, or when an event trigger fires (project milestone landed, daily log >40KB, in-session memory correction revealed drift).
+description: Dream pass for pi memory. Corrects MEMORY.md against daily logs and disk reality, distills recent dailies into durable entries, prunes the scratchpad, maintains the project wiki in the git-synced memory repo (~/.pi/agent/memory/wiki/), and refreshes the MEMORY.md INDEX. Use when the user says "dream", "run the dream pass", asks to organize, clean up, or consolidate memory, or when an event trigger fires (project milestone landed, daily log >40KB, in-session memory correction revealed drift).
 ---
 
 # Dream pass
@@ -38,7 +38,7 @@ The publishing gate is `check-memory-privacy.py`, not a top-level daily-only scr
 
 Without `PI_DREAM_NO_GIT=1`, the runner can invoke sync after analysis or organization, not just after organization. Keep that opt-out set unless this run's commits/pushes are explicitly authorized. It does not disable model calls or search maintenance. The runner does not pull before the organizer reads, so do not assume it is a freshness coordinator.
 
-Analyze local material on each machine, but pending/processed fragments are gitignored and remain machine-local. Cross-machine fragment transport is not implemented. Organize only the fragments available on the chosen host. One organizer/wiki writer across machines is an operator policy; `/tmp/pi-dream.lock` serializes only one host. Use the Mac with the vault for wiki maintenance. On wiki-folder sync-conflict filenames, the runner instructs the organizer to skip wiki edits; this is guidance, not filesystem enforcement. Preserve human wording explicitly. Consumed fragments move to `dream/processed/` only after its fresh-log check succeeds.
+Analyze local material on each machine, but pending/processed fragments are gitignored and remain machine-local. Cross-machine fragment transport is not implemented. Organize only the fragments available on the chosen host. One organizer/wiki writer across machines is an operator policy; `/tmp/pi-dream.lock` serializes only one host. The wiki lives in the memory repo, so any host with the clone can maintain it and git carries the result to the others. On unresolved wiki merge state (unmerged index entries or conflict markers) the runner instructs the organizer to skip wiki edits; this is guidance, not filesystem enforcement. Preserve human wording explicitly. Consumed fragments move to `dream/processed/` only after its fresh-log check succeeds.
 
 Verified merge/privacy tests do not establish full analyzer/organizer portability or scheduling. Check the platform's fresh-log success signal before trusting a headless run.
 
@@ -47,7 +47,7 @@ Prefer the script for routine passes. Do the phases below by hand when working i
 ## Ground rules
 
 - **Never write therapy, health, salary, or personal-relationship details to memory or the wiki (owner policy, 2026-11-08).** This includes emotional state, medical information, compensation figures, and identifying details about friends or family. If a fragment or log contains such content, drop it and note in the dream log that content was withheld. This rule outranks completeness: a missing fact is better than a leak.
-- Organizer file tools write only inside `~/.pi/agent/memory/` and `~/JBM/Fouche/10_Projects/Pi-Memory/`; no repo edits, git operations, or network from the organizer. The outer runner has separate model/search/sync behavior described above.
+- Organizer file tools write only inside `~/.pi/agent/memory/` and `~/.pi/agent/memory/wiki/`; no repo edits, git operations, or network from the organizer. The outer runner has separate model/search/sync behavior described above.
 - When deletion/correction is authorized, use `memory_forget` (recovery IDs are the safety net), then `memory_write` the corrected fact. Without deletion authorization, append a dated, source-verified supersession. Do not treat a maintenance request as permission to delete user data. Only the INDEX may be regenerated wholesale between its markers.
 - If Juan has hand-edited a wiki page, preserve his wording and reconcile around it; note it in the dream log.
 - Uncertain whether a fact drifted? Record the doubt in the dream log; do not change memory.
@@ -57,13 +57,13 @@ Prefer the script for routine passes. Do the phases below by hand when working i
 - Never copy credentials into memory or the wiki; refer to them by name ("the deploy token").
 - After each wiki edit, read the file back to confirm the change landed.
 - Keep each wiki page under ~3KB. Abstract and link; never transcribe sources (the wiki must stay smaller than what it describes).
-- Single-writer rule: only dream passes edit `~/JBM/Fouche/10_Projects/Pi-Memory/*`. If a normal session recorded new project facts in memory, the dream pass promotes them into the wiki.
+- Single-writer rule: only dream passes edit `~/.pi/agent/memory/wiki/*`. If a normal session recorded new project facts in memory, the dream pass promotes them into the wiki.
 
 ## Phase 1 — Read (hard-capped)
 
 - **Never call `memory_read` on a daily log** — it returns the whole file. Use `read` with offset/limit, `bash tail -n 120`, or the pre-extraction the runner does (headings + tag lines + last 200 lines).
 - **Budget: at most ~1,200 lines of daily-log text total.** Default: the 3 most recent logs, bounded slices only.
-- MEMORY.md in 2-3 chunks (~65KB). Then SCRATCHPAD.md, every page in `~/JBM/Fouche/10_Projects/Pi-Memory/`, the most recent dream log, `memory_status`.
+- MEMORY.md in 2-3 chunks (~65KB). Then SCRATCHPAD.md, every page in `~/.pi/agent/memory/wiki/`, the most recent dream log, `memory_status`.
 - Raw Pi transcripts under `~/dotfiles/pi/agent/sessions/` are ground truth; verify `PI_CODING_AGENT_SESSION_DIR` for overrides. Search a specific claim, never read the store whole. Legacy-looking session paths may be bind mounts: path names or duplicate UUIDs do not authorize cleanup.
 - If a log was too large to read fully, say so in the dream log.
 
@@ -83,7 +83,7 @@ Mark `scratchpad done` for items the logs show resolved; leave genuinely open on
 
 ## Phase 5 — Wiki
 
-Update each `~/JBM/Fouche/10_Projects/Pi-Memory/<slug>.md` (status, rules, traps, `updated:` date). Create pages for newly active projects. Collapse dormant projects into a one-line "Dormant" entry in `~/JBM/Fouche/10_Projects/Pi-Memory/README.md`.
+Update each `~/.pi/agent/memory/wiki/<slug>.md` (status, rules, traps, `updated:` date). Create pages for newly active projects. Collapse dormant projects into a one-line "Dormant" entry in `~/.pi/agent/memory/wiki/README.md`.
 
 ## Phase 5b — Archive (only when MEMORY.md exceeds ~120KB)
 
@@ -111,4 +111,4 @@ Run `qmd update && qmd embed` so changes are searchable.
 
 Event-driven, not clock-scheduled (owner decision 2026-11-08): run on project milestones, oversized daily logs, or detected drift. The LaunchAgent plist here (Sundays 09:00) is an unloaded optional artifact.
 
-Cross-machine: see `~/JBM/Fouche/10_Projects/Pi-Memory/cross-machine.md`. Analyzers run per machine; the organizer is the single writer.
+Cross-machine: see `~/.pi/agent/memory/wiki/cross-machine.md`. Analyzers run per machine; the organizer is the single writer.

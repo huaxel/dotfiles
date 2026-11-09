@@ -12,7 +12,7 @@
 #
 # Cross-machine: `analyze` is safe to run on every machine (it only appends
 # fragments); `organize` is the single writer and must run on one machine at a
-# time. See ~/JBM/Fouche/10_Projects/Pi-Memory/cross-machine.md.
+# time. See $MEM_DIR/wiki/cross-machine.md.
 #
 # Env: PI_DREAM_MODEL, PI_DREAM_ORGANIZER_MODEL, PI_DREAM_ANALYZER_TIMEOUT,
 #      PI_DREAM_ORGANIZER_TIMEOUT, PI_DREAM_SLICE_LINES, PI_DREAM_NO_GIT=1
@@ -29,7 +29,10 @@ LOCK_DIR="/tmp/pi-dream.lock"
 STAMP="$(date +%F)"
 RUN_LOG="$LOG_DIR/run-$STAMP.log"
 DREAM_LOG="$LOG_DIR/$STAMP.md"
-WIKI_DIR="$HOME/JBM/Fouche/10_Projects/Pi-Memory"
+# The wiki lives inside the memory repo so git carries it to every machine.
+# It used to sit in the Obsidian vault, which only reached machines that ran
+# Obsidian and produced sync-conflict files instead of mergeable history.
+WIKI_DIR="$MEM_DIR/wiki"
 
 DAYS=3; DRY_RUN=0; PHASE="all"; HARNESS="pi"; MAX_SESSIONS=15
 while (( $# )); do
@@ -229,9 +232,16 @@ Then reply with just the number of bullets you wrote."
 }
 
 # --------------------------------------------------------------- organize ----
-vault_has_conflicts() {
+wiki_has_conflicts() {
   [[ -d "$WIKI_DIR" ]] || return 1
-  find "$WIKI_DIR" -maxdepth 1 -type f -iname '*conflict*' 2>/dev/null | grep -q .
+  # The wiki is a git-tracked directory now, so unresolved state shows up as
+  # an unmerged index or leftover conflict markers, not as syncthing-style
+  # '*conflict*' filenames. Both cases mean: do not write over it.
+  if git -C "$MEM_DIR" rev-parse --git-dir >/dev/null 2>&1; then
+    [[ -n "$(git -C "$MEM_DIR" ls-files -u -- "$WIKI_DIR" 2>/dev/null)" ]] && return 0
+  fi
+  grep -rqs '^<<<<<<< ' "$WIKI_DIR" 2>/dev/null && return 0
+  return 1
 }
 
 run_organize() {
@@ -247,15 +257,15 @@ run_organize() {
   log "=== organize $STAMP (host=$(hostname -s)) ==="
 
   local conflicts=0
-  if vault_has_conflicts; then
+  if wiki_has_conflicts; then
     conflicts=1
-    wiki_rule="IMPORTANT: the vault currently contains sync-conflict files. SKIP the wiki phase entirely this run and note it in the dream log. Do not resolve or delete conflict files."
-    log "vault conflicts detected: wiki phase will be skipped"
+    wiki_rule="IMPORTANT: the wiki currently has unresolved merge state (unmerged index entries or conflict markers). SKIP the wiki phase entirely this run and note it in the dream log. Do not resolve conflicts yourself."
+    log "wiki conflicts detected: wiki phase will be skipped"
   fi
 
   if (( DRY_RUN )); then
     say "would organize $(printf '%s\n' "$frag_list" | wc -l | tr -d ' ') fragment(s)"
-    say "wiki phase: $([[ $conflicts == 1 ]] && echo 'SKIPPED (vault conflicts)' || echo 'enabled')"
+    say "wiki phase: $([[ $conflicts == 1 ]] && echo 'SKIPPED (wiki merge conflicts)' || echo 'enabled')"
     return 2
   fi
 
@@ -370,7 +380,7 @@ if (( ! DRY_RUN )) && [[ -z "${PI_DREAM_NO_GIT:-}" ]] && git -C "$MEM_DIR" rev-p
   fi
 fi
 
-# Reindex so memory and vault changes are searchable.
+# Reindex so memory and wiki changes are searchable.
 if (( ! DRY_RUN )); then
   qmd update >>"$RUN_LOG" 2>&1 || true
   qmd embed >>"$RUN_LOG" 2>&1 || true
