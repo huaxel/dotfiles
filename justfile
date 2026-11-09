@@ -85,6 +85,8 @@ check-memory:
     python3 scripts/tests/memory-merge.test.py
 
     python3 scripts/tests/memory-privacy.test.py
+
+    python3 scripts/tests/memory-mcp.test.py
 # Report machine-local skill copies without replacing overrides.
 doctor-skills:
     python3 scripts/check_skills.py --local
