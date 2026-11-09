@@ -1,8 +1,7 @@
 diff --git a/node_modules/pi-memory/README.md b/node_modules/pi-memory/README.md
-index 819156e..19fb4fc 100644
 --- a/node_modules/pi-memory/README.md
 +++ b/node_modules/pi-memory/README.md
-@@ -97,18 +97,24 @@ If the first search doesn't find what you need, try rephrasing or switching mode
+@@ -97,18 +97,24 @@
  
  ## File layout
  
@@ -35,7 +34,7 @@ index 819156e..19fb4fc 100644
  ## How it works
  
  ### Context injection
-@@ -185,7 +191,8 @@ This ensures in-progress context survives compaction and is visible in the next
+@@ -185,7 +191,8 @@
  
  | Variable | Values | Default | Description |
  |----------|--------|---------|-------------|
@@ -45,7 +44,7 @@ index 819156e..19fb4fc 100644
  | `PI_MEMORY_SNAPSHOT` | `stable`, `per-turn` | `stable` | `stable` snapshots memory at checkpoints for KV cache stability; `per-turn` rebuilds every turn (legacy behavior) |
  | `PI_MEMORY_QMD_UPDATE` | `background`, `manual`, `off` | `background` | Controls automatic `qmd update` + `qmd embed` after writes |
  | `PI_MEMORY_QMD_SEARCH_TIMEOUT_MS` | positive integer (milliseconds) | `60000` | Sets the timeout for explicit `memory_search` qmd queries |
-@@ -204,7 +211,7 @@ Run the `memory_status` tool first — it reports most of these at a glance.
+@@ -204,7 +211,7 @@
  | `memory_search` says qmd is required | qmd not installed or not on `PATH` | Install qmd (`npm install -g @tobilu/qmd`); if installed via Bun, ensure `~/.bun/bin` is on `PATH` |
  | Search returns nothing for terms you know exist | Index is stale | A background `qmd update` runs after writes; if disabled (`PI_MEMORY_QMD_UPDATE=off`), run `qmd update` manually |
  | “need embeddings” on semantic/deep search | Vectors not built yet | Embedding starts automatically in the background — retry shortly. If `PI_MEMORY_QMD_UPDATE` is `manual`/`off`, run `qmd embed` yourself |
@@ -55,7 +54,6 @@ index 819156e..19fb4fc 100644
  | Memory isn't being injected after a write | Cache-stable snapshot only refreshes at checkpoints | Long-term writes refresh next turn; for daily/scratchpad use `memory_read`, or set `PI_MEMORY_SNAPSHOT=per-turn` |
  
 diff --git a/node_modules/pi-memory/index.ts b/node_modules/pi-memory/index.ts
-index 3ad496d..65cdcca 100644
 --- a/node_modules/pi-memory/index.ts
 +++ b/node_modules/pi-memory/index.ts
 @@ -5,12 +5,15 @@
@@ -86,7 +84,7 @@ index 3ad496d..65cdcca 100644
  import * as fs from "node:fs";
  import * as path from "node:path";
  import { type Message, StringEnum, Type } from "@earendil-works/pi-ai";
-@@ -57,24 +60,83 @@ export function resolveMemoryDir(env: MemoryEnv = process.env): string {
+@@ -57,26 +60,85 @@
  	return path.join(home, ".pi", "agent", "memory");
  }
  
@@ -147,8 +145,8 @@ index 3ad496d..65cdcca 100644
 +	} catch {
 +		return null;
 +	}
-+}
-+
+ }
+ 
 +function projectKey(projectRoot: string): string {
 +	const label = path.basename(projectRoot).replace(/[^A-Za-z0-9._-]/g, "-") || "project";
 +	const digest = createHash("sha256").update(projectRoot).digest("hex").slice(0, 12);
@@ -170,10 +168,12 @@ index 3ad496d..65cdcca 100644
 +		dir: path.join(baseDir, "projects", key),
 +		collection: `${DEFAULT_QMD_COLLECTION}-${key}`,
 +	};
- }
- 
++}
++
  // ---------------------------------------------------------------------------
-@@ -1021,26 +1083,26 @@ export function qmdInstallInstructions(): string {
+ // Utilities
+ // ---------------------------------------------------------------------------
+@@ -1021,26 +1083,26 @@
  		"",
  		"The extension auto-creates the collection on next session start.",
  		"To set it up manually instead:",
@@ -207,7 +207,7 @@ index 3ad496d..65cdcca 100644
  				err ? reject(err) : resolve(),
  			);
  		});
-@@ -1051,13 +1113,14 @@ export async function setupQmdCollection(): Promise<boolean> {
+@@ -1051,13 +1113,14 @@
  
  	// Add path contexts (best-effort, ignore errors)
  	const contexts: [string, string][] = [
@@ -225,7 +225,7 @@ index 3ad496d..65cdcca 100644
  					err ? reject(err) : resolve(),
  				);
  			});
-@@ -1065,9 +1128,9 @@ export async function setupQmdCollection(): Promise<boolean> {
+@@ -1065,9 +1128,9 @@
  			// Ignore — context may already exist
  		}
  	}
@@ -238,7 +238,7 @@ index 3ad496d..65cdcca 100644
  	return true;
  }
  
-@@ -1150,7 +1213,7 @@ export function ensureQmdEmbed(): boolean {
+@@ -1150,7 +1213,7 @@
  		return true;
  	}
  	embedInFlight = true;
@@ -247,7 +247,7 @@ index 3ad496d..65cdcca 100644
  		embedInFlight = false;
  		if (embedPending) {
  			embedPending = false;
-@@ -1203,7 +1266,7 @@ export async function searchRelevantMemories(prompt: string): Promise<string> {
+@@ -1203,7 +1266,7 @@
  
  	let timer: ReturnType<typeof setTimeout> | undefined;
  	try {
@@ -256,7 +256,7 @@ index 3ad496d..65cdcca 100644
  		if (!hasCollection) return "";
  
  		const results = await Promise.race([
-@@ -1294,7 +1357,7 @@ export function runQmdSearch(
+@@ -1294,7 +1357,7 @@
  	limit: number,
  ): Promise<{ results: QmdSearchResult[]; stderr: string }> {
  	const subcommand = mode === "keyword" ? "search" : mode === "semantic" ? "vsearch" : "query";
@@ -265,7 +265,7 @@ index 3ad496d..65cdcca 100644
  	const timeoutMs = getQmdSearchTimeoutMs();
  
  	return new Promise((resolve, reject) => {
-@@ -1424,8 +1487,19 @@ export function _resetMemorySnapshot() {
+@@ -1424,8 +1487,19 @@
  // ---------------------------------------------------------------------------
  
  export default function (pi: ExtensionAPI) {
@@ -286,7 +286,7 @@ index 3ad496d..65cdcca 100644
  		exitSummaryReason = null;
  		if (terminalInputUnsubscribe) {
  			terminalInputUnsubscribe();
-@@ -1450,7 +1524,7 @@ export default function (pi: ExtensionAPI) {
+@@ -1450,7 +1524,7 @@
  			return;
  		}
  
@@ -295,7 +295,63 @@ index 3ad496d..65cdcca 100644
  		if (!hasCollection) {
  			await setupQmdCollection();
  		}
-@@ -2253,7 +2327,7 @@ export default function (pi: ExtensionAPI) {
+@@ -1588,37 +1662,27 @@
+ 		ensureDirs();
+ 		const sid = shortSessionId(ctx.sessionManager.getSessionId());
+ 		const ts = nowTimestamp();
+-		const parts: string[] = [];
+ 
+-		// Capture open scratchpad items
+-		const scratchpad = readFileSafe(SCRATCHPAD_FILE);
+-		if (scratchpad?.trim()) {
+-			const openItems = parseScratchpad(scratchpad).filter((i) => !i.done);
+-			if (openItems.length > 0) {
+-				parts.push("**Open scratchpad items:**");
+-				for (const item of openItems) {
+-					parts.push(`- [ ] ${item.text}`);
+-				}
+-			}
+-		}
+-
+-		// Capture last few lines from today's daily log
+-		const todayContent = readFileSafe(dailyPath(todayStr()));
+-		if (todayContent?.trim()) {
+-			const lines = todayContent.trim().split("\n");
+-			const tail = lines.slice(-15).join("\n");
+-			parts.push(`**Recent daily log context:**\n${tail}`);
+-		}
+-
++		// The handoff records THAT a compaction happened, not what was in memory.
++		//
++		// It used to copy every open scratchpad item and the last 15 lines of the
++		// daily into the daily itself. Both are already injected from their own
++		// files by buildMemoryContext, so the copy was redundant twice over: it
++		// injected the same items a second time, and it made the daily logs — the
++		// evidence the dream pass distills — mostly a repeated scratchpad dump.
++		// Measured on 2026-11-09: 995 handoffs, 8.7MB of 9.0MB of daily bytes
++		// (96.9%) inside handoff blocks, against 110 open scratchpad items.
++		//
+ 		// Intentional cache boundary: compaction drops tool history, so the
+-		// snapshot must catch up to disk on every compaction — even when no
+-		// handoff is written. Otherwise stale pre-compaction state (e.g. a
+-		// completed scratchpad item that no longer appears in the snapshot
+-		// source files) would keep being injected.
++		// snapshot must catch up to disk on every compaction. Otherwise stale
++		// pre-compaction state (e.g. a completed scratchpad item that no longer
++		// appears in the snapshot source files) would keep being injected.
+ 		try {
+-			if (parts.length === 0) return;
+-
+-			const handoff = [`<!-- HANDOFF ${ts} [${sid}] -->`, "## Session Handoff", ...parts].join("\n");
++			const handoff = [
++				`<!-- HANDOFF ${ts} [${sid}] -->`,
++				"## Session Handoff",
++				`Compaction at ${ts}. Open items live in SCRATCHPAD.md and recent context in this file; the snapshot re-reads both from disk.`,
++			].join("\n");
+ 
+ 			const filePath = dailyPath(todayStr());
+ 			const existing = readFileSafe(filePath) ?? "";
+@@ -2253,7 +2317,7 @@
  				};
  			}
  
@@ -304,7 +360,7 @@ index 3ad496d..65cdcca 100644
  			if (!hasCollection) {
  				const created = await setupQmdCollection();
  				if (created) {
-@@ -2265,7 +2339,7 @@ export default function (pi: ExtensionAPI) {
+@@ -2265,7 +2329,7 @@
  					content: [
  						{
  							type: "text",
@@ -313,7 +369,7 @@ index 3ad496d..65cdcca 100644
  						},
  					],
  					isError: true,
-@@ -2353,7 +2427,7 @@ export default function (pi: ExtensionAPI) {
+@@ -2353,7 +2417,7 @@
  		label: "Memory Status",
  		description:
  			"Report the health of the memory system: where files live, what's stored, " +
@@ -322,7 +378,7 @@ index 3ad496d..65cdcca 100644
  			"whether embeddings are ready, and the active configuration. " +
  			"Use this when search behaves unexpectedly or to confirm setup.",
  		parameters: Type.Object({}),
-@@ -2365,7 +2439,7 @@ export default function (pi: ExtensionAPI) {
+@@ -2365,7 +2429,7 @@
  			let collectionOk = false;
  			let embeddings: "ready" | "missing" | "unknown" | "n/a" = "n/a";
  			if (qmdOk) {
@@ -331,7 +387,7 @@ index 3ad496d..65cdcca 100644
  				embeddings = collectionOk ? await probeEmbeddings() : "n/a";
  			}
  
-@@ -2383,7 +2457,7 @@ export default function (pi: ExtensionAPI) {
+@@ -2383,7 +2447,7 @@
  			];
  
  			if (qmdOk) {
@@ -340,7 +396,7 @@ index 3ad496d..65cdcca 100644
  				if (collectionOk) {
  					const embMark = embeddings === "ready" ? "✓" : embeddings === "missing" ? "⚠" : "?";
  					lines.push(`- Embeddings (semantic/deep): ${embMark} ${embeddings}`);
-@@ -2410,6 +2484,7 @@ export default function (pi: ExtensionAPI) {
+@@ -2410,6 +2474,7 @@
  				`- PI_MEMORY_QMD_UPDATE: ${getQmdUpdateMode()}`,
  				`- PI_MEMORY_QMD_SEARCH_TIMEOUT_MS: ${getQmdSearchTimeoutMs()}`,
  				`- PI_MEMORY_DIR: ${process.env.PI_MEMORY_DIR ? "set" : "default"}`,
