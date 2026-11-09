@@ -1,7 +1,7 @@
 diff --git a/node_modules/pi-memory/README.md b/node_modules/pi-memory/README.md
 --- a/node_modules/pi-memory/README.md
 +++ b/node_modules/pi-memory/README.md
-@@ -97,18 +97,24 @@
+@@ -97,17 +97,23 @@
  
  ## File layout
  
@@ -17,6 +17,7 @@ diff --git a/node_modules/pi-memory/README.md b/node_modules/pi-memory/README.md
 -    ...
 -  recovery/
 -    <recovery-id>.json    # Complete payload and restore state for a memory_forget deletion
+-```
 +  MEMORY.md              # Global memory used outside Git repositories
 +  projects/
 +    <project-key>/       # One isolated memory tree per repository
@@ -24,16 +25,15 @@ diff --git a/node_modules/pi-memory/README.md b/node_modules/pi-memory/README.md
 +      SCRATCHPAD.md
 +      daily/
 +      recovery/
- ```
- 
++```
++
 +Each project gets a separate qmd collection, so search cannot return memories
 +from another repository. Git worktrees share the main repository's project key.
 +Existing global files are not copied automatically; set `PI_MEMORY_PROJECT_SCOPE=0`
 +or `PI_MEMORY_DIR` to keep using the legacy tree while migrating them.
-+
+ 
  ## How it works
  
- ### Context injection
 @@ -185,7 +191,8 @@
  
  | Variable | Values | Default | Description |
@@ -53,10 +53,37 @@ diff --git a/node_modules/pi-memory/README.md b/node_modules/pi-memory/README.md
  | qmd works in the shell but not from pi on Windows | Broken `.cmd`/`.ps1` shims | The extension bypasses them by invoking qmd's JS entry with `node`; make sure the npm global `node_modules` dir is on `PATH` |
  | Memory isn't being injected after a write | Cache-stable snapshot only refreshes at checkpoints | Long-term writes refresh next turn; for daily/scratchpad use `memory_read`, or set `PI_MEMORY_SNAPSHOT=per-turn` |
  
+@@ -269,3 +276,26 @@
+ ## Changelog
+ 
+ See [CHANGELOG.md](./CHANGELOG.md).
++
++## Stable project identity (explicit, opt-in)
++
++The optional `~/.pi/agent/memory/project-identities.json` registry maps checkout
++roots to a shared project ID, independent of path or Git remote:
++
++```json
++{"version":1,"checkouts":{"/home/alice/project":"example-project","/Users/alice/project":"example-project"}}
++```
++
++Mapped checkouts use `projects/example-project/` and the qmd collection
++`pi-memory-example-project`. Worktrees use their main checkout's root. IDs must
++start with a lowercase letter and contain only lowercase letters, digits and
++hyphens (at most 64 characters). Paths must be normalized and absolute.
++Missing registry/unmapped checkouts keep the existing path-derived scope;
++malformed registries fail closed. Explicit `PI_MEMORY_DIR` and
++`PI_MEMORY_PROJECT_SCOPE=0` retain their existing override semantics.
++
++This resolver does not migrate, merge or delete memory. Before enabling a map,
++review the checkout identities and copy/merge their histories into the chosen
++canonical scope with a separately verified migration. Changing a Git remote
++never changes the explicit identity. Do not infer identities from repo names
++or remote URLs: forks may intentionally have separate memory.
 diff --git a/node_modules/pi-memory/index.ts b/node_modules/pi-memory/index.ts
 --- a/node_modules/pi-memory/index.ts
 +++ b/node_modules/pi-memory/index.ts
-@@ -5,12 +5,15 @@
+@@ -5,11 +5,14 @@
   * Core memory tools (write/read/scratchpad) work without qmd installed.
   * The memory_search tool requires qmd for keyword, semantic, and hybrid search.
   *
@@ -66,13 +93,12 @@ diff --git a/node_modules/pi-memory/index.ts b/node_modules/pi-memory/index.ts
   *   SCRATCHPAD.md           — checklist of things to keep in mind / fix later
   *   daily/YYYY-MM-DD.md    — daily append-only log (today + yesterday loaded at session start)
   *   recovery/*.json        — durable records for restoring memory_forget deletions
-  *
++ *
 + * Outside Git repositories, or with project scoping disabled, the legacy
 + * global layout is used directly under ~/.pi/agent/memory/.
-+ *
+  *
   * Tools:
   *   memory_write   — write to MEMORY.md or daily log
-  *   memory_forget  — delete matching memory entries and create a recovery record
 @@ -23,8 +26,8 @@
   *   - MEMORY.md + SCRATCHPAD.md + today's + yesterday's daily logs injected into every turn
   */
@@ -84,7 +110,7 @@ diff --git a/node_modules/pi-memory/index.ts b/node_modules/pi-memory/index.ts
  import * as fs from "node:fs";
  import * as path from "node:path";
  import { type Message, StringEnum, Type } from "@earendil-works/pi-ai";
-@@ -57,26 +60,85 @@
+@@ -57,24 +60,128 @@
  	return path.join(home, ".pi", "agent", "memory");
  }
  
@@ -145,12 +171,57 @@ diff --git a/node_modules/pi-memory/index.ts b/node_modules/pi-memory/index.ts
 +	} catch {
 +		return null;
 +	}
- }
- 
++}
++
 +function projectKey(projectRoot: string): string {
 +	const label = path.basename(projectRoot).replace(/[^A-Za-z0-9._-]/g, "-") || "project";
 +	const digest = createHash("sha256").update(projectRoot).digest("hex").slice(0, 12);
 +	return `${label}-${digest}`;
++}
++
++/** Explicit aliases only: remotes and directory labels never imply identity.
++ * Missing registry preserves existing scopes. Invalid registry stops resolution
++ * instead of silently sending writes to a different memory directory.
++ */
++function registeredProjectKey(baseDir: string, root: string): string | undefined {
++	const registry = path.join(baseDir, "project-identities.json");
++	let raw: string;
++	try {
++		raw = fs.readFileSync(registry, "utf8");
++	} catch (error) {
++		if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined;
++		throw error;
++	}
++	const data = JSON.parse(raw);
++	if (!data || data.version !== 1 || !data.checkouts ||
++		typeof data.checkouts !== "object" || Array.isArray(data.checkouts)) {
++		throw new Error("Invalid project-identities.json: expected version 1 and checkouts object");
++	}
++	for (const [checkout, id] of Object.entries(data.checkouts)) {
++		if (!path.isAbsolute(checkout) || path.normalize(checkout) !== checkout ||
++			typeof id !== "string" || !/^[a-z][a-z0-9-]{0,63}$/.test(id)) {
++			throw new Error("Invalid project-identities.json: use normalized absolute paths and lowercase project IDs");
++		}
++	}
++	return Object.hasOwn(data.checkouts, root) ? data.checkouts[root] : undefined;
++}
++
++let memoryScopeFailure: Error | null = null;
++
++export function assertMemoryScopeReady(): void {
++	if (memoryScopeFailure) throw memoryScopeFailure;
++}
++
++export function activateMemoryScope(cwd: string, env: MemoryEnv = process.env): MemoryScope {
++	try {
++		const scope = resolveMemoryScope(cwd, env);
++		setMemoryScope(scope.dir, scope.collection);
++		memoryScopeFailure = null;
++		return scope;
++	} catch (error) {
++		memoryScopeFailure = new Error("Memory disabled: project identity resolution failed", { cause: error });
++		throw memoryScopeFailure;
++	}
 +}
 +
 +export function resolveMemoryScope(cwd: string, env: MemoryEnv = process.env): MemoryScope {
@@ -163,17 +234,23 @@ diff --git a/node_modules/pi-memory/index.ts b/node_modules/pi-memory/index.ts
 +	const root = gitProjectRoot(cwd);
 +	if (!root) return { dir: baseDir, collection: DEFAULT_QMD_COLLECTION };
 +
-+	const key = projectKey(root);
++	const key = registeredProjectKey(baseDir, root) ?? projectKey(root);
 +	return {
 +		dir: path.join(baseDir, "projects", key),
 +		collection: `${DEFAULT_QMD_COLLECTION}-${key}`,
 +	};
-+}
-+
+ }
+ 
  // ---------------------------------------------------------------------------
- // Utilities
+@@ -82,6 +189,7 @@
  // ---------------------------------------------------------------------------
-@@ -1021,26 +1083,26 @@
+ 
+ export function ensureDirs() {
++	assertMemoryScopeReady();
+ 	fs.mkdirSync(MEMORY_DIR, { recursive: true });
+ 	fs.mkdirSync(DAILY_DIR, { recursive: true });
+ 	fs.mkdirSync(RECOVERY_DIR, { recursive: true });
+@@ -1021,26 +1129,26 @@
  		"",
  		"The extension auto-creates the collection on next session start.",
  		"To set it up manually instead:",
@@ -207,7 +284,7 @@ diff --git a/node_modules/pi-memory/index.ts b/node_modules/pi-memory/index.ts
  				err ? reject(err) : resolve(),
  			);
  		});
-@@ -1051,13 +1113,14 @@
+@@ -1051,13 +1159,14 @@
  
  	// Add path contexts (best-effort, ignore errors)
  	const contexts: [string, string][] = [
@@ -225,7 +302,7 @@ diff --git a/node_modules/pi-memory/index.ts b/node_modules/pi-memory/index.ts
  					err ? reject(err) : resolve(),
  				);
  			});
-@@ -1065,9 +1128,9 @@
+@@ -1065,9 +1174,9 @@
  			// Ignore — context may already exist
  		}
  	}
@@ -238,7 +315,7 @@ diff --git a/node_modules/pi-memory/index.ts b/node_modules/pi-memory/index.ts
  	return true;
  }
  
-@@ -1150,7 +1213,7 @@
+@@ -1150,7 +1259,7 @@
  		return true;
  	}
  	embedInFlight = true;
@@ -247,7 +324,7 @@ diff --git a/node_modules/pi-memory/index.ts b/node_modules/pi-memory/index.ts
  		embedInFlight = false;
  		if (embedPending) {
  			embedPending = false;
-@@ -1203,7 +1266,7 @@
+@@ -1203,7 +1312,7 @@
  
  	let timer: ReturnType<typeof setTimeout> | undefined;
  	try {
@@ -256,7 +333,7 @@ diff --git a/node_modules/pi-memory/index.ts b/node_modules/pi-memory/index.ts
  		if (!hasCollection) return "";
  
  		const results = await Promise.race([
-@@ -1294,7 +1357,7 @@
+@@ -1294,7 +1403,7 @@
  	limit: number,
  ): Promise<{ results: QmdSearchResult[]; stderr: string }> {
  	const subcommand = mode === "keyword" ? "search" : mode === "semantic" ? "vsearch" : "query";
@@ -265,16 +342,27 @@ diff --git a/node_modules/pi-memory/index.ts b/node_modules/pi-memory/index.ts
  	const timeoutMs = getQmdSearchTimeoutMs();
  
  	return new Promise((resolve, reject) => {
-@@ -1424,8 +1487,19 @@
+@@ -1424,8 +1533,30 @@
  // ---------------------------------------------------------------------------
  
  export default function (pi: ExtensionAPI) {
 -	// --- session_start: detect qmd, auto-setup collection ---
 +	// --- session_start: select project scope, then detect qmd and auto-setup ---
  	pi.on("session_start", async (_event, ctx) => {
-+		const scope = resolveMemoryScope(ctx.cwd);
-+		const scopeChanged = scope.dir !== MEMORY_DIR || scope.collection !== QMD_COLLECTION;
-+		setMemoryScope(scope.dir, scope.collection);
++		const previousDir = MEMORY_DIR;
++		const previousCollection = QMD_COLLECTION;
++		let scope: MemoryScope;
++		try {
++			scope = activateMemoryScope(ctx.cwd);
++		} catch (error) {
++			// Pi may catch lifecycle errors and keep tools registered. Do not
++			// reuse a prior scope's snapshot, timer or tool access in that case.
++			memorySnapshot = null;
++			if (updateTimer) clearTimeout(updateTimer);
++			updateTimer = null;
++			throw error;
++		}
++		const scopeChanged = scope.dir !== previousDir || scope.collection !== previousCollection;
 +		ensureDirs();
 +		if (scopeChanged) {
 +			qmdCollectionStatusCache.clear();
@@ -286,7 +374,7 @@ diff --git a/node_modules/pi-memory/index.ts b/node_modules/pi-memory/index.ts
  		exitSummaryReason = null;
  		if (terminalInputUnsubscribe) {
  			terminalInputUnsubscribe();
-@@ -1450,7 +1524,7 @@
+@@ -1450,7 +1581,7 @@
  			return;
  		}
  
@@ -295,12 +383,12 @@ diff --git a/node_modules/pi-memory/index.ts b/node_modules/pi-memory/index.ts
  		if (!hasCollection) {
  			await setupQmdCollection();
  		}
-@@ -1588,37 +1662,27 @@
+@@ -1588,37 +1719,27 @@
  		ensureDirs();
  		const sid = shortSessionId(ctx.sessionManager.getSessionId());
  		const ts = nowTimestamp();
 -		const parts: string[] = [];
- 
+-
 -		// Capture open scratchpad items
 -		const scratchpad = readFileSafe(SCRATCHPAD_FILE);
 -		if (scratchpad?.trim()) {
@@ -321,6 +409,7 @@ diff --git a/node_modules/pi-memory/index.ts b/node_modules/pi-memory/index.ts
 -			parts.push(`**Recent daily log context:**\n${tail}`);
 -		}
 -
++
 +		// The handoff records THAT a compaction happened, not what was in memory.
 +		//
 +		// It used to copy every open scratchpad item and the last 15 lines of the
@@ -351,7 +440,15 @@ diff --git a/node_modules/pi-memory/index.ts b/node_modules/pi-memory/index.ts
  
  			const filePath = dailyPath(todayStr());
  			const existing = readFileSafe(filePath) ?? "";
-@@ -2253,7 +2317,7 @@
+@@ -2235,6 +2356,7 @@
+ 			limit: Type.Optional(Type.Number({ description: "Max results (default: 5)" })),
+ 		}),
+ 		async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
++			assertMemoryScopeReady();
+ 			if (!qmdAvailable) {
+ 				// Re-check on demand in case qmd was installed after session start.
+ 				qmdAvailable = await detectQmd();
+@@ -2253,7 +2375,7 @@
  				};
  			}
  
@@ -360,7 +457,7 @@ diff --git a/node_modules/pi-memory/index.ts b/node_modules/pi-memory/index.ts
  			if (!hasCollection) {
  				const created = await setupQmdCollection();
  				if (created) {
-@@ -2265,7 +2329,7 @@
+@@ -2265,7 +2387,7 @@
  					content: [
  						{
  							type: "text",
@@ -369,7 +466,7 @@ diff --git a/node_modules/pi-memory/index.ts b/node_modules/pi-memory/index.ts
  						},
  					],
  					isError: true,
-@@ -2353,7 +2417,7 @@
+@@ -2353,7 +2475,7 @@
  		label: "Memory Status",
  		description:
  			"Report the health of the memory system: where files live, what's stored, " +
@@ -378,7 +475,7 @@ diff --git a/node_modules/pi-memory/index.ts b/node_modules/pi-memory/index.ts
  			"whether embeddings are ready, and the active configuration. " +
  			"Use this when search behaves unexpectedly or to confirm setup.",
  		parameters: Type.Object({}),
-@@ -2365,7 +2429,7 @@
+@@ -2365,7 +2487,7 @@
  			let collectionOk = false;
  			let embeddings: "ready" | "missing" | "unknown" | "n/a" = "n/a";
  			if (qmdOk) {
@@ -387,7 +484,7 @@ diff --git a/node_modules/pi-memory/index.ts b/node_modules/pi-memory/index.ts
  				embeddings = collectionOk ? await probeEmbeddings() : "n/a";
  			}
  
-@@ -2383,7 +2447,7 @@
+@@ -2383,7 +2505,7 @@
  			];
  
  			if (qmdOk) {
@@ -396,7 +493,7 @@ diff --git a/node_modules/pi-memory/index.ts b/node_modules/pi-memory/index.ts
  				if (collectionOk) {
  					const embMark = embeddings === "ready" ? "✓" : embeddings === "missing" ? "⚠" : "?";
  					lines.push(`- Embeddings (semantic/deep): ${embMark} ${embeddings}`);
-@@ -2410,6 +2474,7 @@
+@@ -2410,6 +2532,7 @@
  				`- PI_MEMORY_QMD_UPDATE: ${getQmdUpdateMode()}`,
  				`- PI_MEMORY_QMD_SEARCH_TIMEOUT_MS: ${getQmdSearchTimeoutMs()}`,
  				`- PI_MEMORY_DIR: ${process.env.PI_MEMORY_DIR ? "set" : "default"}`,

@@ -22,6 +22,8 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import os
 import pathlib
 import re
@@ -63,7 +65,7 @@ def index_body(text: str) -> str | None:
 
 def notes_section(text: str) -> str:
     """Everything from a `## Notes` heading to the end, verbatim."""
-    match = re.search(r"^## Notes\s*$", text, re.MULTILINE)
+    match = re.search(r"^## Notes(?: \(carried over\))?[^\S\n]*$", text, re.MULTILINE)
     if not match:
         return ""
     return text[match.start() :].rstrip() + "\n"
@@ -75,6 +77,52 @@ def strip_frontmatter(text: str) -> str:
         if end >= 0:
             return text[end + 5 :]
     return text
+
+
+def metadata(text: str) -> dict[str, str]:
+    """Read the generator's simple frontmatter fields, not arbitrary YAML."""
+    if not text.startswith('---\n'):
+        return {}
+    end = text.find('\n---\n', 4)
+    if end < 0:
+        return {}
+    result = {}
+    for line in text[4:end].splitlines():
+        key, separator, value = line.partition(':')
+        if separator:
+            result[key.strip()] = value.strip()
+    return result
+
+
+def legacy_views(mem: pathlib.Path) -> set[str]:
+    """Suppress only explicitly mapped old scope keys with a usable replacement.
+
+    Neither labels nor remotes imply identity. Registry paths reproduce the
+    old resolver's exact key; unrelated same-named scopes remain independent.
+    """
+    registry = mem / 'project-identities.json'
+    if not registry.exists():
+        return set()
+    data = json.loads(registry.read_text())
+    if (not isinstance(data, dict) or data.get('version') != 1 or
+            not isinstance(data.get('checkouts'), dict)):
+        raise ValueError('invalid identity registry')
+    old_keys = set()
+    for checkout, project in data['checkouts'].items():
+        if (not isinstance(project, str) or
+                not re.fullmatch(r'[a-z][a-z0-9-]{0,63}', project) or
+                not pathlib.Path(checkout).is_absolute() or
+                os.path.normpath(checkout) != checkout):
+            raise ValueError('invalid identity mapping')
+        canonical = mem / 'projects' / project / 'MEMORY.md'
+        if not canonical.is_file():
+            continue
+        summary = index_body(canonical.read_text())
+        if summary is None or not summary.strip():
+            continue
+        label = re.sub(r'[^A-Za-z0-9._-]', '-', pathlib.Path(checkout).name) or 'project'
+        old_keys.add(label + '-' + hashlib.sha256(checkout.encode()).hexdigest()[:12])
+    return old_keys
 
 
 def slug_for(key: str) -> str:
@@ -105,6 +153,13 @@ def main(argv: list[str]) -> int:
         print("memory-wiki: no project memory scopes found", file=sys.stderr)
         return 1
 
+    try:
+        retired = legacy_views(mem)
+    except (ValueError, OSError) as error:
+        print(f'memory-wiki: identity selection failed ({error}); wiki untouched', file=sys.stderr)
+        return 1
+    projects = [p for p in projects if p.parent.name not in retired]
+
     date = __import__("datetime").date.today().isoformat()
     written, carried, skipped = 0, 0, 0
     listing: list[tuple[str, str]] = []
@@ -133,7 +188,7 @@ def main(argv: list[str]) -> int:
             # Only an authored page gets its body preserved. A page this script
             # already generated must never be folded into its own notes, or each
             # run would duplicate the content.
-            if not notes and "origin: generated" not in raw.split("---", 2)[1]:
+            if not notes and metadata(raw).get('origin') != 'generated':
                 notes = f"{CARRIED_HEADING}\n\n{existing.strip()}\n"
                 carried += 1
 
@@ -146,10 +201,16 @@ def main(argv: list[str]) -> int:
         written += 1
 
     rendered_slugs = {slug for slug, _ in listing}
-    authored = sorted(
-        p.stem for p in wiki.glob("*.md")
-        if p.stem not in rendered_slugs and p.stem != "README"
-    )
+    authored, retained = [], []
+    for page in sorted(wiki.glob('*.md')):
+        if page.stem in rendered_slugs or page.stem == 'README':
+            continue
+        fields = metadata(page.read_text())
+        source = pathlib.PurePosixPath(fields.get('source', ''))
+        is_legacy = (fields.get('origin') == 'generated' and len(source.parts) == 3
+                     and source.parts[0] == 'projects' and source.parts[1] in retired
+                     and source.parts[2] == 'MEMORY.md')
+        (retained if is_legacy else authored).append(page.stem)
 
     # An index page so the folder is browsable in any Markdown viewer.
     index_lines = ["---", "origin: generated", f"generated_at: {date}", "type: pi-wiki", "---", "", "# Dev wiki", ""]
@@ -169,6 +230,11 @@ def main(argv: list[str]) -> int:
         index_lines.append("")
         for slug in authored:
             index_lines.append(f"- [[{slug}]]")
+    if retained:
+        index_lines.extend(['', '## Retained legacy views', '',
+                            'Historical views kept intact after an explicit identity mapping.',
+                            'Use the canonical project pages above for new work.', ''])
+        index_lines.extend(f'- [[{slug}]]' for slug in retained)
     index_text = "\n".join(index_lines) + "\n"
     if not args.dry_run:
         (wiki / "README.md").write_text(index_text)

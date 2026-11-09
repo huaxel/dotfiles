@@ -15,6 +15,11 @@
       "path": "projects/project-atom-f228a88b205e/MEMORY.md",
       "line_sha256": "a14afca6fa3f682e5a811f8fb1aa623c32dc52b54d4f4316eef0bff192044935",
       "reason": "software-package architecture boundary"
+    },
+    {
+      "path": "projects/project-atom/MEMORY.md",
+      "line_sha256": "a14afca6fa3f682e5a811f8fb1aa623c32dc52b54d4f4316eef0bff192044935",
+      "reason": "Technical Python import-boundary rule: own package refers to libs/cli packages, not personal compensation; unchanged line moved to canonical project identity."
     }
   ]
 }
