@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # Register the read-only memory MCP server with every harness installed here.
+# Currently Claude Code, Codex CLI, and GitHub Copilot CLI. Cursor is not
+# handled: its CLI needs an unlocked login keychain, and there is no stable
+# config file to write instead.
 #
 # The server is stdio-only and reads the local memory clone, so each machine
 # registers it against its own checkout. Nothing is served over the network and
@@ -36,9 +39,31 @@ say "selftest ok"
 
 registered=0
 
+# Capture first. A piped `grep -q` exits as soon as it matches, and under
+# pipefail the producer's SIGPIPE then looks like "not registered".
+has_server() {
+  local listing
+  listing="$("$@" 2>/dev/null || true)"
+  [[ "$listing" == *"$NAME"* ]]
+}
+
+# GitHub Copilot CLI: user scope in ~/.copilot/mcp-config.json.
+if command -v copilot >/dev/null 2>&1; then
+  if has_server copilot mcp list; then
+    say "copilot: already registered"
+  else
+    if run copilot mcp add "$NAME" -- python3 "$SERVER" >/dev/null 2>&1; then
+      say "copilot: registered"
+    else
+      say "copilot: registration failed"
+    fi
+  fi
+  registered=1
+fi
+
 # Claude Code: user scope, so it applies in every project.
 if command -v claude >/dev/null 2>&1; then
-  if claude mcp list 2>/dev/null | grep -q "^${NAME}:"; then
+  if has_server claude mcp list; then
     say "claude: already registered"
   else
     if run claude mcp add --scope user "$NAME" -- python3 "$SERVER" >/dev/null 2>&1; then
@@ -53,7 +78,7 @@ fi
 # Codex CLI: global config. Note that Codex still asks for approval per tool
 # call under its default policy; that is a Codex setting, not a server issue.
 if command -v codex >/dev/null 2>&1; then
-  if codex mcp list 2>/dev/null | grep -q "^${NAME}[[:space:]]"; then
+  if has_server codex mcp list; then
     say "codex: already registered"
   else
     if run codex mcp add "$NAME" -- python3 "$SERVER" >/dev/null 2>&1; then
@@ -66,7 +91,7 @@ if command -v codex >/dev/null 2>&1; then
 fi
 
 if (( registered == 0 )); then
-  say "no supported harness found (claude, codex); nothing to do"
+  say "no supported harness found (claude, codex, copilot); nothing to do"
 fi
 
 say "server: $SERVER"
