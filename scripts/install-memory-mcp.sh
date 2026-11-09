@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Register the read-only memory MCP server with every harness installed here.
-# Currently Claude Code, Codex CLI, and GitHub Copilot CLI. Cursor is not
-# handled: its CLI needs an unlocked login keychain, and there is no stable
-# config file to write instead.
+# Currently Claude Code, Codex CLI, GitHub Copilot CLI, and Cursor.
+# Cursor's CLI needs an unlocked login keychain, so it is registered by
+# writing ~/.cursor/mcp.json, which the IDE reads directly.
 #
 # The server is stdio-only and reads the local memory clone, so each machine
 # registers it against its own checkout. Nothing is served over the network and
@@ -90,8 +90,52 @@ if command -v codex >/dev/null 2>&1; then
   registered=1
 fi
 
+# Cursor IDE reads ~/.cursor/mcp.json. The GUI does not inherit a shell PATH,
+# so the command is /usr/bin/python3 when that exists (the server is stdlib-only
+# and was verified on that interpreter).
+register_cursor() {
+  local config="$HOME/.cursor/mcp.json" py="/usr/bin/python3"
+  [[ -x "$py" ]] || py="python3"
+  if (( DRY_RUN )); then
+    say "would write $config"
+    return 0
+  fi
+  mkdir -p "$HOME/.cursor"
+  "$py" - "$config" "$SERVER" "$py" <<'PY'
+import json, pathlib, sys
+config, server, py = sys.argv[1:]
+path = pathlib.Path(config)
+data = {}
+if path.exists():
+    try:
+        data = json.loads(path.read_text())
+    except json.JSONDecodeError as exc:
+        print(f"cursor: {config} is not valid JSON ({exc}); left unchanged", file=sys.stderr)
+        raise SystemExit(1)
+if not isinstance(data, dict):
+    print(f"cursor: {config} is not an object; left unchanged", file=sys.stderr)
+    raise SystemExit(1)
+servers = data.setdefault("mcpServers", {})
+if not isinstance(servers, dict):
+    print(f"cursor: mcpServers in {config} is not an object; left unchanged", file=sys.stderr)
+    raise SystemExit(1)
+servers["pi-memory"] = {
+    "type": "stdio",
+    "command": py,
+    "args": [server],
+}
+path.write_text(json.dumps(data, indent=2) + "\n")
+print("cursor: wrote", config)
+PY
+}
+if register_cursor; then
+  registered=1
+else
+  say "cursor: registration failed"
+fi
+
 if (( registered == 0 )); then
-  say "no supported harness found (claude, codex, copilot); nothing to do"
+  say "no supported harness found (claude, codex, copilot, cursor); nothing to do"
 fi
 
 say "server: $SERVER"
