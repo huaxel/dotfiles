@@ -27,8 +27,13 @@ PENDING="$LOG_DIR/pending"
 DONE_DIR="$LOG_DIR/processed"
 LOCK_DIR="/tmp/pi-dream.lock"
 STAMP="$(date +%F)"
-RUN_LOG="$LOG_DIR/run-$STAMP.log"
-DREAM_LOG="$LOG_DIR/$STAMP.md"
+RUN_LOG="$LOG_DIR/run-$STAMP-$(hostname -s).log"
+# Dream logs are tracked in git and every machine writes one per date, so the
+# name carries the host. Without it two machines writing the same date
+# collide on pull: git refuses to overwrite the untracked copy, and
+# resolving that by deleting one side loses a run record.
+HOST_SHORT="$(hostname -s)"
+DREAM_LOG="$LOG_DIR/$STAMP-$HOST_SHORT.md"
 # The wiki lives inside the memory repo so git carries it to every machine.
 # It used to sit in the Obsidian vault, which only reached machines that ran
 # Obsidian and produced sync-conflict files instead of mergeable history.
@@ -317,7 +322,7 @@ $wiki_rule"
   # Accept the log dated today too: a run that crosses midnight dates its log
   # with the real date, not the date captured at startup.
   local today_log
-  today_log="$LOG_DIR/$(date +%F).md"
+  today_log="$LOG_DIR/$(date +%F)-$HOST_SHORT.md"
   if { [[ -f "$DREAM_LOG" ]] && (( $(stat -f %m "$DREAM_LOG" 2>/dev/null || echo 0) >= START_EPOCH )); } \
      || { [[ -f "$today_log" ]] && (( $(stat -f %m "$today_log" 2>/dev/null || echo 0) >= START_EPOCH )); }; then
     mkdir -p "$LOG_DIR/covered"
@@ -388,7 +393,7 @@ if (( ! DRY_RUN )); then
 fi
 
 if [[ "$PHASE" != analyze ]]; then
-  today_log="$LOG_DIR/$(date +%F).md"
+  today_log="$LOG_DIR/$(date +%F)-$HOST_SHORT.md"
   if { [[ -f "$DREAM_LOG" ]] && (( $(stat -f %m "$DREAM_LOG" 2>/dev/null || echo 0) >= START_EPOCH )); } \
      || { [[ -f "$today_log" ]] && (( $(stat -f %m "$today_log" 2>/dev/null || echo 0) >= START_EPOCH )); }; then
     log "=== dream done $STAMP (log: $DREAM_LOG) ==="
