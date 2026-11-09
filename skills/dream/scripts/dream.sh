@@ -21,7 +21,7 @@ set -uo pipefail
 export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
 SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-MEM_DIR="$HOME/.pi/agent/memory"
+MEM_DIR="${PI_MEMORY_DIR:-$HOME/.pi/agent/memory}"
 LOG_DIR="$MEM_DIR/dream"
 PENDING="$LOG_DIR/pending"
 DONE_DIR="$LOG_DIR/processed"
@@ -38,11 +38,13 @@ DREAM_LOG="$LOG_DIR/$STAMP-$HOST_SHORT.md"
 # It used to sit in the Obsidian vault, which only reached machines that ran
 # Obsidian and produced sync-conflict files instead of mergeable history.
 WIKI_DIR="$MEM_DIR/wiki"
+SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CHECKPOINT_DIR="${PI_MEMORY_CHECKPOINT_DIR:-$HOME/.local/state/pi-memory-checkpoints}"
 
 DAYS=3; DRY_RUN=0; PHASE="all"; HARNESS="pi"; MAX_SESSIONS=15
 while (( $# )); do
   case "$1" in
-    analyze|organize|all) PHASE="$1"; shift ;;
+    analyze|organize|reindex|all) PHASE="$1"; shift ;;
     --days) DAYS="${2:?--days needs a number}"; shift 2 ;;
     --harness) HARNESS="${2:?--harness needs a name}"; shift 2 ;;
     --max-sessions) MAX_SESSIONS="${2:?--max-sessions needs a number}"; shift 2 ;;
@@ -236,6 +238,80 @@ Then reply with just the number of bullets you wrote."
     fi
 }
 
+# ---------------------------------------------------------------- reindex ----
+# Every memory scope carries an INDEX at the top, and the extension injects the
+# head of that file, so a stale INDEX is what a session actually reads. Project
+# scopes (projects/<key>/MEMORY.md) had no janitor at all: 15 files, up to 90KB,
+# with INDEX sections nothing ever regenerated.
+#
+# Regeneration is model-written but script-applied, and skipped when the file's
+# content hash has not changed since its last INDEX, so the cost is bounded.
+reindex_one() {
+  local file="$1" stamp_dir="$LOG_DIR/index-stamps" key stamp current proposal
+  key="$(printf '%s' "$file" | shasum | cut -c1-16)"
+  stamp="$stamp_dir/$key"
+  mkdir -p "$stamp_dir"
+  current="$(shasum "$file" | cut -d' ' -f1)"
+  if [[ -f "$stamp" && "$(cat "$stamp")" == "$current" ]]; then
+    log "reindex: unchanged, skipped $file"
+    return 2   # 2 = skipped, so the summary does not call it an update
+  fi
+
+  proposal="$LOG_DIR/index-proposal.md"
+  rm -f "$proposal"
+  local prompt="You are regenerating the INDEX of a memory file. Headless; no human will answer.
+
+Read $file in full. It starts with an INDEX between '<!-- INDEX START' and '<!-- INDEX END -->' markers, followed by append-ordered entries.
+
+Write ONLY the replacement INDEX text to $proposal: no marker lines, under 2KB, in this shape:
+# INDEX (<today>)
+one line naming what this memory covers
+**Active**: current work with a one-line status each
+**Standing preferences**: rules that govern behaviour
+**Recently corrected**: facts that superseded older ones
+**Traps**: things that bite if forgotten
+
+Rules: base every line on what the file actually says; invent nothing. Omit a section when the file supports nothing for it. Do not edit $file or any other file. Do not run git or shell commands. Reply with one line."
+
+  if timeout "$ORGANIZER_TIMEOUT" pi -p --no-session --model "$ORGANIZER_MODEL" "$prompt" 2>&1 \
+       | grep -v '^Warning: No models match pattern' >>"$RUN_LOG"; then :; else
+    log "reindex: model failed for $file"; return 1
+  fi
+  if [[ ! -s "$proposal" ]]; then log "reindex: no proposal for $file"; return 1; fi
+  if python3 "$SKILL_DIR/scripts/memory-apply.py" --file "$file" --index "$proposal" \
+       --checkpoint "$CHECKPOINT_DIR" >>"$RUN_LOG" 2>&1; then
+    # Stamp the hash AFTER applying, or the next run sees a changed file and
+    # regenerates forever.
+    shasum "$file" | cut -d' ' -f1 >"$stamp"
+    log "reindex: updated $file"
+    return 0
+  fi
+  log "reindex: proposal REFUSED for $file (file untouched)"
+  return 1
+}
+
+run_reindex() {
+  local f total=0 ok=0
+  local -a files=("$MEM_DIR/MEMORY.md")
+  for f in "$MEM_DIR"/projects/*/MEMORY.md; do [[ -f "$f" ]] && files+=("$f"); done
+  if (( DRY_RUN )); then
+    say "would reindex ${#files[@]} memory scope(s)"
+    return 2
+  fi
+  log "=== reindex ${#files[@]} scope(s) (host=$(hostname -s)) ==="
+  local skipped=0 result
+  for f in "${files[@]}"; do
+    total=$((total+1))
+    reindex_one "$f"; result=$?
+    case $result in
+      0) ok=$((ok+1)) ;;
+      2) skipped=$((skipped+1)) ;;
+    esac
+  done
+  say "reindex: $ok updated, $skipped unchanged, $((total-ok-skipped)) failed (of $total)"
+  return 0
+}
+
 # --------------------------------------------------------------- organize ----
 wiki_has_conflicts() {
   [[ -d "$WIKI_DIR" ]] || return 1
@@ -274,10 +350,16 @@ run_organize() {
     return 2
   fi
 
+  # The model never writes MEMORY.md. It writes proposals; the runner applies
+  # them with memory-apply.py, which refuses anything that would lose bytes.
   local DISTILL_ONLY_RULE=""
   if [[ "${PI_DREAM_DISTILL_ONLY:-}" == 1 ]]; then
-    DISTILL_ONLY_RULE="DISTILL ONLY: do not edit the wiki and do not archive or delete anything (skip steps B, C, and D). You may READ MEMORY.md to check for duplicates, but you must NOT write, edit, truncate, or overwrite it under any circumstances - not even to append. Instead, write every new section you would have appended to $MEM_DIR/dream/append-batch.md (create it; plain markdown sections, same format as MEMORY.md entries). If nothing is new, make that file empty. The runner appends it mechanically. Do not run git or any shell command that modifies files outside the dream log and the append file."
+    DISTILL_ONLY_RULE="DISTILL ONLY: skip steps B and D. Do not edit the wiki and do not archive or delete anything."
   fi
+  local STAGING_RULE="STAGED WRITES (mandatory). You must NOT write, edit, truncate, or overwrite $MEM_DIR/MEMORY.md under any circumstances - not even to append. The runner applies your work mechanically and refuses any change that would lose existing bytes. Write instead:
+  - new durable sections, verbatim, to $MEM_DIR/dream/append-batch.md (plain markdown sections, same format as MEMORY.md entries; create it, or leave it empty when nothing is new)
+  - the replacement INDEX text, without the marker lines, to $MEM_DIR/dream/index-batch.md (create it, or leave it empty to keep the current INDEX)
+Do not run git or any shell command that modifies files outside the dream log and those two proposal files."
 
   org_prompt="You are the memory organizer for a pi coding-agent memory system. You are running headless; no human will answer questions.
 
@@ -289,13 +371,14 @@ $frag_list
 4. $WIKI_DIR/README.md and the wiki pages it links (small status pages per project)
 
 Then do this work, using your file tools:
+${STAGING_RULE}
 ${DISTILL_ONLY_RULE}
 
-A. Merge the fragments into MEMORY.md. This batch is small on purpose. Read every fragment listed above and decide on each one; do not skim or summarize the set. Append new durable entries as new sections, each starting with an HTML comment timestamp line like '<!-- $STAMP dream -->' and a '## ' heading. Use #tags and [[links]]. Do not duplicate facts already present; if a fragment corrects an existing entry, use memory_forget on the stale text and memory_write the corrected fact. Never raw-delete history otherwise. In the dream log, list each fragment filename with one outcome: appended, duplicate, or dropped (and why). A fragment is a duplicate only if its specific facts already appear in MEMORY.md, not merely because a related topic does.
+A. Decide what the fragments add, then write the new sections to the append proposal described above (the runner merges them into MEMORY.md). This batch is small on purpose. Read every fragment listed above and decide on each one; do not skim or summarize the set. Append new durable entries as new sections, each starting with an HTML comment timestamp line like '<!-- $STAMP dream -->' and a '## ' heading. Use #tags and [[links]]. Do not duplicate facts already present; if a fragment corrects an existing entry, use memory_forget on the stale text and memory_write the corrected fact. Never raw-delete history otherwise. In the dream log, list each fragment filename with one outcome: appended, duplicate, or dropped (and why). A fragment is a duplicate only if its specific facts already appear in MEMORY.md, not merely because a related topic does.
 
 B. Update the wiki pages in $WIKI_DIR whose project status changed. Keep each page under ~3KB (design docs may reach ~4KB). Preserve wording that reads as human-authored; reconcile around it rather than overwriting. Read each file back after editing.
 
-C. Regenerate ONLY the text between the INDEX markers at the top of MEMORY.md: date, active projects with one-line status, standing preferences, recently corrected notes. Keep it under 2KB.
+C. Write the replacement INDEX text to the index proposal described above: date, active projects with one-line status, standing preferences, recently corrected notes. Keep it under 2KB. Do not include the marker lines.
 
 D. Keep MEMORY.md small by ARCHIVING, never by merging or deleting. MEMORY.md is the active layer; detail belongs lower in the hierarchy. If MEMORY.md is above ~120KB, move settled entries down. (Size is not a session concern: the injected snapshot is 2KB head + 2KB tail, so the middle is invisible to sessions by design. This is housekeeping only, so do not spend effort deliberating when the file is merely large.)
 - Candidates: entries older than ~45 days AND whose project is not currently active (see the INDEX) AND that record a completed episode rather than a standing preference, decision, or rule. If no entry qualifies, say so in one line and move on; do not re-argue the case.
@@ -317,6 +400,28 @@ $wiki_rule"
   else
     log "organizer: FAILED (timeout or error)"
   fi
+
+  # Apply the proposals. The model never touched MEMORY.md; these two calls are
+  # the only writers, and each refuses anything that would lose existing bytes.
+  local applied=0
+  if [[ -s "$LOG_DIR/append-batch.md" ]]; then
+    if python3 "$SKILL_DIR/scripts/memory-apply.py" --file "$MEM_DIR/MEMORY.md" \
+         --append "$LOG_DIR/append-batch.md" --checkpoint "$CHECKPOINT_DIR" >>"$RUN_LOG" 2>&1; then
+      applied=1
+    else
+      log "apply: append proposal REFUSED (memory untouched)"
+    fi
+  fi
+  if [[ -s "$LOG_DIR/index-batch.md" ]]; then
+    if python3 "$SKILL_DIR/scripts/memory-apply.py" --file "$MEM_DIR/MEMORY.md" \
+         --index "$LOG_DIR/index-batch.md" --checkpoint "$CHECKPOINT_DIR" >>"$RUN_LOG" 2>&1; then
+      applied=1
+    else
+      log "apply: index proposal REFUSED (memory untouched)"
+    fi
+  fi
+  rm -f "$LOG_DIR/append-batch.md" "$LOG_DIR/index-batch.md"
+  (( applied )) && log "apply: proposals applied"
 
   # Fragments are consumed only when the organizer actually produced its log.
   # Accept the log dated today too: a run that crosses midnight dates its log
@@ -360,6 +465,7 @@ case "$PHASE" in
   organize)
     run_organize; case $? in 2) NOOP=1 ;; 0) ;; *) rc=1 ;; esac
     ;;
+  reindex) run_reindex; case $? in 2) NOOP=1 ;; 0) ;; *) rc=1 ;; esac ;;
   all)
     if ! do_analyze; then
       log "=== dream $STAMP: no analyzer produced a fragment; nothing to organize ==="
@@ -368,6 +474,7 @@ case "$PHASE" in
     else
       run_organize; case $? in 2) NOOP=1 ;; 0) ;; *) rc=1 ;; esac
     fi
+    run_reindex || rc=1
     ;;
 esac
 
@@ -392,7 +499,9 @@ if (( ! DRY_RUN )); then
   qmd embed >>"$RUN_LOG" 2>&1 || true
 fi
 
-if [[ "$PHASE" != analyze ]]; then
+# The freshness check belongs to the organizer: only it is expected to write a
+# dream log. A reindex-only run legitimately produces none.
+if [[ "$PHASE" == organize || "$PHASE" == all ]]; then
   today_log="$LOG_DIR/$(date +%F)-$HOST_SHORT.md"
   if { [[ -f "$DREAM_LOG" ]] && (( $(stat -f %m "$DREAM_LOG" 2>/dev/null || echo 0) >= START_EPOCH )); } \
      || { [[ -f "$today_log" ]] && (( $(stat -f %m "$today_log" 2>/dev/null || echo 0) >= START_EPOCH )); }; then
