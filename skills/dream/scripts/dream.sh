@@ -368,7 +368,7 @@ Read these first, in this order:
 2. $MEM_DIR/SCRATCHPAD.md
 3. Every fragment file listed here (distilled from recent daily logs):
 $frag_list
-4. $WIKI_DIR/README.md and the wiki pages it links (small status pages per project)
+4. $WIKI_DIR/README.md (a generated list of project pages; read a page only if you need its shape)
 
 Then do this work, using your file tools:
 ${STAGING_RULE}
@@ -376,7 +376,7 @@ ${DISTILL_ONLY_RULE}
 
 A. Decide what the fragments add, then write the new sections to the append proposal described above (the runner merges them into MEMORY.md). This batch is small on purpose. Read every fragment listed above and decide on each one; do not skim or summarize the set. Append new durable entries as new sections, each starting with an HTML comment timestamp line like '<!-- $STAMP dream -->' and a '## ' heading. Use #tags and [[links]]. Do not duplicate facts already present; if a fragment corrects an existing entry, use memory_forget on the stale text and memory_write the corrected fact. Never raw-delete history otherwise. In the dream log, list each fragment filename with one outcome: appended, duplicate, or dropped (and why). A fragment is a duplicate only if its specific facts already appear in MEMORY.md, not merely because a related topic does.
 
-B. Update the wiki pages in $WIKI_DIR whose project status changed. Keep each page under ~3KB (design docs may reach ~4KB). Preserve wording that reads as human-authored; reconcile around it rather than overwriting. Read each file back after editing.
+B. Do not edit the wiki. It is generated from each project's memory INDEX by scripts/memory-wiki.py, so a page cannot disagree with the memory it summarizes. If a project's status changed, the change belongs in MEMORY.md (step A).
 
 C. Write the replacement INDEX text to the index proposal described above: date, active projects with one-line status, standing preferences, recently corrected notes. Keep it under 2KB. Do not include the marker lines.
 
@@ -422,6 +422,13 @@ $wiki_rule"
   fi
   rm -f "$LOG_DIR/append-batch.md" "$LOG_DIR/index-batch.md"
   (( applied )) && log "apply: proposals applied"
+
+  # The wiki is a view of the memory, so render it from the applied result.
+  if python3 "$SKILL_DIR/scripts/memory-wiki.py" --memory-dir "$MEM_DIR" >>"$RUN_LOG" 2>&1; then
+    log "wiki: rendered from project memory"
+  else
+    log "wiki: render failed (memory is unaffected)"
+  fi
 
   # Fragments are consumed only when the organizer actually produced its log.
   # Accept the log dated today too: a run that crosses midnight dates its log
