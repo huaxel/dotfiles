@@ -82,7 +82,7 @@ def report(mem: pathlib.Path, projects: dict[str, list[str]]) -> list[dict]:
     for project, keys in sorted(projects.items()):
         canonical = mem / 'projects' / project / 'MEMORY.md'
         if not canonical.is_file():
-            findings.append({'project': project, 'problem': 'canonical memory missing'})
+            findings.append({'project': project, 'status': 'missing', 'problem': 'canonical memory missing'})
             continue
         canonical_blocks = entries(canonical.read_text())
         known = {identity(block) for block in canonical_blocks}
