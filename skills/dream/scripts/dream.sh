@@ -261,7 +261,7 @@ run_organize() {
 
   local DISTILL_ONLY_RULE=""
   if [[ "${PI_DREAM_DISTILL_ONLY:-}" == 1 ]]; then
-    DISTILL_ONLY_RULE="DISTILL ONLY: do not edit the wiki and do not archive or delete anything from MEMORY.md. Skip steps B, C, and D. Appending a new section is the ONLY change allowed to MEMORY.md. Do NOT regenerate or rewrite the INDEX; leave it byte-for-byte unchanged. Never rewrite the whole file."
+    DISTILL_ONLY_RULE="DISTILL ONLY: do not edit the wiki and do not archive or delete anything (skip steps B, C, and D). You may READ MEMORY.md to check for duplicates, but you must NOT write, edit, truncate, or overwrite it under any circumstances - not even to append. Instead, write every new section you would have appended to $MEM_DIR/dream/append-batch.md (create it; plain markdown sections, same format as MEMORY.md entries). If nothing is new, make that file empty. The runner appends it mechanically. Do not run git or any shell command that modifies files outside the dream log and the append file."
   fi
 
   org_prompt="You are the memory organizer for a pi coding-agent memory system. You are running headless; no human will answer questions.
