@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Register the read-only memory MCP server with every harness installed here.
-# Currently Claude Code, Codex CLI, GitHub Copilot CLI, and Cursor.
-# Cursor's CLI needs an unlocked login keychain, so it is registered by
-# writing ~/.cursor/mcp.json, which the IDE reads directly.
+# Currently Claude Code, Codex CLI, GitHub Copilot CLI, and Grok (`agent`).
+# `cursor-agent` is the old binary and can be keychain-blocked; the current
+# CLI is `agent`/`grok`. There is no Cursor IDE on these machines, so this
+# script does not write ~/.cursor/mcp.json.
 #
 # The server is stdio-only and reads the local memory clone, so each machine
 # registers it against its own checkout. Nothing is served over the network and
@@ -90,52 +91,25 @@ if command -v codex >/dev/null 2>&1; then
   registered=1
 fi
 
-# Cursor IDE reads ~/.cursor/mcp.json. The GUI does not inherit a shell PATH,
-# so the command is /usr/bin/python3 when that exists (the server is stdlib-only
-# and was verified on that interpreter).
-register_cursor() {
-  local config="$HOME/.cursor/mcp.json" py="/usr/bin/python3"
-  [[ -x "$py" ]] || py="python3"
-  if (( DRY_RUN )); then
-    say "would write $config"
-    return 0
+# Grok Build CLI (`agent`, also `grok`). User scope in ~/.grok/config.toml.
+# /usr/bin/python3 avoids depending on a mise shim that a non-login launch misses.
+if command -v agent >/dev/null 2>&1; then
+  local_py="/usr/bin/python3"
+  [[ -x "$local_py" ]] || local_py="python3"
+  if has_server agent mcp list; then
+    say "grok: already registered"
+  else
+    if run agent mcp add --scope user "$NAME" -- "$local_py" "$SERVER" >/dev/null 2>&1; then
+      say "grok: registered"
+    else
+      say "grok: registration failed"
+    fi
   fi
-  mkdir -p "$HOME/.cursor"
-  "$py" - "$config" "$SERVER" "$py" <<'PY'
-import json, pathlib, sys
-config, server, py = sys.argv[1:]
-path = pathlib.Path(config)
-data = {}
-if path.exists():
-    try:
-        data = json.loads(path.read_text())
-    except json.JSONDecodeError as exc:
-        print(f"cursor: {config} is not valid JSON ({exc}); left unchanged", file=sys.stderr)
-        raise SystemExit(1)
-if not isinstance(data, dict):
-    print(f"cursor: {config} is not an object; left unchanged", file=sys.stderr)
-    raise SystemExit(1)
-servers = data.setdefault("mcpServers", {})
-if not isinstance(servers, dict):
-    print(f"cursor: mcpServers in {config} is not an object; left unchanged", file=sys.stderr)
-    raise SystemExit(1)
-servers["pi-memory"] = {
-    "type": "stdio",
-    "command": py,
-    "args": [server],
-}
-path.write_text(json.dumps(data, indent=2) + "\n")
-print("cursor: wrote", config)
-PY
-}
-if register_cursor; then
   registered=1
-else
-  say "cursor: registration failed"
 fi
 
 if (( registered == 0 )); then
-  say "no supported harness found (claude, codex, copilot, cursor); nothing to do"
+  say "no supported harness found (claude, codex, copilot, grok); nothing to do"
 fi
 
 say "server: $SERVER"
