@@ -270,7 +270,7 @@ $frag_list
 
 Then do this work, using your file tools:
 
-A. Merge the fragments into MEMORY.md. Append new durable entries as new sections, each starting with an HTML comment timestamp line like '<!-- $STAMP dream -->' and a '## ' heading. Use #tags and [[links]]. Do not duplicate facts already present; if a fragment corrects an existing entry, use memory_forget on the stale text and memory_write the corrected fact. Never raw-delete history otherwise.
+A. Merge the fragments into MEMORY.md. This batch is small on purpose. Read every fragment listed above and decide on each one; do not skim or summarize the set. Append new durable entries as new sections, each starting with an HTML comment timestamp line like '<!-- $STAMP dream -->' and a '## ' heading. Use #tags and [[links]]. Do not duplicate facts already present; if a fragment corrects an existing entry, use memory_forget on the stale text and memory_write the corrected fact. Never raw-delete history otherwise. In the dream log, list each fragment filename with one outcome: appended, duplicate, or dropped (and why). A fragment is a duplicate only if its specific facts already appear in MEMORY.md, not merely because a related topic does.
 
 B. Update the wiki pages in $WIKI_DIR whose project status changed. Keep each page under ~3KB (design docs may reach ~4KB). Preserve wording that reads as human-authored; reconcile around it rather than overwriting. Read each file back after editing.
 
@@ -298,7 +298,15 @@ $wiki_rule"
   fi
 
   # Fragments are consumed only when the organizer actually produced its log.
-  if [[ -f "$DREAM_LOG" ]] && (( $(stat -f %m "$DREAM_LOG" 2>/dev/null || echo 0) >= START_EPOCH )); then
+  # Accept the log dated today too: a run that crosses midnight dates its log
+  # with the real date, not the date captured at startup.
+  local today_log="$LOG_DIR/$(date +%F).md"
+  if { [[ -f "$DREAM_LOG" ]] && (( $(stat -f %m "$DREAM_LOG" 2>/dev/null || echo 0) >= START_EPOCH )); } \
+     || { [[ -f "$today_log" ]] && (( $(stat -f %m "$today_log" 2>/dev/null || echo 0) >= START_EPOCH )); }; then
+    mkdir -p "$LOG_DIR/covered"
+    for _f in "$PENDING"/*.md; do
+      [[ -f "$_f" ]] && printf '%s\n' "$(date +%F)" > "$LOG_DIR/covered/$(basename "$_f")"
+    done
     mv "$PENDING"/*.md "$DONE_DIR"/ 2>/dev/null || true
     rm -f "$PENDING"/.src-*.md 2>/dev/null || true
     return 0
@@ -363,7 +371,9 @@ if (( ! DRY_RUN )); then
 fi
 
 if [[ "$PHASE" != analyze ]]; then
-  if [[ -f "$DREAM_LOG" ]] && (( $(stat -f %m "$DREAM_LOG" 2>/dev/null || echo 0) >= START_EPOCH )); then
+  today_log="$LOG_DIR/$(date +%F).md"
+  if { [[ -f "$DREAM_LOG" ]] && (( $(stat -f %m "$DREAM_LOG" 2>/dev/null || echo 0) >= START_EPOCH )); } \
+     || { [[ -f "$today_log" ]] && (( $(stat -f %m "$today_log" 2>/dev/null || echo 0) >= START_EPOCH )); }; then
     log "=== dream done $STAMP (log: $DREAM_LOG) ==="
     say "organize: done (log: $DREAM_LOG)"
     exit "$rc"
