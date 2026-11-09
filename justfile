@@ -87,6 +87,10 @@ check-memory:
     python3 scripts/tests/memory-privacy.test.py
 
     python3 scripts/tests/memory-mcp.test.py
+# Register the read-only memory MCP server with installed harnesses.
+install-memory-mcp *ARGS:
+    bash scripts/install-memory-mcp.sh {{ARGS}}
+
 # Report machine-local skill copies without replacing overrides.
 doctor-skills:
     python3 scripts/check_skills.py --local
