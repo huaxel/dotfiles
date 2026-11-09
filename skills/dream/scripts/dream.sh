@@ -316,7 +316,8 @@ $wiki_rule"
   # Fragments are consumed only when the organizer actually produced its log.
   # Accept the log dated today too: a run that crosses midnight dates its log
   # with the real date, not the date captured at startup.
-  local today_log="$LOG_DIR/$(date +%F).md"
+  local today_log
+  today_log="$LOG_DIR/$(date +%F).md"
   if { [[ -f "$DREAM_LOG" ]] && (( $(stat -f %m "$DREAM_LOG" 2>/dev/null || echo 0) >= START_EPOCH )); } \
      || { [[ -f "$today_log" ]] && (( $(stat -f %m "$today_log" 2>/dev/null || echo 0) >= START_EPOCH )); }; then
     mkdir -p "$LOG_DIR/covered"
