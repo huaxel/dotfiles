@@ -185,7 +185,7 @@ maxTotalBytes = 67108864
 ignoredTypes = []
 
 [quakeTerminal]
-enabled = false
+enabled = true
 position = "center"
 widthPercent = 50.0
 heightPercent = 50.0
@@ -999,6 +999,7 @@ id = "toggleHiddenBarPanel"
 
 [[hotkeys]]
 id = "toggleQuakeTerminal"
+binding = "Option+z"
 
 [[hotkeys]]
 id = "toggleWorkspaceLayout"
