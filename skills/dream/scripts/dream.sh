@@ -261,7 +261,7 @@ run_organize() {
 
   local DISTILL_ONLY_RULE=""
   if [[ "${PI_DREAM_DISTILL_ONLY:-}" == 1 ]]; then
-    DISTILL_ONLY_RULE="DISTILL ONLY: do not edit the wiki and do not archive or delete anything from MEMORY.md. Skip steps B and D. Appending a new section is the only MEMORY.md change allowed besides the INDEX."
+    DISTILL_ONLY_RULE="DISTILL ONLY: do not edit the wiki and do not archive or delete anything from MEMORY.md. Skip steps B, C, and D. Appending a new section is the ONLY change allowed to MEMORY.md. Do NOT regenerate or rewrite the INDEX; leave it byte-for-byte unchanged. Never rewrite the whole file."
   fi
 
   org_prompt="You are the memory organizer for a pi coding-agent memory system. You are running headless; no human will answer questions.
