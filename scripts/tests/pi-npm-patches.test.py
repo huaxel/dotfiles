@@ -185,7 +185,10 @@ class PatchTests(unittest.TestCase):
 class PublishedInstallTests(unittest.TestCase):
     def test_fresh_script_disabled_install_then_exact_patch_reproduction(self):
         with tempfile.TemporaryDirectory(prefix='pi-patch-real-') as directory:
-            root = Path(directory)
+            # macOS aliases /var to /private/var. npm can write malformed
+            # relative lockfile keys when --prefix uses the unresolved spelling
+            # but the installer later canonicalizes it with pwd -P.
+            root = Path(directory).resolve()
             for name in ('install-and-patch.sh', 'apply-patches.py'):
                 shutil.copy2(SOURCE/name, root/name)
             shutil.copytree(SOURCE/'patches', root/'patches')
@@ -195,6 +198,10 @@ class PublishedInstallTests(unittest.TestCase):
             env = dict(os.environ, NPM_CONFIG_IGNORE_SCRIPTS='false')
             prepare = subprocess.run(['npm','--prefix',str(root),'--global=false','install','--package-lock-only','--ignore-scripts','--legacy-peer-deps','--no-audit'], env=env, capture_output=True, text=True, timeout=90)
             self.assertEqual(prepare.returncode, 0, prepare.stderr)
+            lock = json.loads((root/'package-lock.json').read_text())
+            for name in ('pi-memory', helper.TIDY):
+                self.assertIn(f'node_modules/{name}', lock['packages'],
+                              'lockfile must use install-relative package keys')
             result = subprocess.run(['bash',str(root/'install-and-patch.sh'),'ci'], env=env, capture_output=True, text=True, timeout=90)
             self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
             self.assertFalse((root/'HOOK_RAN').exists())
