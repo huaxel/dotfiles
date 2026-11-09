@@ -71,6 +71,7 @@ pi/agent/agy-sessions.json
 pi/agent/fff/
 pi/agent/pi-shepherdr.json
 pi/agent/you-should-know/
+pi/agent/pi-agy-bridge/*
 
 # Pi managed runtime releases and machine-specific entrypoint metadata
 pi/agent/install/
