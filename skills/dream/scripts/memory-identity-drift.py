@@ -32,11 +32,17 @@ LEGACY_INDEX = re.compile(r'\A<!-- INDEX -->\n.*?<!-- /INDEX -->\n*', re.S)
 ID = re.compile(r'^[a-z][a-z0-9-]{0,63}$')
 
 
+# Migration adds a provenance header above each imported entry. It records
+# where a fact came from, not what the fact says, so it must not read as drift.
+PROVENANCE = re.compile(r'^<!-- source-scope: [^\n]*-->\n?', re.M)
+
+
 def entries(text: str) -> list[str]:
-    """Entry bodies with derived INDEX views removed."""
+    """Entry bodies with derived INDEX views and provenance headers removed."""
     body = LEGACY_INDEX.sub('', INDEX.sub('', text))
-    return [block.strip() for block in re.split(r'(?=^<!-- \d{4}-\d{2}-\d{2})', body, flags=re.M)
-            if block.strip()]
+    blocks = [block.strip() for block in re.split(r'(?=^<!-- \d{4}-\d{2}-\d{2})', body, flags=re.M)
+              if block.strip()]
+    return [PROVENANCE.sub('', block).strip() for block in blocks]
 
 
 MARKER = re.compile(r'\A<!-- ([^\n]+?) -->')
@@ -85,15 +91,20 @@ def report(mem: pathlib.Path, projects: dict[str, list[str]]) -> list[dict]:
             findings.append({'project': project, 'status': 'missing', 'problem': 'canonical memory missing'})
             continue
         canonical_blocks = entries(canonical.read_text())
-        known = {identity(block) for block in canonical_blocks}
-        bodies = {identity(block): block for block in canonical_blocks}
+        # One marker can legitimately appear more than once (two source scopes
+        # that reused a generic date marker). Keep every body, or a match against
+        # the wrong twin reads as drift.
+        bodies: dict[str, set[str]] = {}
+        for block in canonical_blocks:
+            bodies.setdefault(identity(block), set()).add(block)
+        known = set(bodies)
         for key in keys:
             legacy = mem / 'projects' / key / 'MEMORY.md'
             if not legacy.is_file():
                 continue
             for block in entries(legacy.read_text()):
                 marker = identity(block)
-                if marker in known and bodies[marker] == block:
+                if marker in known and block in bodies[marker]:
                     continue
                 heading = re.search(r'^#{1,6} (.+)$', block, re.M)
                 findings.append({

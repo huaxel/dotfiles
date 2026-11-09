@@ -60,6 +60,18 @@ class DriftTests(unittest.TestCase):
         self.write(SHARED + 'extra detail\n' + LEGACY_ONLY, SHARED)
         self.assertEqual(self.run_check().returncode, 1)
 
+    def test_provenance_header_is_not_drift(self):
+        # Migration puts a provenance comment above the entry marker. Identity
+        # must come from the entry marker, not that header.
+        self.write(SHARED, '<!-- source-scope: other-scope -->\n' + SHARED)
+        self.assertEqual(self.run_check().returncode, 0)
+
+    def test_duplicate_marker_twins_are_not_drift(self):
+        # Two source scopes reused one generic marker; canonical holds both.
+        twin = SHARED.replace('same body', 'second body')
+        self.write(SHARED, SHARED + '\n' + twin)
+        self.assertEqual(self.run_check().returncode, 0)
+
     def test_index_regions_are_not_drift(self):
         self.write('<!-- INDEX START -->\nold view\n<!-- INDEX END -->\n\n' + SHARED,
                    '<!-- INDEX START -->\nnew view\n<!-- INDEX END -->\n\n' + SHARED)
