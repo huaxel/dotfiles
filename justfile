@@ -719,6 +719,9 @@ nix-switch profile="juan@framearch":
     nix flake check --all-systems
     # Back up pre-existing paths during the Home Manager handoff.
     nix run ".#home-manager" -- -b hm-backup switch --flake '.#{{profile}}'
+    # Reclaim unreachable build/store paths after successful profile updates;
+    # generations remain GC roots, so rollback profiles are preserved.
+    nix-store --gc
 
 # Build the pinned CachyLLama binary and probe host Vulkan through nixGL.
 # This is diagnostic only; it never touches the live llama.cpp service.
