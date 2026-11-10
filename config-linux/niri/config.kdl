@@ -231,11 +231,9 @@ window-rule {
 // BAR EXPERIMENT 2026-10-24: noctalia instead of waybar (revert = uncomment
 // waybar, delete the noctalia line below).
 // spawn-at-startup "waybar"
-// Noctalia needs nixGL on this Arch host (nix OpenGL apps can't use the
-// system mesa directly); absolute profile paths because niri's spawn PATH
-// is minimal (background daemons run via systemd user services instead). Revert = uncomment
-// waybar, delete the two lines below.
-spawn-sh-at-startup "exec /home/juan/.nix-profile/bin/nixGLIntel /home/juan/.nix-profile/bin/noctalia"
+// Noctalia is managed by a systemd user service bound to graphical-session.target.
+// niri-session establishes the Wayland environment before activating that target.
+// Revert = uncomment waybar and remove the service from framearch.nix.
 spawn-at-startup "mako"
 spawn-at-startup "swaybg" "-i" "~/Pictures/mountains-bg.jpg" "-m" "fill"
 // X11 DPI for leftovers running through xwayland-satellite (native Wayland
@@ -254,7 +252,7 @@ animations {
 
 binds {
     // Terminal, launcher, files, window switcher.
-    Alt+Return { spawn "ghostty" "start"; }
+    Alt+Return { spawn "ghostty"; }
     Alt+Q { close-window; }
     Alt+W { close-window; }
     Alt+Space { spawn "/home/juan/.nix-profile/bin/noctalia" "msg" "panel-toggle" "launcher"; }

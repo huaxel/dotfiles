@@ -60,6 +60,21 @@ in
     PRIME_AGENT_CODING_AGENT_DIR = "${home}/prime-agent/agent";
   };
 
+  systemd.user.services.noctalia = lib.mkIf (noctaliaPackage != null && nixGLIntelPackage != null) {
+    Unit = {
+      Description = "Noctalia desktop shell";
+      After = [ "graphical-session.target" ];
+      PartOf = [ "graphical-session.target" ];
+    };
+    Service = {
+      Type = "simple";
+      ExecStart = "${nixGLIntelPackage}/bin/nixGLIntel ${noctaliaPackage}/bin/noctalia";
+      Restart = "always";
+      RestartSec = "5s";
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
+
   systemd.user.services.memoryfield-embed = lib.mkIf config.services.juan.framearchUser.enableMemoryfieldEmbed {
     Unit = {
       Description = "llama.cpp embedding server for Memoryfield";

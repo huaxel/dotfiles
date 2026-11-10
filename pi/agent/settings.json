@@ -29,9 +29,6 @@
       "maxRetries": 0
     }
   },
-  "acp": {
-    "autoApproveTools": false
-  },
   "packages": [
     "npm:pi-web-access@0.47.0",
     {

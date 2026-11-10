@@ -19,6 +19,17 @@
     },
     "motherduck": {
       "url": "https://api.motherduck.com/mcp"
+    },
+    "colab": {
+      "url": "https://colaboratory.googleapis.com/mcp",
+      "exposure": "hidden",
+      "description": "Inspect and run code in existing Google Colab runtimes; no runtime creation or deletion.",
+      "toolExposure": {
+        "list_runtimes": "codemode",
+        "get_runtime": "codemode",
+        "list_sessions": "codemode",
+        "execute_code": "codemode"
+      }
     }
   }
 }
