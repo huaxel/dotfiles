@@ -30,26 +30,20 @@
     }
   },
   "packages": [
-    "npm:pi-web-access@0.47.0",
-    {
-      "source": "npm:@ff-labs/pi-fff@0.11.0",
-      "extensions": []
-    },
-    {
-      "source": "npm:@ogulcancelik/pi-herdr@0.4.1",
-      "skills": []
-    },
-    "npm:@juanbenjumea/pi-dynamic-footer@0.1.11",
-    "npm:@juanbenjumea/pi-ask-herdr@0.2.4",
-    "npm:@juanbenjumea/pi-agy@0.7.7",
-    "npm:@ogulcancelik/pi-codex-compaction@0.1.7",
-    "npm:pi-memory@0.4.2",
-    "npm:@sting8k/pi-vcc@0.11.2",
-    "npm:@mobrienv/pi-tidy-tools@0.5.4",
-    "npm:@juanbenjumea/pi-go-on@0.1.2",
+    "npm:pi-web-access",
+    "npm:@ff-labs/pi-fff",
+    "npm:@ogulcancelik/pi-herdr",
+    "npm:@juanbenjumea/pi-dynamic-footer",
+    "npm:@juanbenjumea/pi-ask-herdr",
+    "npm:@juanbenjumea/pi-agy",
+    "npm:@ogulcancelik/pi-codex-compaction",
+    "npm:pi-memory",
+    "npm:@sting8k/pi-vcc",
+    "npm:@mobrienv/pi-tidy-tools",
+    "npm:@juanbenjumea/pi-go-on",
     "git:github.com/earendil-works/pi-claude-code@d5b5e04c314d3452d357174d16d10dda34daa2d2",
-    "npm:pi-cursor-sdk@0.5.14",
-    "npm:pi-acp-provider@1.2.1"
+    "npm:pi-cursor-sdk",
+    "npm:pi-acp-provider"
   ],
   "extensions": [
     "./extensions/continue-after-compaction.ts",
