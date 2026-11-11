@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# The Bun-global qmd trampoline selects Nix Bun, whose loader cannot find
+# host-built native addon dependencies. Use qmd's supported Node runtime.
+# Keep the package manager's launcher intact so upgrades remain independent.
+set -euo pipefail
+
+entry="${BUN_INSTALL:-$HOME/.bun}/install/global/node_modules/@tobilu/qmd/dist/cli/qmd.js"
+if [[ ! -f "$entry" ]]; then
+    printf 'qmd: missing Bun-global CLI entry: %s\n' "$entry" >&2
+    exit 78
+fi
+if ! command -v node >/dev/null 2>&1; then
+    printf 'qmd: Node.js is required for the managed Linux launcher\n' >&2
+    exit 127
+fi
+
+# Match the upstream trampoline: stdio MCP must not leak native logs into
+# JSON-RPC stdout. Explicit nonempty user settings retain precedence.
+if [[ "${1:-}" == mcp ]]; then
+    export LLAMA_LOG_LEVEL="${LLAMA_LOG_LEVEL:-error}"
+    export GGML_LOG_LEVEL="${GGML_LOG_LEVEL:-error}"
+    export GGML_BACKEND_SILENT="${GGML_BACKEND_SILENT:-1}"
+fi
+
+exec node "$entry" "$@"

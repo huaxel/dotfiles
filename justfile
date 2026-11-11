@@ -42,14 +42,18 @@ nushell-setup:
 # ──────────── Check recipes ────────────
 
 # Run ALL checks (the full trusted CI pipeline, including SOPS decryption)
-ci: check-agents check-skills check-memory check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-macos check-secrets check-secret-history check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
+ci: check-agents check-qmd check-skills check-memory check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-macos check-secrets check-secret-history check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
     @echo ""
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     @echo "  🟢  All CI checks passed!  🟢"
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
+# Exercise the Linux qmd launcher without models, databases, or credentials.
+check-qmd:
+    python3 scripts/tests/qmd-launcher.test.py
+
 # Public/fork-safe variant: full gate, but validate only encrypted metadata.
-ci-public: check-agents check-skills check-memory check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-macos check-secrets-structure check-secret-history check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
+ci-public: check-agents check-qmd check-skills check-memory check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-macos check-secrets-structure check-secret-history check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
     @echo ""
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     @echo "  🟢  All secret-free CI checks passed!  🟢"
@@ -141,7 +145,7 @@ check-sh:
             echo "  ❌ $f has issues"
             errors=$((errors + 1))
         fi
-    done < <(find . \( -path ./node_modules -o -path ./pi/agent/npm/node_modules -o -path ./pi/agent/install -o -path ./pi/agent/git -o -path ./pi/agent/herdr-plugins -o -path ./pi_npm/node_modules -o -path ./.git -o -path './~' \) -prune -o -type f \( -name '*.sh' -o -name '*.bash' -o -path './bin/pi' \) -print 2>/dev/null | sort || true)
+    done < <(find . \( -path ./node_modules -o -path ./pi/agent/npm/node_modules -o -path ./pi/agent/install -o -path ./pi/agent/git -o -path ./pi/agent/herdr-plugins -o -path ./pi_npm/node_modules -o -path ./.git -o -path './~' \) -prune -o -type f \( -name '*.sh' -o -name '*.bash' -o -path './bin/pi' -o -path './bin/qmd' \) -print 2>/dev/null | sort || true)
     echo "  Checked $count shell scripts"
     if [ "$errors" -gt 0 ]; then echo "  ❌ $errors files have issues"; exit 1; fi
     echo "  ✅ All shell scripts pass ShellCheck"

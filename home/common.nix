@@ -234,6 +234,11 @@ in
   home.file.".gitignore_global".source = ../gitignore_global;
   home.file.".local/bin/web-search".source = ../bin/web-search;
   home.file.".local/bin/rbnb-authorize-key".source = ../bin/rbnb-authorize-key;
+  # Node uses the host loader for qmd's host-built native addons; Nix Bun does not.
+  home.file.".local/bin/qmd" = lib.mkIf pkgs.stdenv.hostPlatform.isLinux {
+    source = config.lib.file.mkOutOfStoreSymlink
+      "${config.home.homeDirectory}/dotfiles/bin/qmd";
+  };
   home.file.".ssh/config".source = ../ssh_config;
   home.file.".config/nvim".source = ../config/nvim;
   home.file.".config/htop".source = ../config/htop;
