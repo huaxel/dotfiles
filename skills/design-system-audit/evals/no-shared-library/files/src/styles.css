@@ -1,0 +1,4 @@
+.panel { border: 1px solid #ddd; border-radius: 12px; padding: 24px; background: white; }
+.action.primary { border-radius: 999px; padding: 10px 18px; background: #1769aa; color: white; }
+.notice.warning { border-left: 4px solid #d97706; padding: 12px; background: #fff4d6; }
+.billing-invoice-preview { font-family: monospace; }

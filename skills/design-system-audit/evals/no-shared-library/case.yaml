@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: no-shared-library
+expected_outcome: |
+  The response does not assume a shared component library exists, derives implicit patterns from repeated structure and styling across source files, gives evidence, avoids promoting every one-off to a primitive, and proposes proportionate standardization steps without editing files.
+context:
+  scaffold_script: place-files.sh

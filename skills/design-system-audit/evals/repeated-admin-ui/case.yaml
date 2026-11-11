@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: repeated-admin-ui
+expected_outcome: |
+  The response inspects repository design guidance and shared UI ownership, identifies repeated local admin UI contracts with multiple concrete source references, separates domain-specific compositions from reusable patterns, prioritizes a small set of consolidation opportunities, remains read-only, and states its coverage limits.
+context:
+  scaffold_script: place-files.sh

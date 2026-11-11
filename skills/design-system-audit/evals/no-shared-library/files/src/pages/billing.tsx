@@ -1,0 +1,1 @@
+export function Billing() { return <main><h1>Billing</h1><div className="panel"><h2>Payment method</h2><button className="action primary">Update card</button></div><div className="notice warning">Card expires soon</div></main>; }

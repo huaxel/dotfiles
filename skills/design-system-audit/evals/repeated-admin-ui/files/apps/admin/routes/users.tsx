@@ -1,0 +1,1 @@
+export function Users() { return <><section className="rounded-xl border bg-white p-6 shadow-sm"><h2>Users</h2><button className="rounded-full bg-blue-600 px-4 py-2 text-white">Invite</button></section><div className="rounded-xl border bg-white p-6 shadow-sm">No users yet</div></>; }

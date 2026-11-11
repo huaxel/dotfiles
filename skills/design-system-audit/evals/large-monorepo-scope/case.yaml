@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: large-monorepo-scope
+expected_outcome: |
+  The response grounds an inventory in concrete app/package evidence, scopes the work honestly rather than claiming exhaustive coverage based on searches, identifies existing shared ownership, gives only a few ranked consolidation wins, and leaves the working tree unchanged.
+context:
+  scaffold_script: place-files.sh

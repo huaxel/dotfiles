@@ -1,0 +1,1 @@
+export function Home() { return <><section className="rounded-xl border bg-white p-5"><h2>My team</h2></section><section className="rounded-xl border bg-white p-5"><h2>Top players</h2></section><button className="rounded-full bg-blue-600 px-4 py-2">View league</button></>; }

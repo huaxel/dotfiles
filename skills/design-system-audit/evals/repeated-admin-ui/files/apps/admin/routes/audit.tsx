@@ -1,0 +1,1 @@
+export function Audit() { return <><section className="rounded-xl border bg-white p-6 shadow-sm"><h2>Audit log</h2><button className="rounded-full bg-blue-600 px-4 py-2 text-white">Export</button></section><table className="audit-grid"><tr><th>Event</th><th>Actor</th></tr></table></>; }

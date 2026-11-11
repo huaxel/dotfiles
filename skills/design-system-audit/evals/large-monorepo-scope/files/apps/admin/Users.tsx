@@ -1,0 +1,1 @@
+export function Users() { return <><section className="rounded-xl border bg-white p-5"><h2>Operators</h2></section><table className="operator-audit-table"><tr><th>Operator</th><th>Last action</th></tr></table></>; }

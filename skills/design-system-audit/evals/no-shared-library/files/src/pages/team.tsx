@@ -1,0 +1,1 @@
+export function Team() { return <main><h1>Team</h1><div className="panel"><h2>Members</h2><button className="action primary">Invite member</button></div><div className="notice warning">One invite is expiring</div></main>; }
