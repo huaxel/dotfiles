@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "claudeVersion": "2.1.322",
+  "startedAt": "2026-11-11T21:47:09.486Z",
+  "durationSeconds": 1,
+  "costUsd": 0,
+  "partial": true,
+  "partialReason": "auth_failed",
+  "suite": {
+    "root": "/home/juan/dotfiles/skills/design-system-audit",
+    "ablation": "with-without",
+    "threshold": 1,
+    "concurrency": 1,
+    "plugins": [
+      {
+        "name": "design-system-audit",
+        "path": "/home/juan/dotfiles/skills/design-system-audit"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "large-monorepo-scope",
+      "dir": "evals/large-monorepo-scope",
+      "source": "mixed",
+      "promptMarkdown": "This monorepo has a bunch of apps and a UI kit. Find all the implicit design-system components. Please don't turn this into a massive refactor plan—give me the inventory, the top few consolidation wins, and exactly what you did and didn't inspect. Keep the working tree untouched.",
+      "runsPerCase": 3,
+      "timeoutSeconds": 600,
+      "maxTurns": 20,
+      "graders": [
+        {
+          "name": "01-expected-output",
+          "type": "llm",
+          "weight": 1,
+          "graderMarkdown": "The result matches this description: concise evidence-backed monorepo UI pattern inventory with honest scope limits, restrained prioritization, and no source changes.",
+          "config": {
+            "criteria": "The result matches this description: concise evidence-backed monorepo UI pattern inventory with honest scope limits, restrained prioritization, and no source changes.",
+            "focus": "trace"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0,
+            "judgeCostUsd": 0,
+            "durationSeconds": 1,
+            "startedAt": "2026-11-11T21:47:09.500Z",
+            "error": "exit 1: Not logged in · Please run /login",
+            "tracePath": "/tmp/claude-eval-EbHIT0/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "01-expected-output",
+                "passed": false,
+                "weight": 1,
+                "explanation": "grader threw: judge call failed: Failed to authenticate: OAuth session expired and could not be refreshed",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0,
+        "passRate": 0
+      }
+    }
+  ],
+  "aggregates": {
+    "casesTotal": 1,
+    "casesPassed": 0,
+    "overallScore": 0,
+    "overallPassRate": 0
+  }
+}
