@@ -276,7 +276,7 @@ Task Progress:
 \`\`\`
 
 **Step 1: Analyze the form**
-Run: \`python scripts/analyze_form.py input.pdf\`
+Use available document tools or a helper bundled with the skill; do not assume a helper exists unless it is included in the skill directory.
 ...
 ```
 
@@ -306,7 +306,7 @@ For quality-critical tasks, implement validation loops:
 ## Document editing process
 
 1. Make your edits
-2. **Validate immediately**: \`python scripts/validate.py output/\`
+2. **Validate immediately** using the project's documented check or an available validation tool.
 3. If validation fails:
    - Review the error message
    - Fix the issues
@@ -329,25 +329,25 @@ Pre-made scripts offer advantages over generated code:
 
 **analyze_form.py**: Extract all form fields from PDF
 \`\`\`bash
-python scripts/analyze_form.py input.pdf > fields.json
+# Example only: invoke a form-analysis helper if the skill actually bundles one.
 \`\`\`
 
 **validate.py**: Check for errors
 \`\`\`bash
-python scripts/validate.py fields.json
+# Example only: use the real interface of a bundled validator.
 # Returns: "OK" or lists conflicts
 \`\`\`
 ```
 
-Make clear whether the agent should **execute** the script (most common) or **read** it as reference.
+When including a utility script, bundle the actual file and document its real path, inputs, and outputs. Make clear whether the agent should **execute** a bundled script or **read** it as reference.
 
 ---
 
 ## Anti-Patterns to Avoid
 
 ### 1. Windows-Style Paths
-- ✅ Use: `scripts/helper.py`
-- ❌ Avoid: `scripts\helper.py`
+- ✅ Use: `tools/helper.py`
+- ❌ Avoid Windows-style backslash separators.
 
 ### 2. Too Many Options
 ```markdown
