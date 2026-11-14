@@ -190,10 +190,11 @@ in
 
   # Keep Herdr on its upstream flake input so it can be updated independently
   # from the rest of nixpkgs. The native module also reloads its settings.
+  # Herdr owns ~/.config/herdr/config.toml itself: the native module rewrites it
+  # in place, so it cannot be a read-only Nix store symlink.
   programs.herdr = {
     enable = true;
     package = herdrPackage;
-    settings = lib.importTOML ../config/herdr/config.toml;
   };
 
   # Plugin registrations are per-user state, so install them after the Nix
