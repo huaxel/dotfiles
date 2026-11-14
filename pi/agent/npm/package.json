@@ -3,7 +3,7 @@
   "private": true,
   "dependencies": {
     "@howaboua/pi-shepherdr": "^0.2.15",
-    "@juanbenjumea/pi-agy": "^0.7.9",
+    "@juanbenjumea/pi-agy": "^0.7.13",
     "@juanbenjumea/pi-ask-herdr": "^0.2.4",
     "@juanbenjumea/pi-dynamic-footer": "^0.1.11",
     "@juanbenjumea/pi-go-on": "^0.1.2",
