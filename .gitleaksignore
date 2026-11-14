@@ -23,3 +23,7 @@ e5a1616593669e432ff81889b2ade2f1fdf547cb:skills/cloudflare/references/argo-smart
 e5a1616593669e432ff81889b2ade2f1fdf547cb:skills/cloudflare/references/bindings/patterns.md:generic-api-key:182
 e5a1616593669e432ff81889b2ade2f1fdf547cb:skills/cloudflare/references/bindings/patterns.md:generic-api-key:82
 e5a1616593669e432ff81889b2ade2f1fdf547cb:skills/workers-best-practices/references/rules.md:generic-api-key:82
+# Vendored modern-web-guidance guide: `SubtleCrypto.supports('encapsulateKey',
+# 'MLKEM768-X25519', …)` API-name strings, not credentials.
+26fdd8ec53542acaa3db3cdf3939a7436120d1d1:skills/modern-web-guidance/guides/security/client-side-encryption.md:generic-api-key:187
+26fdd8ec53542acaa3db3cdf3939a7436120d1d1:skills/modern-web-guidance/guides/security/client-side-encryption.md:generic-api-key:201
