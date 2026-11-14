@@ -52,8 +52,11 @@ def resource_targets(text: str) -> set[str]:
 
 
 def link_targets(text: str) -> set[str]:
-    # Ignore illustrative fenced code; angle-bracket and titled links are supported.
+    # Ignore illustrative fenced and inline code; angle-bracket and titled links are
+    # supported. Inline code matters because syntax examples such as `[text](url)`
+    # are documentation, not links to bundled files.
     prose = re.sub(r"(?ms)^```[^\n]*\n.*?^```[^\n]*$", "", text)
+    prose = re.sub(r"(`+)(?:(?!\1).)*?\1", "", prose, flags=re.S)
     targets = set()
     for match in re.finditer(r"\]\((<[^>]+>|[^\s)]+)(?:\s+\"[^\"]*\")?\)", prose):
         target = match.group(1).strip("<>")

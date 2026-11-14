@@ -114,6 +114,16 @@ class SkillChecks(unittest.TestCase):
         path.write_text(path.read_text() + "```markdown\n[Example](made-up.md)\n```\n")
         self.assertEqual(checker.check_catalog(self.root), [])
 
+    def test_inline_code_link_syntax_is_not_dependency(self):
+        path = self.skill()
+        path.write_text(path.read_text() + "Use `[text](url)` for external URLs only.\n")
+        self.assertEqual(checker.check_catalog(self.root), [])
+
+    def test_prose_link_after_inline_code_is_still_checked(self):
+        path = self.skill()
+        path.write_text(path.read_text() + "Use `[text](url)` and see [Guide](guide.md).\n")
+        self.assertIn("missing bundled target guide.md", str(checker.check_catalog(self.root)))
+
     def test_vendor_resources_still_checked(self):
         path = self.skill(parent="skills/synced/bucket")
         path.write_text(path.read_text() + "Run `scripts/missing.py`.\n")
