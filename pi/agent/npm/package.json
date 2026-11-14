@@ -17,7 +17,7 @@
     "@ogulcancelik/pi-herdr": "^0.4.1",
     "@ogulcancelik/pi-session-recall": "^1.0.6",
     "@pi-kaush/pi-verbatim-compaction": "^0.2.3",
-    "@sevten/pi-data-masking": "^0.2.0",
+    "@sevten/pi-data-masking": "^0.10.1",
     "@sting8k/pi-vcc": "^0.11.2",
     "@tifan/pi-rename": "^0.4.2",
     "pi-ask-herdr": "^0.2.2",
