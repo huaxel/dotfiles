@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install the Herdr plugins that config/herdr/config.toml binds keybindings to.
+# Install the Herdr plugins that ~/.config/herdr/config.toml binds keybindings to.
 #
 # Herdr plugin registrations are per-user state stored by Herdr outside the
 # dotfiles config, so keybindings in config.toml silently do nothing until the

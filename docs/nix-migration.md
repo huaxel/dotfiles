@@ -246,9 +246,9 @@ external `/opt/cachy-llama` fallback.
 
 Herdr is now natively managed by Home Manager in `home/common.nix`. A locked
 upstream `herdrdev/herdr` flake input supplies Herdr **0.9.0**, satisfying the
-plugin actions' minimum version of 0.8.0. The module imports
-`config/herdr/config.toml`, preserving one source of truth and enabling reloads
-when settings change.
+plugin actions' minimum version of 0.8.0. Herdr owns `~/.config/herdr/config.toml`
+itself: the native module rewrites that file in place, so it cannot be a read-only
+Nix store symlink and the dotfiles keep no copy of it.
 
 The three plugin registrations (`annotate`, `herdr-file-viewer`, and
 `jhochenbaum.hunkdiff`) are installed by the idempotent activation hook that reuses
