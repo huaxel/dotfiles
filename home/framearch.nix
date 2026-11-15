@@ -50,6 +50,18 @@ in
 
   home.file.".config/llama.cpp/models-laptop.ini".source = ../config/llama.cpp/models-laptop.ini;
 
+  # Keep the personal Rex server reachable from the Mac over Tailscale, as
+  # framearch-rex. Mirrors home/arch-wsl.nix; without these flags the server
+  # listens only on the Unix socket and the tsnet node falls back to the
+  # default "rex" name on restart. Enable the unit with
+  # `systemctl --user enable rex.service` (not rex.socket: on-demand start
+  # leaves the tailnet endpoint dead until something runs locally).
+  home.file.".config/systemd/user/rex.service.d/tailscale.conf".text = ''
+    [Service]
+    ExecStart=
+    ExecStart=/usr/bin/rex server run --log-format text --tailscale --tailscale-hostname framearch-rex
+  '';
+
   home.sessionVariables = {
     HF_HOME = "/mnt/ai_models";
     HF_HUB_CACHE = "/mnt/ai_models/models";
