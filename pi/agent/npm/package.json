@@ -24,7 +24,7 @@
     "pi-autoresearch": "^1.8.1",
     "pi-commandcode-provider": "^0.5.1",
     "pi-context-view": "^0.6.0",
-    "pi-cursor-sdk": "^0.5.40",
+    "pi-cursor-sdk": "^0.5.41",
     "pi-eta": "^0.1.1",
     "pi-forkme": "^0.2.2",
     "pi-herdr-subagents": "^0.1.6",
@@ -36,6 +36,6 @@
     "pi-provider-openference": "^0.5.0",
     "pi-provider-umans": "^1.5.1",
     "pi-vim-editor": "^0.6.0",
-    "pi-web-access": "^0.47.0"
+    "pi-web-access": "^0.48.0"
   }
 }
