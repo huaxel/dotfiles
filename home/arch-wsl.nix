@@ -19,8 +19,12 @@
   # dead between local sessions). The wants link points at the packaged unit,
   # so Delegate=/KillMode=/OOMPolicy= stay upstream's rather than being
   # shadowed by a hand-written unit.
-  home.file.".config/systemd/user/default.target.wants/rex.service".source =
-    config.lib.file.mkOutOfStoreSymlink "/usr/lib/systemd/user/rex.service";
+  home.file.".config/systemd/user/default.target.wants/rex.service" = {
+    source = config.lib.file.mkOutOfStoreSymlink "/usr/lib/systemd/user/rex.service";
+    # systemctl already created this link pointing at the same unit; without
+    # force, activation treats the mismatch as a collision and aborts.
+    force = true;
+  };
 
   home.sessionVariables = {
     PI_CODING_AGENT_DIR = "/home/juan/dotfiles/pi/agent";
