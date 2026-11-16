@@ -244,11 +244,20 @@ external `/opt/cachy-llama` fallback.
 
 ## Herdr on Nix hosts
 
-Herdr is now natively managed by Home Manager in `home/common.nix`. A locked
-upstream `herdrdev/herdr` flake input supplies Herdr **0.9.0**, satisfying the
-plugin actions' minimum version of 0.8.0. Herdr owns `~/.config/herdr/config.toml`
-itself: the native module rewrites that file in place, so it cannot be a read-only
-Nix store symlink and the dotfiles keep no copy of it.
+Herdr is now natively managed by Home Manager in `home/common.nix`. The locked
+upstream `herdrdev/herdr` flake input supplies Herdr (0.9.5 at the time of
+writing), satisfying the plugin actions' minimum version of 0.8.0. Herdr owns
+`~/.config/herdr/config.toml` itself: the native module rewrites that file in
+place, so it cannot be a read-only Nix store symlink and the dotfiles keep no copy
+of it.
+
+The flake owns the version, so Herdr must only ever run from the profile. A
+self-installed copy earlier on `PATH` wins over `~/.nix-profile/bin` and silently
+pins an old release while Home Manager bumps the profile: on `framearch`, a
+`~/.local/bin/herdr` (0.9.0, from `herdr update` before the Nix migration) hid the
+0.9.5 profile binary for weeks. Run `just doctor` after any Herdr install; it warns
+when `herdr` does not resolve into the Nix store. Bump the flake input with
+`nix flake update herdr` and switch profiles instead of using `herdr update`.
 
 The three plugin registrations (`annotate`, `herdr-file-viewer`, and
 `jhochenbaum.hunkdiff`) are installed by the idempotent activation hook that reuses

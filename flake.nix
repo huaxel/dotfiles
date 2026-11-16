@@ -49,14 +49,15 @@
       # from source fails there: the zig-built compiler_rt objects from
       # ghostty-vt are rejected by binutils ld.bfd ("overlapping FDEs" /
       # undefined symbols). Same approach as the pinned atuin release in
-      # home/common.nix. The binary is the v0.9.3 tag; other systems keep
-      # building the flake input (master, same Cargo version).
+      # home/common.nix. The binary is the v0.9.5 tag (hash verified by
+      # `nix store prefetch-file`, version checked under qemu-aarch64);
+      # other systems keep building the flake input (master).
       herdrAarch64 = nixpkgs.legacyPackages.aarch64-linux.stdenv.mkDerivation {
         pname = "herdr";
-        version = "0.9.3";
+        version = "0.9.5";
         src = nixpkgs.legacyPackages.aarch64-linux.fetchurl {
-          url = "https://github.com/herdrdev/herdr/releases/download/v0.9.3/herdr-linux-aarch64";
-          hash = "sha256-TeeqPiVniBLpKWDeZPfCqqG8ofD4CjxeVZg34jHh9cA=";
+          url = "https://github.com/herdrdev/herdr/releases/download/v0.9.5/herdr-linux-aarch64";
+          hash = "sha256-F9dTby2lCFlSNoDvJ53/ysjkojX05G/o2mwuxEFBiXw=";
         };
         dontUnpack = true;
         installPhase = ''install -Dm755 $src $out/bin/herdr'';

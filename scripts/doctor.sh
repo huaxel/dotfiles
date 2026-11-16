@@ -55,6 +55,19 @@ else
         *":$HOME/.nix-profile/bin:"*) ok "profile bin on PATH" ;;
         *) warn "\$HOME/.nix-profile/bin not on PATH — open a login shell" ;;
     esac
+    # A self-installed copy earlier on PATH (e.g. ~/.local/bin from a tool's own
+    # updater) shadows the profile binary and pins an old version silently. Only
+    # list CLIs whose version must follow the flake.
+    nix_managed_bins=(herdr)
+    for bin in "${nix_managed_bins[@]}"; do
+        resolved=$(command -v "$bin" 2>/dev/null) || continue
+        resolved=$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' \
+            "$resolved" 2>/dev/null || echo "$resolved")
+        case "$resolved" in
+            /nix/store/*) ok "$bin resolves to the Nix store" ;;
+            *) warn "$bin resolves to $resolved, not the Nix store — remove it so the flake owns the version" ;;
+        esac
+    done
     system=$(nix eval --impure --raw --expr 'builtins.currentSystem' 2>/dev/null || echo unknown)
     case "$system" in
         aarch64-darwin) suggest="juan@macbook" ;;
