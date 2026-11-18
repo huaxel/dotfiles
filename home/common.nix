@@ -265,6 +265,12 @@ in
   # Preserve launcher collisions via the normal nix-switch backup workflow.
   home.file.".local/bin/pi".source =
     config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/dotfiles/bin/pi";
+  # Codex's shared daemon prevents Rexume from identifying the pane's agent.
+  # The launcher changes only Rex terminals, and macOS uses Homebrew's binary.
+  home.file.".local/bin/codex" = lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
+    source = config.lib.file.mkOutOfStoreSymlink
+      "${config.home.homeDirectory}/dotfiles/bin/codex-rex";
+  };
 
   # The owned launcher selects the canonical profile when unset. Clients
   # bypassing it still get this settings alias, not a complete profile mirror.

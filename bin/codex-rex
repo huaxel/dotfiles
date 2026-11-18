@@ -1,0 +1,24 @@
+#!/bin/sh
+# macOS: Rexume associates hooks with the terminal's foreground process.
+# Codex's shared daemon breaks that association; Rex already owns persistence.
+# Outside Rex, leave Codex's daemon behavior and arguments unchanged.
+binary=${CODEX_REX_BIN:-/opt/homebrew/bin/codex}
+if [ ! -x "$binary" ]; then
+    printf 'Codex executable not found: %s\n' "$binary" >&2
+    exit 127
+fi
+
+if [ -n "${REX_BLOCK:-}" ]; then
+    has_no_daemon=no
+    for arg do
+        [ "$arg" != -- ] || break
+        if [ "$arg" = --no-daemon ]; then
+            has_no_daemon=yes
+            break
+        fi
+    done
+    if [ "$has_no_daemon" = no ]; then
+        set -- --no-daemon "$@"
+    fi
+fi
+exec "$binary" "$@"

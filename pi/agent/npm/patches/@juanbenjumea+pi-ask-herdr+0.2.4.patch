@@ -1,0 +1,12 @@
+diff --git a/node_modules/@juanbenjumea/pi-ask-herdr/src/ui.ts b/node_modules/@juanbenjumea/pi-ask-herdr/src/ui.ts
+--- a/node_modules/@juanbenjumea/pi-ask-herdr/src/ui.ts
++++ b/node_modules/@juanbenjumea/pi-ask-herdr/src/ui.ts
+@@ -501,6 +501,8 @@
+ 	let wizard: AskWizard | undefined;
+ 	const result = await ctx.ui.custom<AskDetails[] | null>(
+ 		(tui, theme, keybindings, done) => (wizard = new AskWizard(params, tui, theme, keybindings, done, signal)),
++		// Let Pi report OSC 7501 blocked/question, and restore status when the dialog closes.
++		{ blocked: { kind: "question", message: "Waiting for your answer" } },
+ 	);
+ 	if (!result) {
+ 		const details: AskBatchDetails = { answers: [], cancelled: true };

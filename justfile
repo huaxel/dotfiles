@@ -145,7 +145,7 @@ check-sh:
             echo "  ❌ $f has issues"
             errors=$((errors + 1))
         fi
-    done < <(find . \( -path ./node_modules -o -path ./pi/agent/npm/node_modules -o -path ./pi/agent/install -o -path ./pi/agent/git -o -path ./pi/agent/herdr-plugins -o -path ./pi_npm/node_modules -o -path ./.git -o -path './~' \) -prune -o -type f \( -name '*.sh' -o -name '*.bash' -o -path './bin/pi' -o -path './bin/qmd' \) -print 2>/dev/null | sort || true)
+    done < <(find . \( -path ./node_modules -o -path ./pi/agent/npm/node_modules -o -path ./pi/agent/install -o -path ./pi/agent/git -o -path ./pi/agent/herdr-plugins -o -path ./pi_npm/node_modules -o -path ./.git -o -path './~' \) -prune -o -type f \( -name '*.sh' -o -name '*.bash' -o -path './bin/pi' -o -path './bin/qmd' -o -path './bin/codex-rex' \) -print 2>/dev/null | sort || true)
     echo "  Checked $count shell scripts"
     if [ "$errors" -gt 0 ]; then echo "  ❌ $errors files have issues"; exit 1; fi
     echo "  ✅ All shell scripts pass ShellCheck"
@@ -264,6 +264,7 @@ test-pi-extensions:
         echo "  ⚠️  no Pi agent installed — skipping pi package tests"
         exit 0
     fi
+    node pi/agent/extensions/ask-user-notifications.test.mjs
     node pi/agent/extensions/continue-after-compaction.test.mjs
     node pi/agent/extensions/git-interceptor.test.mjs
     node pi/agent/extensions/harness.test.mjs
@@ -275,6 +276,7 @@ test-pi-extensions:
 # Verify workstation backup/restore behavior with isolated fixtures.
 check-recovery:
     bash scripts/tests/recovery-scripts.test.sh
+    python3 scripts/tests/codex-rex.test.py
 
 # Validate macOS provisioning safety on every platform.
 check-macos:

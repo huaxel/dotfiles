@@ -176,7 +176,9 @@ class PatchTests(unittest.TestCase):
 
     def test_reviewed_patch_inventory(self):
         patches = sorted((SOURCE/'patches').glob('*.patch'))
-        self.assertEqual([helper.patch_identity(p) for p in patches], [('pi-memory','0.4.2')])
+        self.assertEqual([helper.patch_identity(p) for p in patches], [
+            ('@juanbenjumea/pi-ask-herdr', '0.2.4'), ('pi-memory', '0.4.2'),
+        ])
         for p in patches:
             helper.patch_paths(p.read_text(), helper.patch_identity(p)[0])
 
@@ -192,14 +194,15 @@ class PublishedInstallTests(unittest.TestCase):
             for name in ('install-and-patch.sh', 'apply-patches.py'):
                 shutil.copy2(SOURCE/name, root/name)
             shutil.copytree(SOURCE/'patches', root/'patches')
-            package = {'private':True, 'dependencies':{'pi-memory':'0.4.2',helper.TIDY:'0.5.4'},
+            package = {'private':True, 'dependencies':{'pi-memory':'0.4.2',helper.TIDY:'0.5.4',
+                       '@juanbenjumea/pi-ask-herdr':'0.2.4'},
                        'scripts':{'postinstall':"node -e \"require('fs').writeFileSync('HOOK_RAN','bad')\""}}
             (root/'package.json').write_text(json.dumps(package))
             env = dict(os.environ, NPM_CONFIG_IGNORE_SCRIPTS='false')
             prepare = subprocess.run(['npm','--prefix',str(root),'--global=false','install','--package-lock-only','--ignore-scripts','--legacy-peer-deps','--no-audit'], env=env, capture_output=True, text=True, timeout=90)
             self.assertEqual(prepare.returncode, 0, prepare.stderr)
             lock = json.loads((root/'package-lock.json').read_text())
-            for name in ('pi-memory', helper.TIDY):
+            for name in ('pi-memory', helper.TIDY, '@juanbenjumea/pi-ask-herdr'):
                 self.assertIn(f'node_modules/{name}', lock['packages'],
                               'lockfile must use install-relative package keys')
             result = subprocess.run(['bash',str(root/'install-and-patch.sh'),'ci'], env=env, capture_output=True, text=True, timeout=90)
@@ -209,7 +212,10 @@ class PublishedInstallTests(unittest.TestCase):
                 fresh = (root/'node_modules/pi-memory'/name).read_bytes()
                 live = (SOURCE/'node_modules/pi-memory'/name).read_bytes()
                 self.assertEqual(hashlib.sha256(fresh).digest(), hashlib.sha256(live).digest(), name)
+            question_ui = 'node_modules/@juanbenjumea/pi-ask-herdr/src/ui.ts'
+            self.assertEqual((root/question_ui).read_bytes(), (SOURCE/question_ui).read_bytes())
             before = {p:p.read_bytes() for p in (root/'node_modules/pi-memory').glob('*') if p.is_file()}
+            before[root/question_ui] = (root/question_ui).read_bytes()
             for mode in ('patch','check'):
                 result = subprocess.run(['bash',str(root/'install-and-patch.sh'),mode], capture_output=True, text=True, timeout=20)
                 self.assertEqual(result.returncode, 0, result.stdout+result.stderr)

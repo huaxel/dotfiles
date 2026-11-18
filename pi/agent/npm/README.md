@@ -38,6 +38,12 @@ transaction; I/O failures can leave a partial installation and return failure.
 
 ## Supported state
 
+- **pi-ask-herdr 0.2.4:** mark the custom `ask_user` wizard as a blocked question
+  through Pi's native UI API. Rex receives OSC 7501 while an answer is pending;
+  answering, cancellation and timeout restore normal activity automatically.
+  Notification text is generic, not the question contents. Rex's Program Activity
+  settings and macOS notification permission still control banners and sounds.
+  Reload Pi after applying the patch to an already-running session.
 - **pi-memory 0.4.2:** retain `patches/pi-memory+0.4.2.patch`, including per-project
   memory isolation. Plain `npm ci --ignore-scripts` does not restore this patch;
   follow it with the explicit patch step.
@@ -60,8 +66,8 @@ PI_PATCH_REHEARSE=1 python3 scripts/tests/pi-npm-patches.test.py
 The default tests are offline and run in `just ci`. The opt-in rehearsal uses a
 fresh temporary npm installation pinned to the supported direct versions, with a
 controlled root postinstall sentinel to prove hooks stay disabled. It verifies
-that freshly patched pi-memory source matches the current reviewed live source,
-then verifies idempotence/readiness. It never reinstalls or mutates the live
+that freshly patched pi-memory and pi-ask-herdr source matches the current reviewed
+live source, then verifies idempotence/readiness. It never reinstalls or mutates the live
 package tree. Its lockfile is generated for the rehearsal, so this does not
 prove reproducibility of the entire transitive dependency tree across time.
 The live tree is a comparison reference, not a replacement for reviewing the
