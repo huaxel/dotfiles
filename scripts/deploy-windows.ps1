@@ -287,7 +287,6 @@ Link-Config "npmrc" $npmrcTarget
 $links = @(
     @{ Source = "ssh_config"; Target = (Join-Path $HOME ".ssh\config") },
     @{ Source = "gitignore_global"; Target = (Join-Path $HOME ".gitignore_global") },
-    @{ Source = "config\mise"; Target = (Join-Path $HOME ".config\mise") },
     @{ Source = "config-windows\leopardwm\config.toml"; Target = (Join-Path $env:APPDATA "leopardwm\config\config.toml") },
     @{ Source = "config\zed\keymap.json"; Target = (Join-Path $env:LOCALAPPDATA "Zed\keymap.json") },
     @{ Source = "powershell\7\profile.ps1"; Target = (Join-Path $HOME "Documents\PowerShell\Microsoft.PowerShell_profile.ps1") },

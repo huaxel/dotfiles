@@ -34,7 +34,7 @@ install:
     fi
     echo "✓ CI tooling ready"
 
-# Regenerate Nushell shell integrations (starship/atuin/mise/zoxide/fzf)
+# Regenerate Nushell shell integrations (starship/atuin/zoxide/fzf)
 # after installing or upgrading those tools.
 nushell-setup:
     @if [ -x scripts/setup-nushell.sh ]; then bash scripts/setup-nushell.sh; else echo "  ⚠️  scripts/setup-nushell.sh not found"; exit 1; fi

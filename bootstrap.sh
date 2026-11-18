@@ -225,7 +225,6 @@ case "$OS" in
             # list limited to bootstrap prerequisites and Arch/native tools.
             # git/just/age/sops remain bootstrap exceptions: they are needed
             # before or during the first Home Manager activation.
-            # User language runtimes are owned by mise (config/mise/config.toml).
             packages=(
                 git just age sops
                 procs dust duf bottom opencode
@@ -358,12 +357,6 @@ if [ "$OS" = "Darwin" ] && [ "${SKIP_MACOS_DEFAULTS:-0}" != "1" ] && [ -x ./maco
 fi
 
 step "9/9 — Post-install setup"
-
-# Install mise tool versions (if mise was just installed)
-if command -v mise &>/dev/null && [ -f "$HOME/.config/mise/config.toml" ]; then
-    info "Installing mise tool versions (node, python, go, rust)..."
-    mise install 2>/dev/null || warn "mise install had issues — run 'mise install' manually"
-fi
 
 # Generate Nushell integrations after package installation. Missing tools are
 # skipped so this remains safe on partial or minimal bootstrap environments.

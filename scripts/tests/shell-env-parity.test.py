@@ -69,7 +69,7 @@ for key in ("FZF_DEFAULT_OPTS", "FZF_CTRL_T_OPTS", "FZF_CTRL_R_OPTS",
 # keybindings, or tool integrations — those live in config/nushell/.
 fish_text = read("config/fish/config.fish")
 for banned in ("alias ", "starship init", "atuin init", "fzf --fish",
-                "zoxide init", "mise activate", "fish_vi_key_bindings",
+                "zoxide init", "fish_vi_key_bindings",
                 " abbreviation", "bind "):
     require(banned not in fish_text,
             f"fish stub regrew interactive setup: {banned!r}")
@@ -77,7 +77,7 @@ require("environment.d" in fish_text,
         "fish stub no longer loads the shared environment.d files")
 
 # 3. Keys owned by 10-dotfiles.conf must not be re-hardcoded in the shells.
-SHARED = ("LANG", "EDITOR", "VISUAL", "PAGER", "MISE_LOG_LEVEL",
+SHARED = ("LANG", "EDITOR", "VISUAL", "PAGER",
           "PYTHONDONTWRITEBYTECODE",
           "LLAMA_BASE_URL", "MEMORYFIELD_EMBED_PROVIDER",
           "MEMORYFIELD_EMBED_URL", "MEMORYFIELD_EMBED_MODEL",

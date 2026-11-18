@@ -50,7 +50,6 @@ check_integration() {
 }
 
 check_integration starship "$CACHE_DIR/starship.nu" "starship.nu"
-check_integration mise "$CACHE_DIR/mise.nu" "mise.nu"
 check_integration zoxide "$CACHE_DIR/zoxide.nu" "zoxide.nu"
 check_integration fzf "$CACHE_DIR/fzf.nu" "fzf.nu"
 check_integration atuin "$ATUIN_INIT" "atuin init.nu"
@@ -71,11 +70,10 @@ if health_output=$(run_nu --no-history \
     --env-config config/nushell/env.nu \
     -e '
         let starship = ($env.STARSHIP_SHELL? | default "not loaded")
-        let mise = ($env.MISE_SHELL? | default "not loaded")
         let z = (which z | get -o type | first | default "not loaded")
         let atuin_kb = ($env.config.keybindings | where name == "atuin" | length)
         let fzf_kb = ($env.config.keybindings | where name =~ "fzf" | length)
-        let required_aliases = ["ll","cat","grep","v","g","j","m","b","openf"]
+        let required_aliases = ["ll","cat","grep","v","g","j","b","openf"]
         let missing_aliases = ($required_aliases
             | where {|a| which $a | is-empty}
             | str join ",")
@@ -83,7 +81,6 @@ if health_output=$(run_nu --no-history \
             | where {|a| not (which $a | is-empty)}
             | str join ",")
         print $"starship: ($starship)
-mise: ($mise)
 z: ($z)
 atuin_kb: ($atuin_kb)
 fzf_kb: ($fzf_kb)

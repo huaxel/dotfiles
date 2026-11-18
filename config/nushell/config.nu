@@ -74,19 +74,16 @@ $env.config.color_config = ($env.config.color_config | merge $tn_colors)
 # `just nushell-setup` (or scripts/setup-nushell.sh) after installing or
 # upgrading these tools.
 const starship_init = ($nu.cache-dir | path join "starship.nu")
-const mise_init = ($nu.cache-dir | path join "mise.nu")
 const zoxide_init = ($nu.cache-dir | path join "zoxide.nu")
 const fzf_init = ($nu.cache-dir | path join "fzf.nu")
 const atuin_init = ($nu.cache-dir | path join "atuin.nu")
 
 const starship_source = (if ($starship_init | path exists) { $starship_init } else { null })
-const mise_source = (if ($mise_init | path exists) { $mise_init } else { null })
 const zoxide_source = (if ($zoxide_init | path exists) { $zoxide_init } else { null })
 const fzf_source = (if ($fzf_init | path exists) { $fzf_init } else { null })
 const atuin_source = (if ($atuin_init | path exists) { $atuin_init } else { null })
 
 source $starship_source
-source $mise_source
 source $zoxide_source
 source $fzf_source
 source $atuin_source
@@ -107,12 +104,11 @@ if $nu.os-info.name != "windows" {
     )
 }
 
-# mise activation can rebuild PATH, so restore the Nix daemon tools after
-# integrations have loaded. This keeps `nix` available in interactive Nu.
+# Keep the Nix daemon tools available in interactive Nu.
 if ("/nix/var/nix/profiles/default/bin" | path exists) {
     $env.PATH = ($env.PATH | prepend "/nix/var/nix/profiles/default/bin" | uniq)
 }
-# Restore owned Unix entrypoints before Pi's generated fallback after mise.
+# Restore owned Unix entrypoints before Pi's generated fallback.
 # Native Windows keeps its generated .cmd launcher rather than a POSIX wrapper.
 if $nu.os-info.name == "windows" {
     $env.PATH = ($env.PATH | prepend ($env.PI_CODING_AGENT_DIR | path join "bin") | uniq)
@@ -163,9 +159,6 @@ alias gp = git push
 alias gl = git log --oneline --graph --decorate
 alias glg = git log --oneline --graph --decorate
 alias j = just --justfile ($env.HOME | path join ".config/just/justfile")
-alias m = mise
-alias mr = mise run
-alias ml = mise list
 alias b = bun
 alias bi = bun install
 alias br = bun run

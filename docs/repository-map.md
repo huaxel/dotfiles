@@ -54,7 +54,7 @@ Keep deployment paths stable; organize new material under the matching area belo
   while preserving explicit profile/session overrides. It uses the existing
   managed release selected by `pi/agent/install/current-version`; neither
   generated `pi/agent/bin/pi` nor downloaded release files are patched. Node
-  comes from the existing installer runtime, PATH, or mise shims, without a new
+  comes from the existing installer runtime or PATH, without a new
   installation. Nushell restores the owned entrypoint ahead of generated ones.
   Native Windows retains its generated `.cmd` launcher.
 

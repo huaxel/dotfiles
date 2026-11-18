@@ -92,7 +92,7 @@ if command -v codex >/dev/null 2>&1; then
 fi
 
 # Grok Build CLI (`agent`, also `grok`). User scope in ~/.grok/config.toml.
-# /usr/bin/python3 avoids depending on a mise shim that a non-login launch misses.
+# /usr/bin/python3 avoids depending on a user-managed runtime in non-login launches.
 if command -v agent >/dev/null 2>&1; then
   local_py="/usr/bin/python3"
   [[ -x "$local_py" ]] || local_py="python3"

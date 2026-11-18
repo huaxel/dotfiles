@@ -134,7 +134,6 @@ backup_tree "$HOME/.orca" orca "Orca" volatile
 backup_tree "$HOME/.kimi-code" kimi-code "Kimi Code" volatile
 backup_tree "$HOME/.jules" jules "Jules" volatile
 backup_tree "$HOME/.grok" grok "Grok" volatile
-backup_tree "$HOME/.config/mise" mise "Mise config" strict
 
 # OAuth and quota credentials are deliberately excluded. They are machine-local
 # and should be recreated/decrypted on the destination rather than copied to a

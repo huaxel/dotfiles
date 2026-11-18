@@ -228,12 +228,10 @@ if [ -d "$PROJECTS_SRC" ]; then
 fi
 
 # ─────────────────────────────────────────────────────
-# 6. Mise config
 # ─────────────────────────────────────────────────────
 echo ""
 echo "━━━ 6/7 — Config extras ━━━"
 
-for src in "$BACKUP/mise" "$AGENTS/mise"; do [ -d "$src" ] && restore_dir "$src" "$HOME/.config/mise" "Mise config" && break; done
 for src in "$BACKUP/pi" "$AGENTS/pi"; do [ -d "$src" ] && restore_dir "$src" "$HOME/.pi/agent" "Pi fallback state" && break; done
 if [ -d "$BACKUP/pi-dotfiles" ]; then
     restore_dir "$BACKUP/pi-dotfiles" "$PI_TARGET" "Pi canonical state and sessions"

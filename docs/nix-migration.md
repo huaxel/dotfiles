@@ -16,7 +16,7 @@ juan@liedelpi    aarch64-linux
 
 The pilot manages a shared package baseline, the Brewfile, session variables,
 the two framearch user systemd services, Nushell, Starship, Git, the global Git ignore
-file, Neovim, Ghostty, mise, the static CI tree, the tracked Zed
+file, Neovim, Ghostty, the static CI tree, the tracked Zed
 keymap, eza, the shared icon helper, the web-search wrapper, the static llama
 project files, the Wayland desktop session configs (sway, waybar, wofi, walker,
 llamaman, xkb), and the three encrypted secret

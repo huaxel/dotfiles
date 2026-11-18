@@ -4,7 +4,7 @@
 # invoked explicitly on a host where Nushell is unavailable.
 #
 # It provides PATH + the shared environment and nothing else: no aliases,
-# no keybindings, no tool integrations (atuin/fzf/zoxide/mise). For the
+# no keybindings, no tool integrations (atuin/fzf/zoxide). For the
 # full setup, run `nu`.
 # ───────────────────────────────────────────────────────────────
 

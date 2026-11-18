@@ -2,7 +2,7 @@
   "name": "pi-extensions",
   "private": true,
   "dependencies": {
-    "@juanbenjumea/pi-agy": "^0.7.13",
+    "@juanbenjumea/pi-agy": "^0.7.14",
     "@juanbenjumea/pi-dynamic-footer": "^0.1.11",
     "@juanbenjumea/pi-go-on": "^0.1.2",
     "@juanbenjumea/pi-provider-openference": "^0.5.0",

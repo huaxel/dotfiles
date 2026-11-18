@@ -28,8 +28,6 @@ require(len(casks) == len(set(casks)), "Brewfile contains duplicate casks")
 require('cask "tailscale-app"' in brewfile, "Tailscale app is missing")
 require('brew "tailscale"' not in brewfile, "Tailscale formula conflicts with the macOS app")
 require("restart_service:" not in brewfile, "Brewfile unexpectedly auto-starts background services")
-for mise_owned in ("go", "node@22", "python@3.12", "ruby", "rust"):
-    require(f'brew "{mise_owned}"' not in brewfile, f"Brewfile duplicates mise-owned runtime: {mise_owned}")
 require('brew "shellcheck"' not in brewfile, "Brewfile duplicates Home Manager-owned ShellCheck")
 
 defaults = read("macos/defaults.sh")

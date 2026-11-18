@@ -48,12 +48,6 @@ pi_node_bin=${XDG_DATA_HOME:-$HOME/.local/share}/pi-node/current/bin
 if [ -x "$pi_node_bin/node" ]; then
   PATH=$pi_node_bin:$PATH
   export PATH
-elif ! command -v node >/dev/null 2>&1; then
-  pi_mise_shims=${MISE_DATA_DIR:-$HOME/.local/share/mise}/shims
-  if [ -x "$pi_mise_shims/node" ]; then
-    PATH=$pi_mise_shims:$PATH
-    export PATH
-  fi
 fi
 PI_MANAGED_INSTALL_ROOT=$pi_agent_dir/install
 export PI_MANAGED_INSTALL_ROOT

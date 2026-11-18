@@ -41,26 +41,6 @@ else
     rm -f "$CACHE_DIR/starship.nu"
 fi
 
-if command -v mise >/dev/null 2>&1; then
-    generate_integration "$CACHE_DIR/mise.nu" mise activate nu
-    # mise's Nushell integration checks the environment both on every prompt
-    # and on PWD changes. The PWD hook is sufficient for project version
-    # switching; omit the redundant prompt hook to avoid spawning mise for
-    # every prompt render. Warn and retain upstream hooks if the format changes.
-    # These are literal Nushell source fragments, not shell expansions.
-    # shellcheck disable=SC2016
-    if grep -Fq '  add-hook hooks.pre_prompt $mise_hook' "$CACHE_DIR/mise.nu"; then
-        tmp=$(mktemp "$CACHE_DIR/mise.nu.tmp.XXXXXX")
-        # shellcheck disable=SC2016
-        sed '/^  add-hook hooks.pre_prompt \$mise_hook$/d' "$CACHE_DIR/mise.nu" > "$tmp" && mv "$tmp" "$CACHE_DIR/mise.nu"
-    else
-        echo "mise integration format changed; keeping generated hooks" >&2
-    fi
-    echo "Generated mise integration (PWD activation only)"
-else
-    rm -f "$CACHE_DIR/mise.nu"
-fi
-
 if command -v zoxide >/dev/null 2>&1; then
     generate_integration "$CACHE_DIR/zoxide.nu" zoxide init nushell
     echo "Generated zoxide integration"

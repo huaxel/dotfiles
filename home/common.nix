@@ -76,7 +76,11 @@ in
     sops
     starship
     deno
-    mise
+    nodejs_24
+    python313
+    go
+    rustc
+    cargo
     pnpm
     shellcheck
     taplo
@@ -160,7 +164,6 @@ in
     EDITOR = "nvim";
     VISUAL = "nvim";
     PAGER = "less";
-    MISE_LOG_LEVEL = "error";
   };
 
   programs.home-manager.enable = true;
@@ -194,8 +197,8 @@ in
   home.file.".config/nushell/config.nu".source = ../config/nushell/config.nu;
   home.file.".config/nushell/env.nu".source = ../config/nushell/env.nu;
   home.file.".config/nushell/login.nu".source = ../config/nushell/login.nu;
-  # Shared non-secret shell defaults (LLAMA_*, MEMORYFIELD_*, LANG, EDITOR,
-  # MISE_LOG_LEVEL, ...). Both shells parse this file directly, so host
+  # Shared non-secret shell defaults (LLAMA_*, MEMORYFIELD_*, LANG, EDITOR, ...).
+  # Both shells parse this file directly, so host
   # modules must not repeat these in sessionVariables — edit the file instead.
   home.file.".config/environment.d/10-dotfiles.conf".source = ../config/environment.d/10-dotfiles.conf;
   # Nushell uses ~/Library/Application Support/nushell on macOS unless it is
@@ -288,7 +291,6 @@ in
     config.lib.file.mkOutOfStoreSymlink
       "${config.home.homeDirectory}/dotfiles/pi/agent/settings.json";
   home.file.".config/ghostty/config".source = ../config/ghostty/config;
-  home.file.".config/mise/config.toml".source = ../config/mise/config.toml;
   home.file.".config/llama.cpp/.python-version".source = ../config/llama.cpp/.python-version;
   home.file.".config/llama.cpp/MODELS.md".source = ../config/llama.cpp/MODELS.md;
   home.file.".config/llama.cpp/README-windows.md".source = ../config/llama.cpp/README-windows.md;

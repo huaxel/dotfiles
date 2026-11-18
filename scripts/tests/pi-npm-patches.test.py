@@ -194,7 +194,6 @@ class PatchTests(unittest.TestCase):
     def test_reviewed_patch_inventory(self):
         patches = sorted((SOURCE/'patches').glob('*.patch'))
         self.assertEqual([helper.patch_identity(p) for p in patches], [
-            ('@juanbenjumea/pi-agy', '0.7.13'),
             ('pi-memory', '0.4.2'),
         ])
         for p in patches:

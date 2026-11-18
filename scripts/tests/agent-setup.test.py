@@ -185,14 +185,6 @@ print(json.dumps({{"agent_dir":os.getenv("PI_CODING_AGENT_DIR"),"session_dir":os
         node.chmod(0o755)
         self.assertTrue(self.run_launcher()["path"].startswith(str(node.parent) + ":"))
 
-    def test_mise_node_fallback_when_path_is_reset(self):
-        self.env["PATH"] = str(self.tools)
-        node = self.home / ".local/share/mise/shims/node"
-        node.parent.mkdir(parents=True)
-        node.write_text("#!/bin/sh\nexit 0\n")
-        node.chmod(0o755)
-        self.assertTrue(self.run_launcher()["path"].startswith(str(node.parent) + ":"))
-
     def test_invalid_release_identifier_rejected(self):
         (self.agent / "install/current-version").write_text("../../outside\n")
         result = subprocess.run([str(self.launcher)], env=self.env, text=True, capture_output=True, timeout=5)
