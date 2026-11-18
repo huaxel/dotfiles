@@ -1,6 +1,6 @@
 # Shared agent skills
 
-`skills/` is the source for reusable cross-agent skills. Unix bootstrap links `~/.agents/skills` here; the Windows agent-state sync copies it. Pi discovers that shared root alongside `pi/agent/skills/`. On this machine, `~/.claude/skills` also links to the shared root; that link is not currently provisioned by bootstrap or Home Manager.
+`skills/` is the source for reusable cross-agent skills. Unix bootstrap links `~/.agents/skills` here; the Windows agent-state sync copies it. Pi, Codex, Amp, Gemini CLI, Cursor, and Copilot CLI can discover that shared root according to their current conventions. Claude Code uses `~/.claude/skills` instead, so Home Manager links each top-level shared skill there individually while preserving Claude-managed and machine-local entries. These links point back to the canonical checkout; they are not copied skill files.
 
 ## Ownership
 

@@ -1,15 +1,5 @@
 [
   {
-    "timestamp": "2026-11-02T16:20:12.683Z",
-    "version": "1.4.0",
-    "kind": "uncaught_exception",
-    "message": "ENOSPC: no space left on device, write",
-    "stack": "Error: ENOSPC: no space left on device, write",
-    "sessionFile": "/home/juan/dotfiles/pi/agent/sessions/2026-11-02T12-17-31-976Z_01a19c31-7f46-70c1-9b16-d66978b98957.jsonl",
-    "cwd": "/home/juan/project-atom",
-    "notified": true
-  },
-  {
     "timestamp": "2026-11-02T20:30:28.405Z",
     "version": "1.5.0",
     "kind": "uncaught_exception",
@@ -47,6 +37,16 @@
     "stack": "Error: spawn /home/juan/.local/bin/claude ENOENT\n    at ChildProcess._handle.onexit (node:internal/child_process:315:19)\n    at onErrorNT (node:internal/child_process:553:16)\n    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)",
     "sessionFile": "/home/juan/dotfiles/pi/agent/sessions/2026-11-10T09-24-32-046Z_01a1c4c5-fcac-7684-a972-30109544a717.jsonl",
     "cwd": "/home/juan/.herdr/worktrees/project-atom/m2-gap-analysis",
+    "notified": true
+  },
+  {
+    "timestamp": "2026-11-17T15:41:37.456Z",
+    "version": "1.5.2",
+    "kind": "uncaught_exception",
+    "message": "The operation was aborted",
+    "stack": "AbortError: The operation was aborted\n    at stream.<computed>.AbortError.cause (node:internal/streams/add-abort-signal:47:22)\n    at module.exports.addAbortSignalNoValidate (node:internal/streams/add-abort-signal:53:5)\n    at addAbortSignal (node:internal/streams/add-abort-signal:38:25)\n    at ReadStream.Readable (node:internal/streams/readable:360:7)\n    at new ReadStream (node:internal/fs/streams:258:3)\n    at FileHandle.createReadStream (node:internal/fs/promises:408:12)\n    at Object.readLocalFileChunks [as createReadStream] (file:///home/juan/dotfiles/pi/agent/install/releases/1.5.2/node_modules/@earendil-works/pi-coding-agent/dist/bundle/chunks/chunk-VEJDBY3O.js:789:1792)\n    at async selectLinesFromStream (file:///home/juan/dotfiles/pi/agent/install/releases/1.5.2/node_modules/@earendil-works/pi-coding-agent/dist/bundle/chunks/chunk-VEJDBY3O.js:792:401)\n    at async file:///home/juan/dotfiles/pi/agent/install/releases/1.5.2/node_modules/@earendil-works/pi-coding-agent/dist/bundle/chunks/chunk-VEJDBY3O.js:798:239",
+    "sessionFile": "/home/juan/dotfiles/pi/agent/sessions/2026-11-17T14-36-01-208Z_01a1e9ef-ad38-7316-b205-fd16760a768a.jsonl",
+    "cwd": "/home/juan/projects/ehb/four-prices",
     "notified": true
   }
 ]

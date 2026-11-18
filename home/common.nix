@@ -258,6 +258,23 @@ in
     config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/dotfiles/AGENTS.md";
   home.file.".claude/CLAUDE.md".source =
     config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/dotfiles/AGENTS.md";
+  # Claude only discovers skills under ~/.claude/skills, not ~/.agents/skills.
+  # Add missing per-skill symlinks without replacing plugin-managed or local skills.
+  home.activation.claudeSkills = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    skills_source="${config.home.homeDirectory}/dotfiles/skills"
+    skills_target="${config.home.homeDirectory}/.claude/skills"
+    mkdir -p "$skills_target"
+    find "$skills_source" -mindepth 2 -maxdepth 2 -type f -name SKILL.md -print | sort | while IFS= read -r skill_file; do
+      skill_name="$(basename "$(dirname "$skill_file")")"
+      source="$(dirname "$skill_file")"
+      target="$skills_target/$skill_name"
+      if [[ -e "$target" || -L "$target" ]]; then
+        # Keep existing entries (including plugin/local overrides) untouched.
+        continue
+      fi
+      ln -s -- "$source" "$target"
+    done
+  '';
   home.file.".pi/agent/AGENTS.md".source =
     config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/dotfiles/AGENTS.md";
   home.file.".pi/agent/APPEND_SYSTEM.md".source =
