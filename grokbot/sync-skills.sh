@@ -4,7 +4,15 @@ set -euo pipefail
 SRC="${GROKBOT_SKILLS_SRC:-/home/box/agent-data/workflows}"
 DEST="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/skills"
 [ -d "$SRC" ] || { echo "source not found: $SRC" >&2; exit 1; }
+SRC="$(cd "$SRC" && pwd -P)"
 mkdir -p "$DEST"
+DEST="$(cd "$DEST" && pwd -P)"
+case "$SRC/" in
+  "$DEST/"*) echo "source and destination overlap: $SRC -> $DEST" >&2; exit 1 ;;
+esac
+case "$DEST/" in
+  "$SRC/"*) echo "source and destination overlap: $SRC -> $DEST" >&2; exit 1 ;;
+esac
 if command -v rsync >/dev/null 2>&1; then
   rsync -a --delete --exclude ".library-fingerprint" "$SRC/" "$DEST/"
 else
