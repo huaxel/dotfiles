@@ -234,6 +234,12 @@ in
       "${config.home.homeDirectory}/dotfiles/npmrc";
   home.file.".gitignore_global".source = ../gitignore_global;
   home.file.".local/bin/web-search".source = ../bin/web-search;
+  home.file.".local/bin/project-todo".source = let
+    cli = "${config.home.homeDirectory}/dotfiles/pi/agent/project-todo/cli.mts";
+    launcher = pkgs.writeShellScriptBin "project-todo" ''
+      exec ${pkgs.nodejs_24}/bin/node ${lib.escapeShellArg cli} "$@"
+    '';
+  in "${launcher}/bin/project-todo";
   home.file.".local/bin/rbnb-authorize-key".source = ../bin/rbnb-authorize-key;
   # Node uses the host loader for qmd's host-built native addons; Nix Bun does not.
   home.file.".local/bin/qmd" = lib.mkIf pkgs.stdenv.hostPlatform.isLinux {

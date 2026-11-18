@@ -1,4 +1,5 @@
-import { mkdtempSync, readdirSync, readFileSync, writeFileSync, utimesSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, readdirSync, readFileSync, writeFileSync, unlinkSync, utimesSync } from "node:fs";
 import { registerHooks } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -148,6 +149,31 @@ await run({ action: "delete", id: c1.details.todo.id });
 await run({ action: "delete", id: c2.details.todo.id });
 await run({ action: "delete", id: good.details.todo.id });
 await run({ action: "delete", id: badId });
+
+// A different process (no Pi imports or tool) can work on the same backlog.
+const cli = path.join(extensionsDir, "..", "project-todo", "cli.mts");
+const standalone = (...args) => spawnSync(process.execPath, [cli, ...args], {
+  cwd: repoRoot, env: { ...process.env, PI_TODO_PATH: td }, encoding: "utf8",
+});
+const created = standalone("add", "Outside Pi", "Shared notes");
+assert(created.status === 0, `standalone add: ${created.stderr}`);
+const externalId = created.stdout.trim();
+const external = await run({ action: "get", id: externalId });
+assert(external.details.todo?.body.trim() === "Shared notes", "Pi reads CLI-created notes");
+assert(standalone("show", externalId).status === 0, "CLI reads by Pi todo ID");
+const writeLock = path.join(td, `${external.details.todo.id}.lock`);
+writeFileSync(writeLock, JSON.stringify({ session: "another agent" }));
+const blocked = standalone("done", externalId);
+assert(blocked.status !== 0 && blocked.stderr.includes("is locked"), "CLI respects an existing Pi write lock");
+unlinkSync(writeLock);
+assert(standalone("done", externalId).status === 0, "CLI closes an unlocked todo");
+r = await run({ action: "get", id: externalId });
+assert(r.details.todo?.status === "closed", "Pi sees the CLI status update");
+const visible = standalone("list", "--json");
+assert(visible.status === 0 && !JSON.parse(visible.stdout).some(todo => todo.id === r.details.todo.id), "CLI list hides closed todos");
+const all = standalone("list", "--all", "--json");
+assert(all.status === 0 && JSON.parse(all.stdout).some(todo => todo.id === r.details.todo.id), "CLI can list closed todos explicitly");
+await run({ action: "delete", id: externalId });
 
 console.log("\nALL TODOS TESTS PASSED");
 process.exit(0);

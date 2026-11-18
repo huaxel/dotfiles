@@ -13,6 +13,10 @@ Shared defaults across projects and harnesses. Follow applicable project instruc
 - Finish with changed paths, checks actually run, remaining risks, and blockers. Never imply unperformed checks passed.
 - A restriction is a conclusion you earn from a real failure, not a field you read. Never report an operation as blocked, unavailable, or not-permitted based on a metadata flag, a config field, or a docs claim - attempt it and quote the actual error. (maintainerCanModify: false on a PR does not mean you cannot push: it governs the upstream-maintainer auto-grant, not your own access to the fork.) If you genuinely cannot attempt it, say "not attempted", never "we can't".
 
+## Project todos
+
+From the same working directory as Pi, use `project-todo list`, `show TODO-ID`, `add "Title" ["Notes"]`, or `done TODO-ID` to work with the same files as `/todos`. Respect `PI_TODO_PATH` when set; don't edit todo files directly. Pi's session claims remain Pi-specific.
+
 ## Engineering
 
 - Verify assumptions against code, tests, or primary sources. Label uncertainty rather than guessing.
