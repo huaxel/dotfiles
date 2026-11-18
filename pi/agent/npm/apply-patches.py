@@ -13,6 +13,7 @@ import tempfile
 
 HERE = Path(__file__).resolve().parent
 TIDY = '@mobrienv/pi-tidy-tools'
+USAGE_FETCHER = '@juanbenjumea/pi-provider-usage-fetcher'
 
 
 def regular_file(root: Path, relative: str) -> Path:
@@ -44,6 +45,22 @@ def upstream_tidy(root: Path, snapshots: dict) -> None:
     private = root / 'node_modules' / TIDY / 'node_modules/typebox'
     if private.exists() or private.is_symlink():
         raise ValueError('stale private TypeBox exists; preserve/reconcile it manually (nothing is deleted)')
+
+
+def check_usage_fetcher(root: Path) -> None:
+    # The footer loads the fetcher's index, which re-exports Gemini at import
+    # time. A package manifest and entrypoint alone don't prove it can load.
+    missing = []
+    for suffix in ('js', 'd.ts'):
+        relative = f'node_modules/{USAGE_FETCHER}/dist/lib/gemini/gemini.{suffix}'
+        try:
+            regular_file(root, relative)
+        except ValueError:
+            missing.append(relative)
+    if missing:
+        raise ValueError('incomplete Pi install (missing or symlinked): '
+                         + ', '.join(missing)
+                         + '; restore the affected package from the locked npm artifact, then rerun check')
 
 
 def patch_identity(path: Path) -> tuple[str, str]:
@@ -94,6 +111,7 @@ def apply(root: Path, patches: Path, check: bool = False) -> list[str]:
     root = root.resolve(strict=True)
     snapshots: dict[Path, bytes] = {}
     upstream_tidy(root, snapshots)
+    check_usage_fetcher(root)
     patch_files = sorted(patches.glob('*.patch'))
     if not patch_files:
         raise ValueError('no reviewed patches found')
@@ -160,7 +178,7 @@ def apply(root: Path, patches: Path, check: bool = False) -> list[str]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root', type=Path, default=HERE)
-    parser.add_argument('--check', action='store_true', help='verify patches are already applied; never write package files')
+    parser.add_argument('--check', action='store_true', help='verify required dependency files and applied patches without writing package files')
     args = parser.parse_args()
     try:
         for state in apply(args.root, HERE/'patches', args.check):

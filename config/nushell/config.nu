@@ -93,11 +93,9 @@ source $atuin_source
 
 # Orphan reaper: an interactive REPL whose terminal died (closed Ghostty
 # window, dead multiplexer pane) is reparented to launchd with stdio revoked,
-# and reedline then spins `loop_iteration` forever. Every iteration re-runs
-# pre_prompt hooks, and mise's hook fork/execs the mise binary per render —
-# that fork storm is what pins a core at ~9% CPU per orphan and heats the
-# machine. A live interactive shell always has a tty on fd 0, so bail out of
-# the first prompt render when it doesn't. This only runs on prompt render
+# and reedline then spins `loop_iteration` forever. A live interactive shell
+# always has a tty on fd 0, so bail out of the first prompt render when it
+# doesn't. This only runs on prompt render
 # (never for `nu -c` / scripts / piped stdin), and nushell already refuses to
 # start a REPL on non-tty stdin, so legitimate uses are unaffected.
 if $nu.os-info.name != "windows" {

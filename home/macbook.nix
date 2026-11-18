@@ -34,6 +34,8 @@
     enable = true;
     settings = ../config-macos/omniwm/settings.toml;
   };
+  home.file.".config/omniwm/shell/default/shell.toml".source =
+    ../config-macos/omniwm/shell-default.toml;
 
   home.sessionVariables = {
     PI_CODING_AGENT_DIR = "/Users/juanbenjumea/dotfiles/pi/agent";

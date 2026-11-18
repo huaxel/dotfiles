@@ -1,0 +1,30 @@
+# Compact bottom bar containing only workspace chips.
+theme = "native"
+leading = ["workspaces"]
+center = []
+trailing = []
+hiddenBarWidget = "hidden-bar"
+systemStatsWidget = "system-stats"
+
+[island]
+root = "focus-ribbon"
+displays = "all"
+width = 620
+height = 200
+fullscreen = "hide"
+
+[workspaceBar]
+position = "bottom"
+height = 24
+fullWidth = false
+hideEmptyWorkspaces = false
+reserveLayoutSpace = true
+transparentBackground = false
+backgroundOpacity = 0
+showItemBackgrounds = false
+showAccentHighlights = true
+solidBlackBackground = false
+showLabels = true
+xOffset = 0
+yOffset = 0
+systemStatsButton = false

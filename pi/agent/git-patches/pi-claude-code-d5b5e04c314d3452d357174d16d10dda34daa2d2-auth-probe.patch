@@ -1,0 +1,75 @@
+diff --git a/src/provider.ts b/src/provider.ts
+index e15020d..8db12ec 100644
+--- a/src/provider.ts
++++ b/src/provider.ts
+@@ -31,8 +31,61 @@ export function claudeCodeEnv(): Record<string, string | undefined> {
+   return { ...process.env, ...lastProviderEnv };
+ }
+ 
++const DISPLAY_STATUS_TTL_MS = 3_000;
++
++type StatusProbe = {
++  cwd: string;
++  env: ReturnType<typeof claudeCodeEnv>;
++  controller: AbortController;
++  result: ReturnType<typeof getClaudeStatus>;
++  waiters: number;
++  expires?: number;
++};
++
+ export function createClaudeCodeProvider() {
+   let discoveredIds: Set<string> | undefined;
++  let latestProbe: StatusProbe | undefined;
++  const sameEnv = (left: StatusProbe["env"], right: StatusProbe["env"]) =>
++    Object.keys(left).length === Object.keys(right).length &&
++    Object.entries(right).every(([key, value]) => Object.hasOwn(left, key) && left[key] === value);
++
++  // Pi can check availability repeatedly while building the model list.
++  // Share the real CLI check and briefly reuse success for this same context.
++  // Request auth, OAuth refresh, and explicit status commands use their existing paths.
++  async function checkAvailability(env: StatusProbe["env"], signal: AbortSignal) {
++    signal.throwIfAborted();
++    const cwd = process.cwd();
++    let probe = latestProbe;
++    if (!probe || probe.cwd !== cwd || probe.controller.signal.aborted ||
++        (probe.expires !== undefined && probe.expires <= performance.now()) ||
++        !sameEnv(probe.env, env)) {
++      const controller = new AbortController();
++      const fresh: StatusProbe = {
++        cwd, env, controller, waiters: 0, result: getClaudeStatus(env, controller.signal),
++      };
++      latestProbe = probe = fresh;
++      void fresh.result.then((status) => {
++        if (status.loggedIn && !controller.signal.aborted) fresh.expires = performance.now() + DISPLAY_STATUS_TTL_MS;
++        else if (latestProbe === fresh) latestProbe = undefined;
++      }, () => { if (latestProbe === fresh) latestProbe = undefined; });
++    }
++    const current = probe;
++    current.waiters++;
++    let abort!: () => void;
++    try {
++      return await new Promise<Awaited<StatusProbe["result"]>>((resolve, reject) => {
++        abort = () => reject(signal.reason);
++        signal.addEventListener("abort", abort, { once: true });
++        current.result.then(resolve, reject);
++      });
++    } finally {
++      signal.removeEventListener("abort", abort);
++      if (--current.waiters === 0 && signal.aborted && current.expires === undefined) {
++        if (latestProbe === current) latestProbe = undefined;
++        current.controller.abort(signal.reason);
++      }
++    }
++  }
+   const externalOAuthMarker = () => ({
+     type: "oauth" as const,
+     access: "claude-code-external",
+@@ -52,7 +105,7 @@ export function createClaudeCodeProvider() {
+         async check({ ctx, signal }) {
+           const providerEnv = await providerEnvironment(ctx);
+           lastProviderEnv = providerEnv;
+-          const status = await getClaudeStatus(claudeCodeEnv(), signal);
++          const status = await checkAvailability({ ...process.env, ...providerEnv }, signal);
+           // Only report the provider as configured when Claude Code is
+           // installed and logged in, so Pi hides its models otherwise.
+           if (!status.available || !status.loggedIn) return undefined;

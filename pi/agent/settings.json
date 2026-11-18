@@ -2,8 +2,6 @@
   "enabledModels": [
     "openai-codex/gpt-6-luna",
     "llama.cpp/Qwen3.8-27B",
-    "openai-codex/gpt-6-astra",
-    "openai-codex/gpt-6.1-sol",
     "openai-codex/gpt-6.1-terra",
     "opencode-go/muse-spark-1.3-contributor",
     "opencode-go/deepseek-v4.1-flash",
@@ -15,7 +13,8 @@
     "mistral/zai-glm-5-3-flash",
     "mistral/mistral-large-4-0-8",
     "mistral/mistral-medium-2604",
-    "antigravity/gemini-4-argon"
+    "openai-codex/gpt-6.2-sol",
+    "openai-codex/gpt-6.2-astra"
   ],
   "lastChangelogVersion": "0.0.0",
   "theme": "high-contrast",

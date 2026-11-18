@@ -30,6 +30,14 @@
         "list_sessions": "codemode",
         "execute_code": "codemode"
       }
+    },
+    "superlogical": {
+      "url": "https://www.superlogical.com/rex/community-mcp"
+    },
+    "paper": {
+      "type": "stdio",
+      "command": "/Users/juanbenjumea/.paper/bin/paper",
+      "args": ["mcp"]
     }
   }
 }

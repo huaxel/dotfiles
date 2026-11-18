@@ -61,10 +61,33 @@ for section in ("workspaces", "appRules"):
         if "id" in entry:
             UUID(entry["id"])  # Invalid UUIDs reject the entire config.
 ids = [entry["id"] for entry in omniwm["hotkeys"]]
+require(omniwm["schemaVersion"] == 5, "OmniWM config must use schema version 5")
 require(len(ids) == len(set(ids)), "OmniWM contains duplicate action IDs")
+require(
+    {
+        "resizeContainerPrimarySpan.shrink", "resizeContainerPrimarySpan.grow",
+        "resizeWindowPrimarySpan.shrink", "resizeWindowPrimarySpan.grow",
+        "resizeWindowSecondarySpan.shrink", "resizeWindowSecondarySpan.grow",
+    }.issubset(ids),
+    "OmniWM v0.8 resize action IDs are missing",
+)
+require(
+    not any(action.startswith(("setContainerPrimarySpan.", "setWindowPrimarySpan.", "setWindowSecondarySpan.")) for action in ids),
+    "OmniWM config still contains v0.7 resize action IDs",
+)
 bindings = [entry["binding"] for entry in omniwm["hotkeys"] if "binding" in entry]
 require(len(bindings) == len(set(bindings)), "OmniWM contains duplicate bindings")
-require(omniwm["workspaceBar"]["position"] == "bottom", "OmniWM bar must be at bottom")
+require(omniwm["workspaceBar"]["position"] == "bottom", "OmniWM bar must sit at the bottom")
 require(omniwm["workspaceBar"]["reserveLayoutSpace"] is True, "OmniWM bar must reserve space")
+require(omniwm["workspaceBar"]["fullWidth"] is False, "OmniWM bar must not span the full display")
+require(omniwm["workspaceBar"]["hideEmptyWorkspaces"] is False, "OmniWM bar must show all workspaces")
+shell_style = tomllib.loads(read("config-macos/omniwm/shell-default.toml"))
+require(shell_style["leading"] == ["workspaces"], "OmniShell bar must show only workspaces")
+require(shell_style["center"] == [] and shell_style["trailing"] == [], "OmniShell must have no other bar widgets")
+require(shell_style["workspaceBar"]["position"] == "bottom", "OmniShell bar must sit at the bottom")
+require(shell_style["workspaceBar"]["fullWidth"] is False, "OmniShell bar must not span the full display")
+require(shell_style["workspaceBar"]["hideEmptyWorkspaces"] is False, "OmniShell must show all workspaces")
+require(shell_style["hiddenBarWidget"] == "hidden-bar", "OmniShell must retain Hidden Bar integration")
+require("io.tailscale.ipn.macsys" not in omniwm["hiddenBar"]["hiddenBundleIDs"], "Tailscale must remain visible in the native menu bar")
 
 print("macOS static checks passed")

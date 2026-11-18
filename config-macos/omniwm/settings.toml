@@ -1,11 +1,9 @@
 # OmniWM settings — declarative muscle-memory config (sway/aerospace parity).
 #
-# Schema: version 4, matching nixpkgs `omniwm` 0.7.6 (locked flake input).
-# Do NOT add v5-only keys (island, windowSwitcher, keyboardModes,
-# general.workspaceAutoBackAndForth) until nixpkgs moves past 0.7.6.
+# Schema: version 5, matching OmniWM 0.8.0.
+# Keep hotkey action IDs aligned with the v0.8.0 catalog.
 #
-# Hotkey IDs were verified against the 0.7.6 binary + upstream v0.7.6 tag
-# sources (ActionCatalog+*.swift).
+# Hotkey IDs were checked against the OmniWM 0.8.0 action catalog.
 # Use the catalog IDs verbatim (for example, toggleOverview).
 # Every action must appear exactly once; actions without a binding are unassigned.
 # An unknown/duplicate id rejects the WHOLE file (OmniWM keeps running with
@@ -16,7 +14,7 @@
 # Gaps mirror niri: 10 everywhere, top 40 for macOS menu-bar clearance.
 # Border mirrors niri focus ring: 2pt #76cce0, dark mode default.
 
-schemaVersion = 4
+schemaVersion = 5
 
 # Required root-level arrays; empty means no per-monitor overrides.
 monitorBarOverrides = []
@@ -123,13 +121,14 @@ showLabels = true
 showFloatingWindows = false
 windowLevel = "popup"
 position = "bottom"
+fullWidth = false
 notchMode = "moveBelowMenuBar"
 notchActiveZoneWidth = 180.0
 systemStatsButton = false
 deduplicateAppIcons = false
 hideEmptyWorkspaces = false
 excludedBundleIDs = []
-iconOverrides = {}
+iconOverrides = { "com.superlogical.rex" = "bundle-resource:App Icon" }
 reserveLayoutSpace = true
 autoHide = false
 autoHideRevealDelayMilliseconds = 0.0
@@ -174,6 +173,7 @@ showIcon = true
 
 [hiddenBar]
 enabled = true
+# Surface native status items through OmniShell's Hidden Bar panel.
 hiddenBundleIDs = []
 rehideIntervalSeconds = 5.0
 
@@ -343,6 +343,9 @@ bundleId = "md.obsidian"
 assignToWorkspace = "2"
 [[appRules]]
 bundleId = "net.kovidgoyal.kitty"
+layout = "tile"
+[[appRules]]
+bundleId = "com.superlogical.rex"
 layout = "tile"
 # Terminal TUIs share Ghostty's bundle id — match on window title instead
 # (niri routes lazygit/himalaya to 4, ncmpcpp to 5).
@@ -894,25 +897,25 @@ id = "resetWindowSecondarySpan"
 binding = "Control+Option+R"
 
 [[hotkeys]]
-id = "setContainerPrimarySpan.decrease10Percent"
+id = "resizeContainerPrimarySpan.shrink"
 binding = "Option+Minus"
 
 [[hotkeys]]
-id = "setContainerPrimarySpan.increase10Percent"
+id = "resizeContainerPrimarySpan.grow"
 binding = "Option+Equal"
 
 [[hotkeys]]
-id = "setWindowPrimarySpan.decrease10Percent"
+id = "resizeWindowPrimarySpan.shrink"
 
 [[hotkeys]]
-id = "setWindowPrimarySpan.increase10Percent"
+id = "resizeWindowPrimarySpan.grow"
 
 [[hotkeys]]
-id = "setWindowSecondarySpan.decrease10Percent"
+id = "resizeWindowSecondarySpan.shrink"
 binding = "Option+Shift+Minus"
 
 [[hotkeys]]
-id = "setWindowSecondarySpan.increase10Percent"
+id = "resizeWindowSecondarySpan.grow"
 binding = "Option+Shift+Equal"
 
 [[hotkeys]]
