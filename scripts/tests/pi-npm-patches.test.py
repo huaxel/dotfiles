@@ -32,6 +32,11 @@ class PatchTests(unittest.TestCase):
         self.patches = self.root/'patches'
         self.patches.mkdir()
         self.package(helper.TIDY, '0.5.4', peerDependencies={'typebox':'*'}, dependencies={'semver':'^7.8.5'})
+        usage = self.package(helper.USAGE_FETCHER, '0.3.5')
+        self.gemini = usage/'dist/lib/gemini/gemini.js'
+        self.gemini.parent.mkdir(parents=True)
+        self.gemini.write_text('export {};\n')
+        self.gemini.with_suffix('.d.ts').write_text('export {};\n')
         self.package('fixture', '1.0.0')
         self.target = self.root/'node_modules/fixture/index.js'
         self.target.write_text('old\n')
@@ -61,6 +66,18 @@ class PatchTests(unittest.TestCase):
         helper.apply(self.root, self.patches)
         helper.apply(self.root, self.patches, check=True)
         self.assertEqual(after, self.snapshot())
+
+    def test_missing_gemini_module_fails_before_any_source_write(self):
+        original = self.gemini.read_bytes()
+        self.gemini.unlink()
+        before = self.snapshot()
+        for check in (True, False):
+            with self.assertRaisesRegex(ValueError, r'incomplete Pi install .*dist/lib/gemini/gemini\.js'):
+                helper.apply(self.root, self.patches, check=check)
+            self.assertEqual(before, self.snapshot())
+        self.gemini.write_bytes(original)
+        helper.apply(self.root, self.patches)
+        helper.apply(self.root, self.patches, check=True)
 
     def test_all_versions_preflight_before_any_source_write(self):
         self.package('later', '2.0.0')
@@ -177,7 +194,8 @@ class PatchTests(unittest.TestCase):
     def test_reviewed_patch_inventory(self):
         patches = sorted((SOURCE/'patches').glob('*.patch'))
         self.assertEqual([helper.patch_identity(p) for p in patches], [
-            ('@juanbenjumea/pi-ask-herdr', '0.2.4'), ('pi-memory', '0.4.2'),
+            ('@juanbenjumea/pi-agy', '0.7.13'),
+            ('pi-memory', '0.4.2'),
         ])
         for p in patches:
             helper.patch_paths(p.read_text(), helper.patch_identity(p)[0])
@@ -195,14 +213,15 @@ class PublishedInstallTests(unittest.TestCase):
                 shutil.copy2(SOURCE/name, root/name)
             shutil.copytree(SOURCE/'patches', root/'patches')
             package = {'private':True, 'dependencies':{'pi-memory':'0.4.2',helper.TIDY:'0.5.4',
-                       '@juanbenjumea/pi-ask-herdr':'0.2.4'},
+                       '@juanbenjumea/pi-agy':'0.7.13',
+                       helper.USAGE_FETCHER:'0.3.5'},
                        'scripts':{'postinstall':"node -e \"require('fs').writeFileSync('HOOK_RAN','bad')\""}}
             (root/'package.json').write_text(json.dumps(package))
             env = dict(os.environ, NPM_CONFIG_IGNORE_SCRIPTS='false')
             prepare = subprocess.run(['npm','--prefix',str(root),'--global=false','install','--package-lock-only','--ignore-scripts','--legacy-peer-deps','--no-audit'], env=env, capture_output=True, text=True, timeout=90)
             self.assertEqual(prepare.returncode, 0, prepare.stderr)
             lock = json.loads((root/'package-lock.json').read_text())
-            for name in ('pi-memory', helper.TIDY, '@juanbenjumea/pi-ask-herdr'):
+            for name in ('pi-memory', helper.TIDY, '@juanbenjumea/pi-agy'):
                 self.assertIn(f'node_modules/{name}', lock['packages'],
                               'lockfile must use install-relative package keys')
             result = subprocess.run(['bash',str(root/'install-and-patch.sh'),'ci'], env=env, capture_output=True, text=True, timeout=90)
@@ -212,10 +231,11 @@ class PublishedInstallTests(unittest.TestCase):
                 fresh = (root/'node_modules/pi-memory'/name).read_bytes()
                 live = (SOURCE/'node_modules/pi-memory'/name).read_bytes()
                 self.assertEqual(hashlib.sha256(fresh).digest(), hashlib.sha256(live).digest(), name)
-            question_ui = 'node_modules/@juanbenjumea/pi-ask-herdr/src/ui.ts'
-            self.assertEqual((root/question_ui).read_bytes(), (SOURCE/question_ui).read_bytes())
+            agy_index = root/'node_modules/@juanbenjumea/pi-agy/extensions/index.ts'
+            agy_source = agy_index.read_text()
+            self.assertIn('Keep provider discovery off Pi\'s session-start critical path', agy_source)
             before = {p:p.read_bytes() for p in (root/'node_modules/pi-memory').glob('*') if p.is_file()}
-            before[root/question_ui] = (root/question_ui).read_bytes()
+            before[agy_index] = agy_index.read_bytes()
             for mode in ('patch','check'):
                 result = subprocess.run(['bash',str(root/'install-and-patch.sh'),mode], capture_output=True, text=True, timeout=20)
                 self.assertEqual(result.returncode, 0, result.stdout+result.stderr)

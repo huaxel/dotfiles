@@ -58,7 +58,7 @@ else
     # A self-installed copy earlier on PATH (e.g. ~/.local/bin from a tool's own
     # updater) shadows the profile binary and pins an old version silently. Only
     # list CLIs whose version must follow the flake.
-    nix_managed_bins=(herdr)
+    nix_managed_bins=()
     for bin in "${nix_managed_bins[@]}"; do
         resolved=$(command -v "$bin" 2>/dev/null) || continue
         resolved=$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' \

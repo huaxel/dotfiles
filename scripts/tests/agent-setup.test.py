@@ -139,9 +139,7 @@ print(json.dumps({{"agent_dir":os.getenv("PI_CODING_AGENT_DIR"),"session_dir":os
         self.tools.mkdir()
         self.tool("uname", '#!/bin/sh\nprintf "%s\\n" "$TEST_OS"\n')
         self.tool("flock", "#!/bin/sh\nexit 0\n")
-        self.tool("herdr", "#!/bin/sh\nexit 0\n")
         self.env = {"HOME":str(self.home), "PATH":f"{self.tools}:/usr/bin:/bin", "TEST_OS":"Darwin"}
-        self.helper = self.home / "projects/pi-extensions/pi-subagent/index.ts"
 
     def tool(self, name, text):
         path = self.tools / name
@@ -153,11 +151,6 @@ print(json.dumps({{"agent_dir":os.getenv("PI_CODING_AGENT_DIR"),"session_dir":os
                                 text=True, capture_output=True, timeout=5)
         self.assertEqual(result.returncode, 0, result.stderr)
         return json.loads(result.stdout)
-
-    def enable_linux_fixture(self):
-        self.env.update(TEST_OS="Linux", HERDR_ENV="1")
-        self.helper.parent.mkdir(parents=True)
-        self.helper.write_text("// fixture, never imported\n")
 
     def test_env_cleared_uses_canonical_profile(self):
         result = self.run_launcher()
@@ -185,40 +178,6 @@ print(json.dumps({{"agent_dir":os.getenv("PI_CODING_AGENT_DIR"),"session_dir":os
         args = ["--", "two words", "$(echo not-executed)", "-ne"]
         self.assertEqual(self.run_launcher(args)["args"], args)
 
-    def test_mac_never_loads_linux_helper(self):
-        self.enable_linux_fixture()
-        self.env["TEST_OS"] = "Darwin"
-        self.assertEqual(self.run_launcher(["--print", "Task"])["args"], ["--print", "Task"])
-
-    def test_linux_helper_active_only_with_capabilities(self):
-        self.enable_linux_fixture()
-        self.assertEqual(self.run_launcher(["--print", "Task"])["args"], ["--extension",str(self.helper),"--print","Task"])
-
-    def test_missing_helper_is_optional(self):
-        self.env.update(TEST_OS="Linux", HERDR_ENV="1")
-        self.assertEqual(self.run_launcher(["Task"])["args"], ["Task"])
-
-    def test_outside_herdr_does_not_load_helper(self):
-        self.enable_linux_fixture()
-        del self.env["HERDR_ENV"]
-        self.assertEqual(self.run_launcher(["Task"])["args"], ["Task"])
-
-    def test_explicit_profile_does_not_receive_default_helper(self):
-        self.enable_linux_fixture()
-        self.env["PI_CODING_AGENT_DIR"] = "/chosen/profile"
-        self.assertEqual(self.run_launcher(["Task"])["args"], ["Task"])
-
-    def test_opt_out_and_non_session_commands(self):
-        self.enable_linux_fixture()
-        for args in [["-ne","Task"],["--no-extensions","Task"],["--help"],["--version"],["--list-models"],["update"],["install","npm:example"],["auth","check"]]:
-            with self.subTest(args=args):
-                self.assertEqual(self.run_launcher(args)["args"], args)
-
-    def test_flags_after_separator_are_prompt_data(self):
-        self.enable_linux_fixture()
-        result = self.run_launcher(["--", "--no-extensions"])
-        self.assertEqual(result["args"], ["--extension",str(self.helper),"--","--no-extensions"])
-
     def test_installer_node_path_restored(self):
         node = self.home / ".local/share/pi-node/current/bin/node"
         node.parent.mkdir(parents=True)
@@ -233,16 +192,6 @@ print(json.dumps({{"agent_dir":os.getenv("PI_CODING_AGENT_DIR"),"session_dir":os
         node.write_text("#!/bin/sh\nexit 0\n")
         node.chmod(0o755)
         self.assertTrue(self.run_launcher()["path"].startswith(str(node.parent) + ":"))
-
-    def test_missing_host_capabilities_disable_helper(self):
-        self.enable_linux_fixture()
-        self.env["PATH"] = str(self.tools)
-        for name in ["herdr", "flock"]:
-            path = self.tools / name
-            path.chmod(0o644)
-            with self.subTest(missing=name):
-                self.assertEqual(self.run_launcher(["Task"])["args"], ["Task"])
-            path.chmod(0o755)
 
     def test_invalid_release_identifier_rejected(self):
         (self.agent / "install/current-version").write_text("../../outside\n")

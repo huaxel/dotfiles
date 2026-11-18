@@ -16,7 +16,7 @@ juan@liedelpi    aarch64-linux
 
 The pilot manages a shared package baseline, the Brewfile, session variables,
 the two framearch user systemd services, Nushell, Starship, Git, the global Git ignore
-file, Neovim, Ghostty, mise, Herdr, the static CI tree, the tracked Zed
+file, Neovim, Ghostty, mise, the static CI tree, the tracked Zed
 keymap, eza, the shared icon helper, the web-search wrapper, the static llama
 project files, the Wayland desktop session configs (sway, waybar, wofi, walker,
 llamaman, xkb), and the three encrypted secret
@@ -241,29 +241,3 @@ external `/opt/cachy-llama` fallback.
 4. Use `scripts/deploy-windows.ps1` for native Windows application paths.
 5. Evaluate NixOS separately for the physical host after the custom AI stack is
    reproducible or deliberately kept external.
-
-## Herdr on Nix hosts
-
-Herdr is now natively managed by Home Manager in `home/common.nix`. The locked
-upstream `herdrdev/herdr` flake input supplies Herdr (0.9.5 at the time of
-writing), satisfying the plugin actions' minimum version of 0.8.0. Herdr owns
-`~/.config/herdr/config.toml` itself: the native module rewrites that file in
-place, so it cannot be a read-only Nix store symlink and the dotfiles keep no copy
-of it.
-
-The flake owns the version, so Herdr must only ever run from the profile. A
-self-installed copy earlier on `PATH` wins over `~/.nix-profile/bin` and silently
-pins an old release while Home Manager bumps the profile: on `framearch`, a
-`~/.local/bin/herdr` (0.9.0, from `herdr update` before the Nix migration) hid the
-0.9.5 profile binary for weeks. Run `just doctor` after any Herdr install; it warns
-when `herdr` does not resolve into the Nix store. Bump the flake input with
-`nix flake update herdr` and switch profiles instead of using `herdr update`.
-
-The three plugin registrations (`annotate`, `herdr-file-viewer`, and
-`jhochenbaum.hunkdiff`) are installed by the idempotent activation hook that reuses
-`scripts/setup-herdr-plugins.sh`. The hook pins each plugin to an immutable Git
-revision and reports existing revision drift instead of silently accepting a
-different version. `bun` (the annotate plugin's runtime) remains in the Home
-Manager package baseline. Existing Homebrew Herdr installations can be removed
-after a successful activation; Homebrew remains responsible for GUI
-applications and macOS-integrated tools.

@@ -9,11 +9,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    herdr = {
-      url = "github:herdrdev/herdr";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     sops-nix = {
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -37,32 +32,13 @@
     noctalia.url = "github:noctalia-dev/noctalia";
   };
 
-  outputs = { nixpkgs, home-manager, herdr, sops-nix, cachy-llama, nixgl, noctalia, ... }:
+  outputs = { nixpkgs, home-manager, sops-nix, cachy-llama, nixgl, noctalia, ... }:
     let
       cachyLlamaVulkan = nixpkgs.legacyPackages.x86_64-linux.callPackage
         ./nixos/cachy-llama-package.nix {
           cachySource = cachy-llama.outPath;
           useVulkan = true;
         };
-
-      # Upstream static release binary for aarch64-linux. Building herdr
-      # from source fails there: the zig-built compiler_rt objects from
-      # ghostty-vt are rejected by binutils ld.bfd ("overlapping FDEs" /
-      # undefined symbols). Same approach as the pinned atuin release in
-      # home/common.nix. The binary is the v0.9.5 tag (hash verified by
-      # `nix store prefetch-file`, version checked under qemu-aarch64);
-      # other systems keep building the flake input (master).
-      herdrAarch64 = nixpkgs.legacyPackages.aarch64-linux.stdenv.mkDerivation {
-        pname = "herdr";
-        version = "0.9.5";
-        src = nixpkgs.legacyPackages.aarch64-linux.fetchurl {
-          url = "https://github.com/herdrdev/herdr/releases/download/v0.9.5/herdr-linux-aarch64";
-          hash = "sha256-F9dTby2lCFlSNoDvJ53/ysjkojX05G/o2mwuxEFBiXw=";
-        };
-        dontUnpack = true;
-        installPhase = ''install -Dm755 $src $out/bin/herdr'';
-        meta.mainProgram = "herdr";
-      };
 
       mkAnsiblePlaybookApp = system:
         let ansible = nixpkgs.legacyPackages.${system}.ansible;
@@ -79,8 +55,6 @@
             config.allowUnfree = true;
           };
           extraSpecialArgs = {
-            herdrPackage = if system == "aarch64-linux" then herdrAarch64
-                          else herdr.packages.${system}.default;
             # Only framearch (x86_64-linux) uses it; other hosts get null.
             # Lazy: never evaluated unless a host module references it.
             noctaliaPackage =

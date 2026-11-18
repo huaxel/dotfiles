@@ -1001,41 +1001,13 @@ ${task}
 `;
   }
 
-  /**
-   * Open a worksheet file in a new herdr split running nvim.
-   * Fire-and-forget: herdr pane run returns immediately.
-   * Falls back to printing instructions if herdr/nvim is unavailable.
-   */
+  /** Show the worksheet path so the user can open it in their preferred editor. */
   async function openInSplit(
     wsPath: string,
     ctx: ExtensionCommandContext,
   ): Promise<void> {
     const rel = path.relative(process.cwd(), wsPath);
-    try {
-      const { execFileSync } = await import("node:child_process");
-      const out = execFileSync(
-        "herdr",
-        ["pane", "split", "--direction", "right", "--cwd", process.cwd(), "--focus"],
-        { timeout: 5000, encoding: "utf-8" },
-      );
-      const parsed = JSON.parse(out) as {
-        result?: { pane?: { pane_id?: string } };
-      };
-      const newPaneId = parsed.result?.pane?.pane_id ?? "";
-      if (newPaneId) {
-        execFileSync("herdr", ["pane", "run", newPaneId, "nvim", wsPath], {
-          timeout: 5000,
-        });
-        ctx.ui.notify(`📄 ${path.basename(wsPath)} opened in split`, "info");
-      } else {
-        ctx.ui.notify(`📄 ${rel} (open with: nvim "${rel}")`, "info");
-      }
-    } catch {
-      ctx.ui.notify(
-        `📄 ${rel}\n  Split: herdr pane split --direction right --focus\n  Then:  nvim "${rel}"`,
-        "info",
-      );
-    }
+    ctx.ui.notify(`📄 ${rel}\n  Open with: nvim "${rel}"`, "info");
   }
 
   // ── commands ────────────────────────────────────────────────────────────

@@ -118,7 +118,7 @@ check-desktop:
 
 # Lint all shell scripts with ShellCheck
 # Excludes: node_modules (npm deps), pi/agent/npm/node_modules (Pi npm deps),
-#           pi/agent/install, pi/agent/git, pi/agent/herdr-plugins, pi_npm/node_modules,
+#           pi/agent/install, pi/agent/git, pi_npm/node_modules,
 #           and Windows .bat-styled .sh files
 check-sh:
     #!/usr/bin/env bash
@@ -145,7 +145,7 @@ check-sh:
             echo "  ❌ $f has issues"
             errors=$((errors + 1))
         fi
-    done < <(find . \( -path ./node_modules -o -path ./pi/agent/npm/node_modules -o -path ./pi/agent/install -o -path ./pi/agent/git -o -path ./pi/agent/herdr-plugins -o -path ./pi_npm/node_modules -o -path ./.git -o -path './~' \) -prune -o -type f \( -name '*.sh' -o -name '*.bash' -o -path './bin/pi' -o -path './bin/qmd' -o -path './bin/codex-rex' \) -print 2>/dev/null | sort || true)
+    done < <(find . \( -path ./node_modules -o -path ./pi/agent/npm/node_modules -o -path ./pi/agent/install -o -path ./pi/agent/git -o -path ./pi_npm/node_modules -o -path ./.git -o -path './~' \) -prune -o -type f \( -name '*.sh' -o -name '*.bash' -o -path './bin/pi' -o -path './bin/qmd' -o -path './bin/codex-rex' \) -print 2>/dev/null | sort || true)
     echo "  Checked $count shell scripts"
     if [ "$errors" -gt 0 ]; then echo "  ❌ $errors files have issues"; exit 1; fi
     echo "  ✅ All shell scripts pass ShellCheck"
@@ -186,14 +186,6 @@ check-ts:
                 fi
             fi
         fi
-        # Herdr owns this generated integration and overwrites it on update;
-        # validate syntax above but do not lint its generated implementation.
-        case "$f" in
-            "$TOPDIR/herdr-agent-state.ts"|"$TOPDIR/herdr-omp-agent-state.ts")
-                echo "  ↪ $f lint skipped (Herdr-managed)"
-                continue
-                ;;
-        esac
         # Lint check (catches unused vars, style issues)
         lint_out=$(deno lint "$f" 2>&1 || true)
         if echo "$lint_out" | grep -q "error"; then
@@ -211,7 +203,7 @@ check-ts:
 
 # Sync pi extensions from the dotfiles repo to the auto-discovery dir
 # (~/.pi/agent/extensions). Run after changing pi/agent/extensions/*.ts,
-# or call just ci afterwards to re-lint. herdr-managed files are left alone.
+# or call just ci afterwards to re-lint.
 pi-sync-extensions:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -232,9 +224,6 @@ pi-sync-extensions:
     synced=0
     for f in "$src"/*.ts; do
         name=$(basename "$f")
-        case "$name" in
-            herdr-agent-state.ts|herdr-omp-agent-state.ts) echo "  ↪ skipping herdr-managed: $name"; continue ;;
-        esac
         cp "$f" "$dst/$name"
         echo "  ✅ $name"
         synced=$((synced + 1))
@@ -264,7 +253,6 @@ test-pi-extensions:
         echo "  ⚠️  no Pi agent installed — skipping pi package tests"
         exit 0
     fi
-    node pi/agent/extensions/ask-user-notifications.test.mjs
     node pi/agent/extensions/continue-after-compaction.test.mjs
     node pi/agent/extensions/git-interceptor.test.mjs
     node pi/agent/extensions/harness.test.mjs

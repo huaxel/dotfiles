@@ -414,14 +414,7 @@ if [ -f "$SCRIPT_DIR/scripts/install-cli-extras.sh" ]; then
     bash "$SCRIPT_DIR/scripts/install-cli-extras.sh" || warn "Some CLI extras failed — run manually: scripts/install-cli-extras.sh"
 fi
 
-# Install the Herdr plugins that ~/.config/herdr/config.toml binds keys to.
-# Plugin registrations are Herdr-managed per-user state (not in dotfiles), so
-# keybindings stay dead until this runs. Idempotent; skips when herdr is absent.
-if [ -x "$SCRIPT_DIR/scripts/setup-herdr-plugins.sh" ]; then
-    info "Syncing Herdr plugins..."
-    "$SCRIPT_DIR/scripts/setup-herdr-plugins.sh" || \
-        warn "Herdr plugin sync failed — run manually: scripts/setup-herdr-plugins.sh"
-fi
+
 
 # ─────────────────────────────────────────────────────────────────
 # Done

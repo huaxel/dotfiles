@@ -1,4 +1,4 @@
-{ config, lib, pkgs, herdrPackage ? pkgs.herdr, ... }:
+{ config, lib, pkgs, ... }:
 
 let
   # The Nixpkgs Atuin package currently lags the database migration already
@@ -187,21 +187,6 @@ in
       [[ -f ~/.bashrc.local ]] && source ~/.bashrc.local
     '';
   };
-
-  # Keep Herdr on its upstream flake input so it can be updated independently
-  # from the rest of nixpkgs. The native module also reloads its settings.
-  # Herdr owns ~/.config/herdr/config.toml itself: the native module rewrites it
-  # in place, so it cannot be a read-only Nix store symlink.
-  programs.herdr = {
-    enable = true;
-    package = herdrPackage;
-  };
-
-  # Plugin registrations are per-user state, so install them after the Nix
-  # profile is available. The script is idempotent and works on fresh hosts.
-  home.activation.herdrPlugins = lib.hm.dag.entryAfter [ "installPackages" ] ''
-    PATH="${herdrPackage}/bin:$PATH" ${../scripts/setup-herdr-plugins.sh}
-  '';
 
   # Shared Unix configuration paths.
   home.file.".config/Brewfile".source = ../config/Brewfile;

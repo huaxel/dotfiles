@@ -19,7 +19,7 @@ and follows the naming convention `ws-<epoch>-<slug>.md`.
    **`/worksheet open <name>`**, or **`/worksheet attach <path>`**:
 
    - `/worksheet start fix-auth` — creates `.worksheets/ws-<epoch>-fix-auth.md`,
-     selects it for this session, and opens it in a herdr split.
+     selects it for this session, and presents the worksheet path.
    - `/worksheet start` with no slug — prompts you for a kebab-case slug.
    - `/worksheet attach path/to/document.md` — selects and watches an existing
      Markdown file for this session.

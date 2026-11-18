@@ -162,6 +162,4 @@ most-complete and least-complete rules both total 825,847. Duplicates are true c
   Some high-frequency signatures are tool semantics rather than defects.
 - **`bash` signatures are shape-normalized**, so `cd P && just ci` collapses across
   repositories. Use the `top cwd` column to see where a signature concentrates.
-- Subagent transcripts under `subagents-herdr/` are not part of `sessions/` and are not
-  extracted.
 - **Records grow with the corpus.** 10,825 session files produce ~55 MB of records today.

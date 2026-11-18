@@ -31,9 +31,7 @@
   },
   "packages": [
     "npm:pi-web-access",
-    "npm:@ogulcancelik/pi-herdr",
     "npm:@juanbenjumea/pi-dynamic-footer",
-    "npm:@juanbenjumea/pi-ask-herdr",
     "npm:@juanbenjumea/pi-agy",
     "npm:@ogulcancelik/pi-codex-compaction",
     "npm:pi-memory",

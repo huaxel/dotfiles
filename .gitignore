@@ -51,7 +51,6 @@ local/
 # Local tool runtime artifacts
 .pi/
 .pi-subagents/
-.herdr-todo/
 .dotter/
 
 # Machine-specific skill integrations and trust decisions
@@ -69,7 +68,6 @@ pi/agent/mcp-auth.json
 pi/agent/pi-goal.json
 pi/agent/agy-sessions.json
 pi/agent/fff/
-pi/agent/pi-shepherdr.json
 pi/agent/you-should-know/
 pi/agent/pi-agy-bridge/*
 

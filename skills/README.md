@@ -14,7 +14,6 @@
 - **be-ambitious:** reconsider the goal; discover what this could become.
 - **deepen-task:** improve evidence, methods, and verification within the current goal.
 - **agent-defaults:** improve architecture and checks so agents naturally do the right thing.
-- **Herdr:** terminal and native-agent control; helper/model selection belongs to the active harness’s delegation workflow.
 - **find-skills:** explicitly discover installable capabilities, not a prerequisite for ordinary help.
 - **systematic-debugging:** reproduce uncertain failures, test causal hypotheses, and verify fixes without a mandatory planning framework.
 - **property-based-testing:** find meaningful invariants, design generators, and classify minimized counterexamples. Complements `tdd`; it does not require a new library for every task.

@@ -208,7 +208,7 @@ def assess_session_storage():
     orphans = 0
     orphan_mb = 0
     for d in list(SESSION_DOTFILES.glob("--*--")) + list(SESSION_RUNTIME.glob("--*--")):
-        if "worktree" in d.name or "herdr-worktree" in d.name:
+        if "worktree" in d.name:
             size = file_size_mb(d)
             # Check if the session is recent (last 7 days)
             try:
