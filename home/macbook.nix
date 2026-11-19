@@ -25,17 +25,11 @@
   home.file.".config/llama.cpp/models-macbook.ini".source = ../config/llama.cpp/models-macbook.ini;
   home.file.".config/borders".source = ../config-macos/borders;
 
-  # OmniWM (macOS Niri/Hyprland-style tiler): declarative settings follow the
-  # cross-OS contract (Alt-based binds, Niri layout, gaps 10 — see
-  # docs/patterns/window-management.md).
-  # First launch still needs manual steps: separate Spaces ON, log out/in,
-  # grant Accessibility + Input Monitoring, then Start OmniWM.
-  programs.omniwm = {
-    enable = true;
-    settings = ../config-macos/omniwm/settings.toml;
-  };
-  home.file.".config/omniwm/shell/default/shell.toml".source =
-    ../config-macos/omniwm/shell-default.toml;
+  # Manage the app and LaunchAgent, not the writable config.
+  # `just nix-switch juan@macbook` links the config to the Git checkout.
+  # First launch: separate Spaces ON, log out/in, grant Accessibility and
+  # Input Monitoring, then Start OmniWM.
+  programs.omniwm.enable = true;
 
   home.sessionVariables = {
     PI_CODING_AGENT_DIR = "/Users/juanbenjumea/dotfiles/pi/agent";

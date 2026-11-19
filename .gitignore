@@ -130,3 +130,12 @@ node_modules/
 # Nushell runtime history: machine-local, may contain command text.
 config/nushell/history.sqlite3
 config/nushell/history.sqlite3-*
+
+# OmniWM writes directly to this directory. Track only the two config TOMLs.
+/config-macos/omniwm/*
+!/config-macos/omniwm/settings.toml
+!/config-macos/omniwm/shell/
+/config-macos/omniwm/shell/*
+!/config-macos/omniwm/shell/default/
+/config-macos/omniwm/shell/default/*
+!/config-macos/omniwm/shell/default/shell.toml

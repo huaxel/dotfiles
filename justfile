@@ -266,6 +266,50 @@ check-recovery:
     bash scripts/tests/recovery-scripts.test.sh
     python3 scripts/tests/codex-rex.test.py
 
+# Link writable OmniWM TOMLs to this checkout after switching Home Manager.
+link-omniwm-config:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    repo="$(pwd -P)/config-macos/omniwm"
+    live="${XDG_CONFIG_HOME:-$HOME/.config}/omniwm"
+    if [[ -L "$live" ]]; then
+        [[ "$(readlink "$live")" == "$repo" ]] && exit 0
+        echo "Refusing to replace existing directory link: $live" >&2
+        exit 1
+    fi
+    for file in settings.toml shell/default/shell.toml; do
+        if [[ ! -f "$repo/$file" || -L "$repo/$file" || ! -w "$repo/$file" ]]; then
+            echo "Expected a writable regular file: $repo/$file" >&2
+            exit 1
+        fi
+        if [[ -L "$live/$file" ]]; then
+            echo "Remove Home Manager ownership first: $live/$file is still a symlink" >&2
+            exit 1
+        fi
+        if [[ -e "$live/$file" ]] && ! cmp -s "$live/$file" "$repo/$file"; then
+            echo "Compare and reconcile $live/$file with $repo/$file before linking" >&2
+            exit 1
+        fi
+    done
+    mkdir -p "$(dirname "$live")"
+    backup=''
+    if [[ -d "$live" ]]; then
+        # Keep shell assets in place after the link; retain all original files in the backup.
+        rsync -a --ignore-existing --exclude='.git' --exclude='/.gitignore' \
+            --exclude='.DS_Store' --exclude='*.hm-backup' --exclude='/settings.toml*' \
+            --exclude='/shell/default/shell.toml' "$live/" "$repo/"
+        backup=$(mktemp -d "$live.backup.XXXXXX")
+        mv "$live" "$backup/omniwm"
+    fi
+    if ! ln -s "$repo" "$live"; then
+        if [[ -n "$backup" && ! -e "$live" && ! -L "$live" ]]; then
+            mv "$backup/omniwm" "$live"
+        fi
+        exit 1
+    fi
+    echo "Linked $live -> $repo"
+    if [[ -n "$backup" ]]; then echo "Original config backed up to $backup/omniwm"; fi
+
 # Validate macOS provisioning safety on every platform.
 check-macos:
     python3 scripts/tests/macos-config.test.py
@@ -702,7 +746,7 @@ nix-check profile="juan@framearch":
     echo "✅ Nix profile {{profile}} builds"
 
 # Validate and activate one Home Manager profile.
-# Usage: just nix-switch juan@framearch
+# Usage: just nix-switch juan@framearch (or juan@macbook)
 nix-switch profile="juan@framearch":
     #!/usr/bin/env bash
     set -euo pipefail
@@ -713,6 +757,9 @@ nix-switch profile="juan@framearch":
     nix flake check --all-systems
     # Back up pre-existing paths during the Home Manager handoff.
     nix run ".#home-manager" -- -b hm-backup switch --flake '.#{{profile}}'
+    if [[ "$1" == 'juan@macbook' && "$(uname -s)" == Darwin ]]; then
+        just --justfile "{{justfile()}}" link-omniwm-config
+    fi
     # Reclaim unreachable build/store paths after successful profile updates;
     # generations remain GC roots, so rollback profiles are preserved.
     nix-store --gc

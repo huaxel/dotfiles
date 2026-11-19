@@ -53,7 +53,8 @@ for key in (
     "monitorBarOverrides", "monitorOrientationOverrides", "monitorNiriOverrides",
     "monitorDwindleOverrides", "monitorGapOverrides",
 ):
-    require(isinstance(omniwm.get(key), list), f"OmniWM requires root-level {key}")
+    # OmniWM's GUI omits empty override arrays when saving.
+    require(isinstance(omniwm.get(key, []), list), f"OmniWM override {key} must be an array")
 for section in ("workspaces", "appRules"):
     for entry in omniwm[section]:
         if "id" in entry:
@@ -73,13 +74,16 @@ require(
     not any(action.startswith(("setContainerPrimarySpan.", "setWindowPrimarySpan.", "setWindowSecondarySpan.")) for action in ids),
     "OmniWM config still contains v0.7 resize action IDs",
 )
-bindings = [entry["binding"] for entry in omniwm["hotkeys"] if "binding" in entry]
+bindings = [
+    entry["binding"] for entry in omniwm["hotkeys"]
+    if entry.get("binding") not in (None, "Unassigned")
+]
 require(len(bindings) == len(set(bindings)), "OmniWM contains duplicate bindings")
 require(omniwm["workspaceBar"]["position"] == "bottom", "OmniWM bar must sit at the bottom")
 require(omniwm["workspaceBar"]["reserveLayoutSpace"] is True, "OmniWM bar must reserve space")
 require(omniwm["workspaceBar"]["fullWidth"] is False, "OmniWM bar must not span the full display")
 require(omniwm["workspaceBar"]["hideEmptyWorkspaces"] is False, "OmniWM bar must show all workspaces")
-shell_style = tomllib.loads(read("config-macos/omniwm/shell-default.toml"))
+shell_style = tomllib.loads(read("config-macos/omniwm/shell/default/shell.toml"))
 require(shell_style["leading"] == ["workspaces"], "OmniShell bar must show only workspaces")
 require(shell_style["center"] == [] and shell_style["trailing"] == [], "OmniShell must have no other bar widgets")
 require(shell_style["workspaceBar"]["position"] == "bottom", "OmniShell bar must sit at the bottom")
