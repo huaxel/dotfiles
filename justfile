@@ -747,7 +747,7 @@ nix-check profile="juan@framearch":
 
 # Validate and activate one Home Manager profile.
 # Usage: just nix-switch juan@framearch (or juan@macbook)
-nix-switch profile="juan@framearch":
+nix-switch profile:
     #!/usr/bin/env bash
     set -euo pipefail
     # Expose untracked Nix modules to the flake with intent-to-add entries.
