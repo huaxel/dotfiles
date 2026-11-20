@@ -17,6 +17,10 @@ Shared defaults across projects and harnesses. Follow applicable project instruc
 
 From the same working directory as Pi, use `project-todo list`, `show TODO-ID`, `add "Title" ["Notes"]`, or `done TODO-ID` to work with the same files as `/todos`. Respect `PI_TODO_PATH` when set; don't edit todo files directly. Pi's session claims remain Pi-specific.
 
+## Browser panes
+
+When a task needs to see or verify a web page on this Mac, drive a Rex browser pane with `rexweb` instead of guessing from source. Keep the block ID from `rexweb open` and pass it with `-b`; without `-b`, a command acts on whichever pane was used last. `snapshot`, `eval`, and `screenshot` work on hidden panes, but `click`, `type`, and `press` need that pane's Rex window on screen. Run `rexweb skill` for the command reference, and `rexweb doctor` when something fails.
+
 ## Engineering
 
 - Verify assumptions against code, tests, or primary sources. Label uncertainty rather than guessing.
