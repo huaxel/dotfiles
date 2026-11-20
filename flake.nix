@@ -111,24 +111,28 @@
       apps.aarch64-darwin.ansible-playbook = mkAnsiblePlaybookApp "aarch64-darwin";
 
       # Toolchain for public/fork CI. The gate validates encrypted SOPS
-      # metadata but never decrypts files or receives an age key.
-      devShells.x86_64-linux.ci = let
-        pkgs = nixpkgs.legacyPackages.x86_64-linux;
+      # metadata but never decrypts files or receives an age key. Defined for
+      # every host so "nix develop .#ci -c just ci" also works on macOS, where
+      # the ambient python3 may not ship PyYAML.
+      devShells = nixpkgs.lib.genAttrs [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" ] (system: let
+        pkgs = nixpkgs.legacyPackages.${system};
         python = pkgs.python3.withPackages (ps: [ ps.pyyaml ]);
-      in pkgs.mkShell {
-        packages = with pkgs; [
-          bun
-          deno
-          just
-          jq
-          nodejs
-          nushell
-          python
-          rsync
-          ruby
-          shellcheck
-        ];
-      };
+      in {
+        ci = pkgs.mkShell {
+          packages = with pkgs; [
+            bun
+            deno
+            just
+            jq
+            nodejs
+            nushell
+            python
+            rsync
+            ruby
+            shellcheck
+          ];
+        };
+      });
 
       homeConfigurations = {
         "juan@framearch" = mkHome {
