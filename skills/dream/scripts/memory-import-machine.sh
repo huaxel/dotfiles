@@ -12,7 +12,7 @@
 # A timestamped backup of the memory dir is taken before anything changes.
 set -euo pipefail
 
-export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
 MEM_DIR="${PI_MEMORY_DIR:-$HOME/.pi/agent/memory}"
 REMOTE="${PI_MEMORY_REMOTE:-git@github.com:huaxel/pi-memory.git}"

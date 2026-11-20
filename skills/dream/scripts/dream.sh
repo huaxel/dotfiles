@@ -18,7 +18,7 @@
 #      PI_DREAM_ORGANIZER_TIMEOUT, PI_DREAM_SLICE_LINES, PI_DREAM_NO_GIT=1
 set -uo pipefail
 
-export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
 SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MEM_DIR="${PI_MEMORY_DIR:-$HOME/.pi/agent/memory}"

@@ -16,7 +16,7 @@
 # decide. Do not add a manifest for a problem this layout does not have.
 set -euo pipefail
 
-export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 
 MEM_DIR="${PI_MEMORY_DIR:-$HOME/.pi/agent/memory}"
 SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

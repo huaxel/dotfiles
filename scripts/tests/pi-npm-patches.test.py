@@ -212,7 +212,7 @@ class PublishedInstallTests(unittest.TestCase):
                 shutil.copy2(SOURCE/name, root/name)
             shutil.copytree(SOURCE/'patches', root/'patches')
             package = {'private':True, 'dependencies':{'pi-memory':'0.4.2',helper.TIDY:'0.5.4',
-                       '@juanbenjumea/pi-agy':'0.7.13',
+                       '@juanbenjumea/pi-agy':'0.7.14',
                        helper.USAGE_FETCHER:'0.3.5'},
                        'scripts':{'postinstall':"node -e \"require('fs').writeFileSync('HOOK_RAN','bad')\""}}
             (root/'package.json').write_text(json.dumps(package))

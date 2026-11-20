@@ -30,16 +30,6 @@
     "notified": true
   },
   {
-    "timestamp": "2026-11-11T10:49:06.375Z",
-    "version": "1.5.1",
-    "kind": "uncaught_exception",
-    "message": "spawn /home/juan/.local/bin/claude ENOENT",
-    "stack": "Error: spawn /home/juan/.local/bin/claude ENOENT\n    at ChildProcess._handle.onexit (node:internal/child_process:315:19)\n    at onErrorNT (node:internal/child_process:553:16)\n    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)",
-    "sessionFile": "/home/juan/dotfiles/pi/agent/sessions/2026-11-10T09-24-32-046Z_01a1c4c5-fcac-7684-a972-30109544a717.jsonl",
-    "cwd": "/home/juan/.herdr/worktrees/project-atom/m2-gap-analysis",
-    "notified": true
-  },
-  {
     "timestamp": "2026-11-17T15:41:37.456Z",
     "version": "1.5.2",
     "kind": "uncaught_exception",
