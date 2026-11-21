@@ -33,6 +33,10 @@ in
   };
 
   config = {
+  # rustup (~/.cargo/bin) owns the Rust toolchain here, so per-project
+  # rust-toolchain pins apply; see home/nix-rust.nix.
+  dotfiles.nixRust.enable = false;
+
   # Niri: Alt-based binds (see docs/patterns/window-management.md for the
   # cross-OS contract). Validate on the host after switching:
   # `niri validate` and `niri msg outputs` (connector names / positions).

@@ -53,6 +53,8 @@ in
   );
   home.stateVersion = "24.11";
 
+  imports = [ ./nix-rust.nix ];
+
   home.packages = with pkgs; [
     age
     atuin
@@ -77,10 +79,15 @@ in
     starship
     deno
     nodejs_24
-    python313
+    # duckdb + defusedxml: Tenderpad's `just all-check` runs python3 from PATH
+    # (CI pins duckdb 1.5.5). PyPI's duckdb wheel cannot load libstdc++ under
+    # nix python, so the packages must come from nixpkgs.
+    (python313.withPackages (ps: [
+      ps.duckdb
+      ps.defusedxml
+    ]))
     go
-    rustc
-    cargo
+    # rustc/cargo: home/nix-rust.nix (off where rustup owns the toolchain).
     pnpm
     shellcheck
     taplo
