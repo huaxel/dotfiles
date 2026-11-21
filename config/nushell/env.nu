@@ -48,6 +48,7 @@ $env.PATH = (
         ($env.HOME | path join ".local/bin")
         ($env.PI_CODING_AGENT_DIR | path join "bin")
         ($env.HOME | path join ".cargo/bin")
+        ($env.HOME | path join "go/bin")
         ($env.HOME | path join ".opencode/bin")
         ($env.HOME | path join ".npm-global/bin")
         ($env.BUN_INSTALL | path join "bin")
