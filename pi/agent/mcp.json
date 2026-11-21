@@ -2,8 +2,7 @@
   "mcpServers": {
     "cloudflare-builds": {
       "url": "https://builds.mcp.cloudflare.com/mcp",
-      "exposure": "direct",
-      "enabled": false
+      "exposure": "direct"
     },
     "Executor": {
       "url": "https://mcp.executor.sh/mcp",
@@ -37,7 +36,10 @@
     "paper": {
       "type": "stdio",
       "command": "/Users/juanbenjumea/.paper/bin/paper",
-      "args": ["mcp"]
+      "args": [
+        "mcp"
+      ],
+      "enabled": false
     }
   }
 }

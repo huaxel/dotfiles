@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "models": [
+    {
+      "full": "gemini-4-neon",
+      "id": "gemini-4-neon",
+      "efforts": [
+        "low",
+        "medium",
+        "high",
+        "xhigh"
+      ]
+    },
+    {
+      "full": "gemini-4-argon",
+      "id": "gemini-4-argon",
+      "efforts": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    {
+      "full": "gemini-4-hydrogen",
+      "id": "gemini-4-hydrogen",
+      "efforts": [
+        "low",
+        "medium",
+        "high",
+        "xhigh"
+      ]
+    },
+    {
+      "full": "gemini-pro-orchestrator-neon",
+      "id": "gemini-pro-orchestrator-neon"
+    },
+    {
+      "full": "gemini-pro-orchestrator-g1-pro",
+      "id": "gemini-pro-orchestrator-g1-pro"
+    },
+    {
+      "full": "gemini-3.8-flash",
+      "id": "gemini-3-8-flash",
+      "efforts": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    {
+      "full": "claude-opus-5-5",
+      "id": "claude-opus-5-5",
+      "efforts": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    {
+      "full": "claude-sonnet-5-5",
+      "id": "claude-sonnet-5-5",
+      "efforts": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    {
+      "full": "gpt-oss-120b-medium",
+      "id": "gpt-oss-120b-medium"
+    }
+  ]
+}
