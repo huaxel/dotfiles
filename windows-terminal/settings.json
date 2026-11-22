@@ -75,7 +75,7 @@
             },
             {
                 "colorScheme": "TokyoNight",
-                "commandline": "%USERPROFILE%\\scoop\\apps\\pwsh\\current\\pwsh.exe",
+                "commandline": "pwsh.exe",
                 "font": {
                     "face": "JetBrainsMono Nerd Font"
                 },

@@ -6,6 +6,11 @@
 #   cd $HOME\dotfiles
 #   ./bootstrap.ps1
 
+param(
+    # Deploy configuration and hooks without installing or updating Scoop packages.
+    [switch]$SkipPackages
+)
+
 $ErrorActionPreference = "Stop"
 
 function Assert-NativeSuccess {
@@ -48,10 +53,39 @@ if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
 }
 
 # --- Buckets ---
+# Scoop's CLI returns objects (not text lines) in current versions, so the old
+# regex-over-output check silently reported everything as missing. Resolve names
+# once from the CLI and keep a filesystem fallback; never parse rendered tables.
+$script:ScoopRoot = if ($env:SCOOP) { $env:SCOOP } else { Join-Path $HOME 'scoop' }
+$script:ScoopBucketNames = $null
+$script:ScoopAppNames = $null
+
+function Get-ScoopBucketNames {
+    if ($null -eq $script:ScoopBucketNames) {
+        $script:ScoopBucketNames = @(scoop bucket list 2>$null 6>$null |
+            Where-Object { $_.PSObject.Properties.Name -contains 'Name' } |
+            ForEach-Object { $_.Name })
+    }
+    return $script:ScoopBucketNames
+}
+
+function Get-ScoopAppNames {
+    if ($null -eq $script:ScoopAppNames) {
+        $script:ScoopAppNames = @(scoop list 2>$null 6>$null |
+            Where-Object { $_.PSObject.Properties.Name -contains 'Name' } |
+            ForEach-Object { $_.Name })
+    }
+    return $script:ScoopAppNames
+}
+
 function Test-ScoopBucket {
-    param([string]$Name)
-    $pattern = "^\s*$([regex]::Escape($Name))(\s|$)"
-    return [bool](scoop bucket list | Select-String -Pattern $pattern)
+    param([string[]]$Name)
+    foreach ($candidate in $Name) {
+        if (-not $candidate) { continue }
+        if (Test-Path -LiteralPath (Join-Path $script:ScoopRoot "buckets\$candidate") -PathType Container) { return $true }
+        if (Get-ScoopBucketNames | Where-Object { $_ -eq $candidate }) { return $true }
+    }
+    return $false
 }
 
 Write-Host "Adding Scoop buckets..." -ForegroundColor Yellow
@@ -63,13 +97,16 @@ foreach ($bucket in $buckets) {
     }
 }
 
-# Custom bucket for HuggingFaceModelDownloader
+# Custom bucket for HuggingFaceModelDownloader. Scoop names URL-only buckets
+# "<owner>_<repo>", so accept that form too and avoid a duplicate clone.
 $customBuckets = @{
     "cesaryuan/scoop-cesar" = "https://github.com/cesaryuan/scoop-cesar"
 }
 foreach ($alias in $customBuckets.Keys) {
-    $name = $alias.Split('/')[1]
-    if (-not (Test-ScoopBucket $name)) {
+    $owner, $repo = $alias.Split('/')
+    $name = $repo
+    $autoName = "${owner}_$repo"
+    if (-not (Test-ScoopBucket @($name, $autoName))) {
         scoop bucket add $name $customBuckets[$alias]
         Assert-NativeSuccess "Adding Scoop bucket '$name'"
     }
@@ -78,10 +115,13 @@ foreach ($alias in $customBuckets.Keys) {
 # --- Packages ---
 Write-Host "Installing packages via Scoop..." -ForegroundColor Yellow
 $packages = @(
-    # Core tools
-    "git", "pwsh", "neovim", "nodejs", "python", "rust"
+    # Core tools. pwsh is intentionally absent: PowerShell 7 ships machine-wide
+    # (C:\Program Files\PowerShell\7) and a Scoop copy alongside it only creates a
+    # second, PATH-ambiguous install. Re-add "pwsh" here for machines without it.
+    "git", "neovim", "nodejs", "python", "rust"
     # Shell, prompt, and fonts used by Windows Terminal
-    "nushell", "starship", "zoxide", "atuin", "fzf"
+    # NOTE: the manifest is "nu" — "nushell" does not exist in any bucket.
+    "nu", "starship", "zoxide", "atuin", "fzf"
     "JetBrainsMono-NF", "FiraCode-NF"
     # File management
     "eza", "bat", "fd", "ripgrep", "yazi"
@@ -89,8 +129,8 @@ $packages = @(
     "btop", "bottom", "fastfetch", "procs", "dust", "duf"
     # Dev tools
     "gh", "jq", "glow", "viddy", "just", "lazygit", "uv"
-    # Browser & launcher
-    "zen-browser", "flow-launcher"
+    # Browser & launcher (zen-browser intentionally dropped: not used)
+    "flow-launcher"
     # Encryption
     "age", "gpg", "sops"
     # AI tools
@@ -114,10 +154,19 @@ $packages = @(
 
 function Test-ScoopPackage {
     param([string]$Name)
-    $pattern = "^\s*$([regex]::Escape($Name))(\s|$)"
-    return [bool](scoop list | Select-String -Pattern $pattern)
+    # Authoritative: what Scoop reports. Fallback: the app's version link on disk
+    # (covers a package whose manifest was renamed but is still installed).
+    if (Get-ScoopAppNames | Where-Object { $_ -eq $Name }) { return $true }
+    return (Test-Path -LiteralPath (Join-Path $script:ScoopRoot "apps\$Name\current") -PathType Container)
 }
 
+if ($SkipPackages) {
+    Write-Host "Skipping Scoop package installation (-SkipPackages)" -ForegroundColor Yellow
+    $toInstall = @($packages | Where-Object { -not (Test-ScoopPackage $_) })
+    if ($toInstall.Count -gt 0) {
+        Write-Host ("  not installed ({0}): {1}" -f $toInstall.Count, ($toInstall -join ", ")) -ForegroundColor DarkGray
+    }
+} else {
 foreach ($pkg in $packages) {
     if (-not (Test-ScoopPackage $pkg)) {
         Write-Host "  Installing $pkg" -ForegroundColor Gray
@@ -126,6 +175,7 @@ foreach ($pkg in $packages) {
     } else {
         Write-Host "  Already installed: $pkg" -ForegroundColor DarkGray
     }
+}
 }
 
 # --- Git integration and configuration ---
@@ -139,9 +189,14 @@ try {
     }
     git config pull.rebase true
     Assert-NativeSuccess "Configuring Git pull behavior"
-    git config filter.strip-pi-machine-config.clean 'node "$(git rev-parse --show-toplevel)/scripts/strip-pi-machine-config.mjs"'
+    # Keep filter commands free of embedded double quotes: Windows PowerShell 5.1
+    # mangles them when passing to a native exe, so `node "$(git rev-parse ...)"`
+    # arrives as two arguments and git exits 129 ("no action specified").
+    # Git runs clean/smudge filters with cwd at the worktree root, so a relative
+    # path is both correct and quoting-proof.
+    git config filter.strip-pi-machine-config.clean 'node scripts/strip-pi-machine-config.mjs'
     Assert-NativeSuccess "Configuring Pi clean filter"
-    git config filter.strip-pi-machine-config.smudge 'node "$(git rev-parse --show-toplevel)/scripts/strip-pi-machine-config.mjs" 2>/dev/null || cat'
+    git config filter.strip-pi-machine-config.smudge 'node scripts/strip-pi-machine-config.mjs 2>/dev/null || cat'
     Assert-NativeSuccess "Configuring Pi smudge filter"
 
     Write-Host "`nDeploying native Windows configuration..." -ForegroundColor Yellow
