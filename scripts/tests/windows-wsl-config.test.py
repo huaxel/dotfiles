@@ -66,6 +66,14 @@ require("{{nushell_icon}}" in terminal, "Nushell tab icon is not a deploy-time p
 require("ms-appx:///ProfileIcons" not in terminal, "Windows Terminal references a package icon GUID that may not exist")
 require("nushell_icon" in deploy, "Deployment never substitutes the Nushell icon path")
 require((ROOT / "config/nushell/assets/nushell-terminal.png").is_file(), "Nushell tab icon asset is missing")
+require((ROOT / "windows-terminal/icons/nixos.png").is_file(), "NixOS tab icon asset is missing")
+# Profile order and machine-local profiles (a WSL distro GUID) come from a
+# gitignored overlay so the shared file stays portable.
+require('settings.local.json' in deploy, "Terminal settings overlay is not read")
+require("function Set-ProfileOrder" in deploy, "Terminal profile order is not applied")
+require("$dotfilesOrder" in deploy, "Terminal order metadata is not consumed")
+require("$dotfilesOrder" not in terminal, "Order metadata must not ship in the shared fragment")
+require("windows-terminal/settings.local.json" in read(".gitignore"), "Local Terminal overlay is not gitignored")
 require('Write-Host "  [COPY]' in deploy, "File deployment has no non-admin copy fallback")
 require("function Render-WindowsGitConfig" in deploy, "Windows Git config is not rendered")
 require("Render-WindowsGitConfig" in deploy and 'Source = "gitconfig"' not in deploy, "Windows deploy may install the raw Git template")

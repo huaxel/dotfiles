@@ -140,3 +140,4 @@ config/nushell/history.sqlite3-*
 !/config-macos/omniwm/shell/default/
 /config-macos/omniwm/shell/default/*
 !/config-macos/omniwm/shell/default/shell.toml
+windows-terminal/settings.local.json

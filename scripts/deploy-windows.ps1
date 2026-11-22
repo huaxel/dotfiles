@@ -322,27 +322,92 @@ function Ensure-List {
     return , $Parent[$Key]
 }
 
+function Expand-SettingsTemplate {
+    param([string]$Text, $Replacements)
+
+    # Windows Terminal resolves `ms-appx:///ProfileIcons/<guid>.png` only for
+    # the GUIDs its own package ships, and it has none for Nushell or NixOS, so
+    # those references silently render nothing. Substitute tracked assets at
+    # deploy time to keep machine paths out of the repository JSON.
+    foreach ($placeholder in $Replacements.Keys) {
+        $asset = $Replacements[$placeholder]
+        if (-not (Test-Path -LiteralPath $asset)) {
+            throw "Missing icon asset: $asset"
+        }
+        $backslash = [string][char]92
+        $Text = $Text.Replace($placeholder, $asset.Replace($backslash, $backslash + $backslash))
+    }
+    if ($Text -match '\{\{[^}]+\}\}') {
+        $left = [regex]::Match($Text, '\{\{[^}]+\}\}').Value
+        throw "Unresolved settings placeholder: $left"
+    }
+    return $Text
+}
+
+function Update-SettingsLayer {
+    param($Target, $Layer)
+
+    $layerProfiles = $Layer["profiles"]
+    if ($layerProfiles) {
+        $profiles = Ensure-Map $Target "profiles"
+        if ($layerProfiles["defaults"]) {
+            Merge-Map (Ensure-Map $profiles "defaults") $layerProfiles["defaults"]
+        }
+        if ($layerProfiles["list"]) {
+            Merge-ListItems (Ensure-List $profiles "list") $layerProfiles["list"] "guid"
+        }
+    }
+    if ($Layer["schemes"]) {
+        Merge-ListItems (Ensure-List $Target "schemes") $Layer["schemes"] "name"
+    }
+}
+
+function Set-ProfileOrder {
+    param($Target, $Order)
+
+    # Profile order in settings.json is the order Terminal shows in the tab
+    # dropdown, and machine-local profiles (a WSL distro's GUID) cannot live in
+    # the shared fragment, so order is expressed by name and applied last.
+    $profiles = Ensure-Map $Target "profiles"
+    $list = Ensure-List $profiles "list"
+    $ordered = New-Object System.Collections.Generic.List[object]
+    foreach ($name in $Order) {
+        foreach ($item in $list) {
+            if ($item.Contains("name") -and $item["name"] -eq $name -and -not $ordered.Contains($item)) {
+                $ordered.Add($item)
+            }
+        }
+    }
+    foreach ($item in $list) {
+        if (-not $ordered.Contains($item)) { $ordered.Add($item) }
+    }
+    $profiles["list"] = $ordered
+}
+
 function Render-WindowsTerminalSettings {
     param([string]$Target)
 
-    # The repository owns appearance defaults, the TokyoNight palette, and the
-    # portable profile entries it knows by GUID. Everything else in a live
-    # settings.json (keybindings, additional profiles, terminal-generated
-    # state) is preserved: deploying must never discard local edits.
-    $fragmentPath = Join-Path $RepoRoot "windows-terminal\settings.json"
-    $fragmentText = Get-Content -Raw -LiteralPath $fragmentPath
-
-    # The Nushell tab icon has to be an absolute path: Windows Terminal only
-    # resolves `ms-appx:///ProfileIcons/<guid>.png` for the GUIDs its own
-    # package ships, and no Nushell GUID exists there, so that reference
-    # silently renders nothing. Substitute the tracked logo at deploy time so
-    # the JSON stays free of machine paths (backslashes JSON-escaped).
-    $nushellIcon = Join-Path $RepoRoot "config\nushell\assets\nushell-terminal.png"
-    if (-not (Test-Path -LiteralPath $nushellIcon)) {
-        throw "Missing Nushell icon asset: $nushellIcon"
+    # The repository owns appearance defaults, the TokyoNight palette, the
+    # portable profile entries it knows by GUID, and the profile order.
+    # Everything else in a live settings.json (keybindings, additional profiles,
+    # terminal-generated state) is preserved: deploying must never discard
+    # local edits. A gitignored settings.local.json adds machine-local profiles
+    # (for example a WSL distribution's generated GUID) on top of the fragment.
+    $replacements = [ordered]@{
+        "{{nushell_icon}}" = (Join-Path $RepoRoot "config\nushell\assets\nushell-terminal.png")
+        "{{nixos_icon}}"   = (Join-Path $RepoRoot "windows-terminal\icons\nixos.png")
     }
-    $fragmentText = $fragmentText.Replace("{{nushell_icon}}", $nushellIcon.Replace('\', '\\'))
-    $fragment = ConvertTo-Map ($fragmentText | ConvertFrom-Json)
+    $fragment = ConvertTo-Map ((Expand-SettingsTemplate (Get-Content -Raw -LiteralPath (Join-Path $RepoRoot "windows-terminal\settings.json")) $replacements) | ConvertFrom-Json)
+
+    $overlayPath = Join-Path $RepoRoot "windows-terminal\settings.local.json"
+    $overlay = $null
+    if (Test-Path -LiteralPath $overlayPath) {
+        try {
+            $overlay = ConvertTo-Map ((Expand-SettingsTemplate (Get-Content -Raw -LiteralPath $overlayPath) $replacements) | ConvertFrom-Json)
+        } catch {
+            throw "Invalid local settings overlay ${overlayPath}: $($_.Exception.Message)"
+        }
+    }
 
     $existing = [ordered]@{}
     if (Test-Path -LiteralPath $Target) {
@@ -354,19 +419,19 @@ function Render-WindowsTerminalSettings {
         }
     }
 
-    $fragmentProfiles = $fragment["profiles"]
-    if ($fragmentProfiles) {
-        $profiles = Ensure-Map $existing "profiles"
-        if ($fragmentProfiles["defaults"]) {
-            Merge-Map (Ensure-Map $profiles "defaults") $fragmentProfiles["defaults"]
-        }
-        if ($fragmentProfiles["list"]) {
-            Merge-ListItems (Ensure-List $profiles "list") $fragmentProfiles["list"] "guid"
+    Update-SettingsLayer $existing $fragment
+    if ($overlay) { Update-SettingsLayer $existing $overlay }
+
+    # `$dotfilesOrder` is deployment metadata, never a Terminal setting.
+    $order = $null
+    foreach ($layer in @($overlay, $fragment)) {
+        if ($layer -and $layer.Contains("`$dotfilesOrder")) {
+            if (-not $order) { $order = $layer["`$dotfilesOrder"] }
+            $layer.Remove("`$dotfilesOrder") | Out-Null
         }
     }
-    if ($fragment["schemes"]) {
-        Merge-ListItems (Ensure-List $existing "schemes") $fragment["schemes"] "name"
-    }
+    $existing.Remove("`$dotfilesOrder") | Out-Null
+    if ($order) { Set-ProfileOrder $existing $order }
 
     $content = ($existing | ConvertTo-Json -Depth 100) + [Environment]::NewLine
     Write-Generated $Target $content
