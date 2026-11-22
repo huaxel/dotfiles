@@ -41,7 +41,12 @@ either host; activation needs separate review.
 - **liedelpi** deliberately skips `linux-desktop.nix` (headless). Home-server
   deploy target for `just register-project` / `just deploy-server`.
 - **Windows laptop** is deployed by `deploy-windows.ps1` (symlink → junction
-  → copy fallback) plus Scoop for packages. LeopardWM’s profile targets the
+  → copy fallback) plus Scoop for packages. Two targets are generated instead
+  of linked: the PowerShell profiles are stubs that dot-source the tracked
+  files (Documents is OneDrive-redirected), and Windows Terminal settings are
+  deep-merged so local profiles and keybindings survive; machine-local
+  profiles and tab order live in the gitignored
+  `windows-terminal/settings.local.json`. LeopardWM’s profile targets the
   focused monitor so window placement can adapt between the home and work docks.
 
 ## Where truth lives

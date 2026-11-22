@@ -8,7 +8,9 @@ Keep deployment paths stable; organize new material under the matching area belo
 - `flake.nix`, `flake.lock`, `home/`, and `nix.conf` — Home Manager profiles
   and Unix user configuration.
 - `scripts/deploy-windows.ps1` — native Windows configuration links and
-  generated files; Scoop remains the package manager.
+  generated files; Scoop remains the package manager. Windows Terminal
+  settings and the PowerShell profiles are merged/generated rather than
+  linked so machine-local state is never overwritten.
 - `scripts/deploy-secrets.*` — platform-specific sops/age secret materialization.
 - `nixos/` — only the shared `cachy-llama-package.nix` (live: feeds the
   `legacyPackages` smoke-test derivations). The future NixOS system modules
