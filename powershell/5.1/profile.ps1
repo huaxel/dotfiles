@@ -17,11 +17,19 @@ if ($InteractiveSession -and (Get-Command Set-PSReadLineOption -ErrorAction Sile
     Set-PSReadLineKeyHandler -Key Tab -Function MenuComplete
 }
 
-# Aliases
-Set-Alias -Name vim -Value nvim
-Set-Alias -Name vi -Value nvim
-Set-Alias -Name g -Value git
-Set-Alias -Name cat -Value bat
+# Aliases. Windows PowerShell 5.1 ships `cat` as an AllScope alias, so
+# overriding it needs -Force -Option AllScope; guard on the target existing so
+# a missing tool never aborts the profile.
+function Set-ProfileAlias {
+    param([string]$Name, [string]$Value)
+    if (-not (Get-Command $Value -ErrorAction SilentlyContinue)) { return }
+    Set-Alias -Name $Name -Value $Value -Force -Option AllScope -Scope Global
+}
+
+Set-ProfileAlias vim nvim
+Set-ProfileAlias vi nvim
+Set-ProfileAlias g git
+Set-ProfileAlias cat bat
 
 # Utility Functions
 function .. { Set-Location .. }
