@@ -30,9 +30,13 @@
     # No `inputs.nixpkgs.follows` on purpose: upstream docs say following
     # disables their binary cache, which avoids compiling locally.
     noctalia.url = "github:noctalia-dev/noctalia";
+
+    # Rex terminal multiplexer (preview channel); ships a home-manager module
+    # that installs the package and runs the personal server as a user unit.
+    rex.url = "https://pkgs.superlogical.com/rex/nix/preview.tar.gz";
   };
 
-  outputs = { nixpkgs, home-manager, sops-nix, cachy-llama, nixgl, noctalia, ... }:
+  outputs = { nixpkgs, home-manager, sops-nix, cachy-llama, nixgl, noctalia, rex, ... }:
     let
       cachyLlamaVulkan = nixpkgs.legacyPackages.x86_64-linux.callPackage
         ./nixos/cachy-llama-package.nix {
@@ -48,7 +52,7 @@
           meta.description = "Pinned Ansible CLI for home-server operations";
         };
 
-      mkHome = { system, hostModule }:
+      mkHome = { system, hostModule, extraModules ? [ ] }:
         home-manager.lib.homeManagerConfiguration {
           pkgs = import nixpkgs {
             inherit system;
@@ -72,7 +76,7 @@
             sops-nix.homeManagerModules.sops
             ./home/common.nix
             hostModule
-          ];
+          ] ++ extraModules;
         };
 
       # Minimal server-user profiles intentionally avoid the workstation
@@ -143,6 +147,12 @@
         "juan@arch-wsl" = mkHome {
           system = "x86_64-linux";
           hostModule = ./home/arch-wsl.nix;
+        };
+
+        "juan@nixos-wsl" = mkHome {
+          system = "x86_64-linux";
+          hostModule = ./home/nixos-wsl.nix;
+          extraModules = [ rex.homeManagerModules.default ];
         };
 
         "juan@macbook" = mkHome {
