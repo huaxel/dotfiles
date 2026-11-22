@@ -42,7 +42,7 @@
                 "guid": "{51855cb2-8b98-4e5b-8e77-7a9041156f2b}",
                 "name": "Nushell",
                 "commandline": "nu.exe",
-                "icon": "ms-appx:///ProfileIcons/{504ca574-497e-4998-b564-007f6b00e96f}.png",
+                "icon": "{{nushell_icon}}",
                 "startingDirectory": "%USERPROFILE%",
                 "colorScheme": "TokyoNight",
                 "font": {

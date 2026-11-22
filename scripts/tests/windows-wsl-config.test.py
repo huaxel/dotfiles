@@ -59,6 +59,13 @@ require("clink autorun install" in deploy, "cmd.exe AutoRun is never configured"
 require("Microsoft.WindowsTerminal_8wekyb3d8bbwe" in deploy, "Store Windows Terminal settings path is missing")
 require("Get-AppxPackage -Name Microsoft.WindowsTerminal" in deploy, "Windows Terminal install type is not detected")
 require("mklink /J" in deploy, "Directory deployment has no non-admin junction fallback")
+# Windows Terminal only resolves ms-appx ProfileIcons GUIDs its own package
+# ships; a Nushell GUID does not exist there, so the icon must be a deployed
+# asset path instead of a dangling package reference.
+require("{{nushell_icon}}" in terminal, "Nushell tab icon is not a deploy-time placeholder")
+require("ms-appx:///ProfileIcons" not in terminal, "Windows Terminal references a package icon GUID that may not exist")
+require("nushell_icon" in deploy, "Deployment never substitutes the Nushell icon path")
+require((ROOT / "config/nushell/assets/nushell-terminal.png").is_file(), "Nushell tab icon asset is missing")
 require('Write-Host "  [COPY]' in deploy, "File deployment has no non-admin copy fallback")
 require("function Render-WindowsGitConfig" in deploy, "Windows Git config is not rendered")
 require("Render-WindowsGitConfig" in deploy and 'Source = "gitconfig"' not in deploy, "Windows deploy may install the raw Git template")

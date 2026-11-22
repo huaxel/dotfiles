@@ -330,7 +330,19 @@ function Render-WindowsTerminalSettings {
     # settings.json (keybindings, additional profiles, terminal-generated
     # state) is preserved: deploying must never discard local edits.
     $fragmentPath = Join-Path $RepoRoot "windows-terminal\settings.json"
-    $fragment = ConvertTo-Map (Get-Content -Raw -LiteralPath $fragmentPath | ConvertFrom-Json)
+    $fragmentText = Get-Content -Raw -LiteralPath $fragmentPath
+
+    # The Nushell tab icon has to be an absolute path: Windows Terminal only
+    # resolves `ms-appx:///ProfileIcons/<guid>.png` for the GUIDs its own
+    # package ships, and no Nushell GUID exists there, so that reference
+    # silently renders nothing. Substitute the tracked logo at deploy time so
+    # the JSON stays free of machine paths (backslashes JSON-escaped).
+    $nushellIcon = Join-Path $RepoRoot "config\nushell\assets\nushell-terminal.png"
+    if (-not (Test-Path -LiteralPath $nushellIcon)) {
+        throw "Missing Nushell icon asset: $nushellIcon"
+    }
+    $fragmentText = $fragmentText.Replace("{{nushell_icon}}", $nushellIcon.Replace('\', '\\'))
+    $fragment = ConvertTo-Map ($fragmentText | ConvertFrom-Json)
 
     $existing = [ordered]@{}
     if (Test-Path -LiteralPath $Target) {
