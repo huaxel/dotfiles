@@ -1,12 +1,10 @@
 {
   "enabledModels": [
     "openai-codex/gpt-6-luna",
-    "llama.cpp/Qwen3.8-27B",
     "openai-codex/gpt-6.1-terra",
     "opencode-go/muse-spark-1.3-contributor",
     "opencode-go/deepseek-v4.1-flash",
     "claude-code/claude-opus-5-5",
-    "claude-code/claude-sonnet-5-5",
     "antigravity/gemini-3-8-flash",
     "mistral/deepseek-v4-1-flash-1017",
     "mistral/zai-glm-5-3",
@@ -14,7 +12,12 @@
     "mistral/mistral-large-4-0-8",
     "mistral/mistral-medium-2604",
     "openai-codex/gpt-6.2-sol",
-    "openai-codex/gpt-6.2-astra"
+    "openai-codex/gpt-6.2-astra",
+    "antigravity/gemini-4-neon",
+    "antigravity/gemini-4-argon",
+    "antigravity/gemini-4-hydrogen",
+    "antigravity/claude-opus-5-5",
+    "antigravity/claude-sonnet-5-5"
   ],
   "lastChangelogVersion": "0.0.0",
   "theme": "high-contrast",
