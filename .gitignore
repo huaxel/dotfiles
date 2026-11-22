@@ -54,7 +54,11 @@ local/
 .dotter/
 
 # Machine-specific skill integrations and trust decisions
+# Each one is a link into a per-machine tool install, so a committed copy
+# dangles on every other host (terminal-browser carried /Users/... on the macOS
+# checkout and /home/juan/... on Linux). The owning app installs it itself.
 /skills/cua-driver
+/skills/terminal-browser
 pi/agent/trust.json
 
 # Pi goal/session runtime artifacts (machine-local: pids, instance ids)
