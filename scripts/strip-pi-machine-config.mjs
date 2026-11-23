@@ -52,6 +52,17 @@ delete settings.deviceId;
 // produces diffs that carry no shared meaning.
 delete settings.extensionChangelogVersions;
 
+// Local-path package entries point into per-machine checkouts, for example a
+// patched Windows build of a package whose dependency only builds on POSIX.
+// Those paths resolve from one machine's home directory, so never commit them.
+// A machine that had to replace a shared source therefore has to re-add it on
+// the others; the filter only subtracts, it cannot put the entry back.
+if (Array.isArray(settings.packages)) {
+  settings.packages = settings.packages.filter(
+    (entry) => typeof entry === 'string' && /^(npm:|git:|https?:)/.test(entry),
+  );
+}
+
 // ACP agent commands are absolute paths into per-machine tool installs, so the
 // agents map is machine-local. Keep the policy fields (for example
 // autoApproveTools) in the committed blob.

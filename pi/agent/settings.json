@@ -41,8 +41,7 @@
     "npm:@mobrienv/pi-tidy-tools",
     "npm:@juanbenjumea/pi-go-on",
     "git:github.com/earendil-works/pi-claude-code@d5b5e04c314d3452d357174d16d10dda34daa2d2",
-    "npm:pi-cursor-sdk",
-    "git:github.com/huaxel/pi-graphs"
+    "npm:pi-cursor-sdk"
   ],
   "extensions": [
     "./extensions/continue-after-compaction.ts",
@@ -67,5 +66,6 @@
     "!**/synced/*/google-workspace/SKILL.md",
     "!**/synced/*/import-memory/SKILL.md",
     "!**/synced/*/morning/SKILL.md"
-  ]
+  ],
+  "hideThinkingBlock": true
 }
