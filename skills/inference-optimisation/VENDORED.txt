@@ -1,0 +1,4 @@
+vendored from https://github.com/sybil-solutions/inference-optimisation-skill
+commit: fda968e7fc1996aa23c67139c755fe541c9d4be0
+license: MIT
+installed: 2026-11-21T22:34:02Z

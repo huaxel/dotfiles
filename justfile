@@ -533,7 +533,10 @@ check-nix:
     profiles=()
     case "$system" in
         x86_64-linux)
-            profiles=("juan@framearch" "juan@arch-wsl" "juan@lenovo-lola" "juan@acerpepe")
+            # nixos-wsl is included: it is the host that runs the Rex server
+            # and its systemd user units, so an eval-only pass would not catch a
+            # broken activation there.
+            profiles=("juan@framearch" "juan@arch-wsl" "juan@nixos-wsl" "juan@lenovo-lola" "juan@acerpepe")
             ;;
         aarch64-darwin)
             profiles=("juan@macbook")
