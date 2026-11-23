@@ -375,6 +375,10 @@ check-secrets:
     #!/usr/bin/env bash
     echo "=== Secrets ==="
     if ! command -v sops &>/dev/null; then if [ "${CI:-}" = "true" ]; then echo "  ❌ sops required in CI"; exit 1; fi; echo "  ⚠️  sops not installed — skipping"; exit 0; fi
+    # sops on Windows does not auto-detect ~/.config/sops/age/keys.txt, so make
+    # the same explicit default scripts/deploy-secrets.ps1 uses; without it
+    # every file reports a bogus "key mismatch".
+    if [ -z "${SOPS_AGE_KEY_FILE:-}" ] && [ -f "$HOME/.config/sops/age/keys.txt" ]; then export SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"; fi
     errors=0; count=0
     for f in secrets/*.enc; do
         [ -f "$f" ] || continue

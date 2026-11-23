@@ -13,6 +13,9 @@ from unittest.mock import patch
 
 REPO = Path(__file__).resolve().parents[2]
 SOURCE = REPO/'pi/agent/npm'
+# See memory-merge.test.py: a bare 'bash' resolves to the WSL launcher on
+# Windows because System32 outranks PATH in CreateProcess search order.
+BASH = shutil.which('bash') or 'bash'
 spec = importlib.util.spec_from_file_location('pi_patches', SOURCE/'apply-patches.py')
 helper = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(helper)
@@ -177,7 +180,7 @@ class PatchTests(unittest.TestCase):
         npm.chmod(0o755)
         capture = self.root/'captured.json'
         env = dict(os.environ, PATH=str(binaries)+os.pathsep+os.environ['PATH'], CAPTURE=str(capture), NPM_CONFIG_IGNORE_SCRIPTS='false')
-        command = ['bash',str(self.root/'install-and-patch.sh')]
+        command = [BASH, (self.root/'install-and-patch.sh').as_posix()]
         result = subprocess.run(command, env=env, capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         called = json.loads(capture.read_text())
@@ -223,7 +226,7 @@ class PublishedInstallTests(unittest.TestCase):
             for name in ('pi-memory', helper.TIDY, '@juanbenjumea/pi-agy'):
                 self.assertIn(f'node_modules/{name}', lock['packages'],
                               'lockfile must use install-relative package keys')
-            result = subprocess.run(['bash',str(root/'install-and-patch.sh'),'ci'], env=env, capture_output=True, text=True, timeout=90)
+            result = subprocess.run([BASH,(root/'install-and-patch.sh').as_posix(),'ci'], env=env, capture_output=True, text=True, timeout=90)
             self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
             self.assertFalse((root/'HOOK_RAN').exists())
             for name in ('README.md','index.ts'):
@@ -236,7 +239,7 @@ class PublishedInstallTests(unittest.TestCase):
             before = {p:p.read_bytes() for p in (root/'node_modules/pi-memory').glob('*') if p.is_file()}
             before[agy_index] = agy_index.read_bytes()
             for mode in ('patch','check'):
-                result = subprocess.run(['bash',str(root/'install-and-patch.sh'),mode], capture_output=True, text=True, timeout=20)
+                result = subprocess.run([BASH,(root/'install-and-patch.sh').as_posix(),mode], capture_output=True, text=True, timeout=20)
                 self.assertEqual(result.returncode, 0, result.stdout+result.stderr)
             self.assertEqual(before,{p:p.read_bytes() for p in before})
 

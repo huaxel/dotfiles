@@ -9,6 +9,8 @@ import tempfile
 import unittest
 
 fixtures = runpy.run_path(str(Path(__file__).with_name('memory-merge.test.py')))
+# Reuse the sibling test's resolved interpreter (see its BASH comment).
+BASH = fixtures['BASH']
 
 # Natural phrasings, deliberately not derived from the detector's own patterns.
 DISCLOSURES = [
@@ -184,7 +186,12 @@ class PrivacyTests(unittest.TestCase):
         self.add_private('archive/unreviewed.md', line + '\n')
         link = self.f.repo / 'MEMORY.md'
         link.unlink()
-        link.symlink_to('archive/unreviewed.md')
+        try:
+            link.symlink_to('archive/unreviewed.md')
+        except OSError as error:
+            if getattr(error, 'winerror', None) == 1314:
+                self.skipTest('Windows symlink privilege unavailable; covered under WSL')
+            raise
         self.assert_blocked(env_extra=env)
 
     def test_path_case_and_aliases_do_not_reuse_a_review(self):
@@ -292,7 +299,7 @@ class PrivacyTests(unittest.TestCase):
         (directory / 'MEMORY.md').write_text(PRIVATE if private else 'Clean imported fact\n')
         env = dict(self.f.env, PI_MEMORY_DIR=str(directory), PI_MEMORY_REMOTE=str(self.remote))
         script = Path(__file__).resolve().parents[2] / 'skills/dream/scripts/memory-import-machine.sh'
-        result = subprocess.run(['bash', str(script), '--apply'], env=env, cwd=directory,
+        result = subprocess.run([BASH, script.as_posix(), '--apply'], env=env, cwd=directory,
                                 capture_output=True, text=True)
         return result, directory
 

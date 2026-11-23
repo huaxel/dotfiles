@@ -65,7 +65,7 @@ class MemoryMcpTest(unittest.TestCase):
         os.environ.pop("PI_MEMORY_DIR", None)
 
     def test_indexes_expected_files_only(self):
-        files = {str(p.relative_to(self.root)) for p in self.server.memory_files()}
+        files = {p.relative_to(self.root).as_posix() for p in self.server.memory_files()}
         self.assertEqual(
             files,
             {

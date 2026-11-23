@@ -9,7 +9,7 @@ advance; otherwise stop. Distinct source scopes retain provenance, not a
 model's inferred resolution. Original indexes are views and are omitted from
 canonical claims, while the snapshot tarballs retain every original byte.
 """
-from pathlib import Path, PurePosixPath
+from pathlib import Path, PurePosixPath, PureWindowsPath
 import argparse
 import hashlib
 import json
@@ -31,6 +31,22 @@ def without_index(data):
     return LEGACY_INDEX.sub('', INDEX.sub('', text)).encode('utf-8')
 
 
+def normalized_absolute(value: str) -> bool:
+    """True when value is a normalized absolute path in either path flavour.
+
+    Mirrors memory-wiki.normalized_absolute: plans are authored on one machine
+    (POSIX checkouts) and validated on another (Windows drive paths), so the
+    running host's flavour must not be the only acceptable one.
+    """
+    if not value or value != value.rstrip('/\\'):
+        return False
+    for flavour in (PurePosixPath, PureWindowsPath):
+        path = flavour(value)
+        if path.is_absolute() and not ({'.', '..'} & set(path.parts)):
+            return True
+    return False
+
+
 def validate(plan):
     if plan.get('version') != 1 or not isinstance(plan.get('projects'), dict):
         raise ValueError('invalid plan')
@@ -43,7 +59,7 @@ def validate(plan):
                 raise ValueError('invalid or multiply assigned source key')
             assigned.add(key)
     for checkout, project in plan.get('checkouts', {}).items():
-        if not Path(checkout).is_absolute() or project not in plan['projects']:
+        if not normalized_absolute(checkout) or project not in plan['projects']:
             raise ValueError('invalid checkout mapping')
     return assigned
 
