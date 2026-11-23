@@ -6,9 +6,11 @@
 #   setsid nohup bash queue.sh ctl-a cand ctl-b > queue.log 2>&1 < /dev/null & disown
 # Run from your experiment directory (the one holding configs/ and ledger.jsonl).
 LOCK=${QUEUE_LOCK:-/tmp/inference-hillclimb.lock}
+# BENCH_FLAGS is a flag list, not a single argument: split it once, explicitly.
+read -r -a BENCH_ARGS <<< "${BENCH_FLAGS:-}"
 exec 9>"$LOCK"; flock 9
 for n in "$@"; do
-  python3 "${BENCH:-$(dirname "$0")/bench.py}" run "configs/$n.json" ${BENCH_FLAGS:-} > "runs-$n.log" 2>&1
+  python3 "${BENCH:-$(dirname "$0")/bench.py}" run "configs/$n.json" "${BENCH_ARGS[@]}" > "runs-$n.log" 2>&1
   echo "done $n: $(tail -c 300 "runs-$n.log" | tr '\n' ' ' | cut -c1-200)"
 done
 echo QUEUE_DONE "$@"
