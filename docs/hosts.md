@@ -9,6 +9,7 @@ which. See also: `docs/patterns/window-management.md` (tilers),
 |---|---|---|---|
 | framearch | Arch Linux, x86_64 | `juan@framearch` | desktop (niri) + llama.cpp inference host |
 | arch-wsl | Arch WSL2, x86_64 | `juan@arch-wsl` | terminal-only WSL sidecar for Windows |
+| nixos-wsl | NixOS WSL2, x86_64 | `juan@nixos-wsl` | current terminal-only WSL sidecar; system modules live in `nixos-wsl/` |
 | macbook | macOS, aarch64 | `juan@macbook` | portable daily driver (OmniWM + borders) |
 | lenovo-lola | Debian 13, x86_64 | none active | headless home server; minimal host baseline verified by Ansible |
 | acerpepe | Debian 13, x86_64 | none active | deploy/backup server; application services documented in the infrastructure runbook |
@@ -35,6 +36,15 @@ either host; activation needs separate review.
   No compositor mappings by design. VPN/CIFS via
   `scripts/wsl-vpn-setup.sh`; CIFS mount in `/etc/fstab` (creds
   `~/.smbcred`); compaction via `scripts/compact-wsl.sh` (sparse default).
+- **nixos-wsl** is the replacement WSL sidecar. It is the one host with no
+  flake for its system half: `/etc/nixos/*.nix` (imported from
+  `<nixos-wsl/modules>`) *is* the system, so those files are tracked verbatim in
+  `nixos-wsl/`. `just nixos-wsl-diff` compares, `nixos-wsl-push` writes into
+  the distro (backing up into `/etc/nixos/.repo-backups/<stamp>/`), and
+  `nixos-wsl-capture` pulls in-place edits back; `check-nixos-wsl` fails the
+  gate on drift. User config still comes from the `juan@nixos-wsl` Home
+  Manager profile. `vm.swappiness=10` is declared in `configuration.nix`
+  because `.wslconfig` keeps swap as an emergency-only 16 GB.
 - **macbook** keeps Homebrew for GUI/macOS-integrated tools only (no CLI
   duplicates of the Nix profile). sops-nix needs the launchd
   bootout-then-bootstrap workaround in `home/macbook.nix`.

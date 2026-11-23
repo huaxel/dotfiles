@@ -6,6 +6,9 @@
 bin/pi text eol=lf
 *.toml text eol=lf
 *.fish text eol=lf
+# System modules are pushed verbatim into the NixOS WSL distro's /etc/nixos;
+# a CRLF checkout would make NixOS parse CRLF-confused modules.
+*.nix text eol=lf
 *.ps1 text eol=crlf
 
 # Ensure batch files stay CRLF on Windows

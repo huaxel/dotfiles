@@ -42,7 +42,7 @@ nushell-setup:
 # ──────────── Check recipes ────────────
 
 # Run ALL checks (the full trusted CI pipeline, including SOPS decryption)
-ci: check-agents check-qmd check-skills check-memory check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-macos check-secrets check-secret-history check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
+ci: check-agents check-qmd check-skills check-memory check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-nixos-wsl check-macos check-secrets check-secret-history check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
     @echo ""
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     @echo "  🟢  All CI checks passed!  🟢"
@@ -53,7 +53,7 @@ check-qmd:
     python3 scripts/tests/qmd-launcher.test.py
 
 # Public/fork-safe variant: full gate, but validate only encrypted metadata.
-ci-public: check-agents check-qmd check-skills check-memory check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-macos check-secrets-structure check-secret-history check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
+ci-public: check-agents check-qmd check-skills check-memory check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-nixos-wsl check-macos check-secrets-structure check-secret-history check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
     @echo ""
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     @echo "  🟢  All secret-free CI checks passed!  🟢"
@@ -328,6 +328,11 @@ check-windows:
     else
         echo "  ⚠️  pwsh unavailable — static Windows checks passed; AST parse skipped"
     fi
+
+# Fail when the tracked NixOS WSL system modules drift from the live distro.
+# Self-skips on hosts without wsl.exe, so the gate stays portable.
+check-nixos-wsl:
+    bash scripts/nixos-wsl-sync.sh check
 
 # Check mounted destination, encryption, keys, capacity, and session size.
 backup-preflight volume="/Volumes/KingstonPhotos":
@@ -727,6 +732,20 @@ list:
 # Deploy native Windows configuration (Scoop handles packages).
 windows-deploy:
     powershell.exe -ExecutionPolicy Bypass -File ./scripts/deploy-windows.ps1
+
+# ── NixOS WSL ──
+
+# Compare the tracked system modules with the live distro (read-only).
+nixos-wsl-diff distro="NixOS":
+    bash scripts/nixos-wsl-sync.sh diff {{distro}}
+
+# Write nixos-wsl/*.nix into the distro's /etc/nixos, backing up what it replaces.
+nixos-wsl-push distro="NixOS":
+    bash scripts/nixos-wsl-sync.sh push {{distro}}
+
+# Copy the live /etc/nixos back into the repo after editing inside the distro.
+nixos-wsl-capture distro="NixOS":
+    bash scripts/nixos-wsl-sync.sh capture {{distro}}
 
 # Validate the Nix flake and build one Home Manager profile without activation.
 # Usage: just nix-check juan@framearch
