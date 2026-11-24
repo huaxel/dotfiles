@@ -1,11 +1,6 @@
 {
   "enabledModels": [
-    "openai-codex/gpt-6-luna",
-    "openai-codex/gpt-6.1-terra",
-    "opencode-go/muse-spark-1.3-contributor",
     "opencode-go/deepseek-v4.1-flash",
-    "claude-code/claude-opus-5-5",
-    "antigravity/gemini-3-8-flash",
     "mistral/deepseek-v4-1-flash-1017",
     "mistral/zai-glm-5-3",
     "mistral/zai-glm-5-3-flash",
@@ -17,7 +12,10 @@
     "antigravity/gemini-4-argon",
     "antigravity/gemini-4-hydrogen",
     "antigravity/claude-opus-5-5",
-    "antigravity/claude-sonnet-5-5"
+    "antigravity/claude-sonnet-5-5",
+    "antigravity/gemini-4-carbon",
+    "openai-codex/gpt-6-luna",
+    "openai-codex/gpt-6.1-terra"
   ],
   "lastChangelogVersion": "0.0.0",
   "theme": "high-contrast",
@@ -66,6 +64,13 @@
     "!**/synced/*/computer-use/SKILL.md",
     "!**/synced/*/google-workspace/SKILL.md",
     "!**/synced/*/import-memory/SKILL.md",
-    "!**/synced/*/morning/SKILL.md"
-  ]
+    "!**/synced/*/morning/SKILL.md",
+    "!**/synced/*/deep-research/SKILL.md",
+    "!**/synced/*/internal-comms/SKILL.md",
+    "!**/synced/*/learn/SKILL.md",
+    "!**/synced/*/pptx/SKILL.md",
+    "!**/synced/*/theme-factory/SKILL.md",
+    "!**/synced/*/web-artifacts-builder/SKILL.md"
+  ],
+  "hideThinkingBlock": true
 }

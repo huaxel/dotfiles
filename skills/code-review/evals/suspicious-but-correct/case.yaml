@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: suspicious-but-correct
+expected_outcome: |
+  Reports no defect for the reordered check, because a documented precondition makes it
+  correct, and does not edit the file. Any remaining concern is stated as an assumption
+  or risk rather than a confirmed bug.

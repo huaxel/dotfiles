@@ -79,6 +79,31 @@ class SkillChecks(unittest.TestCase):
         native.write_text("policy:\n  allow_implicit_invocation: false\n")
         self.assertEqual(checker.check_catalog(self.root), [])
 
+    def test_cursor_skill_import_is_rejected(self):
+        path = self.skill()
+        path.write_text(
+            path.read_text().replace("# Example", "Store this in `~/.cursor/skills/example/`.")
+        )
+        self.assertIn("Cursor/Codex-app skill imported", str(checker.check_catalog(self.root)))
+
+    def test_harness_name_mention_without_harness_paths_is_allowed(self):
+        path = self.skill()
+        path.write_text(
+            path.read_text().replace(
+                "# Example",
+                "Validate comments reported by Bugbot and explain when you disagree.",
+            )
+        )
+        self.assertEqual(checker.check_catalog(self.root), [])
+
+    def test_synced_vendor_skill_may_describe_its_own_harness(self):
+        self.skill(parent="skills/synced/vendor")
+        path = self.root / "skills/synced/vendor/example/SKILL.md"
+        path.write_text(
+            path.read_text().replace("# Example", "Create these under `~/.cursor/skills/`.")
+        )
+        self.assertEqual(checker.check_catalog(self.root), [])
+
     def test_native_policy_boolean_type(self):
         path = self.skill()
         native = path.parent / "agents/openai.yaml"

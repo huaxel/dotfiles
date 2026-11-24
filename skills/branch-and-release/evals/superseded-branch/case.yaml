@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: superseded-branch
+expected_outcome: |
+  Recognizes the branch as superseded by content comparison rather than merging or
+  cherry-picking it again, and reports the evidence instead of retitling or force-pushing
+  the branch.

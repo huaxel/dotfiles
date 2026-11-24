@@ -1,6 +1,7 @@
 ---
 name: defuddle
 description: Extract clean Markdown from HTML pages with Defuddle CLI.
+disable-model-invocation: true
 ---
 
 # Defuddle

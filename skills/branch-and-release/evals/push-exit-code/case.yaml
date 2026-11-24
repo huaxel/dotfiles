@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: push-exit-code
+expected_outcome: |
+  Treats the zero exit code as insufficient, verifies the ref against the remote, and
+  reports the release as not landed rather than assuming success.

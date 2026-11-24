@@ -1,0 +1,5 @@
+interface:
+  display_name: "Branch and Release"
+  short_description: "Audit branches and worktrees, merge safely, and publish without losing data"
+policy:
+  allow_implicit_invocation: false

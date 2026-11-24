@@ -44,6 +44,28 @@ def metadata(text: str) -> dict:
     return value
 
 
+HARNESS_IMPORT_MARKERS = (
+    r"(?:~|\.\.?)?/?\.cursor/skills",
+    r"\.cursor/rules",
+    r"skills-cursor",
+    r"\.cursor/cli-config\.json",
+    r"origin\.cursor\.com",
+    r"@cursor/sdk",
+    r"Codex Canvas",
+)
+
+
+def harness_imports(text: str) -> list[str]:
+    """A Cursor/Codex-app skill describes paths and products this setup does not have.
+
+    Copying one into the shared catalog makes the model route to directories that do
+    not exist, so it is rejected rather than reviewed. Vendor files under `synced/`
+    are exempt: they belong to another harness and are never edited in place.
+    """
+    prose = re.sub(r"(?ms)^```[^\n]*\n.*?^```[^\n]*$", "", text)
+    return [p for p in HARNESS_IMPORT_MARKERS if re.search(p, prose)]
+
+
 def resource_targets(text: str) -> set[str]:
     """Literal bundled resources, not arbitrary shell commands or generated paths."""
     return set(re.findall(
@@ -104,6 +126,12 @@ def check_catalog(root: Path) -> list[str]:
                     errors.append(f"{relative}: Codex policy contradicts explicit-only invocation")
             # Vendor files are preserved, but their literal bundled resources still
             # must exist. Full link checks apply to locally maintained skills only.
+            if "synced" not in relative.parts:
+                for marker in harness_imports(text):
+                    errors.append(
+                        f"{relative}: Cursor/Codex-app skill imported into the shared "
+                        f"catalog (matched {marker!r}); keep it harness-local or drop it"
+                    )
             targets = resource_targets(text)
             if "synced" not in relative.parts:
                 targets |= link_targets(text)

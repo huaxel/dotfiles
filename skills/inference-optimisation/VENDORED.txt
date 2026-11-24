@@ -2,3 +2,10 @@ vendored from https://github.com/sybil-solutions/inference-optimisation-skill
 commit: fda968e7fc1996aa23c67139c755fe541c9d4be0
 license: MIT
 installed: 2026-11-21T22:34:02Z
+
+local_changes:
+  scripts/mem.sh, scripts/queue.sh: added two `# shellcheck disable` comments
+  (SC2012, SC2086) so the repository shellcheck gate passes. No behavior change;
+  SC2086 is intentional flag splitting, not a quoting bug. Re-apply after any
+  re-sync from upstream, then delete this note once upstream carries the same
+  directives.

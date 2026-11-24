@@ -8,6 +8,7 @@
 LOCK=${QUEUE_LOCK:-/tmp/inference-hillclimb.lock}
 exec 9>"$LOCK"; flock 9
 for n in "$@"; do
+  # shellcheck disable=SC2086  # BENCH_FLAGS is a deliberate whitespace-separated flag list
   python3 "${BENCH:-$(dirname "$0")/bench.py}" run "configs/$n.json" ${BENCH_FLAGS:-} > "runs-$n.log" 2>&1
   echo "done $n: $(tail -c 300 "runs-$n.log" | tr '\n' ' ' | cut -c1-200)"
 done

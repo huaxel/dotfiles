@@ -1,6 +1,7 @@
 ---
 name: jules-orchestration
 description: Dispatch and manage Google Jules coding sessions via the Jules REST API using the JULES_API_KEY environment variable — without an interactive `jules login`. Use when the user wants to offload a scoped task to Jules, orchestrate Jules, or review/open Jules sessions. Note the API key auth (x-goog-api-key header), session lifecycle, AUTO_CREATE_PR, and the always-review-before-merge rule (Jules has clobbered external fixes by rebasing from a stale view).
+disable-model-invocation: true
 ---
 
 # Jules REST API Orchestration

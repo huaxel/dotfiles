@@ -12,6 +12,7 @@ description: >
   to find the maximum possible tok/s on a machine, or to publish a tuned recipe.
   Triggers: hill climb, tok/s, decode speed, prefill speed, MTP, EAGLE, draft model,
   speculative decoding, KV cache, TTFT, startup time, theoretical maximum.
+disable-model-invocation: true
 ---
 
 # Inference optimisation (hill-climbing a model server)

@@ -1,6 +1,7 @@
 ---
 name: design-system-audit
 description: Find implicit design-system components and repeated UI patterns in a web app. Use for design consistency audits, undocumented component discovery, or componentization opportunities—even when the user does not say “design system.” Inspect project guidance and implementation, distinguish shared primitives from local recipes, cite evidence, prioritize worthwhile consolidation, and state coverage limits. Default to read-only; implement only when explicitly asked.
+disable-model-invocation: true
 ---
 
 # Design System Audit
