@@ -47,7 +47,12 @@ class DeploymentTests(unittest.TestCase):
         target.parent.mkdir(parents=True)
         old = self.home / "old-launcher"
         old.write_text("original launcher")
-        target.symlink_to(old)
+        try:
+            target.symlink_to(old)
+        except OSError as error:
+            if getattr(error, 'winerror', None) == 1314:
+                self.skipTest('Windows symlink privilege unavailable; covered under WSL')
+            raise
         backup = a.apply_links(self.root, self.home)
         self.assertEqual((backup / ".local/bin/pi").readlink(), old)
         self.assertEqual(old.read_text(), "original launcher")
@@ -55,7 +60,12 @@ class DeploymentTests(unittest.TestCase):
     def test_dangling_symlink_preserved(self):
         target = self.home / ".codex/AGENTS.md"
         target.parent.mkdir()
-        target.symlink_to("missing-old-target")
+        try:
+            target.symlink_to("missing-old-target")
+        except OSError as error:
+            if getattr(error, 'winerror', None) == 1314:
+                self.skipTest('Windows symlink privilege unavailable; covered under WSL')
+            raise
         backup = a.apply_links(self.root, self.home)
         self.assertEqual((backup / ".codex/AGENTS.md").readlink(), Path("missing-old-target"))
 
@@ -166,7 +176,12 @@ print(json.dumps({{"agent_dir":os.getenv("PI_CODING_AGENT_DIR"),"session_dir":os
     def test_symlink_and_arbitrary_cwd(self):
         link = self.home / ".local/bin/pi"
         link.parent.mkdir(parents=True)
-        link.symlink_to("../../dotfiles/bin/pi")
+        try:
+            link.symlink_to("../../dotfiles/bin/pi")
+        except OSError as error:
+            if getattr(error, 'winerror', None) == 1314:
+                self.skipTest('Windows symlink privilege unavailable; covered under WSL')
+            raise
         result = self.run_launcher(launcher=link, cwd=self.home)
         self.assertEqual(result["agent_dir"], str(self.agent))
 

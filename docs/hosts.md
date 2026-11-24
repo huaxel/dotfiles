@@ -9,6 +9,7 @@ which. See also: `docs/patterns/window-management.md` (tilers),
 |---|---|---|---|
 | framearch | Arch Linux, x86_64 | `juan@framearch` | desktop (niri) + llama.cpp inference host |
 | arch-wsl | Arch WSL2, x86_64 | `juan@arch-wsl` | terminal-only WSL sidecar for Windows |
+| nixos-wsl | NixOS WSL2, x86_64 | `juan@nixos-wsl` | current terminal-only WSL sidecar; system modules live in `nixos-wsl/` |
 | macbook | macOS, aarch64 | `juan@macbook` | portable daily driver (OmniWM + borders) |
 | lenovo-lola | Debian 13, x86_64 | none active | headless home server; minimal host baseline verified by Ansible |
 | acerpepe | Debian 13, x86_64 | none active | deploy/backup server; application services documented in the infrastructure runbook |
@@ -35,6 +36,21 @@ either host; activation needs separate review.
   No compositor mappings by design. VPN/CIFS via
   `scripts/wsl-vpn-setup.sh`; CIFS mount in `/etc/fstab` (creds
   `~/.smbcred`); compaction via `scripts/compact-wsl.sh` (sparse default).
+- **nixos-wsl** is the replacement WSL sidecar. It is the one host with no
+  flake for its system half: `/etc/nixos/*.nix` (imported from
+  `<nixos-wsl/modules>`) *is* the system, so those files are tracked verbatim in
+  `nixos-wsl/`. `just nixos-wsl-diff` compares, `nixos-wsl-push` writes into
+  the distro (backing up into `/etc/nixos/.repo-backups/<stamp>/`), and
+  `nixos-wsl-capture` pulls in-place edits back; `check-nixos-wsl` fails the
+  gate on drift. User config still comes from the `juan@nixos-wsl` Home
+  Manager profile. `vm.swappiness=10` is declared in `configuration.nix`
+  because `.wslconfig` keeps swap as an emergency-only 16 GB. Disk hygiene is
+  `scripts/compact-wsl.sh`, run inside the distro: it keeps the last 5
+  system/home-manager generations, runs `nix-collect-garbage`, prunes
+  npm/pip/uv caches and journals, then `fstrim`s. Its `--set-sparse` step says
+  WSL disables managed sparse mode without `--allow-unsafe`, which needs no
+  action here: the VHDX is already sparse and the root mount carries
+  `discard`, so the trim alone returns the blocks to Windows.
 - **macbook** keeps Homebrew for GUI/macOS-integrated tools only (no CLI
   duplicates of the Nix profile). sops-nix needs the launchd
   bootout-then-bootstrap workaround in `home/macbook.nix`.
@@ -48,6 +64,14 @@ either host; activation needs separate review.
   profiles and tab order live in the gitignored
   `windows-terminal/settings.local.json`. LeopardWM’s profile targets the
   focused monitor so window placement can adapt between the home and work docks.
+  The gate runs here too (`just ci`, `just ci-public`), but only once Scoop and
+  pip supply what Windows ships without: `shellcheck`, `deno`, `sops`, and
+  `python3 -m pip install --user pyyaml`. `ci-strict` stays Linux/macOS-only
+  (`nix`, `rsync`). Two host limits skip loudly instead of passing silently:
+  this account has no symlink privilege (Developer Mode is off), and rsync has
+  no Scoop manifest, so the backup-suite test cannot run. sops also needs
+  `SOPS_AGE_KEY_FILE` set explicitly — the `check-secrets` recipe does it, the
+  same way `scripts/deploy-secrets.ps1` already had to.
 
 ## Where truth lives
 

@@ -2,12 +2,19 @@
 """Disposable Git histories only: no real memory, network, or user Git hooks."""
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 DRIVER = ROOT / 'skills/dream/scripts/merge-memory-index.py'
+# Resolve the interpreter instead of relying on a bare 'bash'. On Windows,
+# CreateProcess searches System32 before PATH, so 'bash' silently becomes the
+# WSL launcher, which cannot open a C:/ path. shutil.which() honours PATH order
+# and therefore finds the Git-for-Windows bash these scripts are written for.
+BASH = shutil.which('bash') or 'bash'
+SYNC = DRIVER.with_name('memory-sync.sh')
 BASE = ('<!-- 2026-11-01 10:00:00 [11111111] -->\n'
         '## Synthetic entry\nSYNTHETIC_PRIVATE_FACT\n\n'
         '<!-- 2026-11-02 10:00:00 [22222222] -->\n'
@@ -116,7 +123,7 @@ class MergeTests(unittest.TestCase):
 
     def sync(self, *args, env_extra=None):
         env = dict(self.env, PI_MEMORY_DIR=str(self.repo), **(env_extra or {}))
-        return subprocess.run(['bash', str(DRIVER.with_name('memory-sync.sh')), *args],
+        return subprocess.run([BASH, SYNC.as_posix(), *args],
                               cwd=self.repo, env=env, capture_output=True, text=True)
 
     def test_three_machine_sync_does_not_resurrect_deletion(self):
@@ -136,7 +143,7 @@ class MergeTests(unittest.TestCase):
         self.path.write_text(DELETED)
         for path in (clones[0], clones[2], clones[1], clones[0], clones[2]):
             env = dict(self.env, PI_MEMORY_DIR=str(path))
-            result = subprocess.run(['bash', str(DRIVER.with_name('memory-sync.sh'))],
+            result = subprocess.run([BASH, SYNC.as_posix()],
                                     cwd=path, env=env, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         contents = [(path / 'MEMORY.md').read_text() for path in clones]

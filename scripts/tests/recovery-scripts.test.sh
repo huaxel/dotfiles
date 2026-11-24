@@ -2,6 +2,15 @@
 set -euo pipefail
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+
+# The backup/restore scripts are rsync-driven and Scoop has no rsync manifest,
+# so this host cannot exercise them. Skip loudly instead of faking a pass;
+# macOS and Linux CI run the suite for real.
+if ! command -v rsync >/dev/null 2>&1; then
+  echo "  ⚠️  rsync unavailable — recovery script tests skipped"
+  exit 0
+fi
+
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 

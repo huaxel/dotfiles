@@ -15,6 +15,13 @@ Keep deployment paths stable; organize new material under the matching area belo
 - `nixos/` — only the shared `cachy-llama-package.nix` (live: feeds the
   `legacyPackages` smoke-test derivations). The future NixOS system modules
   live on the `nixos-framearch-future` branch, not on main.
+- `nixos-wsl/` — the NixOS WSL distro's system modules (`/etc/nixos/*.nix`:
+  `configuration.nix` plus `development-tools`, `workstation-baseline`,
+  `arch-tools`, `tailnet`). This distro has no flake and takes
+  `<nixos-wsl/modules>` from itself, so these files are its entire system
+  configuration. `scripts/nixos-wsl-sync.sh` (via `just nixos-wsl-diff`,
+  `nixos-wsl-push`, `nixos-wsl-capture`, and the `check-nixos-wsl` gate)
+  reconciles them with the live distro and backs up whatever it replaces.
 - `config/` — shared Unix application configuration deployed to `~/.config`
   (includes `config/nushell/` — env.nu/config.nu/login.nu for the Nushell
   shell, managed with `just nushell-setup` / `just nu-health`).

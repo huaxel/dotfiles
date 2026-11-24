@@ -63,6 +63,22 @@ def identity(block: str) -> str:
     return match.group(1).strip() if match else fingerprint(block)
 
 
+def normalized_absolute(value: str) -> bool:
+    """True when value is a normalized absolute path in either path flavour.
+
+    Mirrors memory-wiki.normalized_absolute: a registry can be written on
+    Linux (/machine-a/demo) and read on Windows (C:/work/demo), and the
+    running host's flavour must not be the only acceptable one.
+    """
+    if not value or value != value.rstrip('/\\'):
+        return False
+    for flavour in (pathlib.PurePosixPath, pathlib.PureWindowsPath):
+        path = flavour(value)
+        if path.is_absolute() and not ({'.', '..'} & set(path.parts)):
+            return True
+    return False
+
+
 def load_registry(mem: pathlib.Path, registry: pathlib.Path) -> dict[str, list[str]]:
     """Map canonical project -> old scope keys derived from its checkouts."""
     data = json.loads(registry.read_text())
@@ -72,8 +88,7 @@ def load_registry(mem: pathlib.Path, registry: pathlib.Path) -> dict[str, list[s
     projects: dict[str, list[str]] = {}
     for checkout, project in data['checkouts'].items():
         if (not isinstance(project, str) or not ID.fullmatch(project)
-                or not pathlib.Path(checkout).is_absolute()
-                or os.path.normpath(checkout) != checkout):
+                or not normalized_absolute(checkout)):
             raise ValueError('invalid identity mapping')
         label = re.sub(r'[^A-Za-z0-9._-]', '-', pathlib.Path(checkout).name) or 'project'
         key = label + '-' + hashlib.sha256(checkout.encode()).hexdigest()[:12]

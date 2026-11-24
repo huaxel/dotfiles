@@ -4,8 +4,11 @@ license: MIT
 installed: 2026-11-21T22:34:02Z
 
 local_changes:
-  scripts/mem.sh, scripts/queue.sh: added two `# shellcheck disable` comments
-  (SC2012, SC2086) so the repository shellcheck gate passes. No behavior change;
-  SC2086 is intentional flag splitting, not a quoting bug. Re-apply after any
-  re-sync from upstream, then delete this note once upstream carries the same
-  directives.
+  scripts/mem.sh: replaced `ls -d ... | head -1` with an explicit directory probe,
+  so the cgroup path is chosen without parsing ls output (SC2012).
+  scripts/queue.sh: split BENCH_FLAGS into an array once instead of expanding an
+  unquoted variable into the bench.py argument list (SC2086). An empty BENCH_FLAGS
+  still passes no arguments.
+  Both keep the repository shellcheck gate green without suppressing a finding.
+  Re-apply after any re-sync from upstream, then delete this note once upstream
+  carries the same fix.

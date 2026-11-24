@@ -88,6 +88,16 @@ def memory_files() -> list[pathlib.Path]:
     return sorted(set(found))
 
 
+def rel_name(path: pathlib.Path) -> str:
+    """Wire-format path, always POSIX.
+
+    The memory tree is synced between Windows, macOS, and Linux, so the names
+    agents see must not depend on which host produced them: a backslash path
+    from Windows and a slash path from Linux would look like two files.
+    """
+    return path.relative_to(MEM_DIR).as_posix()
+
+
 def safe_path(rel: str) -> pathlib.Path | None:
     """Resolve a caller-supplied path inside the clone, or None if it escapes."""
     if not rel or "\x00" in rel:
@@ -194,7 +204,7 @@ def search(query: str, limit: int = 8) -> list[dict]:
         snippet = " ".join(chunk["text"].split())[:400]
         results.append(
             {
-                "file": str(path.relative_to(MEM_DIR)),
+                "file": rel_name(path),
                 "line": chunk["start"],
                 "heading": chunk["heading"],
                 "score": round(score, 3),
@@ -215,7 +225,7 @@ def read_file(rel: str, start: int | None = None, end: int | None = None) -> dic
         raise ValueError(f"empty range: start={first} end={last}")
     body = "\n".join(f"{n}: {lines[n - 1]}" for n in range(first, last + 1))
     return {
-        "file": str(path.relative_to(MEM_DIR)),
+        "file": rel_name(path),
         "start": first,
         "end": last,
         "total_lines": len(lines),
@@ -225,7 +235,7 @@ def read_file(rel: str, start: int | None = None, end: int | None = None) -> dic
 
 def list_files() -> list[dict]:
     return [
-        {"file": str(p.relative_to(MEM_DIR)), "bytes": p.stat().st_size}
+        {"file": rel_name(p), "bytes": p.stat().st_size}
         for p in memory_files()
     ]
 
@@ -393,7 +403,7 @@ def selftest() -> int:
 
     # Read returns numbered lines within range.
     if files:
-        rel = str(files[0].relative_to(MEM_DIR))
+        rel = rel_name(files[0])
         got = read_file(rel, 1, 3)
         check("read returns requested range", got["start"] == 1 and got["end"] <= 3)
 

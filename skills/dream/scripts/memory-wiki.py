@@ -94,6 +94,23 @@ def metadata(text: str) -> dict[str, str]:
     return result
 
 
+def normalized_absolute(value: str) -> bool:
+    """True when value is a normalized absolute path in either path flavour.
+
+    The memory tree is synced between machines, so a registry written on Linux
+    holds POSIX checkouts (/machine-a/demo) while a Windows host records C:/….
+    Validating with pathlib.Path would treat the running host's flavour as the
+    only acceptable one and reject every other machine's entries.
+    """
+    if not value or value != value.rstrip('/\\'):
+        return False
+    for flavour in (pathlib.PurePosixPath, pathlib.PureWindowsPath):
+        path = flavour(value)
+        if path.is_absolute() and not ({'.', '..'} & set(path.parts)):
+            return True
+    return False
+
+
 def legacy_views(mem: pathlib.Path) -> set[str]:
     """Suppress only explicitly mapped old scope keys with a usable replacement.
 
@@ -111,8 +128,7 @@ def legacy_views(mem: pathlib.Path) -> set[str]:
     for checkout, project in data['checkouts'].items():
         if (not isinstance(project, str) or
                 not re.fullmatch(r'[a-z][a-z0-9-]{0,63}', project) or
-                not pathlib.Path(checkout).is_absolute() or
-                os.path.normpath(checkout) != checkout):
+                not normalized_absolute(checkout)):
             raise ValueError('invalid identity mapping')
         canonical = mem / 'projects' / project / 'MEMORY.md'
         if not canonical.is_file():

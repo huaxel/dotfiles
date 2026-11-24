@@ -3,7 +3,7 @@
   "private": true,
   "dependencies": {
     "@juanbenjumea/pi-agy": "^0.8.3",
-    "@juanbenjumea/pi-dynamic-footer": "^0.1.11",
+    "@juanbenjumea/pi-dynamic-footer": "^0.1.15",
     "@juanbenjumea/pi-go-on": "^0.1.2",
     "@juanbenjumea/pi-provider-openference": "^0.5.0",
     "@juicesharp/rpiv-todo": "^2.4.0",
