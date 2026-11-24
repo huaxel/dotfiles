@@ -44,7 +44,13 @@ either host; activation needs separate review.
   `nixos-wsl-capture` pulls in-place edits back; `check-nixos-wsl` fails the
   gate on drift. User config still comes from the `juan@nixos-wsl` Home
   Manager profile. `vm.swappiness=10` is declared in `configuration.nix`
-  because `.wslconfig` keeps swap as an emergency-only 16 GB.
+  because `.wslconfig` keeps swap as an emergency-only 16 GB. Disk hygiene is
+  `scripts/compact-wsl.sh`, run inside the distro: it keeps the last 5
+  system/home-manager generations, runs `nix-collect-garbage`, prunes
+  npm/pip/uv caches and journals, then `fstrim`s. Its `--set-sparse` step says
+  WSL disables managed sparse mode without `--allow-unsafe`, which needs no
+  action here: the VHDX is already sparse and the root mount carries
+  `discard`, so the trim alone returns the blocks to Windows.
 - **macbook** keeps Homebrew for GUI/macOS-integrated tools only (no CLI
   duplicates of the Nix profile). sops-nix needs the launchd
   bootout-then-bootstrap workaround in `home/macbook.nix`.

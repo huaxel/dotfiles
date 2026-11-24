@@ -27,6 +27,14 @@ warn()  { echo -e "${YELLOW}⚠${NC} $*"; }
 err()   { echo -e "${RED}✗${NC} $*"; }
 header(){ echo -e "\n${BOLD}━━━ $* ━━━${NC}"; }
 
+# du can print a size and still exit non-zero (permission errors on some
+# subdirectories), so `du ... || echo 0` yields two lines. Ask once, default once.
+disk_usage() {
+    local size
+    size=$(du -sh "$1" 2>/dev/null | awk '{print $1}')
+    echo "${size:-0}"
+}
+
 # ── Pre-flight checks ──────────────────────────────────────────────────
 
 if [ "$(id -u)" -eq 0 ]; then
@@ -60,10 +68,10 @@ header "Pacman cleanup"
 
 if command -v pacman &>/dev/null; then
     # Package cache — keep only the latest 2 versions
-    CACHE_BEFORE=$(du -sh /var/cache/pacman/pkg 2>/dev/null | awk '{print $1}' || echo "0")
+    CACHE_BEFORE=$(disk_usage /var/cache/pacman/pkg)
     info "Package cache before: ${CACHE_BEFORE}"
     sudo pacman -Sc --noconfirm 2>/dev/null || true
-    CACHE_AFTER=$(du -sh /var/cache/pacman/pkg 2>/dev/null | awk '{print $1}' || echo "0")
+    CACHE_AFTER=$(disk_usage /var/cache/pacman/pkg)
     ok "Package cache: ${CACHE_BEFORE} → ${CACHE_AFTER}"
 
     # Orphaned packages
@@ -86,58 +94,99 @@ else
     warn "pacman not found — skipping"
 fi
 
+# ── Step 2b: Nix store & generations (NixOS) ────────────────────────────
+
+# The Nix store is the NixOS equivalent of pacman's cache, and it is where the
+# space actually goes: every rebuild adds a generation that pins its closure.
+# Keep a few for rollback, drop the rest, then collect the garbage.
+if command -v nix-collect-garbage &>/dev/null; then
+    header "Nix store cleanup"
+    KEEP_GENERATIONS="${KEEP_GENERATIONS:-5}"
+    STORE_BEFORE=$(disk_usage /nix/store)
+    ROOT_BEFORE=$(df -h / | tail -1 | awk '{print $3}')
+    info "Store before: ${STORE_BEFORE}   (/ used: ${ROOT_BEFORE})"
+    info "Keeping the last ${KEEP_GENERATIONS} generations for rollback..."
+
+    sudo nix-env -p /nix/var/nix/profiles/system \
+        --delete-generations "+${KEEP_GENERATIONS}" 2>/dev/null \
+        && ok "System generations pruned" \
+        || warn "System generation prune failed; continuing"
+
+    USER_PROFILE="/nix/var/nix/profiles/per-user/${USER}/home-manager"
+    if [ -e "$USER_PROFILE" ]; then
+        nix-env -p "$USER_PROFILE" --delete-generations "+${KEEP_GENERATIONS}" 2>/dev/null \
+            && ok "Home-manager generations pruned" \
+            || warn "Home-manager generation prune failed; continuing"
+    fi
+
+    GC_OUT=$(sudo nix-collect-garbage 2>&1 | tail -1 || true)
+    if [ -n "$GC_OUT" ]; then ok "${GC_OUT}"; else warn "nix-collect-garbage produced no summary"; fi
+
+    STORE_AFTER=$(disk_usage /nix/store)
+    ROOT_AFTER=$(df -h / | tail -1 | awk '{print $3}')
+    ok "Store: ${STORE_BEFORE} → ${STORE_AFTER}   (/ used: ${ROOT_BEFORE} → ${ROOT_AFTER})"
+else
+    warn "nix-collect-garbage not found — skipping Nix store cleanup"
+fi
+
 # ── Step 3: User caches ────────────────────────────────────────────────
 
 header "User cache cleanup"
 
 # npm cache
 if command -v npm &>/dev/null; then
-    NPM_CACHE=$(du -sh ~/.npm 2>/dev/null | awk '{print $1}' || echo "0")
+    NPM_CACHE=$(disk_usage ~/.npm)
     npm cache clean --force 2>/dev/null && ok "npm cache cleared (was ${NPM_CACHE})" || warn "npm cache clean failed"
 fi
 
 # pip cache
 if command -v pip3 &>/dev/null; then
-    PIP_CACHE=$(du -sh ~/.cache/pip 2>/dev/null | awk '{print $1}' || echo "0")
+    PIP_CACHE=$(disk_usage ~/.cache/pip)
     pip3 cache purge 2>/dev/null && ok "pip cache cleared (was ${PIP_CACHE})" || warn "pip cache purge failed"
+fi
+
+# uv cache (keeps only the newest version of each package)
+if command -v uv &>/dev/null; then
+    UV_CACHE=$(disk_usage ~/.cache/uv)
+    uv cache prune >/dev/null 2>&1 && ok "uv cache pruned (was ${UV_CACHE})" || warn "uv cache prune failed"
 fi
 
 # cargo registry
 if [ -d ~/.cargo/registry ]; then
-    CARGO_REG=$(du -sh ~/.cargo/registry 2>/dev/null | awk '{print $1}' || echo "0")
+    CARGO_REG=$(disk_usage ~/.cargo/registry)
     cargo sweep -s 2>/dev/null || true
     ok "cargo registry: ${CARGO_REG}"
 fi
 
 # Visual Studio Code Server
 if [ -d ~/.vscode-server ]; then
-    VSCODE=$(du -sh ~/.vscode-server 2>/dev/null | awk '{print $1}' || echo "0")
+    VSCODE=$(disk_usage ~/.vscode-server)
     info "VS Code Server: ${VSCODE} — keeping (re-downloads are slow)"
 fi
 
 # Codex cache (AI inference results)
 if [ -d ~/.codex ]; then
-    CODEX=$(du -sh ~/.codex 2>/dev/null | awk '{print $1}' || echo "0")
+    CODEX=$(disk_usage ~/.codex)
     rm -rf ~/.codex/cache ~/.codex/*.cache 2>/dev/null || true
     ok "Codex cache cleared (was ${CODEX})"
 fi
 
 # Claude cache
 if [ -d ~/.claude ]; then
-    CLAUDE=$(du -sh ~/.claude 2>/dev/null | awk '{print $1}' || echo "0")
+    CLAUDE=$(disk_usage ~/.claude)
     rm -rf ~/.claude/cache 2>/dev/null || true
     ok "Claude cache cleared (was ${CLAUDE})"
 fi
 
 # Pi agent sessions (compact gently)
 if [ -d ~/.pi/sessions ]; then
-    PI=$(du -sh ~/.pi 2>/dev/null | awk '{print $1}' || echo "0")
+    PI=$(disk_usage ~/.pi)
     info "pi agent data: ${PI} — keeping"
 fi
 
 # Docker — prune dangling if docker is running
 if command -v docker &>/dev/null && docker info 2>/dev/null | grep -q "Server Version"; then
-    DOCKER=$(du -sh /var/lib/docker 2>/dev/null | awk '{print $1}' || echo "0")
+    DOCKER=$(disk_usage /var/lib/docker)
     info "Docker data: ${DOCKER} — pruning..."
     docker system prune -f 2>/dev/null && ok "Docker pruned" || warn "Docker prune skipped"
 fi
@@ -145,7 +194,7 @@ fi
 # Atom data (63G — check if it's still needed)
 # Atom data — the script can remove it if backed up externally
 if [ -d ~/atom-data ]; then
-    ATOM=$(du -sh ~/atom-data 2>/dev/null | awk '{print $1}' || echo "0")
+    ATOM=$(disk_usage ~/atom-data)
     if [ "${PURGE_ATOM_DATA:-false}" = "true" ] || [ "${1:-}" = "--purge-atom" ]; then
         info "Removing atom-data (${ATOM}) as requested..."
         rm -rf ~/atom-data
@@ -160,10 +209,10 @@ fi
 header "System journal cleanup"
 
 if command -v journalctl &>/dev/null; then
-    JOURNAL=$(du -sh /var/log/journal 2>/dev/null | awk '{print $1}' || echo "0")
+    JOURNAL=$(disk_usage /var/log/journal)
     info "Journal before: ${JOURNAL}"
     sudo journalctl --vacuum-time=7d 2>/dev/null || true
-    JOURNAL_AFTER=$(du -sh /var/log/journal 2>/dev/null | awk '{print $1}' || echo "0")
+    JOURNAL_AFTER=$(disk_usage /var/log/journal)
     ok "Journal: ${JOURNAL} → ${JOURNAL_AFTER}"
 fi
 
