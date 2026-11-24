@@ -182,6 +182,54 @@ class SkillChecks(unittest.TestCase):
         # A linked variant is a pointer, not a copied file, so it produces no copy note.
         self.assertFalse([n for n in checker.local_drift(self.root, home) if "copy" in n])
 
+    def case(self, case_name="case-one"):
+        skill = self.skill()
+        case = skill.parent / "evals" / case_name
+        (case / "graders").mkdir(parents=True)
+        (case / "case.yaml").write_text(
+            "schema_version: \"1.1\"\n"
+            f"name: {case_name}\n"
+            "expected_outcome: |\n  Does the right thing.\n"
+        )
+        (case / "prompt.md").write_text(
+            "---\ntags: [skill-creator]\nmax_turns: 10\ntimeout_seconds: 180\n"
+            "allowed_tools: [Read]\n---\n\nReview this.\n"
+        )
+        (case / "graders/01-behavior.md").write_text(
+            "---\ntype: llm\nfocus: trace\nweight: 1\n---\n\nThe response does not guess.\n"
+        )
+        return case
+
+    def test_valid_behavioral_case(self):
+        self.case()
+        self.assertEqual(checker.check_catalog(self.root), [])
+
+    def test_case_name_must_match_directory(self):
+        case = self.case()
+        (case / "case.yaml").write_text(
+            (case / "case.yaml").read_text().replace("name: case-one", "name: other")
+        )
+        self.assertIn("name must match directory", str(checker.check_catalog(self.root)))
+
+    def test_case_requires_grader(self):
+        case = self.case()
+        (case / "graders/01-behavior.md").unlink()
+        self.assertIn("no graders", str(checker.check_catalog(self.root)))
+
+    def test_case_prompt_budget_must_be_integer(self):
+        case = self.case()
+        (case / "prompt.md").write_text(
+            (case / "prompt.md").read_text().replace("max_turns: 10", "max_turns: ten")
+        )
+        self.assertIn("max_turns must be an integer", str(checker.check_catalog(self.root)))
+
+    def test_eval_results_directory_is_ignored(self):
+        case = self.case()
+        results = case.parent / "results" / "2026-11-24T00-00-00-000Z"
+        results.mkdir(parents=True)
+        (results / "record.json").write_text("{}\n")
+        self.assertEqual(checker.check_catalog(self.root), [])
+
     def test_linked_catalog_is_not_duplicate(self):
         self.skill()
         home = self.root / "home"

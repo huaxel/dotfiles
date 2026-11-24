@@ -66,6 +66,77 @@ def harness_imports(text: str) -> list[str]:
     return [p for p in HARNESS_IMPORT_MARKERS if re.search(p, prose)]
 
 
+def frontmatter(text: str) -> tuple[dict, str]:
+    """Split a Markdown frontmatter block from its body."""
+    lines = text.splitlines()
+    if not lines or lines[0] != "---":
+        raise ValueError("missing frontmatter")
+    try:
+        end = lines.index("---", 1)
+    except ValueError as exc:
+        raise ValueError("unterminated frontmatter") from exc
+    value = yaml.load("\n".join(lines[1:end]), Loader=UniqueLoader)
+    if not isinstance(value, dict):
+        raise ValueError("frontmatter must be a mapping")
+    return value, "\n".join(lines[end + 1 :]).strip()
+
+
+def eval_errors(case: Path, relative: Path) -> list[str]:
+    """Validate one behavioral case against the convention the existing cases follow.
+
+    A case is a prompt plus an expected outcome and at least one grader. It is prepared
+    material, not evidence that a model was run; the shape is checked here so a malformed
+    case fails the gate instead of surfacing when someone finally executes the suite.
+    """
+    errors = []
+    spec_path = case / "case.yaml"
+    try:
+        spec = yaml.load(spec_path.read_text(encoding="utf-8"), Loader=UniqueLoader)
+    except (OSError, yaml.YAMLError) as exc:
+        return [f"{relative}/case.yaml: {exc}"]
+    if not isinstance(spec, dict):
+        return [f"{relative}/case.yaml: must be a mapping"]
+    if not isinstance(spec.get("schema_version"), str):
+        errors.append(f"{relative}/case.yaml: schema_version must be a string")
+    if spec.get("name") != case.name:
+        errors.append(f"{relative}/case.yaml: name must match directory {case.name}")
+    outcome = spec.get("expected_outcome")
+    if not isinstance(outcome, str) or not outcome.strip():
+        errors.append(f"{relative}/case.yaml: expected_outcome must be a non-empty string")
+    prompt_path = case / "prompt.md"
+    try:
+        meta, body = frontmatter(prompt_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, yaml.YAMLError) as exc:
+        errors.append(f"{relative}/prompt.md: {exc}")
+    else:
+        for field in ("max_turns", "timeout_seconds"):
+            if type(meta.get(field)) is not int:
+                errors.append(f"{relative}/prompt.md: {field} must be an integer")
+        if not isinstance(meta.get("allowed_tools"), list):
+            errors.append(f"{relative}/prompt.md: allowed_tools must be a list")
+        if not body:
+            errors.append(f"{relative}/prompt.md: prompt body is empty")
+    graders = sorted((case / "graders").glob("*.md"))
+    if not graders:
+        errors.append(f"{relative}: no graders/*.md")
+    for grader in graders:
+        name = f"{relative}/graders/{grader.name}"
+        try:
+            meta, body = frontmatter(grader.read_text(encoding="utf-8"))
+        except (OSError, ValueError, yaml.YAMLError) as exc:
+            errors.append(f"{name}: {exc}")
+            continue
+        if not isinstance(meta.get("type"), str):
+            errors.append(f"{name}: type must be a string")
+        if not isinstance(meta.get("focus"), str):
+            errors.append(f"{name}: focus must be a string")
+        if type(meta.get("weight")) not in (int, float):
+            errors.append(f"{name}: weight must be a number")
+        if not body:
+            errors.append(f"{name}: assertion is empty")
+    return errors
+
+
 def resource_targets(text: str) -> set[str]:
     """Literal bundled resources, not arbitrary shell commands or generated paths."""
     return set(re.findall(
@@ -133,6 +204,13 @@ def check_catalog(root: Path) -> list[str]:
                         f"catalog (matched {marker!r}); keep it harness-local or drop it"
                     )
             targets = resource_targets(text)
+            # Behavioral cases follow one convention across every skill that has them;
+            # `results/` holds run outputs, not a case.
+            if "synced" not in relative.parts:
+                for case in sorted((path.parent / "evals").glob("*/")):
+                    if case.name == "results":
+                        continue
+                    errors.extend(eval_errors(case, relative.parent / "evals" / case.name))
             if "synced" not in relative.parts:
                 targets |= link_targets(text)
             for target in sorted(targets):
