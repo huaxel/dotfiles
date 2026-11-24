@@ -43,7 +43,9 @@ Follow this order for each kernel, including read-only tasks:
 
 1. Run the inspection command once.
 2. Wait for successful `help(cm)` output.
-3. Then use `cm.get_context()` or another `cm` API in a later call.
+3. Then use `cm.get_context()` or another `cm` API in a later call. For the `ctx`
+   surface you are about to use, see
+   [code-mode-surface.md](reference/code-mode-surface.md).
 
 Do not run task-specific `cm` code before the inspection command succeeds.
 
@@ -286,6 +288,7 @@ For designing custom visual or interactive output, see
 
 ## References
 
+- [code-mode-surface.md](reference/code-mode-surface.md) — `ctx` attributes and cell operations, plus known API friction
 - [execution-context.md](reference/execution-context.md) — scripts, MCP, auth, startup, and shell quoting
 - [finding-marimo.md](reference/finding-marimo.md) — choosing the right marimo invocation
 - [gotchas.md](reference/gotchas.md) — name redefinition, cached module proxies, and notebook traps

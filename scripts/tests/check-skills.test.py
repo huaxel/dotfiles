@@ -165,6 +165,23 @@ class SkillChecks(unittest.TestCase):
         copy.write_bytes(source.read_bytes())
         self.assertIn("identical copy", str(checker.local_drift(self.root, home)))
 
+    def test_linked_harness_variant_is_not_drift(self):
+        self.skill()
+        home = self.root / "home"
+        variant = self.root / "variant"
+        variant.mkdir()
+        (variant / "SKILL.md").write_text("---\nname: example\ndescription: Different build.\n---\n")
+        base = home / ".codex/skills"
+        base.mkdir(parents=True)
+        try:
+            (base / "example").symlink_to(variant, target_is_directory=True)
+        except OSError as error:
+            if getattr(error, "winerror", None) == 1314:
+                self.skipTest("Windows symlink privilege unavailable; covered under WSL")
+            raise
+        # A linked variant is a pointer, not a copied file, so it produces no copy note.
+        self.assertFalse([n for n in checker.local_drift(self.root, home) if "copy" in n])
+
     def test_linked_catalog_is_not_duplicate(self):
         self.skill()
         home = self.root / "home"

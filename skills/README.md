@@ -1,13 +1,13 @@
 # Shared agent skills
 
-`skills/` is the source for reusable cross-agent skills. Unix bootstrap links `~/.agents/skills` here; the Windows agent-state sync copies it. Pi, Codex, Amp, Gemini CLI, Cursor, and Copilot CLI can discover that shared root according to their current conventions. Claude Code uses `~/.claude/skills` instead, so Home Manager links each top-level shared skill there individually while preserving Claude-managed and machine-local entries. These links point back to the canonical checkout; they are not copied skill files.
+`skills/` is the source for reusable cross-agent skills. Unix bootstrap links `~/.agents/skills` here; the Windows agent-state sync copies it. Pi, Codex, Amp, Gemini CLI, Cursor, and Copilot CLI can discover that shared root according to their current conventions. Claude Code only reads `~/.claude/skills`, so that path is either a single link to this tree or, where it is a real directory, a set of per-skill links added by Home Manager that leave plugin-managed and machine-local entries untouched. Either way the entries point back to the canonical checkout; they are not copied skill files.
 
 ## Ownership
 
 - Top-level skill directories are locally maintained or explicitly installed integrations. Keep one canonical copy; use harness links rather than independently edited copies when the content should stay shared.
 - `synced/` is vendor-managed source material. Preserve it rather than patching generated copies. Inspect upstream updates, then apply environment-specific selection in harness configuration.
 - `pi/agent/skills/` contains Pi-only workflows. Put portable project skills in `.agents/skills/<name>/`, not a harness-specific directory by default.
-- Harness-local skills may be intentional overrides. `just doctor-skills` reports shared-name copies without overwriting them. Review the diff and ownership before replacing one; retain originals outside discovery roots.
+- Harness-local skills may be intentional overrides. `just doctor-skills` reports shared-name copies without overwriting them. A linked skill directory is a pointer rather than a copy, so a harness-specific variant is not reported as drift. Review the diff and ownership before replacing one; retain originals outside discovery roots.
 
 ## Routing
 

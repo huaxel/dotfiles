@@ -144,12 +144,20 @@ def check_catalog(root: Path) -> list[str]:
 
 
 def local_drift(root: Path, home: Path) -> list[str]:
-    """Advisory only: do not assume local overrides can safely be replaced."""
+    """Advisory only: do not assume local overrides can safely be replaced.
+
+    A linked skill directory is a pointer to its own source rather than a copied file,
+    so it cannot drift and is not reported. Harness-specific variants (a Codex build of
+    a terminal skill, for example) are intentional and would otherwise warn on every run,
+    which trains the reader to ignore the check.
+    """
     notes = []
     for agent in (".claude", ".codex"):
         base = home / agent / "skills"
         for source in sorted((root / "skills").glob("*/SKILL.md")):
             copy = base / source.parent.name / "SKILL.md"
+            if copy.is_symlink() or copy.parent.is_symlink():
+                continue
             if copy.exists() and copy.resolve() != source.resolve():
                 state = "identical copy" if copy.read_bytes() == source.read_bytes() else "DIVERGENT copy"
                 notes.append(f"{copy}: {state}; review ownership before linking")
