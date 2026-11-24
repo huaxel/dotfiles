@@ -9,6 +9,7 @@ Supports path-specific SOPS rules and both list-form and legacy folded-string
 `age:` values.
 """
 import json
+import pathlib
 import re
 import sys
 
@@ -60,9 +61,12 @@ def _recipients(age):
 
 
 def config_recipients(path, secret_path):
+    # creation_rules use POSIX separators; a Windows host passes secrets\x.enc,
+    # which would match no rule at all and report a bogus structural failure.
+    normalized = pathlib.Path(secret_path).as_posix()
     for rule in config_rules(path):
         pattern = rule.get("path_regex")
-        if pattern and re.search(pattern, secret_path) is None:
+        if pattern and re.search(pattern, normalized) is None:
             continue
         return _recipients(rule.get("age", []))
     raise ValueError(f"no creation rule matches {secret_path}")

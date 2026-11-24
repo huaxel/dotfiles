@@ -58,6 +58,14 @@ either host; activation needs separate review.
   profiles and tab order live in the gitignored
   `windows-terminal/settings.local.json`. LeopardWM’s profile targets the
   focused monitor so window placement can adapt between the home and work docks.
+  The gate runs here too (`just ci`, `just ci-public`), but only once Scoop and
+  pip supply what Windows ships without: `shellcheck`, `deno`, `sops`, and
+  `python3 -m pip install --user pyyaml`. `ci-strict` stays Linux/macOS-only
+  (`nix`, `rsync`). Two host limits skip loudly instead of passing silently:
+  this account has no symlink privilege (Developer Mode is off), and rsync has
+  no Scoop manifest, so the backup-suite test cannot run. sops also needs
+  `SOPS_AGE_KEY_FILE` set explicitly — the `check-secrets` recipe does it, the
+  same way `scripts/deploy-secrets.ps1` already had to.
 
 ## Where truth lives
 
