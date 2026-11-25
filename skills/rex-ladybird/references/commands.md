@@ -7,19 +7,29 @@ prose is the repo's own `README.md`; this file is the index an agent needs.
 ## `ladyctl`
 
 ```
-ladyctl [--port PORT] [--json] <command> ...
+ladyctl [-b TARGET] [--port PORT] [--json] <command> ...
 ```
+
+`-b` picks the pane: a block id, an id suffix, or part of the url it was opened
+at, resolved against `$STATE/tabs`. Without it the recorded pane (`$STATE/current`)
+is driven. A target that matches two panes is refused with the count, not guessed.
 
 | command | arguments | reads through | notes |
 | --- | --- | --- | --- |
+| `ls` | — | `$STATE/tabs` + a liveness probe | `{block, port, url, title, live}` per pane; a pane that listens but does not answer keeps `live: true` and gets no title |
+| `focus` / `close` | `-b TARGET` | `rex focus` / `rex block close` | TARGET goes to Rex as given, so a label or suffix works |
 | `tabs` | — | DevTools `listTabs` | `{title, url, actor}` per tab |
 | `url` | — | DevTools, status line as fallback | the address the browser actually has |
 | `title` | — | DevTools | page title |
 | `open` | `url` | DevTools `navigateTo`, APC `open` as fallback | no address bar involved |
 | `back` / `forward` / `reload` | — | DevTools, APC fallback | |
-| `eval` | `script` | DevTools `evaluateJSAsync` | main world; the result must be JSON-serialisable. A throwing script exits 1 with `no evaluation result`, because Ladybird sends no result for an exception |
+| `eval` | `script` (`-` reads stdin), `--timeout N` (default 30) | DevTools `evaluateJSAsync`, twice | main world; an expression or a function body (`const n = 2; return n * 21`), and promises are awaited. A script that throws exits 1 with its own message; one that will not compile exits 1 with `no evaluation result`, since Ladybird sends nothing at all |
 | `links` | `--limit N` (default 200) | `eval` over the live DOM | `{text, href}`, absolute hrefs |
-| `click` | `selector` | `eval` on the first match | prints `clicked`; exits 1 with `no element matches SELECTOR` |
+| `snapshot` | `--list`, `--max N` (default 20000), `--json` | `eval` over the live DOM | numbers every operable control `e1, e2, …`, marks each with `data-lb-ref`, and returns `{title, url, elements, text}`; `--list` prints `ref<TAB>kind<TAB>label[<TAB>flags]` for pickers |
+| `click` | `target`: a ref such as `e2`, or a CSS selector | `eval` on the match | scrolls it into view, then dispatches `pointerdown, mousedown, focus, pointerup, mouseup, click`; prints `clicked`; exits 1 with `no element matches SELECTOR` or `no element e9` |
+| `type` | `target`, `text?`, `--clear`, `--submit` | DevTools to focus, `rex send` for the text | real keystrokes, so autocomplete and framework models see them; refuses to type (`did not take focus`) rather than typing into whatever has focus |
+| `press` | `keys…` | `rex send-key` | `ladyctl press tab enter`, `ctrl+a` |
+| `wait` | `--selector S`, `--text T`, `--timeout N` (default 30) | DevTools, re-attaching after navigation | exits 1 with `waited Ns for the page to show S` |
 | `chrome` | `on` / `off` | APC | hides terminal mode's status line (needs the patch) |
 | `quit` | — | APC | closes the browser, not the pane |
 
@@ -46,6 +56,7 @@ when it is absent.
 | `ladybird_tabs` | — | *picker*: live tabs only; picking one zooms its block |
 | `ladybird_tab_close` | — | *picker*: close the block running the chosen tab |
 | `ladybird_links` | — | *picker*: links from the live DOM, loaded into the current pane |
+| `ladybird_click` | — | *picker*: every control `ladyctl snapshot --list` reports, clicked by ref through `ladyctl click` |
 | `ladybird_url` | — | DevTools first, status line second, copies to the clipboard via `pbcopy` |
 
 Return values (`rex do … --json`) are plain tables, e.g.

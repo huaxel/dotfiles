@@ -40,6 +40,7 @@ Every action is under `ctrl+b`:
 | `ctrl+b b` | `ladybird_tabs` | switch tab |
 | `ctrl+b x` | `ladybird_tab_close` | close a tab |
 | `ctrl+b k` | `ladybird_links` | pick a link off the current page |
+| `ctrl+b c` | `ladybird_click` | pick any control on the page — button, field, menu item — and click it |
 | `ctrl+b u` | `ladybird_url` | copy the current address to the clipboard |
 
 The everyday loop is `ctrl+b w` instead of `ctrl+l`: you get a Rex picker over
@@ -67,10 +68,25 @@ ladyctl url                       # https://example.net/
 ladyctl title                     # Example Domain
 ladyctl eval 'document.querySelector("h1").textContent'
 ladyctl --json links              # [{text, href}] as the live DOM reports them
-ladyctl click 'a[href*="docs"]'
 ladyctl open https://example.org  # navigate without touching the address bar
 ladyctl back | forward | reload
 ```
+
+To operate a page rather than read it, `snapshot` comes first: it numbers every
+control and the numbers are what the other commands take.
+
+```bash
+ladyctl snapshot --list           # e1<TAB>text<TAB>Search … e4<TAB>button<TAB>Go
+ladyctl snapshot | head -20       # the same, plus the page text
+ladyctl click e4                  # pointer events, scrolled into view
+ladyctl type e1 'rex ladybird' --clear --submit   # real keystrokes, then Enter
+ladyctl press tab enter
+ladyctl wait --text Saved --timeout 10
+```
+
+Refs belong to one snapshot of one document: a reload, a navigation, or a page
+that re-renders under you makes them fail with `no element e3`, which is
+deliberate — take another snapshot instead of letting `e3` mean something else.
 
 **Always pass `url=` to an action.** Without it the action opens a Rex picker
 and waits for a human — correct for a person at the keyboard, a hang for a
@@ -78,7 +94,8 @@ script.
 
 **You cannot see the page from the terminal.** `rex capture -b <block>` returns
 one newline: the page is drawn as graphics, not scrollback. Read the page
-through `ladyctl eval` (any JS, JSON-serialisable result), `ladyctl links`, and
+through `ladyctl snapshot` (the control inventory plus the visible text),
+`ladyctl eval` (any JS, JSON-serialisable result), `ladyctl links`, and
 `ladyctl title`. If you need layout or styling, evaluate the elements you care
 about rather than guessing from a screenshot you cannot take.
 
@@ -93,15 +110,20 @@ ladyctl open 'https://example.org/?q=rex'                      # then navigate
 ```
 
 `eval` runs in the page's main world, so it sees the DOM the user sees and the
-page's own globals. It does not survive navigation, and it cannot drive the
-browser chrome.
+page's own globals. It takes an expression or a function body — `const n = 2;
+return n * 21` — and it awaits promises, so a script can wait for something the
+page does itself. It does not survive navigation, and it cannot drive the browser
+chrome. A script that throws exits 1 with its own message; one that will not
+parse exits 1 with `no evaluation result`, because Ladybird answers nothing at
+all in that case.
 
 ## Seams worth knowing
 
-- **One recorder, many panes.** The module remembers the pane it last spoke to
-  in `~/.local/state/rex-ladybird/{current,port}`, so `ladyctl` without
-  `--port` addresses the newest pane. Pass `--port` when you have several open
-  and care which one you hit.
+- **Several panes, one CLI.** `ladyctl ls` lists the panes the module launched
+  (block, port, address, title), and `-b` picks one for any command: a block id,
+  an id suffix, or part of its address. Without `-b` the CLI drives the newest
+  pane, from `~/.local/state/rex-ladybird/{current,port}`. Pass `--port` only
+  when you know the port and the pane is not in the registry.
 - **Ports are per pane.** Panes get `9317`, `9318`, … from a free slot, each
   recorded in `…/rex-ladybird/tabs` as `block_id<TAB>port<TAB>url`.
   Entries whose block has left its window are dropped on the next read, so a
@@ -118,9 +140,11 @@ browser chrome.
 
 | symptom | cause | fix |
 | --- | --- | --- |
+| `no element e3` | the snapshot is older than the page | `ladyctl snapshot --list` again |
+| nothing typed into the field | the element did not take focus | click it first; `type` refuses rather than typing blind |
 | command returns after a long pause, nothing opens | a picker action ran without `url=` | pass `url=`; a picker needs a human |
 | `ladyctl: connection refused` | no browser is running on that port | `cat ~/.local/state/rex-ladybird/tabs`, or open a pane |
-| `ladyctl` prints a stale title | it is talking to an older pane | `ladyctl --json tabs`, then `--port` |
+| `ladyctl` prints a stale title | it is talking to an older pane | `ladyctl ls`, then `-b <block or address part>` |
 | `unknown command: chrome` in the pane | stock build, no patch | rebuild from the patch; harmless otherwise |
 | the last row is a status line | same | same |
 
