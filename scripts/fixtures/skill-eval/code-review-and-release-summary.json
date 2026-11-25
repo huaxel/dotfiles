@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "mode": "text-only",
+  "recorded": "2026-11-24",
+  "provider": "mistral",
+  "model": "deepseek-v4-1-flash-1017",
+  "repeats": 1,
+  "status": "historical",
+  "note": "One repetition per task cannot establish non-inferiority or benefit. Both plans are committed as specs so a future run can be reproduced; results live outside the repository.",
+  "evaluations": [
+    {
+      "skill": "code-review",
+      "spec": "scripts/fixtures/skill-eval/code-review.json",
+      "calls": 6,
+      "versions": {
+        "none": { "passed": 3, "total": 3, "tokens": 1439 },
+        "after": { "passed": 3, "total": 3, "tokens": 4034 }
+      },
+      "conclusion": "no observable difference",
+      "detail": "The skill costs 2.8x the tokens for the same three answers. Two of the three tasks were invalid on the first attempt and were rewritten: a repository-wide review was unanswerable without filesystem access, so 'I cannot review anything' passed trivially, and a defect-free fixture actually hid a real partial-failure risk that both versions found."
+    },
+    {
+      "skill": "branch-and-release",
+      "spec": "scripts/fixtures/skill-eval/branch-and-release.json",
+      "calls": 6,
+      "versions": {
+        "none": { "passed": 2, "total": 3, "tokens": 1414 },
+        "after": { "passed": 3, "total": 3, "tokens": 3959 }
+      },
+      "conclusion": "difference is a field-naming artifact, not a behavioral gain",
+      "detail": "The one divergence was 'force_pushes': the baseline answered true meaning 'this action requires a force push', the skill answered false meaning 'I would not force-push'. Both reasons were correct and equally cautious, so the field name, not the skill, produced the difference. Do not read this as evidence."
+    }
+  ],
+  "next": "A text-only comparison cannot test whether these skills improve real work. They are read-only and merge-focused, so the informative trial is a runtime one: same task in an agent harness with tools, checking whether the review cites real lines and whether branch work avoids a needless force push or an over-broad stage."
+}
