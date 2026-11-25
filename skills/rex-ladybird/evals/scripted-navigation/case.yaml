@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: scripted-navigation
+expected_outcome: |
+  Prescribes the url= argument so no picker waits for a human, reads the title
+  from the live page over DevTools, and accounts for several panes being open
+  instead of assuming one browser.
