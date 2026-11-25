@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import re
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
@@ -239,9 +240,61 @@ def local_drift(root: Path, home: Path) -> list[str]:
             if copy.exists() and copy.resolve() != source.resolve():
                 state = "identical copy" if copy.read_bytes() == source.read_bytes() else "DIVERGENT copy"
                 notes.append(f"{copy}: {state}; review ownership before linking")
+    notes.extend(shared_root_drift(root, home))
+    return notes
+
+
+def shared_root_drift(root: Path, home: Path) -> list[str]:
+    """Report stray installs in the shared discovery root.
+
+    ~/.agents/skills is a real directory of per-skill links rather than a link to the
+    checkout: harnesses install their own skills into that path when they start, and
+    inside the checkout such an install becomes a commit candidate. An entry that is
+    not a link into the catalog is therefore a harness import, not catalog content,
+    and it is reported rather than repaired.
+    """
     shared = home / ".agents/skills"
-    if shared.resolve() != (root / "skills").resolve():
-        notes.append(f"{shared}: not linked to {root / 'skills'}")
+    catalog = (root / "skills").resolve()
+    if not catalog.is_dir():
+        return []
+    if shared.is_symlink() or not shared.is_dir():
+        return [f"{shared}: expected a directory of links into {catalog}"]
+    notes = []
+    stray = []
+    for entry in sorted(shared.iterdir()):
+        if entry.name.startswith("."):
+            continue
+        if not entry.is_symlink():
+            stray.append(entry.name)
+            continue
+        # Compare the immediate target without resolving the chain: the catalog may
+        # itself link an integration out to its own install directory.
+        raw = Path(os.readlink(entry))
+        immediate = Path(os.path.normpath(raw if raw.is_absolute() else entry.parent / raw))
+
+        def inside(path: Path) -> bool:
+            return path == catalog or catalog in path.parents
+
+        # Accept either reading: the immediate target keeps a catalog-linked
+        # integration valid when the catalog itself links out, and the resolved
+        # target absorbs directories that reach the catalog through a symlink.
+        if not (inside(immediate) or inside(entry.resolve())):
+            notes.append(f"{entry}: link leaves the catalog ({immediate})")
+    if stray:
+        shown = ", ".join(stray[:6]) + (" …" if len(stray) > 6 else "")
+        count = "entry" if len(stray) == 1 else "entries"
+        notes.append(
+            f"{shared}: {len(stray)} stray {count} not linked into the catalog ({shown}): "
+            "a harness installed skills here; delete the copies, they sit outside Git by design"
+        )
+    missing = [
+        directory.name
+        for directory in sorted(catalog.iterdir())
+        if directory.is_dir() and not (shared / directory.name).is_symlink()
+    ]
+    if missing:
+        shown = ", ".join(missing[:6]) + (" …" if len(missing) > 6 else "")
+        notes.append(f"{shared}: missing links for {shown}; re-run bootstrap.sh")
     return notes
 
 

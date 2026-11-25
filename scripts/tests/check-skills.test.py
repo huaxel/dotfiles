@@ -230,19 +230,45 @@ class SkillChecks(unittest.TestCase):
         (results / "record.json").write_text("{}\n")
         self.assertEqual(checker.check_catalog(self.root), [])
 
-    def test_linked_catalog_is_not_duplicate(self):
+    def test_shared_root_links_are_not_drift(self):
         self.skill()
         home = self.root / "home"
-        (home / ".agents").mkdir(parents=True)
+        shared = home / ".agents/skills"
+        shared.mkdir(parents=True)
         (home / ".claude").mkdir()
         try:
-            (home / ".agents/skills").symlink_to(self.root / "skills", target_is_directory=True)
+            (shared / "example").symlink_to(self.root / "skills/example", target_is_directory=True)
+            (home / ".claude/skills").symlink_to(shared, target_is_directory=True)
         except OSError as error:
             if getattr(error, "winerror", None) == 1314:
                 self.skipTest("Windows symlink privilege unavailable; covered under WSL")
             raise
-        (home / ".claude/skills").symlink_to(home / ".agents/skills", target_is_directory=True)
         self.assertEqual(checker.local_drift(self.root, home), [])
+
+    def test_stray_install_in_shared_root_is_reported(self):
+        self.skill()
+        home = self.root / "home"
+        shared = home / ".agents/skills"
+        stray = shared / "canvas"
+        stray.mkdir(parents=True)
+        (stray / "SKILL.md").write_text("---\nname: canvas\ndescription: Harness built-in.\n---\n")
+        try:
+            (shared / "example").symlink_to(self.root / "skills/example", target_is_directory=True)
+        except OSError as error:
+            if getattr(error, "winerror", None) == 1314:
+                self.skipTest("Windows symlink privilege unavailable; covered under WSL")
+            raise
+        notes = checker.local_drift(self.root, home)
+        self.assertIn("canvas", str(notes))
+        self.assertIn("stray", str(notes))
+        # Reported, never repaired: the copy is a harness artifact, not catalog content.
+        self.assertTrue((stray / "SKILL.md").is_file())
+
+    def test_missing_shared_link_is_reported(self):
+        self.skill()
+        home = self.root / "home"
+        (home / ".agents/skills").mkdir(parents=True)
+        self.assertIn("missing links", str(checker.local_drift(self.root, home)))
 
 
 if __name__ == "__main__":

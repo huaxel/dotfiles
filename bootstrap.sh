@@ -126,26 +126,45 @@ if [ "$OS" = "Darwin" ] && [ -f "$AGE_KEY" ]; then
     fi
 fi
 
-step "4/9 — Link ~/.agents/skills → dotfiles/skills"
+step "4/9 — Link each catalog skill into ~/.agents/skills"
 
 AGENTS_DIR="$HOME/.agents"
 AGENTS_SKILLS="$AGENTS_DIR/skills"
+SKILLS_SOURCE="$SCRIPT_DIR/skills"
 
-# Preserve a real directory from older or independently-managed setups. A
-# bootstrap must never delete user-authored skills just to install its symlink.
-if [ ! -L "$AGENTS_SKILLS" ] && [ -d "$AGENTS_SKILLS" ]; then
-    skills_backup="$AGENTS_DIR/skills.backup-$(date +%Y%m%d-%H%M%S)-$$"
-    info "Moving existing ~/.agents/skills to $skills_backup..."
-    if ! mv "$AGENTS_SKILLS" "$skills_backup"; then
-        critical "Could not preserve existing ~/.agents/skills"
+# Harnesses discover skills through ~/.agents/skills, and some of them install
+# their own skills into that path when they start. Keep it a real directory of
+# per-skill links instead of one link to the checkout: an install then lands
+# beside the catalog instead of inside Git, where the next commit would carry it.
+# A real directory predating this layout is kept as-is; bootstrap must never
+# delete user-authored skills.
+mkdir -p "$AGENTS_DIR"
+
+if [ -L "$AGENTS_SKILLS" ]; then
+    existing_target="$(readlink "$AGENTS_SKILLS")"
+    if [ "$existing_target" = "$SKILLS_SOURCE" ] || [ ! -e "$AGENTS_SKILLS" ]; then
+        rm "$AGENTS_SKILLS"
+        info "Replacing the catalog symlink with a directory of per-skill links"
+    else
+        warn "Leaving ~/.agents/skills alone: it links to $existing_target"
     fi
 fi
 
-# Create the symlink (parents may not exist on a fresh machine)
-if [ ! -e "$AGENTS_SKILLS" ]; then
-    mkdir -p "$AGENTS_DIR"
-    ln -sfn "$SCRIPT_DIR/skills" "$AGENTS_SKILLS"
-    info "Created symlink: ~/.agents/skills → dotfiles/skills"
+if [ ! -L "$AGENTS_SKILLS" ]; then
+    mkdir -p "$AGENTS_SKILLS"
+    linked_count=0
+    for skill_path in "$SKILLS_SOURCE"/*/; do
+        [ -d "$skill_path" ] || continue
+        skill_source="${skill_path%/}"
+        skill_link="$AGENTS_SKILLS/$(basename "$skill_source")"
+        # Keep harness-local overrides and anything a tool already installed.
+        if [ -e "$skill_link" ] || [ -L "$skill_link" ]; then
+            continue
+        fi
+        ln -s "$skill_source" "$skill_link"
+        linked_count=$((linked_count + 1))
+    done
+    info "Linked $linked_count catalog skill(s) into ~/.agents/skills"
 fi
 
 # Keep npm credentials outside Git and outside the Nix store. Home Manager
