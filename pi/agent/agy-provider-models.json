@@ -12,6 +12,15 @@
       ]
     },
     {
+      "full": "gemini-4-carbon",
+      "id": "gemini-4-carbon",
+      "efforts": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    {
       "full": "gemini-4-argon",
       "id": "gemini-4-argon",
       "efforts": [
@@ -35,8 +44,12 @@
       "id": "gemini-pro-orchestrator-neon"
     },
     {
-      "full": "gemini-pro-orchestrator-g1-pro",
-      "id": "gemini-pro-orchestrator-g1-pro"
+      "full": "gemini-pro-orchestrator",
+      "id": "gemini-pro-orchestrator"
+    },
+    {
+      "full": "gemini-pro-orchestrator-argon",
+      "id": "gemini-pro-orchestrator-argon"
     },
     {
       "full": "gemini-3.8-flash",
