@@ -24,6 +24,7 @@ Auto-routed (the model may load these on its own):
 - **state-machine-audit:** reconstruct hidden lifecycles, transitions, and invalid states from code; audit before proposing structural changes.
 - **dawn:** open, review, or share local Markdown, CSV, or JSON deliverables.
 - **dream:** maintain Pi memory; correct entries against logs and refresh the wiki.
+- **rex-ladybird:** open, switch, and inspect pages in the Ladybird pane, by hand (`ctrl+b`) or from an agent (`ladyctl`, `rex do`).
 
 Explicit-only (`disable-model-invocation: true`; in Pi use `/skill:<name>`):
 
