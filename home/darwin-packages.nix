@@ -34,8 +34,16 @@
 # unprefixed names), automake-1.20/aclocal-1.20 (version in the name), cmake's
 # ccmake, rsync's rrsync, autossh's rscreen, nmap's ndiff, hledger-ui and
 # hledger-web (separate attrs here if ever needed), and imagemagick's
-# Magick*-config development helpers. poppler needed a real fix, not a shim:
-# its CLI tools live in poppler-utils, see the documents group.
+# Magick*-config development helpers.
+#
+# Two shims degrade instead of breaking, so they are deliberately absent:
+# gtimeout (the xlsx skill wraps LibreOffice in it when present and otherwise
+# falls back to its own Python timeout; soffice is not installed here anyway)
+# and hledger-ui/web (zero uses in shell history).
+#
+# poppler and ghostscript needed real fixes, not shims: poppler's CLI tools live
+# in poppler-utils, and imagemagick shells out to `gs` for every PDF it reads or
+# writes. Both are in the documents group.
 { pkgs, ... }:
 
 {
@@ -86,6 +94,11 @@
     # -- Documents, media, data ------------------------------------------
     chafa
     exiftool
+    # imagemagick shells out to `gs` for every PDF read or write, and brew was
+    # supplying it as a dependency; without it `magick file.pdf out.png` fails
+    # with FailedToExecuteCommand. ocrmypdf carries its own ghostscript in its
+    # wrapper, but a bare `gs` invocation needs this.
+    ghostscript
     graphviz
     imagemagick
     marp-cli
