@@ -41,8 +41,7 @@
     "npm:@sting8k/pi-vcc",
     "npm:@mobrienv/pi-tidy-tools",
     "npm:@juanbenjumea/pi-go-on",
-    "git:github.com/earendil-works/pi-claude-code@d5b5e04c314d3452d357174d16d10dda34daa2d2",
-    "npm:pi-cursor-sdk"
+    "git:github.com/earendil-works/pi-claude-code@d5b5e04c314d3452d357174d16d10dda34daa2d2"
   ],
   "extensions": [
     "./extensions/continue-after-compaction.ts",
