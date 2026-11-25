@@ -141,3 +141,7 @@ config/nushell/history.sqlite3-*
 /config-macos/omniwm/shell/default/*
 !/config-macos/omniwm/shell/default/shell.toml
 windows-terminal/settings.local.json
+
+# Machine-local Pi settings (local-path packages, machine ids). Merged by
+# scripts/pi-settings-merge.mjs; the clean filter keeps these out of commits.
+pi/agent/settings.local.json

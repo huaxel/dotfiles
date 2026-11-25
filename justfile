@@ -42,7 +42,7 @@ nushell-setup:
 # ──────────── Check recipes ────────────
 
 # Run ALL checks (the full trusted CI pipeline, including SOPS decryption)
-ci: check-agents check-qmd check-skills check-memory check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-nixos-wsl check-macos check-secrets check-secret-history check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
+ci: check-agents check-pi-settings check-qmd check-skills check-memory check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-nixos-wsl check-macos check-secrets check-secret-history check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
     @echo ""
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     @echo "  🟢  All CI checks passed!  🟢"
@@ -53,7 +53,7 @@ check-qmd:
     python3 scripts/tests/qmd-launcher.test.py
 
 # Public/fork-safe variant: full gate, but validate only encrypted metadata.
-ci-public: check-agents check-qmd check-skills check-memory check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-nixos-wsl check-macos check-secrets-structure check-secret-history check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
+ci-public: check-agents check-pi-settings check-qmd check-skills check-memory check-desktop check-sh check-ts test-pi-extensions check-recovery check-windows check-nixos-wsl check-macos check-secrets-structure check-secret-history check-gitignore check-templates check-brewfile check-nu check-env-parity check-nix
     @echo ""
     @echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     @echo "  🟢  All secret-free CI checks passed!  🟢"
@@ -200,6 +200,23 @@ check-ts:
         echo "  ⚠️  $lint_errors files have lint warnings (not blocking)"
     fi
     echo "  ✅ All TypeScript files pass"
+
+# Re-apply machine-local Pi settings from pi/agent/settings.local.json.
+# The clean filter strips local-path packages and machine ids from commits, so
+# a git pull that rewrites settings.json quietly removes them (and git diff
+# stays empty). Run this after such a pull, or let check-pi-settings tell you.
+pi-settings-merge:
+    node scripts/pi-settings-merge.mjs
+
+# The gate for machine-local Pi settings: everything settings.local.json expects
+# is actually in settings.json, and the merge contract holds.
+check-pi-settings:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "{{dotfiles-dir}}"
+    echo "=== Pi machine-local settings ==="
+    node scripts/pi-settings-merge.mjs --check
+    node --test scripts/tests/pi-settings-merge.test.mjs 2>&1 | tail -6
 
 # Sync pi extensions from the dotfiles repo to the auto-discovery dir
 # (~/.pi/agent/extensions). Run after changing pi/agent/extensions/*.ts,
