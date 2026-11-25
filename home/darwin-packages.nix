@@ -26,6 +26,14 @@
 #   hf weasyprint  - exist only as python3Packages closures.
 #   gnu-typist     - absent from nixpkgs.
 #   borders        - felixkratz tap daemon; needs launchd + Accessibility grant.
+#
+# Shims that disappeared with the brew copies, none of them referenced by this
+# repo or by any shell history: the g-prefixed coreutils aliases (Nix ships the
+# unprefixed names), automake-1.20/aclocal-1.20 (version in the name), cmake's
+# ccmake, rsync's rrsync, autossh's rscreen, nmap's ndiff, hledger-ui and
+# hledger-web (separate attrs here if ever needed), and imagemagick's
+# Magick*-config development helpers. poppler needed a real fix, not a shim:
+# its CLI tools live in poppler-utils, see the documents group.
 { pkgs, ... }:
 
 {
@@ -82,7 +90,10 @@
     mpv
     ocrmypdf
     pandoc
-    poppler
+    # poppler-utils, not poppler: the pdf/pptx skills shell out to pdftotext,
+    # pdftoppm and pdfimages, and only this output ships them. nixpkgs spells
+    # the attribute with a dash, so it needs the qualified form here.
+    pkgs."poppler-utils"
     tectonic
     typst
 
