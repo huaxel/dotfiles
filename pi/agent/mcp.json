@@ -39,6 +39,21 @@
         "mcp"
       ],
       "enabled": false
+    },
+    "belgian-law": {
+      "url": "https://ailawyer.be/mcp",
+      "exposure": "direct",
+      "description": "Belgian consolidated legislation (Justel) and Constitutional Court case law. Free, no auth, read-only."
+    },
+    "eu-regulations": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@ansvar/eu-regulations-mcp"
+      ],
+      "enabled": true,
+      "description": "49 EU instruments at article level: GDPR, AI Act, NIS2, DORA, Data Act. Offline corpus."
     }
   }
 }
