@@ -4,6 +4,13 @@
 # Scoop pwsh takes priority over old Program Files install
 $env:PATH = "$env:USERPROFILE\scoop\apps\pwsh\current;$env:PATH"
 
+# uv tool installs (vibe, vibe-acp, and friends). The extension tool in
+# pi-vibe-acp spawns `vibe-acp` by name, so this must be on PATH.
+$uvTools = "$env:USERPROFILE\.local\bin"
+if ((Test-Path -LiteralPath $uvTools) -and ($env:PATH -notlike "*$uvTools*")) {
+    $env:PATH = "$uvTools;$env:PATH"
+}
+
 # Requires: starship, fzf, PSReadLine (included in PS 7+)
 
 # ============================
