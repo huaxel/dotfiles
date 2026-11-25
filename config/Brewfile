@@ -9,11 +9,13 @@ tap "steipete/tap"
 
 # ─── Formulae ──────────────────────────────────────────────────────────────
 # Common CLI tools are Home Manager-owned; only macOS/runtime-specific tools
-# and bootstrap prerequisites remain here. A tool listed in both places is
-# shadowed by the Nix copy on PATH; the brew line is either a bootstrap
-# prerequisite (age/git/sops) or a tool Nix cannot supply.
-# Portable CLI additions belong in home/common.nix; macOS-only ones in
-# home/darwin-packages.nix.
+# and bootstrap prerequisites remain here. A tool listed in both places is a
+# duplicate version, not a fallback: in an interactive zsh `/opt/homebrew/bin`
+# precedes `~/.nix-profile/bin`, so the brew copy wins. That is why the 74
+# migrated tools had their brew formulae removed rather than merely shadowed.
+# The brew lines left are bootstrap prerequisites (age/git/sops) or tools Nix
+# cannot supply. Portable CLI additions belong in home/common.nix; macOS-only
+# ones in home/darwin-packages.nix.
 brew "age" # bootstrap prerequisite for sops-nix secrets
 brew "gnu-sed"
 brew "gnupg"

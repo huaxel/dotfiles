@@ -9,9 +9,11 @@
 #            deliberately left out (see config/Brewfile)
 #
 # When adding a tool, delete its `brew "..."` line from config/Brewfile in the
-# same change. Two managers installing one binary shadow each other silently;
-# ~/.nix-profile/bin wins on PATH, so a leftover brew copy is dead weight
-# rather than a fallback.
+# same change. Two managers installing one binary shadow each other silently,
+# and which one wins is not obvious: in an interactive zsh `/opt/homebrew/bin`
+# comes before `~/.nix-profile/bin`, so an older brew copy of a tool can quietly
+# take precedence over the Nix one. Leftovers are not a fallback, they are a
+# second version of the same command.
 #
 # Not to be "fixed": `git`, `age` and `sops` are also in config/Brewfile on
 # purpose. bootstrap.sh installs them before Home Manager exists, so the brew
