@@ -19,6 +19,20 @@ except ImportError:
     yaml = None
 
 
+def _unquote(value):
+    """Drop YAML quoting kept by the text fallback.
+
+    ``path_regex: 'secrets.*$'`` is the committed style here, and a quoted scalar
+    reaches this parser with its quotes intact. Left in place, the pattern only
+    matches a path that literally starts with a quote, so every rule silently
+    fails to match and each secret reports a bogus "no creation rule" failure.
+    """
+    value = value.strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+        return value[1:-1]
+    return value
+
+
 def _rules_from_text(text):
     """Parse the simple creation_rules subset used when PyYAML is unavailable."""
     body = text.split("creation_rules:", 1)[-1]
@@ -39,7 +53,7 @@ def _rules_from_text(text):
         match = re.search(r"(?m)^\s*path_regex:\s*(.*?)\s*$", block)
         rules.append(
             {
-                "path_regex": match.group(1) if match else None,
+                "path_regex": _unquote(match.group(1)) if match else None,
                 "age": re.findall(r"age1[0-9a-z]+", block),
             }
         )

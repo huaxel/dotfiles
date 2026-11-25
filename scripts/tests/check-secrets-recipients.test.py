@@ -30,10 +30,12 @@ def main() -> None:
         config = root / ".sops.yaml"
         config.write_text(
             """creation_rules:
-  - path_regex: secrets/ci-jit-repos[.].*[.]enc$
+  # Quoted patterns are the committed style; the PyYAML-free fallback parser
+  # must strip the quotes instead of matching them literally.
+  - path_regex: 'secrets/ci-jit-repos[.].*[.]enc$'
     age: >
       age1operator, age1mac # operator-only JIT keys
-  - path_regex: secrets/.*$
+  - path_regex: "secrets/.*$"
     age: >
       age1arch, age1frame, age1laptop # general secret recipients
 """,
