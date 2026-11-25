@@ -255,6 +255,7 @@ test-pi-extensions:
     fi
     node pi/agent/extensions/continue-after-compaction.test.mjs
     node pi/agent/extensions/git-interceptor.test.mjs
+    node pi/agent/extensions/skills-drift.test.mjs
     node pi/agent/extensions/harness.test.mjs
     node pi/agent/extensions/restart.test.mjs
     node pi/agent/extensions/todos.test.mjs
