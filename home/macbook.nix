@@ -1,6 +1,8 @@
 { config, lib, ... }:
 
 {
+  imports = [ ./darwin-packages.nix ];
+
   home.username = "juanbenjumea";
   home.homeDirectory = "/Users/juanbenjumea";
 

@@ -5,12 +5,15 @@
 
 tap "felixkratz/formulae"
 tap "nikitabobko/tap"
-tap "oleksandrchekhovskyi/hax"
 tap "steipete/tap"
 
 # ─── Formulae ──────────────────────────────────────────────────────────────
 # Common CLI tools are Home Manager-owned; only macOS/runtime-specific tools
-# and bootstrap prerequisites remain here.
+# and bootstrap prerequisites remain here. A tool listed in both places is
+# shadowed by the Nix copy on PATH; the brew line is either a bootstrap
+# prerequisite (age/git/sops) or a tool Nix cannot supply.
+# Portable CLI additions belong in home/common.nix; macOS-only ones in
+# home/darwin-packages.nix.
 brew "age" # bootstrap prerequisite for sops-nix secrets
 brew "automake"
 brew "autossh"
@@ -49,7 +52,6 @@ brew "hf"
 brew "hledger"
 brew "hunk"
 brew "hyperfine"
-brew "oleksandrchekhovskyi/hax/hax"
 brew "imagemagick"
 brew "julia"
 brew "ledger"
@@ -83,7 +85,6 @@ brew "sops"
 brew "sqlcmd"
 brew "switchaudio-osx"
 brew "tectonic"
-brew "thefuck"
 brew "transmission-cli"
 brew "tree"
 brew "typst"
