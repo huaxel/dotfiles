@@ -151,5 +151,17 @@
     xcodegen
     yq
 
+    # -- GUI applications ------------------------------------------------
+    # Only bundles that are a single .app, freely distributable, without a
+    # privileged helper and without a self-updater. Everything else stays on
+    # Homebrew for reasons the header records.
+    #
+    # No home.file entry is needed: Home Manager already links every .app in
+    # home.packages into ~/Applications/Home Manager Apps, which is what
+    # registers it with LaunchServices. Adding a second link beside it would
+    # register the same bundle twice and produce the duplicate-appearance
+    # problem that made these awkward in the first place.
+    iina
+    localsend
   ];
 }
