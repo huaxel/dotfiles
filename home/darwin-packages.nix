@@ -75,6 +75,7 @@
     cmake
     gnumake
     meson
+    ninja
 
     # -- Runtimes and language tooling -----------------------------------
     jdk
