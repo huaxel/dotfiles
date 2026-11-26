@@ -23,11 +23,15 @@ llamaman, xkb), and the three encrypted secret
 destinations through sops-nix. No second configuration manager owns those
 Unix paths; each path has one Home Manager owner.
 
-On macOS, Home Manager owns the reproducible CLI baseline. The Brewfile keeps
-Homebrew for GUI applications, macOS-integrated/runtime-specific formulae, and
-bootstrap prerequisites (`age`, `git`, and `sops`). Duplicate CLI
-formulae should not be added back to the Brewfile; bootstrap prepends the
-activated Nix profile for its remaining setup steps.
+On macOS, Home Manager owns the reproducible CLI baseline, including the 75
+portable tools in `home/darwin-packages.nix`. The Brewfile keeps Homebrew for
+GUI applications (casks), macOS-integrated/runtime-specific formulae, and
+bootstrap prerequisites (`age`, `git`, `sops`): 17 formulae and 40 casks.
+Duplicate CLI formulae should not be added back to the Brewfile — not because
+Nix shadows them, but because it does not: in an interactive zsh
+`/opt/homebrew/bin` precedes `~/.nix-profile/bin`, so a leftover brew copy
+silently wins. Bootstrap prepends the activated Nix profile for its remaining
+setup steps.
 
 Validate from a machine with Nix installed:
 
@@ -115,7 +119,11 @@ scripts\deploy-windows.ps1`. Existing regular files are preserved with a
   the laptop model preset.
 - `home/arch-wsl.nix`: WSL interop and Windows-mounted paths.
 - `home/macbook.nix`: macOS user environment. Homebrew remains authoritative
-  for applications during the pilot.
+  for applications and the macOS-integrated formulae; see below.
+- `home/darwin-packages.nix`: the macOS CLI toolchain Nix owns, in commented
+  groups. Its header records the nine tools deliberately left on Homebrew and
+  the shims that disappeared with the brew copies, so a later "cleanup" does
+  not delete the bootstrap path or re-add a duplicate.
 
 The physical host's CachyOS kernel, AMD/AI drivers, AUR packages, model
 the generated model preset, and custom `/opt/cachy-llama` runtime remain
