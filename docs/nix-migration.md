@@ -47,8 +47,8 @@ any of this to work; it is not installed by anything else. After
 `ninja` on PATH so the cache names the new ones:
 
 ```sh
-cd path/to/project
-LADYBIRD_SOURCE_DIR=$PWD cmake --preset Release   # or: cmake -S . -B build
+cd path/to/project && cmake -S . -B build
+# a project with presets names its own: Ladybird takes LADYBIRD_SOURCE_DIR=$PWD cmake --preset Release
 ```
 
 Expect one full rebuild: CMake writes its own path into every command line, and
@@ -60,7 +60,7 @@ still resolves `rustc` through PATH, and `~/.nix-profile/bin` now comes before
 pin compiles fine until it deprecates something the tree uses, which the project
 compiles with `-Dwarnings`: the error then names a crate nobody touched. Either
 put `~/.cargo/bin` first for that build, or hand the project the pinned compiler
-(Ladybird takes `-DRUST_RUSTC=\"$(rustup which rustc)\"`).
+(Ladybird takes `-DRUST_RUSTC="$(rustup which rustc)"`).
 
 ### Which GUI applications Nix can own
 
