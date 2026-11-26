@@ -554,8 +554,10 @@ check-nix:
         echo "  ⚠️  nix not installed — skipping"
         exit 0
     fi
-    nix flake check --all-systems
-
+    nix flake check --all-systems --no-build
+    # Evaluation coverage for all four systems, without realising the closures:
+    # that costs minutes of substitution for Linux outputs this machine can
+    # never run, and the native build below is what proves buildability.
     system=$(nix eval --impure --raw --expr 'builtins.currentSystem')
     profiles=()
     case "$system" in
@@ -785,7 +787,7 @@ nix-check profile="juan@framearch":
     export GIT_INDEX_FILE="$temp_index"
     trap 'rm -f "$temp_index"' EXIT
     git ls-files --others --exclude-standard -z -- home nixos config/environment.d | xargs -0 -r git add -N
-    nix flake check --all-systems
+    nix flake check --all-systems --no-build
     nix build '.#homeConfigurations."{{profile}}".activationPackage' --no-link --quiet
     echo "✅ Nix profile {{profile}} builds"
 
@@ -798,7 +800,10 @@ nix-switch profile:
     # (Nix >= 2.35 ignores GIT_INDEX_FILE, so a temporary index no longer
     # works; `git add -N` is what Nix itself recommends and is idempotent.)
     git ls-files --others --exclude-standard -z -- home nixos config/environment.d | xargs -0 -r git add -N
-    nix flake check --all-systems
+    # Eval-only: without --no-build this realises every system's closure first,
+    # which is minutes of substitution for outputs that never run here. The
+    # switch below is the build.
+    nix flake check --all-systems --no-build
     # Back up pre-existing paths during the Home Manager handoff.
     nix run ".#home-manager" -- -b hm-backup switch --flake '.#{{profile}}'
     if [[ "$1" == 'juan@macbook' && "$(uname -s)" == Darwin ]]; then

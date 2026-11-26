@@ -85,9 +85,18 @@ moved app must be one nixpkgs does not have to modify.
 Validate from a machine with Nix installed:
 
 ```bash
-nix flake check --all-systems
+nix flake check --all-systems --no-build
 just nix-check juan@framearch
 ```
+
+The `--no-build` is not a shortcut around verification. Without it, the check
+realises each output's closure before returning, which on a Darwin machine
+means substituting Linux closures it can never run: measured at 296 s against
+6 s for the same evaluation, and growing with every package change. Build
+coverage comes from the profile build that follows (`nix-check`, `nix-switch`
+and `check-nix` all build the host natively). What `--all-systems` still buys
+is evaluation of the other three systems' configurations, which is where
+unsupported options and drifted module arguments surface.
 
 `just ci` also runs the flake check when Nix is installed; this includes an
 inert enabled-module evaluation for graphics, model storage, service users, and
