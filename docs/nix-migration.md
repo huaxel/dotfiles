@@ -26,12 +26,28 @@ Unix paths; each path has one Home Manager owner.
 On macOS, Home Manager owns the reproducible CLI baseline, including the 75
 portable tools in `home/darwin-packages.nix`. The Brewfile keeps Homebrew for
 GUI applications (casks), macOS-integrated/runtime-specific formulae, and
-bootstrap prerequisites (`age`, `git`, `sops`): 17 formulae and 35 casks.
+bootstrap prerequisites (`age`, `git`, `sops`): 16 formulae and 38 casks.
 Duplicate CLI formulae should not be added back to the Brewfile — not because
 Nix shadows them, but because it does not: in an interactive zsh
 `/opt/homebrew/bin` precedes `~/.nix-profile/bin`, so a leftover brew copy
 silently wins. Bootstrap prepends the activated Nix profile for its remaining
 setup steps.
+
+That rule is enforced instead of remembered, at two levels, because neither
+alone is enough:
+
+- `just check-macos` parses the `home.packages` lists and fails when a Brewfile
+  formula installs a command Home Manager already owns (`NIX_NAME_ALIASES`,
+  `BREW_NAME_ALIASES` cover attrs and formulae whose names differ from the
+  binary). It runs everywhere, including hosts without Homebrew, and it is
+  name-based: `poppler` (attr `poppler-utils`) and `kubernetes-cli` (attr
+  `kubectl`) both slipped past it until they were added to the tables.
+- `just doctor` resolves each installed formula's real commands from the
+  Cellar symlinks and reports the ones that shadow a Nix-provided command, so
+  a formula installed by hand — or by another agent — is visible on this host.
+  Declared duplicates fail; undeclared ones only warn, because a formula
+  pulled in as a dependency (node for `llama.cpp`, python for `hf`) is
+  Homebrew's business.
 
 ### Build directories that name their tools
 

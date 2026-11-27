@@ -40,6 +40,16 @@ require("restart_service:" not in brewfile, "Brewfile unexpectedly auto-starts b
 # beyond NIX_NAME_ALIASES escapes it - poppler (attr `poppler-utils`) did, and
 # was a live duplicate for a while."
 BOOTSTRAP_EXCEPTIONS = {"age", "git", "sops"}
+# Brew formula names that differ from the command they install. Static analysis
+# can only see names, so a pair missing here passes unnoticed -- `just doctor`
+# resolves the real command from the Cellar and catches the rest on this host.
+BREW_NAME_ALIASES = {
+    "kubernetes-cli": "kubectl",
+    "huggingface-cli": "hf",
+    "gnu-typist": "gtypist",
+    "gnu-sed": "gsed",
+    "php@8.3": "php",
+}
 # Nix attribute names that differ from the command they install.
 NIX_NAME_ALIASES = {
     "nodejs_24": "node",
@@ -62,7 +72,8 @@ def nix_package_names(relative: str) -> set[str]:
 nix_owned = set()
 for module in ("home/common.nix", "home/darwin-packages.nix"):
     nix_owned |= {NIX_NAME_ALIASES.get(n, n) for n in nix_package_names(module)}
-conflicts = sorted((set(formulae) & nix_owned) - BOOTSTRAP_EXCEPTIONS)
+brew_commands = {BREW_NAME_ALIASES.get(f, f) for f in formulae}
+conflicts = sorted((brew_commands & nix_owned) - BOOTSTRAP_EXCEPTIONS)
 require(
     not conflicts,
     "Brewfile declares commands Home Manager already owns "
