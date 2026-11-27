@@ -251,6 +251,53 @@ if [ "$(uname)" = "Darwin" ]; then
     fi
 fi
 
+# ── 10. Sustained CPU ────────────────────────────────────────────────
+# Six stale `saurex` test clients once held ~97% CPU each for two days. Nothing
+# named them: `just ci` went from 112 s to 4 h 32 m and two gate runs were
+# killed by timeout before `uptime` was ever read. Report, do not kill: a long
+# build or a training run looks the same from here, and only the owner knows.
+section "CPU"
+runaway=$(python3 - <<'PY'
+import os, subprocess
+
+def seconds(etime: str) -> int:
+    """`ps` etime: MM:SS, HH:MM:SS, or DD-HH:MM:SS."""
+    days, _, rest = etime.rpartition("-")
+    parts = [int(p) for p in rest.split(":")]
+    while len(parts) < 3:
+        parts.insert(0, 0)
+    hours, minutes, secs = parts
+    return (int(days) if days else 0) * 86400 + hours * 3600 + minutes * 60 + secs
+
+rows = subprocess.run(
+    ["ps", "-Ao", "uid=,pid=,etime=,pcpu=,comm="], capture_output=True, text=True
+).stdout.splitlines()
+for row in rows:
+    fields = row.split(None, 4)
+    if len(fields) < 5:
+        continue
+    uid, pid, etime, pcpu, comm = fields
+    try:
+        if int(uid) != os.getuid() or float(pcpu) < 50:
+            continue
+        age = seconds(etime)
+    except ValueError:
+        continue
+    if age < 3600:
+        continue
+    name = os.path.basename(comm.strip())
+    # `pcpu` is what it is using now, not a lifetime average: report the age
+    # separately so a 35-hour-old app caught in a spin does not read as 35
+    # hours of spinning.
+    print(f"{name} (pid {pid}) is using {float(pcpu):.0f}% CPU, alive {age // 3600}h{age % 3600 // 60:02d}m")
+PY
+)
+if [ -z "$runaway" ]; then
+    ok "no process older than an hour is burning more than half a core"
+else
+    while IFS= read -r line; do warn "$line"; done <<< "$runaway"
+fi
+
 # ── Summary ──────────────────────────────────────────────────────────
 echo ""
 if [ "$failures" -gt 0 ]; then
