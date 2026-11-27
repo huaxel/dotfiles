@@ -87,11 +87,91 @@ else
     fi
 fi
 
+# ── 2b. Command ownership ────────────────────────────────────────────
+# The manifest is checked statically by check-macos; this catches the machine.
+# An interactive zsh puts /opt/homebrew/bin ahead of ~/.nix-profile/bin, so a
+# formula installed by hand (or by another agent) silently wins for the same
+# command Nix already provides. Reported per formula, not per command: one
+# formula owns a dozen binaries and the fix is one `brew uninstall`.
+section "Command ownership"
+if ! command -v brew >/dev/null 2>&1; then
+    echo "  n/a (no Homebrew on this host)"
+else
+    brew_prefix=$(brew --prefix 2>/dev/null)
+    if [ -n "$brew_prefix" ] && [ -d "$brew_prefix/bin" ] && [ -d "$HOME/.nix-profile/bin" ]; then
+        while IFS=$'\t' read -r level message; do
+            [ -z "${message:-}" ] && continue
+            case "$level" in
+                FAIL) fail "$message" ;;
+                WARN) warn "$message" ;;
+                OK)   ok "$message" ;;
+            esac
+        done < <(python3 - "$brew_prefix/bin" "$HOME/.nix-profile/bin" "$PATH" \
+                    "$DOTFILES_DIR/config/Brewfile" <<'PY'
+import os, re, sys
+
+brew_bin, nix_bin, path, brewfile = sys.argv[1:5]
+# Prerequisites installed before Home Manager exists; documented, deliberate.
+BOOTSTRAP = {"age", "git", "sops"}
+
+declared = set()
+try:
+    with open(brewfile, encoding="utf-8") as handle:
+        declared = set(re.findall(r'^brew "([^"]+)"', handle.read(), re.MULTILINE))
+except OSError:
+    pass
+
+def owner(entry: str) -> str | None:
+    """Formula owning a Homebrew bin symlink, e.g. ../Cellar/poppler/26.11.0/bin/pdftotext."""
+    try:
+        target = os.path.realpath(os.path.join(brew_bin, entry))
+    except OSError:
+        return None
+    parts = target.split(os.sep)
+    for marker in ("Cellar", "opt"):
+        if marker in parts:
+            index = parts.index(marker)
+            if index + 1 < len(parts):
+                return parts[index + 1]
+    return None
+
+duplicates = set(os.listdir(brew_bin)) & set(os.listdir(nix_bin))
+by_formula: dict[str, list[str]] = {}
+for command in duplicates:
+    formula = owner(command)
+    if formula and formula not in BOOTSTRAP:
+        by_formula.setdefault(formula, []).append(command)
+
+if not by_formula:
+    print("OK\tno Homebrew formula shadows a Nix-provided command")
+else:
+    paths = path.split(":")
+    brew_first = brew_bin in paths and (nix_bin not in paths or paths.index(brew_bin) < paths.index(nix_bin))
+    winner = "Homebrew's copy runs" if brew_first else "the Nix copy runs"
+    for formula in sorted(by_formula):
+        commands = ", ".join(sorted(by_formula[formula])[:6])
+        if len(by_formula[formula]) > 6:
+            commands += f" +{len(by_formula[formula]) - 6} more"
+        if formula in declared:
+            print(f"FAIL\tBrewfile declares {formula}, which Home Manager also owns ({commands})")
+        else:
+            print(f"WARN\t{formula} is installed outside the Brewfile and duplicates Nix ({commands}) - {winner}")
+PY
+                   )
+    else
+        echo "  n/a (need both a Homebrew prefix and a Nix profile)"
+    fi
+fi
+
 # ── 3. Secrets ───────────────────────────────────────────────────────
 section "Secrets"
 key="$HOME/.config/sops/age/keys.txt"
 if [ -f "$key" ]; then
-    perms=$(stat -f "%Lp" "$key" 2>/dev/null || stat -c "%a" "$key" 2>/dev/null || echo "?")
+    # BSD `stat -f` and GNU `stat -c` disagree, and `-f %Lp` on macOS prints
+    # filesystem information instead of failing, so the old fallback chain
+    # printed a file listing where the mode belonged. Ask Python once.
+    perms=$(python3 -c 'import os, stat, sys
+print(oct(stat.S_IMODE(os.stat(sys.argv[1]).st_mode))[2:])' "$key" 2>/dev/null || echo "?")
     if [ "$perms" = "600" ]; then ok "age key present (0600)"; else warn "age key is mode $perms, want 600"; fi
     if command -v sops >/dev/null 2>&1; then
         if sops --decrypt secrets/environment.d.enc >/dev/null 2>&1; then
