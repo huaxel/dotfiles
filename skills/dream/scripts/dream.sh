@@ -34,6 +34,11 @@ RUN_LOG="$LOG_DIR/run-$STAMP-$(hostname -s).log"
 # resolving that by deleting one side loses a run record.
 HOST_SHORT="$(hostname -s)"
 DREAM_LOG="$LOG_DIR/$STAMP-$HOST_SHORT.md"
+
+# BSD stat spells mtime as `stat -f %m`, GNU stat as `stat -c %Y`; `date -r`
+# means "the file's mtime" in both, so the freshness check works on either.
+file_mtime() { date -r "$1" +%s 2>/dev/null || echo 0; }
+
 # The wiki lives inside the memory repo so git carries it to every machine.
 # It used to sit in the Obsidian vault, which only reached machines that ran
 # Obsidian and produced sync-conflict files instead of mergeable history.
@@ -82,10 +87,25 @@ run_analyze() {
   # lexicographic tail. Avoids parsing `ls` output and survives odd characters.
   mapfile -t logs < <(find "$MEM_DIR/daily" -maxdepth 1 -type f -name '*.md' -print0 2>/dev/null \
     | sort -z | tr '\0' '\n' | tail -n "$DAYS")
+  # A daily already distilled into memory is skipped until it changes again.
+  # Consuming its fragment stamps covered/<name>.md, so a log appended to after
+  # that run is newer than its stamp and is analyzed once more.
+  local kept=() skipped=0 stamp
+  for f in ${logs[@]+"${logs[@]}"}; do
+    stamp="$LOG_DIR/covered/$(basename "$f" .md).md"
+    if [[ -f "$stamp" ]] && (( $(file_mtime "$stamp") >= $(file_mtime "$f") )); then
+      skipped=$((skipped+1)); continue
+    fi
+    kept+=("$f")
+  done
+  logs=(${kept[@]+"${kept[@]}"})
   if (( ${#logs[@]} == 0 )); then
-    say "dream analyze: no daily logs found."; return 0
+    log "=== analyze $STAMP: all $skipped daily log(s) in the window are already covered ==="
+    say "dream analyze: nothing new ($skipped log(s) already covered)"
+    return 0
   fi
   log "=== analyze $STAMP (${#logs[@]} logs, days=$DAYS, host=$(hostname -s)) ==="
+  (( skipped )) && log "analyze: skipped $skipped covered log(s) in the window"
 
   if (( DRY_RUN )); then
     say "would analyze:"; printf '  %s\n' "${logs[@]}"; return 0
@@ -435,8 +455,8 @@ $wiki_rule"
   # with the real date, not the date captured at startup.
   local today_log
   today_log="$LOG_DIR/$(date +%F)-$HOST_SHORT.md"
-  if { [[ -f "$DREAM_LOG" ]] && (( $(stat -f %m "$DREAM_LOG" 2>/dev/null || echo 0) >= START_EPOCH )); } \
-     || { [[ -f "$today_log" ]] && (( $(stat -f %m "$today_log" 2>/dev/null || echo 0) >= START_EPOCH )); }; then
+  if { [[ -f "$DREAM_LOG" ]] && (( $(file_mtime "$DREAM_LOG") >= START_EPOCH )); } \
+     || { [[ -f "$today_log" ]] && (( $(file_mtime "$today_log") >= START_EPOCH )); }; then
     mkdir -p "$LOG_DIR/covered"
     for _f in "$PENDING"/*.md; do
       [[ -f "$_f" ]] && printf '%s\n' "$(date +%F)" > "$LOG_DIR/covered/$(basename "$_f")"
@@ -510,8 +530,8 @@ fi
 # dream log. A reindex-only run legitimately produces none.
 if [[ "$PHASE" == organize || "$PHASE" == all ]]; then
   today_log="$LOG_DIR/$(date +%F)-$HOST_SHORT.md"
-  if { [[ -f "$DREAM_LOG" ]] && (( $(stat -f %m "$DREAM_LOG" 2>/dev/null || echo 0) >= START_EPOCH )); } \
-     || { [[ -f "$today_log" ]] && (( $(stat -f %m "$today_log" 2>/dev/null || echo 0) >= START_EPOCH )); }; then
+  if { [[ -f "$DREAM_LOG" ]] && (( $(file_mtime "$DREAM_LOG") >= START_EPOCH )); } \
+     || { [[ -f "$today_log" ]] && (( $(file_mtime "$today_log") >= START_EPOCH )); }; then
     log "=== dream done $STAMP (log: $DREAM_LOG) ==="
     say "organize: done (log: $DREAM_LOG)"
     exit "$rc"
