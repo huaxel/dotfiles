@@ -479,7 +479,7 @@ $wiki_rule"
   (( applied )) && log "apply: proposals applied"
 
   # The wiki is a view of the memory, so render it from the applied result.
-  if python3 "$SKILL_DIR/scripts/memory-wiki.py" --memory-dir "$MEM_DIR" >>"$RUN_LOG" 2>&1; then
+  if python3 "$SKILL_DIR/scripts/memory-wiki.py" --memory-dir "${WIKI_MEM_DIR:-$MEM_DIR}" >>"$RUN_LOG" 2>&1; then
     log "wiki: rendered from project memory"
   else
     log "wiki: render failed (memory is unaffected)"
@@ -528,6 +528,10 @@ do_analyze() {
 run_scoped_projects() {
   local scope got=0 ran=0
   local root_mem="$MEM_DIR" root_log="$LOG_DIR" root_pending="$PENDING" root_done="$DONE_DIR" root_dream="$DREAM_LOG"
+  # The wiki summarizes every project scope, so a scoped run still renders it
+  # from the memory root; pointing it at one scope yields "no project memory
+  # scopes found" and no page.
+  local WIKI_MEM_DIR="$MEM_DIR"
   for scope in "$root_mem"/projects/*; do
     [[ -d "$scope/daily" ]] || continue
     MEM_DIR="$scope"
@@ -547,7 +551,7 @@ run_scoped_projects() {
     fi
   done
   MEM_DIR="$root_mem"; LOG_DIR="$root_log"; PENDING="$root_pending"
-  DONE_DIR="$root_done"; DREAM_LOG="$root_dream"
+  DONE_DIR="$root_done"; DREAM_LOG="$root_dream"; WIKI_MEM_DIR=""
   log "projects: analyzed $ran scope(s), fragments=$got"
   (( got ))
 }
