@@ -36,6 +36,17 @@ RUN_LOG="$LOG_DIR/run-$STAMP-$(hostname -s).log"
 HOST_SHORT="$(hostname -s)"
 DREAM_LOG="$LOG_DIR/$STAMP-$HOST_SHORT.md"
 
+# The wiki summarizes every project scope. A scoped run is pointed at
+# <root>/projects/<key>, where memory-wiki.py finds no scopes at all, so render
+# from the memory root instead: the parent directory that holds projects/.
+WIKI_MEM_DIR="${PI_DREAM_WIKI_DIR:-}"
+if [[ -z "$WIKI_MEM_DIR" && ! -d "$MEM_DIR/projects" ]]; then
+  # <root>/projects/<key> -> <root>
+  _wikicand="$(dirname "$(dirname "$MEM_DIR")")"
+  [[ -d "$_wikicand/projects" ]] && WIKI_MEM_DIR="$_wikicand"
+  unset _wikicand
+fi
+
 # BSD stat spells mtime as `stat -f %m`, GNU stat as `stat -c %Y`; `date -r`
 # means "the file's mtime" in both, so the freshness check works on either.
 file_mtime() { date -r "$1" +%s 2>/dev/null || echo 0; }
@@ -531,7 +542,7 @@ run_scoped_projects() {
   # The wiki summarizes every project scope, so a scoped run still renders it
   # from the memory root; pointing it at one scope yields "no project memory
   # scopes found" and no page.
-  local WIKI_MEM_DIR="$MEM_DIR"
+  local WIKI_MEM_DIR="$root_mem"
   for scope in "$root_mem"/projects/*; do
     [[ -d "$scope/daily" ]] || continue
     MEM_DIR="$scope"
@@ -551,7 +562,7 @@ run_scoped_projects() {
     fi
   done
   MEM_DIR="$root_mem"; LOG_DIR="$root_log"; PENDING="$root_pending"
-  DONE_DIR="$root_done"; DREAM_LOG="$root_dream"; WIKI_MEM_DIR=""
+  DONE_DIR="$root_done"; DREAM_LOG="$root_dream"
   log "projects: analyzed $ran scope(s), fragments=$got"
   (( got ))
 }
