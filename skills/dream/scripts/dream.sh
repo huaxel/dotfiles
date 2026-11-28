@@ -4,6 +4,7 @@
 #   dream.sh analyze  [--days N] [--dry-run]   distill this machine's raw material into fragments
 #   dream.sh organize [--dry-run]              merge fragments into memory + wiki (single writer)
 #   dream.sh          [--days N] [--dry-run]   analyze, then organize (single-machine use)
+#   dream.sh --projects                        also distill each projects/<key>/daily scope
 #
 # Why two phases: one giant session over the whole memory system overflows the
 # context window, aborts compaction, and exits 0 having done nothing. Split the
@@ -46,7 +47,7 @@ WIKI_DIR="$MEM_DIR/wiki"
 SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CHECKPOINT_DIR="${PI_MEMORY_CHECKPOINT_DIR:-$HOME/.local/state/pi-memory-checkpoints}"
 
-DAYS=3; DRY_RUN=0; PHASE="all"; HARNESS="pi"; MAX_SESSIONS=15
+DAYS=3; DRY_RUN=0; PHASE="all"; HARNESS="pi"; MAX_SESSIONS=15; PROJECTS=0
 while (( $# )); do
   case "$1" in
     analyze|organize|reindex|all) PHASE="$1"; shift ;;
@@ -54,6 +55,7 @@ while (( $# )); do
     --harness) HARNESS="${2:?--harness needs a name}"; shift 2 ;;
     --max-sessions) MAX_SESSIONS="${2:?--max-sessions needs a number}"; shift 2 ;;
     --dry-run) DRY_RUN=1; shift ;;
+    --projects) PROJECTS=1; shift ;;
     *) echo "dream: unknown argument: $1" >&2; exit 2 ;;
   esac
 done
@@ -311,28 +313,34 @@ Rules: base every line on what the file actually says; invent nothing. Omit a se
 }
 
 # Project scopes keep their own daily logs under projects/<key>/daily, and the
-# analyze phase only reads the root daily/. Report the backlog instead of
-# silently letting those logs accumulate: a scope is listed when it holds a
-# daily whose covered/ stamp is absent or older than the log.
+# root analyze phase never reads them. One scope's backlog, by the same covered/
+# stamp rule the root run uses.
+report_project_backlog_one() {
+  local scope="$1" d="$1/daily" n=0 newest f stamp
+  while IFS= read -r f; do
+    stamp="$scope/dream/covered/$(basename "$f" .md).md"
+    if [[ ! -f "$stamp" ]] || (( $(file_mtime "$stamp") < $(file_mtime "$f") )); then
+      n=$((n+1))
+    fi
+  done < <(find "$d" -maxdepth 1 -type f -name '*.md' 2>/dev/null | sort)
+  (( n )) || return 0
+  newest="$(find "$d" -maxdepth 1 -type f -name '*.md' -printf '%f\n' 2>/dev/null | sort | tail -1)"
+  say "  $(basename "$scope"): $n uncovered daily log(s), newest ${newest:-none}"
+  PROJECT_BACKLOG=$((PROJECT_BACKLOG+n))
+  return 0
+}
+
+# Report the whole project backlog without touching it. Running it is opt-in
+# (--projects): every scope with new logs costs one analyzer call and writes
+# into that project's memory.
 report_project_backlog() {
-  local d scope n=0 newest total=0
-  for d in "$MEM_DIR"/projects/*/daily; do
-    [[ -d "$d" ]] || continue
-    scope="$(dirname "$d")"
-    n=0
-    local stamp
-    while IFS= read -r f; do
-      stamp="$scope/dream/covered/$(basename "$f" .md).md"
-      if [[ ! -f "$stamp" ]] || (( $(file_mtime "$stamp") < $(file_mtime "$f") )); then
-        n=$((n+1))
-      fi
-    done < <(find "$d" -maxdepth 1 -type f -name '*.md' 2>/dev/null | sort)
-    total=$((total+n))
-    (( n )) || continue
-    newest="$(find "$d" -maxdepth 1 -type f -name '*.md' -printf '%f\n' 2>/dev/null | sort | tail -1)"
-    say "  $(basename "$scope"): $n uncovered daily log(s), newest ${newest:-none}"
+  local scope
+  PROJECT_BACKLOG=0
+  for scope in "$MEM_DIR"/projects/*; do
+    [[ -d "$scope/daily" ]] || continue
+    report_project_backlog_one "$scope"
   done
-  (( total )) && say "project backlog: $total un-analyzed daily log(s) across project scopes (not distilled by this run)"
+  (( PROJECT_BACKLOG )) && say "project backlog: $PROJECT_BACKLOG un-analyzed daily log(s) across project scopes (not distilled by this run)"
   return 0
 }
 
@@ -513,6 +521,37 @@ do_analyze() {
   (( got ))
 }
 
+# Each project scope keeps its own daily/ and MEMORY.md, so distilling one is
+# the same work as the root scope with different paths. Opt-in: it costs one
+# analyzer call per scope that has new logs, and it writes into that project's
+# memory.
+run_scoped_projects() {
+  local scope got=0 ran=0
+  local root_mem="$MEM_DIR" root_log="$LOG_DIR" root_pending="$PENDING" root_done="$DONE_DIR" root_dream="$DREAM_LOG"
+  for scope in "$root_mem"/projects/*; do
+    [[ -d "$scope/daily" ]] || continue
+    MEM_DIR="$scope"
+    LOG_DIR="$MEM_DIR/dream"
+    PENDING="$LOG_DIR/pending"
+    DONE_DIR="$LOG_DIR/processed"
+    DREAM_LOG="$LOG_DIR/$STAMP-$HOST_SHORT.md"
+    if (( DRY_RUN )); then
+      report_project_backlog_one "$scope"
+      continue
+    fi
+    mkdir -p "$PENDING" "$DONE_DIR"
+    ran=$((ran+1))
+    if run_analyze; then
+      got=1
+      run_organize; case $? in 0|2) ;; *) rc=1 ;; esac
+    fi
+  done
+  MEM_DIR="$root_mem"; LOG_DIR="$root_log"; PENDING="$root_pending"
+  DONE_DIR="$root_done"; DREAM_LOG="$root_dream"
+  log "projects: analyzed $ran scope(s), fragments=$got"
+  (( got ))
+}
+
 NOOP=0
 case "$PHASE" in
   analyze)  do_analyze || rc=1 ;;
@@ -529,6 +568,12 @@ case "$PHASE" in
       run_organize; case $? in 2) NOOP=1 ;; 0) ;; *) rc=1 ;; esac
     fi
     run_reindex || rc=1
+    # Opt-in: distill each project scope's own daily logs, which the root
+    # analyze never reads.
+    # A dry run already lists every scope's backlog in run_reindex.
+    if (( PROJECTS )) && (( ! DRY_RUN )); then
+      run_scoped_projects && NOOP=0
+    fi
     ;;
 esac
 
