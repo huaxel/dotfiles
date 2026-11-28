@@ -310,12 +310,39 @@ Rules: base every line on what the file actually says; invent nothing. Omit a se
   return 1
 }
 
+# Project scopes keep their own daily logs under projects/<key>/daily, and the
+# analyze phase only reads the root daily/. Report the backlog instead of
+# silently letting those logs accumulate: a scope is listed when it holds a
+# daily whose covered/ stamp is absent or older than the log.
+report_project_backlog() {
+  local d scope n=0 newest total=0
+  for d in "$MEM_DIR"/projects/*/daily; do
+    [[ -d "$d" ]] || continue
+    scope="$(dirname "$d")"
+    n=0
+    local stamp
+    while IFS= read -r f; do
+      stamp="$scope/dream/covered/$(basename "$f" .md).md"
+      if [[ ! -f "$stamp" ]] || (( $(file_mtime "$stamp") < $(file_mtime "$f") )); then
+        n=$((n+1))
+      fi
+    done < <(find "$d" -maxdepth 1 -type f -name '*.md' 2>/dev/null | sort)
+    total=$((total+n))
+    (( n )) || continue
+    newest="$(find "$d" -maxdepth 1 -type f -name '*.md' -printf '%f\n' 2>/dev/null | sort | tail -1)"
+    say "  $(basename "$scope"): $n uncovered daily log(s), newest ${newest:-none}"
+  done
+  (( total )) && say "project backlog: $total un-analyzed daily log(s) across project scopes (not distilled by this run)"
+  return 0
+}
+
 run_reindex() {
   local f total=0 ok=0
   local -a files=("$MEM_DIR/MEMORY.md")
   for f in "$MEM_DIR"/projects/*/MEMORY.md; do [[ -f "$f" ]] && files+=("$f"); done
   if (( DRY_RUN )); then
     say "would reindex ${#files[@]} memory scope(s)"
+    report_project_backlog
     return 2
   fi
   log "=== reindex ${#files[@]} scope(s) (host=$(hostname -s)) ==="
