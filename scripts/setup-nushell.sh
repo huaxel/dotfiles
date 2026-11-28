@@ -15,6 +15,34 @@ if [[ "$CACHE_DIR" =~ ^[A-Za-z]:[\\/] ]] && command -v cygpath >/dev/null 2>&1; 
     CACHE_DIR=$(cygpath -u "$CACHE_DIR")
 fi
 CACHE_DIR="${CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/nushell}"
+
+# `$nu.cache-dir` is fixed from the environment the process starts with, so the
+# answer differs by launch path: a terminal spawned from Finder/Rex (no
+# XDG_CACHE_HOME) resolves macOS' platform default ~/Library/Caches/nushell,
+# while one spawned from a shell that already carries XDG_CACHE_HOME resolves
+# ~/.cache/nushell. config.nu sources $nu.cache-dir/<tool>.nu, so a generator
+# that wrote to one of those paths left the other launch path with no
+# integrations at all (no prompt, no fzf/atuin keybindings, no zoxide).
+# Keep one physical directory and make the platform default a symlink to it.
+if [[ "$(uname -s)" == "Darwin" ]]; then
+    xdg_cache="${XDG_CACHE_HOME:-$HOME/.cache}/nushell"
+    platform_cache="$HOME/Library/Caches/nushell"
+    if [[ "$CACHE_DIR" != "$xdg_cache" ]]; then
+        echo "Note: Nushell resolved $CACHE_DIR; generating in $xdg_cache instead"
+        CACHE_DIR="$xdg_cache"
+    fi
+    if [[ -L "$platform_cache" ]]; then
+        if [[ "$(readlink "$platform_cache")" != "$CACHE_DIR" ]]; then
+            ln -sfn "$CACHE_DIR" "$platform_cache"
+        fi
+    elif [[ -e "$platform_cache" ]]; then
+        echo "  ⚠️  $platform_cache is a real directory; leaving it alone."
+        echo "      Remove it (or move its files) so it can link to $CACHE_DIR."
+    else
+        mkdir -p "$(dirname "$platform_cache")"
+        ln -s "$CACHE_DIR" "$platform_cache"
+    fi
+fi
 ATUIN_INIT="$CACHE_DIR/atuin.nu"
 
 mkdir -p "$CACHE_DIR" "${ATUIN_INIT%/*}"
