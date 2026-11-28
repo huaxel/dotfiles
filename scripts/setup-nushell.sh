@@ -47,6 +47,11 @@ ATUIN_INIT="$CACHE_DIR/atuin.nu"
 
 mkdir -p "$CACHE_DIR" "${ATUIN_INIT%/*}"
 
+# config.nu pins $env.config.history.file to ~/.local/share/nushell so that every
+# launch path records into one database (Nushell's default follows the inherited
+# $nu.data-dir, which split history in two). Create it before the first session.
+mkdir -p "$HOME/.local/share/nushell"
+
 # Write beside the destination and rename only after generation succeeds. This
 # keeps a running shell usable if a tool upgrade leaves a broken executable.
 generate_integration() {

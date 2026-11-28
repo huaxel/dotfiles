@@ -6,6 +6,26 @@ $env.config.edit_mode = "vi"
 $env.config.history.file_format = "sqlite"
 $env.config.history.max_size = 100_000
 $env.config.history.isolation = false
+
+# Nushell derives the default history path from `$nu.data-dir`, which - like
+# `$nu.cache-dir` - is fixed from the environment the process inherits. A shell
+# spawned by Finder or Rex therefore wrote
+# `~/Library/Application Support/nushell/history.sqlite3` while one spawned from
+# a configured shell wrote `~/.config/nushell/history.sqlite3`, so history
+# search only ever saw half of what was typed. Pin one file for every launch
+# path; setup-nushell.sh creates its directory.
+let history_file = ($env.HOME | path join ".local" "share" "nushell" "history.sqlite3")
+let history_keys = ($env.config.history? | default {} | columns)
+if (($history_file | path dirname) | path exists) {
+    # Nushell 0.116 renamed the option from history.file to history.path; set
+    # whichever this version knows so an older host (e.g. an offline WSL box)
+    # does not fail with "Unknown config option".
+    if ($history_keys | any {|key| $key == "path"}) {
+        $env.config.history.path = $history_file
+    } else if ($history_keys | any {|key| $key == "file"}) {
+        $env.config.history.file = $history_file
+    }
+}
 $env.config.completions.case_sensitive = false
 
 # Keep Nushell's structured output and syntax colors aligned with Ghostty's
