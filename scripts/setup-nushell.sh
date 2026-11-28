@@ -76,20 +76,11 @@ else
 fi
 
 if command -v fzf >/dev/null 2>&1; then
+    # fzf >= 0.75 emits the record-based completer Nushell 0.116+ expects
+    # (`{|place| __fzf_external_completer $place}`). Releases up to 0.74 emitted
+    # a legacy positional `{|spans| ...}` wrapper, which Nushell now warns
+    # about; if a host is pinned below 0.75, bump fzf rather than patching here.
     generate_integration "$CACHE_DIR/fzf.nu" fzf --nushell
-    # FZF 0.74 still emits a legacy positional completer wrapper, which
-    # Nushell 0.116 warns about. Translate its spans argument to the current
-    # record API while preserving the token list passed to both completers.
-    if grep -q 'let fzf_wrapper_completer = {|spans|' "$CACHE_DIR/fzf.nu"; then
-        tmp=$(mktemp "$CACHE_DIR/fzf.nu.tmp.XXXXXX")
-        # Single quotes are deliberate: the Nushell variable names must reach
-        # fzf.nu literally instead of expanding here.
-        # shellcheck disable=SC2016
-        sed \
-            -e 's/let fzf_wrapper_completer = {|spans|/let fzf_wrapper_completer = {|...completer_input|\n    let place = ($completer_input | first | get place)\n    let spans = $place.command/' \
-            "$CACHE_DIR/fzf.nu" > "$tmp" && mv "$tmp" "$CACHE_DIR/fzf.nu"
-        echo "Updated fzf completer for Nushell record input"
-    fi
     echo "Generated fzf integration"
 else
     rm -f "$CACHE_DIR/fzf.nu"
