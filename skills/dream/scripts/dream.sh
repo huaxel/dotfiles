@@ -401,6 +401,21 @@ run_organize() {
   if [[ -z "$frag_list" ]]; then
     say "organize: nothing to do (no fragments pending)."; return 2
   fi
+
+  # A scope created by a session that never wrote long-term memory has no
+  # MEMORY.md, and an organizer that cannot read one drops every fragment while
+  # the run still marks those logs covered — a silent loss. Seed the file so the
+  # fragments have somewhere to land.
+  if [[ ! -f "$MEM_DIR/MEMORY.md" ]]; then
+    {
+      printf '<!-- INDEX START -->\n'
+      printf '# INDEX (%s)\n' "$STAMP"
+      printf 'Seeded by the dream pass on first distillation; no summary yet.\n'
+      printf '<!-- INDEX END -->\n'
+    } >"$MEM_DIR/MEMORY.md"
+    log "organize: seeded a new MEMORY.md in $MEM_DIR"
+  fi
+
   log "=== organize $STAMP (host=$(hostname -s)) ==="
 
   local conflicts=0
