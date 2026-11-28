@@ -54,6 +54,31 @@ check_integration zoxide "$CACHE_DIR/zoxide.nu" "zoxide.nu"
 check_integration fzf "$CACHE_DIR/fzf.nu" "fzf.nu"
 check_integration atuin "$ATUIN_INIT" "atuin init.nu"
 
+# 2b. Every launch path must reach those files. `$nu.cache-dir` above is the one
+# this process resolved; a shell started by Finder/Rex resolves the platform
+# default instead, so integration generation counts as healthy only when both
+# paths are the same physical directory (setup-nushell.sh links them).
+if [ "$(uname -s)" = "Darwin" ]; then
+    xdg_dir="${XDG_CACHE_HOME:-$HOME/.cache}/nushell"
+    platform_dir="$HOME/Library/Caches/nushell"
+    xdg_real=$(cd "$xdg_dir" 2>/dev/null && pwd -P || true)
+    platform_real=$(cd "$platform_dir" 2>/dev/null && pwd -P || true)
+    if [ -z "$xdg_real" ] || [ -z "$platform_real" ]; then
+        echo "  ❌ integration cache missing (${xdg_real:-$xdg_dir} / ${platform_real:-$platform_dir})"
+        echo "     a shell started without XDG_CACHE_HOME would lose every integration"
+        echo "     run: just nushell-setup"
+        errors=$((errors + 1))
+    elif [ "$xdg_real" != "$platform_real" ]; then
+        echo "  ❌ launch paths resolve different cache dirs"
+        echo "     XDG:      $xdg_real"
+        echo "     platform: $platform_real"
+        echo "     run: just nushell-setup"
+        errors=$((errors + 1))
+    else
+        echo "  ✅ one integration cache for every launch path ($platform_real)"
+    fi
+fi
+
 # 3. Load the checked-out config, not merely the deployed config. macOS does
 # not ship GNU timeout, so use it when available and otherwise run directly.
 run_nu() {

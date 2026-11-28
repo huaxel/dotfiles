@@ -527,6 +527,14 @@ check-nu:
     done
     if [ "$errors" -gt 0 ]; then echo "  ❌ $errors Nushell config files have issues"; exit 1; fi
     echo "  ✅ All Nushell config files parse"
+    # Launch-path cache split: $nu.cache-dir differs between Finder/Rex-spawned
+    # and shell-spawned sessions, so one of them can silently lose every
+    # integration (see scripts/tests/nushell-cache.test.py).
+    if command -v python3 &>/dev/null; then
+        python3 scripts/tests/nushell-cache.test.py
+    else
+        echo "  ⚠️  python3 not installed — skipping nushell cache launch-path tests"
+    fi
 
 # Offline deployment and launcher fixtures; never touches the real home.
 check-agents:
