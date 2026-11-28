@@ -23,18 +23,96 @@ llamaman, xkb), and the three encrypted secret
 destinations through sops-nix. No second configuration manager owns those
 Unix paths; each path has one Home Manager owner.
 
-On macOS, Home Manager owns the reproducible CLI baseline. The Brewfile keeps
-Homebrew for GUI applications, macOS-integrated/runtime-specific formulae, and
-bootstrap prerequisites (`age`, `git`, and `sops`). Duplicate CLI
-formulae should not be added back to the Brewfile; bootstrap prepends the
-activated Nix profile for its remaining setup steps.
+On macOS, Home Manager owns the reproducible CLI baseline, including the 75
+portable tools in `home/darwin-packages.nix`. The Brewfile keeps Homebrew for
+GUI applications (casks), macOS-integrated/runtime-specific formulae, and
+bootstrap prerequisites (`age`, `git`, `sops`): 16 formulae and 38 casks.
+Duplicate CLI formulae should not be added back to the Brewfile — not because
+Nix shadows them, but because it does not: in an interactive zsh
+`/opt/homebrew/bin` precedes `~/.nix-profile/bin`, so a leftover brew copy
+silently wins. Bootstrap prepends the activated Nix profile for its remaining
+setup steps.
+
+That rule is enforced instead of remembered, at two levels, because neither
+alone is enough:
+
+- `just check-macos` parses the `home.packages` lists and fails when a Brewfile
+  formula installs a command Home Manager already owns (`NIX_NAME_ALIASES`,
+  `BREW_NAME_ALIASES` cover attrs and formulae whose names differ from the
+  binary). It runs everywhere, including hosts without Homebrew, and it is
+  name-based: `poppler` (attr `poppler-utils`) and `kubernetes-cli` (attr
+  `kubectl`) both slipped past it until they were added to the tables.
+- `just doctor` resolves each installed formula's real commands from the
+  Cellar symlinks and reports the ones that shadow a Nix-provided command, so
+  a formula installed by hand — or by another agent — is visible on this host.
+  Declared duplicates fail; undeclared ones only warn, because a formula
+  pulled in as a dependency (node for `llama.cpp`, python for `hf`) is
+  Homebrew's business.
+
+### Build directories that name their tools
+
+A CMake build directory records the tools it was configured with: the `cmake`
+that generated it, and the `ninja` it found. Both are absolute paths, and every
+regeneration and every `cmake -E` step in it calls those paths, so moving a tool
+from Homebrew to Nix does not fail at the tool — it fails inside a build rule
+with `no such file or directory`, long after the tool was removed.
+
+`ninja` has to be in the build toolchain list in `home/darwin-packages.nix` for
+any of this to work; it is not installed by anything else. After
+`home-manager switch`, reconfigure the directory with the Nix `cmake` and a
+`ninja` on PATH so the cache names the new ones:
+
+```sh
+cd path/to/project && cmake -S . -B build
+# a project with presets names its own: Ladybird takes LADYBIRD_SOURCE_DIR=$PWD cmake --preset Release
+```
+
+Expect one full rebuild: CMake writes its own path into every command line, and
+ninja treats a changed command as a changed target.
+
+Rust is the other half. A project that pins a toolchain in `rust-toolchain.toml`
+still resolves `rustc` through PATH, and `~/.nix-profile/bin` now comes before
+`~/.cargo/bin`, so the pinned shim loses to Nix's rustc. A rustc newer than the
+pin compiles fine until it deprecates something the tree uses, which the project
+compiles with `-Dwarnings`: the error then names a crate nobody touched. Either
+put `~/.cargo/bin` first for that build, or hand the project the pinned compiler
+(Ladybird takes `-DRUST_RUSTC="$(rustup which rustc)"`).
+
+### Which GUI applications Nix can own
+
+Nix is not limited to CLIs: `iina` and `localsend` are in
+`home/darwin-packages.nix` and macOS launches them from the store. Home Manager
+needs no `home.file` entry for this — it links every `.app` in `home.packages`
+into `~/Applications/Home Manager Apps`, which is what registers the bundle
+with LaunchServices. A second link elsewhere registers the same app twice.
+
+Four shapes stay on Homebrew, each for a reason that no Nix feature removes:
+`pkg`/`installer` casks that write to `/Library`, install launch daemons or
+register system extensions the user must approve (`macfuse`, `displaylink`,
+`tailscale-app`, `beid-token`, `logi-options+`, `microsoft-office`); App Store
+apps, whose receipts only `mas` can produce; self-updating apps, whose updater
+cannot write into a read-only store and whose version churns weekly
+(`google-chrome`, `discord`, `vscode`, `obsidian`, `zed`); and apps nixpkgs
+tracks too slowly to be worth it (`itsycal` ships 0.15.12 against Homebrew's
+0.29.0). Patching or re-signing a bundle also changes its code identity, which
+resets the Accessibility and Screen Recording grants macOS keys to it, so a
+moved app must be one nixpkgs does not have to modify.
 
 Validate from a machine with Nix installed:
 
 ```bash
-nix flake check --all-systems
+nix flake check --all-systems --no-build
 just nix-check juan@framearch
 ```
+
+The `--no-build` is not a shortcut around verification. Without it, the check
+realises each output's closure before returning, which on a Darwin machine
+means substituting Linux closures it can never run: measured at 296 s against
+6 s for the same evaluation, and growing with every package change. Build
+coverage comes from the profile build that follows (`nix-check`, `nix-switch`
+and `check-nix` all build the host natively). What `--all-systems` still buys
+is evaluation of the other three systems' configurations, which is where
+unsupported options and drifted module arguments surface.
 
 `just ci` also runs the flake check when Nix is installed; this includes an
 inert enabled-module evaluation for graphics, model storage, service users, and
@@ -115,7 +193,11 @@ scripts\deploy-windows.ps1`. Existing regular files are preserved with a
   the laptop model preset.
 - `home/arch-wsl.nix`: WSL interop and Windows-mounted paths.
 - `home/macbook.nix`: macOS user environment. Homebrew remains authoritative
-  for applications during the pilot.
+  for applications and the macOS-integrated formulae; see below.
+- `home/darwin-packages.nix`: the macOS CLI toolchain Nix owns, in commented
+  groups. Its header records the nine tools deliberately left on Homebrew and
+  the shims that disappeared with the brew copies, so a later "cleanup" does
+  not delete the bootstrap path or re-add a duplicate.
 
 The physical host's CachyOS kernel, AMD/AI drivers, AUR packages, model
 the generated model preset, and custom `/opt/cachy-llama` runtime remain

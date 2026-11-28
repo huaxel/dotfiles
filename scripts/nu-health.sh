@@ -97,7 +97,10 @@ aliases: ($aliases)"
         }
         # Atuin starts asynchronous index preparation during initialization;
         # terminate it in this short-lived health process before exiting.
-        job list | get -o id | each {|id| job kill $id} | ignore
+        # Best-effort: a job that already finished cannot be killed, and a
+        # failed kill used to abort the block before `exit`, which then left
+        # Nushell falling back to a REPL with a non-TTY stdin.
+        try { job list | get -o id | each {|id| job kill $id} | ignore } catch { null }
         exit
     ' 2>&1); then
     printf '%s\n' "$health_output" | sed 's/^/  /'

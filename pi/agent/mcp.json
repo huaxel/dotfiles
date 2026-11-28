@@ -13,7 +13,8 @@
       "args": [
         "mcp"
       ],
-      "description": "Background computer-use driver: window snapshots plus click/type/scroll input that doesn't steal the cursor"
+      "description": "Background computer-use driver: window snapshots plus click/type/scroll input that doesn't steal the cursor",
+      "enabled": false
     },
     "motherduck": {
       "url": "https://api.motherduck.com/mcp"

@@ -28,7 +28,57 @@ require(len(casks) == len(set(casks)), "Brewfile contains duplicate casks")
 require('cask "tailscale-app"' in brewfile, "Tailscale app is missing")
 require('brew "tailscale"' not in brewfile, "Tailscale formula conflicts with the macOS app")
 require("restart_service:" not in brewfile, "Brewfile unexpectedly auto-starts background services")
-require('brew "shellcheck"' not in brewfile, "Brewfile duplicates Home Manager-owned ShellCheck")
+
+# One manager per command. A tool declared in both places is not a fallback: in
+# an interactive zsh `/opt/homebrew/bin` precedes `~/.nix-profile/bin`, so the
+# older brew copy wins. This replaces per-tool assertions ("Brewfile duplicates
+# Home Manager-owned ShellCheck") that only guarded the tools someone remembered.
+#
+# Scope is declarations, not installed formulae: a brew formula pulled in as a
+# build dependency of a keepsake (node for llama.cpp) is Homebrew's business.
+# The comparison is name-based, so a package whose attr and formula differ
+# beyond NIX_NAME_ALIASES escapes it - poppler (attr `poppler-utils`) did, and
+# was a live duplicate for a while."
+BOOTSTRAP_EXCEPTIONS = {"age", "git", "sops"}
+# Brew formula names that differ from the command they install. Static analysis
+# can only see names, so a pair missing here passes unnoticed -- `just doctor`
+# resolves the real command from the Cellar and catches the rest on this host.
+BREW_NAME_ALIASES = {
+    "kubernetes-cli": "kubectl",
+    "huggingface-cli": "hf",
+    "gnu-typist": "gtypist",
+    "gnu-sed": "gsed",
+    "php@8.3": "php",
+}
+# Nix attribute names that differ from the command they install.
+NIX_NAME_ALIASES = {
+    "nodejs_24": "node",
+    "gnused": "gnu-sed",
+    "gnumake": "make",
+    "bashInteractive": "bash",
+    "transmission_4": "transmission-cli",
+}
+
+def nix_package_names(relative: str) -> set[str]:
+    source = read(relative)
+    names: set[str] = set()
+    for block in re.findall(r"home\.packages\s*=\s*with\s+pkgs;\s*\[(.*?)\n\s*\]", source, re.S):
+        for line in block.splitlines():
+            line = line.split("#", 1)[0].strip()
+            if re.fullmatch(r"[A-Za-z0-9_.\-]+", line):
+                names.add(line)
+    return names
+
+nix_owned = set()
+for module in ("home/common.nix", "home/darwin-packages.nix"):
+    nix_owned |= {NIX_NAME_ALIASES.get(n, n) for n in nix_package_names(module)}
+brew_commands = {BREW_NAME_ALIASES.get(f, f) for f in formulae}
+conflicts = sorted((brew_commands & nix_owned) - BOOTSTRAP_EXCEPTIONS)
+require(
+    not conflicts,
+    "Brewfile declares commands Home Manager already owns "
+    f"(remove the brew line, or add the binary to NIX_NAME_ALIASES if the name differs): {conflicts}",
+)
 
 defaults = read("macos/defaults.sh")
 require("LSQuarantine -bool false" not in defaults, "macOS download quarantine is disabled")
